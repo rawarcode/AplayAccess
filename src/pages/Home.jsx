@@ -6,7 +6,7 @@ const resorts = [
     desc: "Experience luxury and breathtaking ocean views at our flagship resort.",
     badge: { text: "Popular", className: "bg-blue-600" },
     img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2070&q=80",
-    to: "/aplaya-cavite",
+    to: "/resort",
   },
   {
     name: "Aplaya Beach Resort Cebu",
