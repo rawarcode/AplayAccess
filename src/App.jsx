@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 import Home from "./pages/Home.jsx";
 import Resort from "./pages/Resort.jsx";
+import Rooms from "./pages/Rooms.jsx";
 
 function Placeholder({ title }) {
   return (
@@ -22,7 +23,7 @@ export default function App() {
         <Route path="/resort" element={<Resort />} />
 
         {/* upcoming pages */}
-        <Route path="/rooms" element={<Placeholder title="Rooms" />} />
+        <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Placeholder title="Gallery" />} />
         <Route path="/signup" element={<Placeholder title="Sign Up" />} />
         <Route path="/forgot-password" element={<Placeholder title="Forgot Password" />} />
