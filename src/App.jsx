@@ -4,6 +4,7 @@ import Home from "./pages/Home.jsx";
 import Resort from "./pages/Resort.jsx";
 import Rooms from "./pages/Rooms.jsx";
 import Gallery from "./pages/Gallery.jsx";
+import Signup from "./pages/Signup.jsx";
 
 function Placeholder({ title }) {
   return (
@@ -26,7 +27,8 @@ export default function App() {
         {/* upcoming pages */}
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Gallery />} />
-        <Route path="/signup" element={<Placeholder title="Sign Up" />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Placeholder title="Login" />} />
         <Route path="/forgot-password" element={<Placeholder title="Forgot Password" />} />
       </Route>
     </Routes>
