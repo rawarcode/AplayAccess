@@ -26,9 +26,7 @@ export default function Resort() {
   const [successOpen, setSuccessOpen] = useState(false);
 
   const [selectedRoom, setSelectedRoom] = useState("");
-
-  // ✅ if user clicks Book Now while logged out, remember intent
-  const [pendingBookingRoom, setPendingBookingRoom] = useState(null); // string | null
+  const [pendingBookingRoom, setPendingBookingRoom] = useState(null); // string|null
 
   const [contactAlert, setContactAlert] = useState({
     open: false,
@@ -44,20 +42,16 @@ export default function Resort() {
     message: "",
   });
 
-  // ✅ Prevent “can’t scroll” when any modal/alert is open
   const anyOverlayOpen =
     bookingOpen || loginOpen || successOpen || contactAlert.open || newsletterAlert.open;
   useLockBodyScroll(anyOverlayOpen);
 
-  // ✅ Main booking gate
   function requestBooking(roomName = "") {
     if (!isLoggedIn) {
-      // store what user wanted to book, then ask them to login first
       setPendingBookingRoom(roomName || "");
       setLoginOpen(true);
       return;
     }
-
     setSelectedRoom(roomName || "");
     setBookingOpen(true);
   }
@@ -65,17 +59,19 @@ export default function Resort() {
   function handleLoginSuccess(u) {
     login(u);
     setLoginOpen(false);
-  
+
     const params = new URLSearchParams(location.search);
     const next = params.get("next");
-  
-    // ✅ If user was redirected to login to access dashboard
+
+    // ✅ If the user was trying to access a protected page, go there
     if (next) {
+      params.delete("login");
+      params.delete("next");
       navigate(next, { replace: true });
       return;
     }
-  
-    // ✅ If user was trying to book before login
+
+    // ✅ If user was trying to book, open booking right after login
     if (pendingBookingRoom !== null) {
       const roomName = pendingBookingRoom;
       setPendingBookingRoom(null);
@@ -84,22 +80,26 @@ export default function Resort() {
     }
   }
 
-  // ✅ Handle Navbar Book Now: /resort?book=1
+  // ✅ Auto-open login modal when redirected here: /resort?login=1&next=/dashboard
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const shouldLogin = params.get("login") === "1";
+    if (shouldLogin) setLoginOpen(true);
+  }, [location.search]);
+
+  // ✅ Handle navbar Book Now: /resort?book=1 (& optional room)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shouldBook = params.get("book") === "1";
-
     if (!shouldBook) return;
 
-    // optional: allow /resort?book=1&room=Deluxe%20Ocean%20View
     const roomFromUrl = params.get("room") || "";
 
-    // clear the flag so refresh doesn't reopen
+    // clear flags so refresh doesn't reopen
     params.delete("book");
     params.delete("room");
     navigate({ search: params.toString() }, { replace: true });
 
-    // trigger booking logic (with login gate)
     requestBooking(roomFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
@@ -152,7 +152,6 @@ export default function Resort() {
 
   return (
     <div className="font-sans">
-      {/* Page padding because navbar is fixed */}
       <div className="pt-16">
         {/* HERO */}
         <section
@@ -392,8 +391,7 @@ export default function Resort() {
               <div className="lg:w-1/2 mb-10 lg:mb-0">
                 <h2 className="text-3xl font-bold text-gray-900 mb-6">Contact Us</h2>
                 <p className="text-gray-600 mb-6">
-                  Have questions or need assistance with your booking? Our team is here to help you plan your perfect
-                  getaway.
+                  Have questions or need assistance with your booking? Our team is here to help you plan your perfect getaway.
                 </p>
 
                 <div className="space-y-4 text-sm">
@@ -516,7 +514,6 @@ export default function Resort() {
         open={loginOpen}
         onClose={() => {
           setLoginOpen(false);
-          // if user cancels login, clear pending booking intent
           setPendingBookingRoom(null);
         }}
         onLoginSuccess={handleLoginSuccess}
