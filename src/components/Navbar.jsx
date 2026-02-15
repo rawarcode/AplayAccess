@@ -13,7 +13,6 @@ export default function Navbar() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
 
-  // lock scroll for nav-triggered modals
   useLockBodyScroll(loginOpen || signupOpen);
 
   function handleLoginSuccess(u) {
@@ -22,32 +21,54 @@ export default function Navbar() {
   }
 
   function handleSignupSuccess(u) {
-    login(u); // auto-login after signup
+    login(u);
     setSignupOpen(false);
   }
 
   return (
     <nav className="fixed w-full z-40 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <span className="text-2xl">🏖️</span>
-          <span className="text-xl font-bold text-blue-600">Aplaya Beach Resort</span>
+          <span className="text-xl font-bold text-blue-600">
+            Aplaya Beach Resort
+          </span>
         </Link>
 
+        {/* Navigation */}
         <div className="flex items-center gap-4">
-          <Link to="/resort" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+          <Link
+            to="/resort"
+            className="text-gray-700 hover:text-blue-600 text-sm font-medium"
+          >
             Resort
           </Link>
-          <Link to="/rooms" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+
+          <Link
+            to="/rooms"
+            className="text-gray-700 hover:text-blue-600 text-sm font-medium"
+          >
             Rooms
           </Link>
-          <Link to="/gallery" className="text-gray-700 hover:text-blue-600 text-sm font-medium">
+
+          <Link
+            to="/gallery"
+            className="text-gray-700 hover:text-blue-600 text-sm font-medium"
+          >
             Gallery
           </Link>
 
+          {/* Auth Area */}
           {user ? (
             <>
-              <span className="text-sm text-gray-700">👤 {user.name || "Guest"}</span>
+              <Link
+                to="/dashboard"
+                className="text-gray-700 hover:text-blue-600 text-sm font-medium"
+              >
+                My Account
+              </Link>
+
               <button
                 onClick={logout}
                 className="text-sm font-medium text-red-600 hover:text-red-800"
@@ -76,6 +97,7 @@ export default function Navbar() {
             </>
           )}
 
+          {/* Book Now */}
           <Link
             to="/resort?book=1"
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -85,6 +107,7 @@ export default function Navbar() {
         </div>
       </div>
 
+      {/* Modals */}
       <LoginModal
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
