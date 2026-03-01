@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beach admin · light access</title>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #f0f7fb;  /* very light coastal sky */
+            background: radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        /* very faint beach elements (barely there) */
+        .light-beach-bg {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.2;
+        }
+        .light-beach-bg i {
+            position: absolute;
+            color: #b0d0dd;
+            font-size: 7rem;
+            bottom: 20px;
+            right: 30px;
+            transform: rotate(5deg);
+        }
+        .light-beach-bg .shell-mini {
+            left: 20px;
+            top: 30px;
+            font-size: 5rem;
+            color: #cbe0e9;
+            transform: rotate(-15deg);
+        }
+
+        /* main card – pure white, light, airy */
+        .admin-card {
+            position: relative;
+            z-index: 20;
+            background: #ffffff;
+            border-radius: 48px;
+            box-shadow: 0 30px 50px -30px rgba(0, 80, 100, 0.25), 0 6px 12px rgba(0,0,0,0.02);
+            width: 100%;
+            max-width: 960px;
+            display: flex;
+            flex-wrap: wrap;
+            overflow: hidden;
+            border: 1px solid rgba(150, 190, 210, 0.2);
+        }
+
+        /* left column – light & minimal, no stats, no badges */
+        .left-light {
+            flex: 1 1 280px;
+            background: #f9fcfe;
+            padding: 2.8rem 2.2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border-right: 1px solid #e2edf2;
+        }
+
+        .logo-light {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .logo-light i {
+            font-size: 2.4rem;
+            color: #479eb3;
+        }
+        .logo-light span {
+            font-size: 2rem;
+            font-weight: 350;
+            color: #1d5c6e;
+            letter-spacing: -0.5px;
+        }
+        .logo-light small {
+            font-size: 0.8rem;
+            color: #81b3c2;
+            margin-left: 6px;
+            font-weight: 300;
+        }
+
+        .welcome-light {
+            margin: 2.5rem 0 1rem;
+        }
+        .welcome-light h2 {
+            font-weight: 350;
+            font-size: 2rem;
+            color: #124a58;
+            line-height: 1.2;
+        }
+        .welcome-light p {
+            color: #4c8597;
+            font-weight: 300;
+            margin-top: 0.8rem;
+            font-size: 1rem;
+        }
+
+        .location-note {
+            margin-top: auto;
+            color: #7faebb;
+            font-weight: 300;
+            font-size: 0.9rem;
+            border-top: 1px dashed #cde3ea;
+            padding-top: 1.5rem;
+        }
+        .location-note i {
+            color: #70aabe;
+        }
+
+        /* right column – pure login, very light */
+        .right-light {
+            flex: 1 1 340px;
+            background: #ffffff;
+            padding: 2.8rem 2.5rem;
+        }
+
+        .access-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 2.5rem;
+        }
+        .access-header i {
+            font-size: 1.8rem;
+            color: #2a8ca3;
+            background: #e1f1f7;
+            padding: 10px 12px;
+            border-radius: 28px;
+        }
+        .access-header h2 {
+            font-weight: 350;
+            font-size: 1.9rem;
+            color: #1a4d5c;
+        }
+
+        /* form elements – light & clean */
+        .input-light {
+            margin-bottom: 1.8rem;
+            position: relative;
+        }
+        .input-light i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #7ab3c4;
+            font-size: 1.2rem;
+            width: 1.5rem;
+        }
+        .input-light input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3.2rem;
+            background: #f3fafd;
+            border: 1px solid #cde3ec;
+            border-radius: 34px;
+            font-size: 1rem;
+            outline: none;
+            transition: 0.15s;
+            color: #145e70;
+        }
+        .input-light input:focus {
+            border-color: #62b5cc;
+            background: #ffffff;
+            box-shadow: 0 0 0 4px #d8eef6;
+        }
+        .input-light input::placeholder {
+            color: #9dbecb;
+            font-weight: 300;
+        }
+
+        /* row with remember + forgot (light) */
+        .light-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 1rem 0 2.2rem 0;
+            color: #458196;
+        }
+        .light-options label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .light-options input[type="checkbox"] {
+            accent-color: #51a7bf;
+            width: 1rem;
+            height: 1rem;
+        }
+        .light-options a {
+            color: #479eb3;
+            text-decoration: none;
+            border-bottom: 1px dashed #b0d5e2;
+        }
+
+        .btn-light {
+            background: #479eb3;
+            border: none;
+            padding: 1rem;
+            width: 100%;
+            border-radius: 60px;
+            color: white;
+            font-weight: 500;
+            font-size: 1.3rem;
+            letter-spacing: 0.3px;
+            box-shadow: 0 8px 18px -6px #89c1d3;
+            transition: 0.12s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            border: 1px solid #bce2ee;
+        }
+        .btn-light:hover {
+            background: #348197;
+            transform: translateY(-2px);
+            box-shadow: 0 15px 22px -8px #60aec9;
+        }
+
+        /* light footer – just minimal support links (no 2fa mention) */
+        .footer-light {
+            margin-top: 2.2rem;
+            display: flex;
+            justify-content: center;
+            gap: 2.2rem;
+            color: #85b7c7;
+            font-size: 0.9rem;
+        }
+        .footer-light a {
+            color: #307787;
+            text-decoration: none;
+            border-bottom: 1px dotted #c1dae3;
+        }
+
+        /* divider light */
+        .divider-light {
+            margin: 1.8rem 0 1.2rem;
+            display: flex;
+            align-items: center;
+            color: #b0cfdb;
+            gap: 10px;
+        }
+        .divider-light::before, .divider-light::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #cbe2eb, transparent);
+        }
+
+        /* no stats, no badges, no 2fa message – everything requested removed */
+        .admin-only-note {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #98bfcd;
+            margin-top: 1.8rem;
+        }
+
+        /* responsive */
+        @media (max-width: 700px) {
+            .left-light {
+                border-right: none;
+                border-bottom: 1px solid #e2edf2;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- ultra light background accents (very subtle) -->
+    <div class="light-beach-bg">
+        <i class="fas fa-umbrella-beach"></i>
+        <i class="fas fa-shell shell-mini"></i>
+    </div>
+
+    <!-- main card – completely light, white based, removed all heavy elements -->
+    <div class="admin-card">
+        <!-- left column – no metrics, no secured zone, only welcome & brand -->
+        <div class="left-light">
+            <div class="logo-light">
+                <i class="fas fa-fish"></i>
+                <span>shore.book</span>
+                <small>admin</small>
+            </div>
+            <div class="welcome-light">
+                <h2>good afternoon,<br>administrator</h2>
+                <p><i class="fas fa-wave-square" style="color:#7cb9cc;"></i> manage beach listings, reservations & staff</p>
+            </div>
+            <div class="location-note">
+                <i class="fas fa-map-pin"></i> 16 coastal countries · 200+ beaches
+            </div>
+        </div>
+
+        <!-- right column – only login form (no extra messages) -->
+        <div class="right-light">
+            <div class="access-header">
+                <i class="fas fa-lock-open"></i>
+                <h2>admin access</h2>
+            </div>
+
+            <!-- simple login form (no 2fa note, no extra text blocks) -->
+            <form onsubmit="event.preventDefault(); alert('Admin demo — redirect to dashboard.');">
+                <div class="input-light">
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" placeholder="admin email" required>
+                </div>
+                <div class="input-light">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" placeholder="password" required>
+                </div>
+
+                <div class="light-options">
+                    <label>
+                        <input type="checkbox"> keep signed in
+                    </label>
+                    <a href="#">reset</a>
+                </div>
+
+                <button type="submit" class="btn-light"><i class="fas fa-arrow-right-to-bracket"></i> log in</button>
+            </form>
+
+            <div class="divider-light">secure entry</div>
+
+            <!-- minimal footer: only support & backup links (as per original request but without any extra text) -->
+            <div class="footer-light">
+                <a href="#"><i class="fas fa-headset"></i> IT support</a>
+                <a href="#"><i class="fas fa-rotate-left"></i> backup</a>
+            </div>
+
+            <!-- the previous "two-factor authentication enabled" and all stat blocks are GONE -->
+            <!-- also no "secured zone · role" etc. removed completely -->
+            <div class="admin-only-note">
+                <i class="fas fa-circle-check" style="color:#86bfd3;"></i> authorized personnel only
+            </div>
+        </div>
+    </div>
+
+    <!-- no hidden stats or removed content – everything clean -->
+    <script>
+        // simple harmless click (no leftover text)
+        console.log('light admin panel ready');
+    </script>
+</body>
+</html>
