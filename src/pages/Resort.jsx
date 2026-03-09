@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import { api } from "../lib/api.js";
 
-import { rooms } from "../data/rooms.js";
-import { amenities } from "../data/amenities.js";
+// Local data for UI enrichment + offline fallback
+import { rooms as roomsFallback } from "../data/rooms.js";
+import { amenities as amenitiesFallback } from "../data/amenities.js";
 import { gallery } from "../data/gallery.js";
 import { testimonials } from "../data/testimonials.js";
 
@@ -13,6 +15,63 @@ import LoginModal from "../components/modals/LoginModal.jsx";
 import BookingModal from "../components/modals/BookingModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import AlertModal from "../components/modals/AlertModal.jsx";
+
+const RESORT_ID = 1;
+
+// Fallback image if DB has no images yet
+const FALLBACK_ROOM_IMG =
+  "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80";
+
+function normalizeApiList(payload) {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
+}
+
+function formatPHP(amount) {
+  const n = Number(amount || 0);
+  if (Number.isNaN(n)) return "₱0";
+  return `₱${n.toLocaleString()}`;
+}
+
+function amenityIcon(name = "") {
+  const n = String(name).toLowerCase();
+  if (n.includes("wifi")) return "📶";
+  if (n.includes("pool")) return "🏊";
+  if (n.includes("parking")) return "🅿️";
+  if (n.includes("restaurant") || n.includes("dining") || n.includes("food")) return "🍽️";
+  if (n.includes("spa") || n.includes("massage")) return "💆";
+  if (n.includes("gym") || n.includes("fitness")) return "🏋️";
+  if (n.includes("shuttle") || n.includes("transport")) return "🚐";
+  if (n.includes("beach")) return "🏖️";
+  return "✨";
+}
+
+function buildRoomCard(room) {
+  const name = room?.name ?? "Room";
+  const price = room?.price ?? 0;
+
+  // Find matching local room card by name (to reuse nicer UI fields)
+  const local = roomsFallback.find((r) => r?.name === name);
+
+  const desc =
+    local?.desc ??
+    "Relax in comfort with a cozy space, clean linens, and a peaceful resort atmosphere.";
+
+  const img = local?.img ?? FALLBACK_ROOM_IMG;
+
+  // Optional badge (reuse local badge if exists)
+  let badge = local?.badge ?? null;
+  if (!badge) {
+    const p = Number(price || 0);
+    if (p >= 6000) badge = { text: "Premium", className: "bg-purple-600" };
+    else if (p >= 4500) badge = { text: "Popular", className: "bg-green-600" };
+    else if (p > 0) badge = { text: "Best Value", className: "bg-blue-600" };
+  }
+
+  return { ...room, name, price, img, desc, badge };
+}
 
 export default function Resort() {
   const { user, login } = useAuth();
@@ -42,9 +101,38 @@ export default function Resort() {
     message: "",
   });
 
+  // API-backed lists (fallback if API is down)
+  const [roomsApi, setRoomsApi] = useState([]);
+  const [amenitiesApi, setAmenitiesApi] = useState([]);
+
   const anyOverlayOpen =
     bookingOpen || loginOpen || successOpen || contactAlert.open || newsletterAlert.open;
   useLockBodyScroll(anyOverlayOpen);
+
+  // UI cards
+  const roomCards = useMemo(() => {
+    const base = roomsApi.length ? roomsApi : roomsFallback;
+    return base.map(buildRoomCard);
+  }, [roomsApi]);
+
+  const bookingRooms = useMemo(() => {
+    const base = roomsApi.length ? roomsApi : roomsFallback;
+    return base.map((r) => ({
+      name: r?.name ?? "Room",
+      price: r?.price ?? 0,
+    }));
+  }, [roomsApi]);
+
+  const amenityCards = useMemo(() => {
+    if (amenitiesApi.length) {
+      return amenitiesApi.map((a) => ({
+        title: a?.name ?? "Amenity",
+        desc: a?.description ?? "",
+        icon: amenityIcon(a?.name),
+      }));
+    }
+    return amenitiesFallback;
+  }, [amenitiesApi]);
 
   function requestBooking(roomName = "") {
     if (!isLoggedIn) {
@@ -63,7 +151,6 @@ export default function Resort() {
     const params = new URLSearchParams(location.search);
     const next = params.get("next");
 
-    // ✅ If the user was trying to access a protected page, go there
     if (next) {
       params.delete("login");
       params.delete("next");
@@ -71,7 +158,6 @@ export default function Resort() {
       return;
     }
 
-    // ✅ If user was trying to book, open booking right after login
     if (pendingBookingRoom !== null) {
       const roomName = pendingBookingRoom;
       setPendingBookingRoom(null);
@@ -80,14 +166,14 @@ export default function Resort() {
     }
   }
 
-  // ✅ Auto-open login modal when redirected here: /resort?login=1&next=/dashboard
+  // Auto-open login modal when redirected here: /resort?login=1&next=/dashboard
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shouldLogin = params.get("login") === "1";
     if (shouldLogin) setLoginOpen(true);
   }, [location.search]);
 
-  // ✅ Handle navbar Book Now: /resort?book=1 (& optional room)
+  // Handle navbar Book Now: /resort?book=1 (& optional room)
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const shouldBook = params.get("book") === "1";
@@ -95,7 +181,6 @@ export default function Resort() {
 
     const roomFromUrl = params.get("room") || "";
 
-    // clear flags so refresh doesn't reopen
     params.delete("book");
     params.delete("room");
     navigate({ search: params.toString() }, { replace: true });
@@ -103,6 +188,36 @@ export default function Resort() {
     requestBooking(roomFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+
+  // Load rooms + amenities (public endpoints now)
+  useEffect(() => {
+    let alive = true;
+
+    async function loadResortData() {
+      try {
+        const [roomsRes, amenitiesRes] = await Promise.all([
+          api.get(`/api/resorts/${RESORT_ID}/rooms`),
+          api.get(`/api/resorts/${RESORT_ID}/amenities`),
+        ]);
+
+        if (!alive) return;
+
+        setRoomsApi(normalizeApiList(roomsRes.data));
+        setAmenitiesApi(normalizeApiList(amenitiesRes.data));
+      } catch (e) {
+        // Silent fallback only (no banner)
+        if (!alive) return;
+        console.warn("Resort API load failed, using local fallback:", e?.message || e);
+        setRoomsApi([]);
+        setAmenitiesApi([]);
+      }
+    }
+
+    loadResortData();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   function submitContact(e) {
     e.preventDefault();
@@ -180,14 +295,18 @@ export default function Resort() {
               </button>
 
               <button
-                onClick={() => {
-                  if (!isLoggedIn) setLoginOpen(true);
-                }}
+                onClick={() => setLoginOpen(true)}
                 className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm"
               >
-                {isLoggedIn ? `Logged in as ${user?.name || "Guest"}` : "Login"}
+                {isLoggedIn ? "Logged In" : "Login"}
               </button>
             </div>
+
+            {isLoggedIn ? (
+              <p className="mt-4 text-sm text-white/80">
+                Signed in as <span className="font-semibold">{user?.email || user?.name || "Guest"}</span>
+              </p>
+            ) : null}
           </div>
         </section>
 
@@ -247,9 +366,9 @@ export default function Resort() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {rooms.map((r) => (
+              {roomCards.map((r) => (
                 <div
-                  key={r.name}
+                  key={r.id ?? r.name}
                   className="bg-white rounded-xl overflow-hidden shadow-md transition hover:-translate-y-2 hover:shadow-xl"
                 >
                   <div className="relative">
@@ -268,7 +387,7 @@ export default function Resort() {
                     <p className="text-gray-600 mb-4">{r.desc}</p>
                     <div className="flex justify-between items-center">
                       <div>
-                        <span className="text-2xl font-bold text-blue-600">₱{r.price}</span>
+                        <span className="text-2xl font-bold text-blue-600">{formatPHP(r.price)}</span>
                         <span className="text-gray-500 text-sm">/ night</span>
                       </div>
                       <button
@@ -305,7 +424,7 @@ export default function Resort() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {amenities.map((a) => (
+              {amenityCards.map((a) => (
                 <div key={a.title} className="text-center p-6 rounded-xl bg-gray-50 hover:bg-blue-50 transition">
                   <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                     {a.icon}
@@ -355,9 +474,7 @@ export default function Resort() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">Gallery</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Take a visual journey through our beautiful resort.
-              </p>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">Take a visual journey through our beautiful resort.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -523,7 +640,7 @@ export default function Resort() {
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}
         selectedRoom={selectedRoom}
-        rooms={rooms}
+        rooms={bookingRooms}
         onBooked={() => {
           setBookingOpen(false);
           setSuccessOpen(true);
