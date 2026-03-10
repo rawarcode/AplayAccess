@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Modal from "./Modal.jsx";
+import { createBooking } from "../../lib/bookingApi.js";
 
 const PROMO_CODES = {
   SUMMER2024: { type: "percentage", value: 10 },
@@ -14,6 +15,11 @@ function formatPHP(n) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
+}
+
+function toGuestCount(val) {
+  if (val === "family") return 4;
+  return parseInt(val, 10) || 1;
 }
 
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked }) {
@@ -35,6 +41,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [promoMessage, setPromoMessage] = useState({ type: "info", text: "" });
   const [discountAmount, setDiscountAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("GCash");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -42,6 +50,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setPromoCode("");
       setDiscountAmount(0);
       setPromoMessage({ type: "info", text: "" });
+      setError("");
     }
   }, [open, selectedRoom]);
 
@@ -85,29 +94,69 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     setPromoMessage({ type: "success", text: `Promo "${code}" applied! You saved ${formatPHP(discount)}.` });
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
-    onClose();
-    onBooked({
-      checkIn,
-      checkOut,
-      roomType,
-      guests,
-      name,
-      email,
-      phone,
-      specialRequests,
-      promoCode: promoCode.trim().toUpperCase(),
-      paymentMethod,
-      totals: {
-        reservationFee: RESERVATION_FEE,
-        roomRate,
-        taxes: TAXES_AND_FEES,
-        discount: discountAmount,
-        dueNow: RESERVATION_FEE,
-        balanceDue,
-      },
-    });
+    setError("");
+
+    if (!checkIn || !checkOut) {
+      setError("Please select check-in and check-out dates.");
+      return;
+    }
+    if (!roomType) {
+      setError("Please select a room type.");
+      return;
+    }
+
+    // Find room id from the rooms list
+    const room = rooms.find((r) => r.name === roomType);
+    if (!room?.id) {
+      setError("Could not determine room. Please try again.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const result = await createBooking({
+        room_id: room.id,
+        check_in: checkIn,
+        check_out: checkOut,
+        guests: toGuestCount(guests),
+        payment_method: paymentMethod,
+        promo_code: promoCode.trim().toUpperCase() || null,
+        special_requests: specialRequests || null,
+      });
+
+      onClose();
+      onBooked({
+        checkIn,
+        checkOut,
+        roomType,
+        guests,
+        name,
+        email,
+        phone,
+        specialRequests,
+        promoCode: promoCode.trim().toUpperCase(),
+        paymentMethod,
+        totals: {
+          reservationFee: RESERVATION_FEE,
+          roomRate,
+          taxes: TAXES_AND_FEES,
+          discount: discountAmount,
+          dueNow: RESERVATION_FEE,
+          balanceDue,
+        },
+        bookingData: result.data,
+      });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
+        "Booking failed. Please try again.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -120,6 +169,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           </button>
         </div>
 
+        {error ? (
+          <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
+
         <form onSubmit={submit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -129,6 +184,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 min={minDates.today}
                 value={checkIn}
                 onChange={(e) => setCheckIn(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -140,6 +196,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 min={minDates.tomorrow}
                 value={checkOut}
                 onChange={(e) => setCheckOut(e.target.value)}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -154,6 +211,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   setPromoCode("");
                   setPromoMessage({ type: "info", text: "" });
                 }}
+                required
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Room Type</option>
@@ -309,8 +367,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             </div>
           </div>
 
-          <button className="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md">
-            Complete Booking
+          <button
+            disabled={submitting}
+            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
+          >
+            {submitting ? "Processing..." : "Complete Booking"}
           </button>
         </form>
       </div>

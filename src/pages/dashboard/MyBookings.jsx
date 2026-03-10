@@ -1,6 +1,6 @@
 // src/pages/dashboard/MyBookings.jsx
-import { useMemo, useState } from "react";
-import { sampleBookings } from "../../data/dashboard.js";
+import { useEffect, useState } from "react";
+import { getBookings, cancelBooking } from "../../lib/bookingApi.js";
 
 function statusPill(status) {
   const base = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
@@ -12,12 +12,35 @@ function statusPill(status) {
 }
 
 export default function MyBookings() {
-  const [items, setItems] = useState(sampleBookings);
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const rows = useMemo(() => items, [items]);
+  useEffect(() => {
+    getBookings()
+      .then(setItems)
+      .catch(() => setError("Failed to load bookings."))
+      .finally(() => setLoading(false));
+  }, []);
 
-  function cancelBooking(id) {
-    setItems((prev) => prev.map((b) => (b.id === id ? { ...b, status: "Cancelled" } : b)));
+  async function handleCancel(bookingId, formattedId) {
+    if (!confirm(`Cancel booking ${formattedId}?`)) return;
+    try {
+      await cancelBooking(bookingId);
+      setItems((prev) =>
+        prev.map((b) => (b.booking_id === bookingId ? { ...b, status: "Cancelled" } : b))
+      );
+    } catch {
+      alert("Failed to cancel booking. Please try again.");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-md p-6">
+        <p className="text-gray-500">Loading bookings...</p>
+      </div>
+    );
   }
 
   return (
@@ -28,6 +51,10 @@ export default function MyBookings() {
           <p className="text-gray-600">View and manage your reservations.</p>
         </div>
       </div>
+
+      {error ? (
+        <p className="text-red-600 mb-4">{error}</p>
+      ) : null}
 
       <div className="overflow-x-auto border rounded-lg">
         <table className="min-w-full divide-y divide-gray-200">
@@ -44,31 +71,24 @@ export default function MyBookings() {
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {rows.map((b) => (
+            {items.map((b) => (
               <tr key={b.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{b.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{b.roomType}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {b.checkIn} - {b.checkOut}
+                  {b.checkIn} — {b.checkOut}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{b.guests}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₱{b.total}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₱{Number(b.total).toLocaleString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={statusPill(b.status)}>{b.status}</span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <div className="flex flex-wrap gap-2">
-                    <button
-                      className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200"
-                      onClick={() => alert(`Details for ${b.id}`)}
-                    >
-                      Details
-                    </button>
-
                     {b.status !== "Cancelled" && b.status !== "Completed" && (
                       <button
                         className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200"
-                        onClick={() => cancelBooking(b.id)}
+                        onClick={() => handleCancel(b.booking_id, b.id)}
                       >
                         Cancel
                       </button>
@@ -77,7 +97,7 @@ export default function MyBookings() {
                 </td>
               </tr>
             ))}
-            {rows.length === 0 && (
+            {items.length === 0 && !error && (
               <tr>
                 <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
                   No bookings found.

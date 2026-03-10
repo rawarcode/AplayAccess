@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 import { sampleConversations } from "../../data/dashboard.js";
+import { changePassword } from "../../lib/profileApi.js";
 
 function Modal({ open, title, children, onClose }) {
   useLockBodyScroll(open);
@@ -40,6 +41,8 @@ export default function Messages() {
 
   const [compose, setCompose] = useState({ recipient: "", subject: "", content: "" });
   const [pwd, setPwd] = useState({ currentPassword: "", newPassword: "", confirm: "" });
+  const [pwdError, setPwdError] = useState("");
+  const [pwdSaving, setPwdSaving] = useState(false);
 
   function openConversation(id) {
     setConversations((prev) =>
@@ -82,19 +85,34 @@ export default function Messages() {
     setCompose({ recipient: "", subject: "", content: "" });
   }
 
-  function submitChangePassword(e) {
+  async function submitChangePassword(e) {
     e.preventDefault();
+    setPwdError("");
+
     if (pwd.newPassword !== pwd.confirm) {
-      alert("New passwords do not match!");
+      setPwdError("New passwords do not match.");
       return;
     }
     if ((pwd.newPassword || "").length < 8) {
-      alert("Password must be at least 8 characters long!");
+      setPwdError("Password must be at least 8 characters.");
       return;
     }
-    alert("Password changed successfully! (demo)");
-    setPwdOpen(false);
-    setPwd({ currentPassword: "", newPassword: "", confirm: "" });
+
+    setPwdSaving(true);
+    try {
+      await changePassword(pwd.currentPassword, pwd.newPassword);
+      setPwdOpen(false);
+      setPwd({ currentPassword: "", newPassword: "", confirm: "" });
+      alert("Password changed successfully!");
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
+        "Failed to change password.";
+      setPwdError(msg);
+    } finally {
+      setPwdSaving(false);
+    }
   }
 
   return (
@@ -246,8 +264,11 @@ export default function Messages() {
         </form>
       </Modal>
 
-      <Modal open={pwdOpen} title="Change Password" onClose={() => setPwdOpen(false)}>
+      <Modal open={pwdOpen} title="Change Password" onClose={() => { setPwdOpen(false); setPwdError(""); }}>
         <form onSubmit={submitChangePassword} className="space-y-4">
+          {pwdError ? (
+            <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{pwdError}</div>
+          ) : null}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
             <input
@@ -279,8 +300,8 @@ export default function Messages() {
             <button type="button" onClick={() => setPwdOpen(false)} className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200">
               Cancel
             </button>
-            <button type="submit" className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium">
-              Update Password
+            <button type="submit" disabled={pwdSaving} className="px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium">
+              {pwdSaving ? "Saving..." : "Update Password"}
             </button>
           </div>
         </form>
