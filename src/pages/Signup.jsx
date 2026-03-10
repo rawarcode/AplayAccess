@@ -2,9 +2,14 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AlertModal from "../components/modals/AlertModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import { registerRequest } from "../lib/authApi.js";
+import { useAuth } from "../context/AuthContext.jsx";
+import { TOKEN_KEY } from "../lib/api.js";
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const [submitting, setSubmitting] = useState(false);
 
   const [alert, setAlert] = useState({ open: false, type: "info", title: "Information", message: "" });
   const [form, setForm] = useState({
@@ -27,57 +32,51 @@ export default function Signup() {
     const wasSuccess = alert.type === "success";
     setAlert((s) => ({ ...s, open: false }));
     if (wasSuccess) {
-      // your HTML redirects to homepage on success
-      navigate("/resort");
+      navigate("/dashboard");
     }
   }
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
-      setAlert({
-        open: true,
-        type: "error",
-        title: "Error",
-        message: "Passwords do not match!",
-      });
+      setAlert({ open: true, type: "error", title: "Error", message: "Passwords do not match!" });
       return;
     }
-
     if (!form.terms) {
-      setAlert({
-        open: true,
-        type: "error",
-        title: "Error",
-        message: "Please accept the Terms and Conditions to continue.",
-      });
+      setAlert({ open: true, type: "error", title: "Error", message: "Please accept the Terms and Conditions to continue." });
       return;
     }
 
-    let msg =
-      "Sign Up Successful! Welcome to Aplaya Beach Resort. Please check your email to verify your account.";
-    msg += form.newsletter
-      ? " You have been subscribed to our newsletter."
-      : " You can subscribe to our newsletter anytime in your account settings.";
+    setSubmitting(true);
+    try {
+      const data = await registerRequest({
+        name: form.name,
+        email: form.email,
+        phone: form.phone || null,
+        password: form.password,
+        password_confirmation: form.confirmPassword,
+      });
 
-    setAlert({
-      open: true,
-      type: "success",
-      title: "Success",
-      message: msg,
-    });
+      // Store token and user in context
+      if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+      if (data.user) login(data.user);
 
-    // reset form like your HTML
-    setForm({
-      name: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmPassword: "",
-      terms: false,
-      newsletter: false,
-    });
+      setAlert({
+        open: true,
+        type: "success",
+        title: "Success",
+        message: "Sign Up Successful! Welcome to Aplaya Beach Resort.",
+      });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
+        "Sign up failed. Please try again.";
+      setAlert({ open: true, type: "error", title: "Error", message: msg });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -181,8 +180,11 @@ export default function Signup() {
               <span>Sign me up for the Aplaya Beach Resort newsletter (optional)</span>
             </label>
 
-            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-md">
-              Sign Up
+            <button
+              disabled={submitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md"
+            >
+              {submitting ? "Creating account..." : "Sign Up"}
             </button>
           </form>
 
