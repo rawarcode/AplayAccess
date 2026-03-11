@@ -134,7 +134,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
             {/* Visit date */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Visit Date</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Visit Date <span className="text-red-500">*</span></label>
               <input
                 type="date"
                 min={todayStr()}
@@ -148,7 +148,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             {/* Time slot */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Time <span className="text-gray-400 font-normal">(8-hr slot)</span>
+                Start Time <span className="text-red-500">*</span> <span className="text-gray-400 font-normal">(8-hr slot)</span>
               </label>
               <select
                 value={visitTime}
@@ -165,7 +165,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
             {/* Room type */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Room Type <span className="text-red-500">*</span></label>
               <select
                 value={roomType}
                 onChange={(e) => setRoomType(e.target.value)}
@@ -184,7 +184,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             {/* Guests */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Guests
+                Number of Guests <span className="text-red-500">*</span>
                 <span className="text-gray-400 font-normal ml-1">(max {MAX_GUESTS})</span>
               </label>
               <div className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
@@ -223,7 +223,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
             {/* Name */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
               <input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -234,7 +234,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
               <input
                 type="email"
                 value={email}
@@ -246,7 +246,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
@@ -257,7 +257,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
             {/* Special requests */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Special Requests <span className="text-gray-400 font-normal text-xs">(optional)</span></label>
               <textarea
                 rows={2}
                 value={specialRequests}
