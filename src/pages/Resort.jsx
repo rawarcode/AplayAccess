@@ -83,6 +83,7 @@ export default function Resort() {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [successOpen, setSuccessOpen] = useState(false);
+  const [lastBooking, setLastBooking] = useState(null); // details passed to SuccessModal
 
   const [selectedRoom, setSelectedRoom] = useState("");
   const [pendingBookingRoom, setPendingBookingRoom] = useState(null); // string|null
@@ -642,13 +643,18 @@ export default function Resort() {
         onClose={() => setBookingOpen(false)}
         selectedRoom={selectedRoom}
         rooms={bookingRooms}
-        onBooked={() => {
+        onBooked={(details) => {
+          setLastBooking(details);
           setBookingOpen(false);
           setSuccessOpen(true);
         }}
       />
 
-      <SuccessModal open={successOpen} onClose={() => setSuccessOpen(false)} />
+      <SuccessModal
+        open={successOpen}
+        onClose={() => { setSuccessOpen(false); setLastBooking(null); }}
+        booking={lastBooking}
+      />
 
       <AlertModal
         open={contactAlert.open}
