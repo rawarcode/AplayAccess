@@ -3,6 +3,21 @@ import { Link } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getBookings } from "../../lib/bookingApi.js";
 
+/** Converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
+function fmtDateTime(str) {
+  if (!str) return str;
+  const d = new Date(str.replace(" ", "T"));
+  if (isNaN(d)) return str;
+  return d.toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export default function GuestDashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,7 +110,7 @@ export default function GuestDashboard() {
                 <div key={b.id} className="border rounded-lg p-4 shadow-sm">
                   <p className="font-bold text-gray-800">{b.roomType}</p>
                   <p className="text-sm text-gray-600">
-                    {b.checkIn} — {b.checkOut}
+                    {fmtDateTime(b.checkIn)} – {fmtDateTime(b.checkOut)}
                   </p>
                   <p className="text-sm text-gray-600">{b.guests} Guests</p>
                   <p className="text-sm text-gray-600">Booking ID: {b.id}</p>
@@ -122,7 +137,7 @@ export default function GuestDashboard() {
                 <div key={b.id} className="border rounded-lg p-4 shadow-sm">
                   <p className="font-bold text-gray-800">{b.roomType}</p>
                   <p className="text-sm text-gray-600">
-                    {b.checkIn} — {b.checkOut}
+                    {fmtDateTime(b.checkIn)} – {fmtDateTime(b.checkOut)}
                   </p>
                   <p className="text-sm text-gray-600">Booking ID: {b.id}</p>
                   <div className="mt-3">

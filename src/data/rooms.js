@@ -5,7 +5,7 @@ export const rooms = [
     desc: "A cozy and comfortable room perfect for solo travelers or couples. Features modern furnishings and a relaxing atmosphere.",
     badge: { text: "Best Value", className: "bg-blue-600" },
     img: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?auto=format&fit=crop&w=2070&q=80",
-    price: 3500,
+    price: 1500,
     detailsDescription:
       "A cozy and comfortable room perfect for solo travelers or couples. Features modern furnishings, essential amenities, and a relaxing garden-view atmosphere. The ideal choice for a comfortable and budget-friendly stay.",
     amenities: [
@@ -29,7 +29,7 @@ export const rooms = [
     desc: "Wake up to breathtaking ocean views from your private balcony in our spacious deluxe rooms.",
     badge: { text: "Popular", className: "bg-green-600" },
     img: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2070&q=80",
-    price: 5000,
+    price: 1500,
     detailsDescription:
       "Wake up to stunning ocean views in our spacious Deluxe room. Features premium bedding, a private balcony, and top-tier amenities. The perfect choice for couples seeking a romantic ocean-front escape.",
     amenities: [
@@ -55,7 +55,7 @@ export const rooms = [
     desc: "Direct beach access from your private terrace in our most luxurious beachfront suite.",
     badge: { text: "Premium", className: "bg-purple-600" },
     img: "https://plus.unsplash.com/premium_photo-1661962346904-8a489ef9b9e7?auto=format&fit=crop&w=1974&q=80",
-    price: 8500,
+    price: 1500,
     detailsDescription:
       "Our most luxurious accommodation with direct beach access, a private plunge pool, and panoramic ocean views. The suite features a separate living area, dining space, and a luxurious bathroom with a soaking tub.",
     amenities: [

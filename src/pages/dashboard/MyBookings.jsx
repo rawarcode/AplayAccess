@@ -4,6 +4,22 @@ import { getBookings, cancelBooking } from "../../lib/bookingApi.js";
 import { submitReview } from "../../lib/reviewApi.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 
+// ─── Datetime formatter ───────────────────────────────────────────────────────
+/** Converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
+function fmtDateTime(str) {
+  if (!str) return str;
+  const d = new Date(str.replace(" ", "T"));
+  if (isNaN(d)) return str;
+  return d.toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 // ─── Status pill ─────────────────────────────────────────────────────────────
 function statusPill(status) {
   const base = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
@@ -79,7 +95,7 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
             <p className="text-sm text-gray-600">
               Reviewing: <span className="font-medium">{booking.roomType}</span>
               <br />
-              <span className="text-gray-500">{booking.checkIn} — {booking.checkOut}</span>
+              <span className="text-gray-500">{fmtDateTime(booking.checkIn)} – {fmtDateTime(booking.checkOut)}</span>
             </p>
 
             {error ? (
@@ -191,7 +207,7 @@ export default function MyBookings() {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Type</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dates</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Visit Slot</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -204,8 +220,9 @@ export default function MyBookings() {
               <tr key={b.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">{b.id}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{b.roomType}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                  {b.checkIn} — {b.checkOut}
+                <td className="px-6 py-4 text-sm text-gray-700">
+                  <div>{fmtDateTime(b.checkIn)}</div>
+                  <div className="text-gray-400 text-xs">→ {fmtDateTime(b.checkOut)}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{b.guests}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₱{Number(b.total).toLocaleString()}</td>
