@@ -50,12 +50,6 @@ export default function Rooms() {
         }}
       >
         <div className="max-w-4xl mx-auto px-4 text-white">
-          <Link
-            to="/resort"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition"
-          >
-            ← Back to Resort
-          </Link>
           <h1 className="text-3xl md:text-5xl font-bold mb-4">Our Luxurious Accommodations</h1>
           <p className="text-lg md:text-xl">
             Discover the perfect room for your stay at Aplaya Beach Resort.
@@ -67,6 +61,7 @@ export default function Rooms() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* GRID */}
           {!selectedRoom ? (
+            <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {rooms.map((r) => (
                 <div
@@ -111,6 +106,15 @@ export default function Rooms() {
                 </div>
               ))}
             </div>
+            <div className="mt-10 text-center">
+              <Link
+                to="/resort"
+                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+              >
+                ← Back to Resort
+              </Link>
+            </div>
+            </>
           ) : (
             /* DETAILS */
             <div className="mt-2 bg-white rounded-xl shadow-md p-6 md:p-8">

@@ -57,12 +57,6 @@ export default function Gallery() {
         }}
       >
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
-          <Link
-            to="/resort"
-            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition"
-          >
-            ← Back to Resort
-          </Link>
           <h1 className="text-3xl md:text-5xl font-bold mb-4">Our Photo Gallery</h1>
           <p className="text-lg md:text-xl mb-6">
             A visual journey through the beauty and luxury of Aplaya Beach Resort.
@@ -114,6 +108,14 @@ export default function Gallery() {
                 />
               </button>
             ))}
+          </div>
+          <div className="mt-10 text-center">
+            <Link
+              to="/resort"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              ← Back to Resort
+            </Link>
           </div>
         </div>
       </main>

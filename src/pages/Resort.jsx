@@ -590,38 +590,40 @@ export default function Resort() {
         </section>
 
         {/* NEWSLETTER */}
-        <section className="py-16 bg-blue-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl font-bold mb-4">Subscribe to Our Newsletter</h2>
-            <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
-              Stay updated with our latest offers, news, and events. Join our mailing list today!
-            </p>
+        <section className="py-16 bg-blue-600">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-white rounded-2xl shadow-lg px-8 py-10 max-w-2xl mx-auto text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">Subscribe to Our Newsletter</h2>
+              <p className="text-gray-600 mb-6">
+                Stay updated with our latest offers, news, and events. Join our mailing list today!
+              </p>
 
-            <form onSubmit={submitNewsletter} className="max-w-md mx-auto">
-              <div className="flex">
-                <input
-                  type="email"
-                  value={newsletter.email}
-                  onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
-                  placeholder="Your email address"
-                  className="flex-grow px-4 py-3 rounded-l-md focus:outline-none text-gray-900"
-                />
-                <button
-                  type="submit"
-                  className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-medium px-6 py-3 rounded-r-md transition shrink-0"
-                >
-                  Subscribe
-                </button>
-              </div>
+              <form onSubmit={submitNewsletter}>
+                <div className="flex">
+                  <input
+                    type="email"
+                    value={newsletter.email}
+                    onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
+                    placeholder="Your email address"
+                    className="flex-grow px-4 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
+                  >
+                    Subscribe
+                  </button>
+                </div>
 
-              {newsletter.msg && (
-                <p className={`mt-3 text-sm font-medium ${newsletter.type === "success" ? "text-green-300" : "text-red-300"}`}>
-                  {newsletter.msg}
-                </p>
-              )}
-            </form>
+                {newsletter.msg && (
+                  <p className={`mt-3 text-sm font-medium ${newsletter.type === "success" ? "text-green-600" : "text-red-600"}`}>
+                    {newsletter.msg}
+                  </p>
+                )}
+              </form>
 
-            <p className="text-xs text-blue-200 mt-4">We respect your privacy. Unsubscribe at any time.</p>
+              <p className="text-xs text-gray-400 mt-4">We respect your privacy. Unsubscribe at any time.</p>
+            </div>
           </div>
         </section>
       </div>
