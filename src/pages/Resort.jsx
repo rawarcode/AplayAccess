@@ -95,6 +95,10 @@ export default function Resort() {
     message: "",
   });
 
+  // Contact form state
+  const [contactForm, setContactForm] = useState({ name: "", email: "", subject: "", message: "" });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+
   // Newsletter inline feedback (no modal needed)
   const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "" });
 
@@ -250,15 +254,32 @@ export default function Resort() {
     };
   }, []);
 
-  function submitContact(e) {
+  async function submitContact(e) {
     e.preventDefault();
-    setContactAlert({
-      open: true,
-      type: "success",
-      title: "Success",
-      message: "Your message has been sent successfully!",
-    });
-    e.currentTarget.reset();
+    setContactSubmitting(true);
+    try {
+      await api.post("/api/contact", contactForm);
+      setContactAlert({
+        open: true,
+        type: "success",
+        title: "Message Sent!",
+        message: "Thank you for reaching out! We'll get back to you within 24 hours.",
+      });
+      setContactForm({ name: "", email: "", subject: "", message: "" });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
+        "Failed to send message. Please try again.";
+      setContactAlert({
+        open: true,
+        type: "error",
+        title: "Error",
+        message: msg,
+      });
+    } finally {
+      setContactSubmitting(false);
+    }
   }
 
   function submitNewsletter(e) {
@@ -577,6 +598,8 @@ export default function Resort() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input
                       type="text"
+                      value={contactForm.name}
+                      onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Your name"
                       required
@@ -587,6 +610,8 @@ export default function Resort() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                     <input
                       type="email"
+                      value={contactForm.email}
+                      onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Your email"
                       required
@@ -597,6 +622,8 @@ export default function Resort() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
                     <input
                       type="text"
+                      value={contactForm.subject}
+                      onChange={(e) => setContactForm((p) => ({ ...p, subject: e.target.value }))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Subject"
                       required
@@ -607,14 +634,19 @@ export default function Resort() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
                     <textarea
                       rows={4}
+                      value={contactForm.message}
+                      onChange={(e) => setContactForm((p) => ({ ...p, message: e.target.value }))}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Your message"
                       required
                     />
                   </div>
 
-                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition">
-                    Send Message
+                  <button
+                    disabled={contactSubmitting}
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-md transition"
+                  >
+                    {contactSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
               </div>
