@@ -100,7 +100,7 @@ export default function Resort() {
   const [contactSubmitting, setContactSubmitting] = useState(false);
 
   // Newsletter inline feedback (no modal needed)
-  const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "" });
+  const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "", submitting: false });
 
   // API-backed lists (fallback if API is down)
   const [roomsApi, setRoomsApi] = useState([]);
@@ -282,7 +282,7 @@ export default function Resort() {
     }
   }
 
-  function submitNewsletter(e) {
+  async function submitNewsletter(e) {
     e.preventDefault();
     const email = newsletter.email.trim();
 
@@ -297,7 +297,17 @@ export default function Resort() {
       return;
     }
 
-    setNewsletter({ email: "", msg: "🎉 Thank you for subscribing to our newsletter!", type: "success" });
+    setNewsletter((p) => ({ ...p, submitting: true, msg: "", type: "" }));
+    try {
+      const res = await api.post("/api/newsletter", { email });
+      setNewsletter({ email: "", msg: `🎉 ${res.data.message}`, type: "success", submitting: false });
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
+        "Something went wrong. Please try again.";
+      setNewsletter((p) => ({ ...p, msg, type: "error", submitting: false }));
+    }
   }
 
   return (
@@ -670,13 +680,15 @@ export default function Resort() {
                     value={newsletter.email}
                     onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
                     placeholder="Your email address"
-                    className="flex-grow px-4 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                    disabled={newsletter.submitting}
+                    className="flex-grow px-4 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:bg-gray-50"
                   />
                   <button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
+                    disabled={newsletter.submitting}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
                   >
-                    Subscribe
+                    {newsletter.submitting ? "Subscribing..." : "Subscribe"}
                   </button>
                 </div>
 
