@@ -156,7 +156,6 @@ export default function Signup() {
                 className="mt-1 h-4 w-4"
                 checked={form.terms}
                 onChange={(e) => setField("terms", e.target.checked)}
-                required
               />
               <span>
                 I agree to the{" "}
