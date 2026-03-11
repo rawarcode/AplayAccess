@@ -95,19 +95,15 @@ export default function Resort() {
     message: "",
   });
 
-  const [newsletterAlert, setNewsletterAlert] = useState({
-    open: false,
-    type: "success",
-    title: "Success",
-    message: "",
-  });
+  // Newsletter inline feedback (no modal needed)
+  const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "" });
 
   // API-backed lists (fallback if API is down)
   const [roomsApi, setRoomsApi] = useState([]);
   const [amenitiesApi, setAmenitiesApi] = useState([]);
 
   const anyOverlayOpen =
-    bookingOpen || loginOpen || successOpen || contactAlert.open || newsletterAlert.open;
+    bookingOpen || loginOpen || successOpen || contactAlert.open;
   useLockBodyScroll(anyOverlayOpen);
 
   // UI cards
@@ -234,37 +230,20 @@ export default function Resort() {
 
   function submitNewsletter(e) {
     e.preventDefault();
-    const emailInput = e.currentTarget.querySelector('input[type="email"]');
-    const email = (emailInput?.value || "").trim();
+    const email = newsletter.email.trim();
 
     if (!email) {
-      setNewsletterAlert({
-        open: true,
-        type: "error",
-        title: "Error",
-        message: "Please enter your email address.",
-      });
+      setNewsletter((p) => ({ ...p, msg: "Please enter your email address.", type: "error" }));
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      setNewsletterAlert({
-        open: true,
-        type: "error",
-        title: "Error",
-        message: "Please enter a valid email address.",
-      });
+      setNewsletter((p) => ({ ...p, msg: "Please enter a valid email address.", type: "error" }));
       return;
     }
 
-    setNewsletterAlert({
-      open: true,
-      type: "success",
-      title: "Success",
-      message: "Thank you for subscribing to our newsletter!",
-    });
-    e.currentTarget.reset();
+    setNewsletter({ email: "", msg: "🎉 Thank you for subscribing to our newsletter!", type: "success" });
   }
 
   return (
@@ -296,17 +275,26 @@ export default function Resort() {
                 Book Your Stay
               </button>
 
-              <button
-                onClick={() => setLoginOpen(true)}
-                className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm"
-              >
-                {isLoggedIn ? "Logged In" : "Login"}
-              </button>
+              {isLoggedIn ? (
+                <Link
+                  to="/dashboard"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm"
+                >
+                  My Dashboard →
+                </Link>
+              ) : (
+                <button
+                  onClick={() => setLoginOpen(true)}
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm"
+                >
+                  Login
+                </button>
+              )}
             </div>
 
             {isLoggedIn ? (
               <p className="mt-4 text-sm text-white/80">
-                Signed in as <span className="font-semibold">{user?.email || user?.name || "Guest"}</span>
+                Welcome back, <span className="font-semibold">{user?.name || user?.email || "Guest"}</span>!
               </p>
             ) : null}
           </div>
@@ -609,18 +597,28 @@ export default function Resort() {
               Stay updated with our latest offers, news, and events. Join our mailing list today!
             </p>
 
-            <form onSubmit={submitNewsletter} className="max-w-md mx-auto flex">
-              <input
-                type="email"
-                placeholder="Your email address"
-                className="flex-grow px-4 py-3 rounded-l-md focus:outline-none text-gray-900"
-              />
-              <button
-                type="submit"
-                className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-medium px-6 py-3 rounded-r-md transition"
-              >
-                Subscribe
-              </button>
+            <form onSubmit={submitNewsletter} className="max-w-md mx-auto">
+              <div className="flex">
+                <input
+                  type="email"
+                  value={newsletter.email}
+                  onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
+                  placeholder="Your email address"
+                  className="flex-grow px-4 py-3 rounded-l-md focus:outline-none text-gray-900"
+                />
+                <button
+                  type="submit"
+                  className="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-medium px-6 py-3 rounded-r-md transition shrink-0"
+                >
+                  Subscribe
+                </button>
+              </div>
+
+              {newsletter.msg && (
+                <p className={`mt-3 text-sm font-medium ${newsletter.type === "success" ? "text-green-300" : "text-red-300"}`}>
+                  {newsletter.msg}
+                </p>
+              )}
             </form>
 
             <p className="text-xs text-blue-200 mt-4">We respect your privacy. Unsubscribe at any time.</p>
@@ -664,13 +662,6 @@ export default function Resort() {
         message={contactAlert.message}
       />
 
-      <AlertModal
-        open={newsletterAlert.open}
-        onClose={() => setNewsletterAlert((s) => ({ ...s, open: false }))}
-        type={newsletterAlert.type}
-        title={newsletterAlert.title}
-        message={newsletterAlert.message}
-      />
     </div>
   );
 }

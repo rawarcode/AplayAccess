@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { gallery } from "../data/gallery.js";
 import LightboxModal from "../components/modals/LightboxModal.jsx";
@@ -56,6 +57,12 @@ export default function Gallery() {
         }}
       >
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
+          <Link
+            to="/resort"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition"
+          >
+            ← Back to Resort
+          </Link>
           <h1 className="text-3xl md:text-5xl font-bold mb-4">Our Photo Gallery</h1>
           <p className="text-lg md:text-xl mb-6">
             A visual journey through the beauty and luxury of Aplaya Beach Resort.

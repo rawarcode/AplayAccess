@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import { rooms } from "../data/rooms.js";
@@ -50,6 +50,12 @@ export default function Rooms() {
         }}
       >
         <div className="max-w-4xl mx-auto px-4 text-white">
+          <Link
+            to="/resort"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm mb-4 transition"
+          >
+            ← Back to Resort
+          </Link>
           <h1 className="text-3xl md:text-5xl font-bold mb-4">Our Luxurious Accommodations</h1>
           <p className="text-lg md:text-xl">
             Discover the perfect room for your stay at Aplaya Beach Resort.
