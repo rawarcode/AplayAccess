@@ -1,22 +1,20 @@
 import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import { useAuth } from "../context/AuthContext.jsx";
 import { rooms } from "../data/rooms.js";
-import BookingModal from "../components/modals/BookingModal.jsx";
-import SuccessModal from "../components/modals/SuccessModal.jsx";
 
 export default function Rooms() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [selectedKey, setSelectedKey] = useState(null);
-  const [bookingOpen, setBookingOpen] = useState(false);
-  const [successOpen, setSuccessOpen] = useState(false);
-  const [selectedRoomName, setSelectedRoomName] = useState("");
 
   const selectedRoom = useMemo(
     () => rooms.find((r) => r.key === selectedKey) || null,
     [selectedKey]
   );
 
-  const anyOverlayOpen = bookingOpen || successOpen;
-  useLockBodyScroll(anyOverlayOpen);
+  useLockBodyScroll(false);
 
   function openDetails(key) {
     setSelectedKey(key);
@@ -30,8 +28,13 @@ export default function Rooms() {
   }
 
   function openBooking(roomName = "") {
-    setSelectedRoomName(roomName);
-    setBookingOpen(true);
+    if (!user) {
+      // Not logged in — go to resort page to handle login then booking
+      navigate(`/resort?login=1&next=/rooms`);
+      return;
+    }
+    // Redirect to Resort which loads rooms from API (with proper IDs) and opens BookingModal
+    navigate(`/resort?book=1&room=${encodeURIComponent(roomName)}`);
   }
 
   return (
@@ -175,15 +178,6 @@ export default function Rooms() {
         </div>
       </main>
 
-      {/* Modals (same page) */}
-      <BookingModal
-        open={bookingOpen}
-        onClose={() => setBookingOpen(false)}
-        selectedRoom={selectedRoomName}
-        rooms={rooms}
-        onBooked={() => setSuccessOpen(true)}
-      />
-      <SuccessModal open={successOpen} onClose={() => setSuccessOpen(false)} />
     </div>
   );
 }

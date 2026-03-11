@@ -118,6 +118,7 @@ export default function Resort() {
   const bookingRooms = useMemo(() => {
     const base = roomsApi.length ? roomsApi : roomsFallback;
     return base.map((r) => ({
+      id: r?.id ?? null,
       name: r?.name ?? "Room",
       price: r?.price ?? 0,
     }));
