@@ -13,19 +13,22 @@ const resorts = [
     desc: "Relax in our serene bay-side location with world-class amenities.",
     img: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
     to: "/aplaya-cebu",
+    comingSoon: true,
   },
   {
     name: "Aplaya Beach Resort Bohol",
     desc: "Dive into adventure with our exclusive coral reef access and diving center.",
-    badge: { text: "Luxury", className: "bg-yellow-500" },
     img: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=2000&q=80",
     to: "/aplaya-bohol",
+    comingSoon: true,
   },
 ];
 
 function ResortCard({ resort }) {
+  const isComingSoon = resort.comingSoon === true;
+
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-md transition duration-300 hover:-translate-y-2 hover:shadow-xl">
+    <div className={`bg-white rounded-xl overflow-hidden shadow-md transition duration-300 ${isComingSoon ? "opacity-75" : "hover:-translate-y-2 hover:shadow-xl"}`}>
       <div className="relative">
         <img
           src={resort.img}
@@ -33,10 +36,13 @@ function ResortCard({ resort }) {
           className="w-full h-64 object-cover"
           loading="lazy"
         />
-        {resort.badge ? (
-          <div
-            className={`absolute top-4 right-4 ${resort.badge.className} text-white px-3 py-1 rounded-md text-sm font-medium`}
-          >
+        {/* Coming Soon badge overrides any existing badge */}
+        {isComingSoon ? (
+          <div className="absolute top-4 right-4 bg-gray-500 text-white px-3 py-1 rounded-md text-sm font-medium">
+            Coming Soon
+          </div>
+        ) : resort.badge ? (
+          <div className={`absolute top-4 right-4 ${resort.badge.className} text-white px-3 py-1 rounded-md text-sm font-medium`}>
             {resort.badge.text}
           </div>
         ) : null}
@@ -46,12 +52,18 @@ function ResortCard({ resort }) {
         <h3 className="text-xl font-bold text-gray-900 mb-2">{resort.name}</h3>
         <p className="text-gray-600 mb-4">{resort.desc}</p>
 
-        <Link
-          to={resort.to}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition text-center block"
-        >
-          Explore {resort.name}
-        </Link>
+        {isComingSoon ? (
+          <span className="w-full bg-gray-300 text-gray-500 px-4 py-2 rounded-md text-sm font-medium cursor-not-allowed text-center block">
+            Coming Soon
+          </span>
+        ) : (
+          <Link
+            to={resort.to}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition text-center block"
+          >
+            Explore {resort.name}
+          </Link>
+        )}
       </div>
     </div>
   );
@@ -102,16 +114,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <p className="text-gray-400 text-sm">
-              © 2023 Paradise Resorts. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
