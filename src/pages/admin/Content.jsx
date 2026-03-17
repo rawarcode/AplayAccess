@@ -25,73 +25,157 @@ export default function AdminContent() {
   }
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Website Content Management</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Content Management</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Update hero text, about section, and contact details easily.
+          </p>
+        </div>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg"
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
           >
-            <i className="fas fa-edit mr-2"></i> Edit Content
+            <i className="fas fa-edit"></i> Edit Content
           </button>
         )}
       </div>
 
       {!editing ? (
         <div className="space-y-4">
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold mb-2">Hero Section</h3>
-            <p className="text-gray-600 text-sm mb-2"><strong>Title:</strong> {content.heroTitle}</p>
-            <p className="text-gray-600 text-sm"><strong>Subtitle:</strong> {content.heroSubtitle}</p>
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Hero Section</h3>
+            <p className="text-slate-600 text-sm mb-2">
+              <span className="font-semibold">Title:</span> {content.heroTitle}
+            </p>
+            <p className="text-slate-600 text-sm">
+              <span className="font-semibold">Subtitle:</span> {content.heroSubtitle}
+            </p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold mb-2">About Section</h3>
-            <p className="text-gray-600 text-sm mb-2"><strong>Title:</strong> {content.aboutTitle}</p>
-            <p className="text-gray-600 text-sm"><strong>Text:</strong> {content.aboutText}</p>
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">About Section</h3>
+            <p className="text-slate-600 text-sm mb-2">
+              <span className="font-semibold">Title:</span> {content.aboutTitle}
+            </p>
+            <p className="text-slate-600 text-sm">
+              <span className="font-semibold">Text:</span> {content.aboutText}
+            </p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-bold mb-4">Contact Information</h3>
+          <div className="rounded-2xl bg-white border border-slate-200 shadow-sm p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Contact Information</h3>
             <div className="space-y-2">
-              <p className="text-gray-600 text-sm"><strong>Email:</strong> {content.contactEmail}</p>
-              <p className="text-gray-600 text-sm"><strong>Phone:</strong> {content.contactPhone}</p>
-              <p className="text-gray-600 text-sm"><strong>Address:</strong> {content.contactAddress}</p>
+              <p className="text-slate-600 text-sm">
+                <span className="font-semibold">Email:</span> {content.contactEmail}
+              </p>
+              <p className="text-slate-600 text-sm">
+                <span className="font-semibold">Phone:</span> {content.contactPhone}
+              </p>
+              <p className="text-slate-600 text-sm">
+                <span className="font-semibold">Address:</span> {content.contactAddress}
+              </p>
             </div>
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSave} className="bg-white rounded-lg shadow p-6 space-y-4">
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Hero Title</label>
-            <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value={tempContent.heroTitle} onChange={(e) => setTempContent((x) => ({ ...x, heroTitle: e.target.value }))} />
+        <form onSubmit={handleSave} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-xl font-semibold text-slate-900">Edit Content</h2>
+              <p className="text-sm text-slate-500">Update the landing page content shown to guests.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="text-slate-400 hover:text-slate-600"
+            >
+              <i className="fas fa-times"></i>
+            </button>
           </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Hero Subtitle</label>
-            <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value={tempContent.heroSubtitle} onChange={(e) => setTempContent((x) => ({ ...x, heroSubtitle: e.target.value }))} />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Hero Title</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                value={tempContent.heroTitle}
+                onChange={(e) => setTempContent((x) => ({ ...x, heroTitle: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Hero Subtitle</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                value={tempContent.heroSubtitle}
+                onChange={(e) => setTempContent((x) => ({ ...x, heroSubtitle: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">About Title</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                value={tempContent.aboutTitle}
+                onChange={(e) => setTempContent((x) => ({ ...x, aboutTitle: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">About Text</label>
+              <textarea
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                rows="4"
+                value={tempContent.aboutText}
+                onChange={(e) => setTempContent((x) => ({ ...x, aboutText: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Contact Email</label>
+              <input
+                type="email"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                value={tempContent.contactEmail}
+                onChange={(e) => setTempContent((x) => ({ ...x, contactEmail: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Contact Phone</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                value={tempContent.contactPhone}
+                onChange={(e) => setTempContent((x) => ({ ...x, contactPhone: e.target.value }))}
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Contact Address</label>
+              <input
+                type="text"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
+                value={tempContent.contactAddress}
+                onChange={(e) => setTempContent((x) => ({ ...x, contactAddress: e.target.value }))}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">About Title</label>
-            <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value={tempContent.aboutTitle} onChange={(e) => setTempContent((x) => ({ ...x, aboutTitle: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">About Text</label>
-            <textarea className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="4" value={tempContent.aboutText} onChange={(e) => setTempContent((x) => ({ ...x, aboutText: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Contact Email</label>
-            <input type="email" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value={tempContent.contactEmail} onChange={(e) => setTempContent((x) => ({ ...x, contactEmail: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Contact Phone</label>
-            <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value={tempContent.contactPhone} onChange={(e) => setTempContent((x) => ({ ...x, contactPhone: e.target.value }))} />
-          </div>
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Contact Address</label>
-            <input type="text" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" value={tempContent.contactAddress} onChange={(e) => setTempContent((x) => ({ ...x, contactAddress: e.target.value }))} />
-          </div>
-          <div className="flex justify-end gap-2 pt-4">
-            <button type="button" onClick={handleCancel} className="px-4 py-2 text-gray-600 rounded-md hover:bg-gray-100">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Save Changes</button>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 text-slate-600 rounded-xl hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl"
+            >
+              Save Changes
+            </button>
           </div>
         </form>
       )}

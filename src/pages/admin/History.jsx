@@ -17,40 +17,45 @@ export default function AdminHistory() {
   );
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Activity History</h2>
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Activity History</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Review recent actions taken by admins and staff.
+          </p>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b">
-          <div className="relative w-full md:w-1/3">
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-slate-50 border-b border-slate-200">
+          <div className="relative w-full md:w-64">
             <input
               type="text"
               placeholder="Search history..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
             />
-            <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full text-sm text-slate-700">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                <th className="px-6 py-3 text-left">Date</th>
+                <th className="px-6 py-3 text-left">User</th>
+                <th className="px-6 py-3 text-left">Action</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-slate-200">
               {filteredLogs.map((log) => (
-                <tr key={log.id}>
-                  <td className="px-6 py-4 text-sm text-gray-500">{log.date}</td>
-                  <td className="px-6 py-4 text-sm">{log.user}</td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{log.action}</td>
+                <tr key={log.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 text-sm text-slate-600">{log.date}</td>
+                  <td className="px-6 py-4 text-sm text-slate-900">{log.user}</td>
+                  <td className="px-6 py-4 text-sm text-slate-700">{log.action}</td>
                 </tr>
               ))}
             </tbody>
