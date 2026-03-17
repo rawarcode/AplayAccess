@@ -1,10 +1,7 @@
 import { useEffect, useState } from "react";
 import Modal from "./Modal.jsx";
 import { createBooking } from "../../lib/bookingApi.js";
-import { createPaymentSource } from "../../lib/paymentApi.js";
-
-// Payment methods that redirect to PayMongo checkout
-const ONLINE_METHODS = ["GCash", "PayMaya"];
+import { createPaymentLink } from "../../lib/paymentApi.js";
 
 // Available start times for an 8-hour slot
 const TIME_SLOTS = [
@@ -47,7 +44,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [email, setEmail]           = useState("");
   const [phone, setPhone]           = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
-  const [paymentMethod, setPaymentMethod]     = useState("GCash");
+  const [paymentMethod, setPaymentMethod]     = useState("Online");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState("");
 
@@ -96,13 +93,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
       const bookingId = result.data?.id;
 
-      // Step 2 — if GCash or Maya, redirect to PayMongo checkout
-      if (ONLINE_METHODS.includes(paymentMethod) && bookingId) {
-        const sourceType = paymentMethod === "GCash" ? "gcash" : "paymaya";
-        const { checkout_url } = await createPaymentSource(bookingId, sourceType);
-        // Redirect the whole page to PayMongo's hosted checkout
-        window.location.href = checkout_url;
-        return; // don't close the modal yet — browser is navigating away
+      // Step 2 — if Online, create a PayMongo Payment Link and redirect
+      if (paymentMethod === "Online" && bookingId) {
+        const { checkout_url } = await createPaymentLink(bookingId);
+        window.location.href = checkout_url; // browser navigates to PayMongo's checkout
+        return;
       }
 
       // Step 3 — cash / other methods: show success modal as before
@@ -312,31 +307,38 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
               {/* Payment method */}
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Payment Method (Reservation Fee)
+                Payment Method <span className="text-red-500">*</span>
               </label>
               <div className="space-y-3">
-                <label className="flex items-center gap-3">
+                <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="GCash"
-                    checked={paymentMethod === "GCash"}
+                    value="Online"
+                    checked={paymentMethod === "Online"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="mt-0.5"
                   />
                   <span className="text-sm text-gray-800">
-                    GCash <span className="text-xs text-gray-400">(redirects to secure checkout)</span>
+                    <span className="font-medium">Pay Online</span>
+                    <span className="text-gray-400 font-normal ml-1">(GCash · Maya · Credit/Debit Card)</span>
+                    <br />
+                    <span className="text-xs text-gray-400">You will be redirected to a secure PayMongo checkout page.</span>
                   </span>
                 </label>
-                <label className="flex items-center gap-3">
+                <label className="flex items-start gap-3 cursor-pointer">
                   <input
                     type="radio"
                     name="paymentMethod"
-                    value="PayMaya"
-                    checked={paymentMethod === "PayMaya"}
+                    value="Cash"
+                    checked={paymentMethod === "Cash"}
                     onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="mt-0.5"
                   />
                   <span className="text-sm text-gray-800">
-                    Maya <span className="text-xs text-gray-400">(redirects to secure checkout)</span>
+                    <span className="font-medium">Cash on Arrival</span>
+                    <br />
+                    <span className="text-xs text-gray-400">Pay the full ₱1,500.00 at the resort on your visit date.</span>
                   </span>
                 </label>
               </div>
@@ -348,11 +350,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
           >
             {submitting
-              ? ONLINE_METHODS.includes(paymentMethod)
+              ? paymentMethod === "Online"
                 ? "Redirecting to checkout..."
                 : "Processing..."
-              : ONLINE_METHODS.includes(paymentMethod)
-              ? `Pay ₱150.00 via ${paymentMethod} →`
+              : paymentMethod === "Online"
+              ? "Pay ₱150.00 Online →"
               : "Complete Booking"}
           </button>
         </form>

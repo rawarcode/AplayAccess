@@ -2,16 +2,15 @@
 import { api } from "./api";
 
 /**
- * Creates a PayMongo GCash or Maya source for a booking.
- * Returns { checkout_url, source_id }
+ * Creates a PayMongo Payment Link for a booking.
+ * Returns { checkout_url, link_id, reference_number }
+ * Guest selects GCash, Maya, or card on PayMongo's hosted checkout page.
  *
  * @param {number} bookingId  - the booking's database ID
- * @param {'gcash'|'paymaya'} type
  */
-export async function createPaymentSource(bookingId, type) {
-  const res = await api.post("/api/payments/source", {
+export async function createPaymentLink(bookingId) {
+  const res = await api.post("/api/payments/link", {
     booking_id: bookingId,
-    type,
   });
   return res.data;
 }
