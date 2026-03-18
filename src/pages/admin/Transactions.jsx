@@ -111,7 +111,7 @@ export default function AdminTransactions() {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="min-w-[160px] px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="min-w-40 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
             >
               <option value="">Filter by Status</option>
               <option value="Completed">Completed</option>
@@ -121,7 +121,7 @@ export default function AdminTransactions() {
             <select
               value={filterMethod}
               onChange={(e) => setFilterMethod(e.target.value)}
-              className="min-w-[160px] px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="min-w-40 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
             >
               <option value="">Filter by Method</option>
               <option value="Credit Card">Credit Card</option>

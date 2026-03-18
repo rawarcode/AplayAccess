@@ -132,7 +132,15 @@ export default function AdminUsers() {
                       Edit
                     </button>
                     <button
-                      onClick={() => toggleActive(u.id)}
+                      onClick={() => {
+                        if (u.isActive) {
+                          const confirmed = window.confirm(
+                            "Deactivate this user? They will lose access until reactivated."
+                          );
+                          if (!confirmed) return;
+                        }
+                        toggleActive(u.id);
+                      }}
                       className={
                         u.isActive
                           ? "text-rose-600 hover:text-rose-800 font-medium"
@@ -206,10 +214,17 @@ export default function AdminUsers() {
                 <option value="staff">Staff</option>
               </select>
             </div>
-            <div className="flex items-end">
+            <div className="flex flex-col sm:flex-row items-end gap-3">
+              <button
+                type="button"
+                onClick={() => setModalOpen(false)}
+                className="w-full sm:w-auto bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl shadow-sm"
+              >
+                Cancel
+              </button>
               <button
                 type="submit"
-                className="w-full bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow-sm"
+                className="w-full sm:w-auto bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow-sm"
               >
                 Save User
               </button>
