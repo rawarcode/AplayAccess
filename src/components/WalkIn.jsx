@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from './Layout/Sidebar';
+import { addReservationFromWalkin, addWalkin, getWalkins, updateWalkin } from '../utils/appData';
 
 const WalkIn = () => {
   const [modalState, setModalState] = useState({
@@ -10,12 +11,7 @@ const WalkIn = () => {
   });
   const [showManualCheckin, setShowManualCheckin] = useState(false);
   const [activeActions, setActiveActions] = useState(null);
-
-  const walkins = [
-    { id: 1, guest: 'Lisa Thompson', room: '207 - Standard Garden View', dates: 'Jun 12 - Jun 14, 2023', status: 'Checked In' },
-    { id: 2, guest: 'John Smith', room: '301 - Deluxe Ocean View', dates: 'Jun 10 - Jun 15, 2023', status: 'Checked In' },
-    { id: 3, guest: 'Emma Wilson', room: 'Pending Assignment', dates: 'Jun 15 - Jun 17, 2023', status: 'Pending' },
-  ];
+  const [walkins, setWalkins] = useState(() => getWalkins());
 
   const openModal = (modalName) => {
     setModalState({ ...modalState, [modalName]: true });
@@ -44,7 +40,16 @@ const WalkIn = () => {
       return;
     }
 
-    alert(`Created walk-in booking for ${firstName} ${lastName}\nRoom: ${roomType}\nDates: ${checkin} to ${checkout}`);
+    const guest = `${firstName} ${lastName}`;
+    const next = addWalkin({
+      guest,
+      room: 'Pending Assignment',
+      dates: `${checkin} - ${checkout}`,
+      status: 'Pending'
+    });
+    setWalkins(next);
+    addReservationFromWalkin({ guest, roomType, checkin, checkout });
+    alert(`Created walk-in booking for ${guest}\nRoom: ${roomType}\nDates: ${checkin} to ${checkout}`);
     closeModal('newWalkin');
   };
 
@@ -68,6 +73,8 @@ const WalkIn = () => {
       guestName = `${firstName} ${lastName}`;
     }
 
+    const next = updateWalkin(guestName, { status: 'Checked In', room });
+    setWalkins(next);
     alert(`Checked in ${guestName} to room ${room}`);
     closeModal('checkin');
   };
@@ -82,6 +89,8 @@ const WalkIn = () => {
       return;
     }
 
+    const next = updateWalkin(guestName, { status: 'Checked Out' });
+    setWalkins(next);
     alert(`Checked out ${guestName}\nPayment: ${paymentMethod}\nReceipt: ${printReceipt ? 'Printed' : 'Not printed'}`);
     closeModal('checkout');
   };
@@ -95,6 +104,8 @@ const WalkIn = () => {
       return;
     }
 
+    const next = updateWalkin(guestName, { status: 'No-show' });
+    setWalkins(next);
     alert(`Marked ${guestName} as no-show\nReason: ${reason}`);
     closeModal('noshow');
   };
@@ -203,7 +214,11 @@ const WalkIn = () => {
                 onChange={(e) => setShowManualCheckin(e.target.value === 'New Guest')}
               >
                 <option value="">Select a guest to check-in</option>
-                <option value="Emma Wilson">Emma Wilson - Pending</option>
+                {walkins
+                  .filter((w) => w.status === 'Pending')
+                  .map((w) => (
+                    <option key={`checkin-${w.id}`} value={w.guest}>{w.guest} - Pending</option>
+                  ))}
                 <option value="New Guest">New Guest (Manual Entry)</option>
               </select>
             </div>
@@ -258,8 +273,11 @@ const WalkIn = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Select Guest*</label>
               <select id="checkoutGuestSelect" className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select a guest to check-out</option>
-                <option value="Lisa Thompson">Lisa Thompson - Room 207</option>
-                <option value="John Smith">John Smith - Room 301</option>
+                {walkins
+                  .filter((w) => w.status === 'Checked In')
+                  .map((w) => (
+                    <option key={`checkout-${w.id}`} value={w.guest}>{w.guest} - {w.room}</option>
+                  ))}
               </select>
             </div>
 
@@ -328,8 +346,11 @@ const WalkIn = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Select Guest*</label>
               <select id="noshowGuestSelect" className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500">
                 <option value="">Select a guest</option>
-                <option value="Emma Wilson">Emma Wilson - Pending</option>
-                <option value="John Smith">John Smith - Pending</option>
+                {walkins
+                  .filter((w) => w.status === 'Pending')
+                  .map((w) => (
+                    <option key={`noshow-${w.id}`} value={w.guest}>{w.guest} - Pending</option>
+                  ))}
               </select>
             </div>
 

@@ -12,7 +12,6 @@ const Reports = () => {
   const fullChartInstance = useRef(null);
 
   useEffect(() => {
-    // Initialize daily occupancy chart
     if (dailyChartRef.current) {
       if (dailyChartInstance.current) {
         dailyChartInstance.current.destroy();

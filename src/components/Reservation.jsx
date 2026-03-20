@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Sidebar from './Layout/Sidebar';
+import { getReservations, removeReservationById, updateReservation } from '../utils/appData';
 
 const Reservation = () => {
   const [selectedReservation, setSelectedReservation] = useState(null);
@@ -16,14 +17,20 @@ const Reservation = () => {
   });
   const [selectedServices, setSelectedServices] = useState([]);
   const [currentReservation, setCurrentReservation] = useState(null);
+  const [reservations, setReservations] = useState(() => getReservations());
+  const [searchBy, setSearchBy] = useState('Reservation ID');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const reservations = [
-    { id: '#4567', guest: 'Robert Chen', room: '305 - Deluxe Ocean View', dates: 'Jun 12 - Jun 18, 2023', status: 'confirmed' },
-    { id: '#4566', guest: 'Maria Garcia', room: '412 - Family Suite', dates: 'Jun 12 - Jun 15, 2023', status: 'checked-in' },
-    { id: '#4565', guest: 'James Wilson', room: '208 - Standard Garden View', dates: 'Jun 12 - Jun 14, 2023', status: 'pending' },
-    { id: '#4564', guest: 'Emma Thompson', room: '-', dates: 'Jun 10 - Jun 12, 2023', status: 'cancelled' },
-    { id: '#4563', guest: 'David Kim', room: '301 - Deluxe Ocean View', dates: 'Jun 8 - Jun 11, 2023', status: 'checked-out' },
-  ];
+  const filteredReservations = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return reservations;
+
+    return reservations.filter((r) => {
+      if (searchBy === 'Guest Name') return r.guest.toLowerCase().includes(term);
+      if (searchBy === 'Room Number') return r.room.toLowerCase().includes(term);
+      return r.id.toLowerCase().includes(term);
+    });
+  }, [reservations, searchBy, searchTerm]);
 
   const toggleActions = (actionId) => {
     setActiveActions(activeActions === actionId ? null : actionId);
@@ -100,6 +107,11 @@ const Reservation = () => {
       return;
     }
 
+    const next = updateReservation(currentReservation.id, {
+      room: newRoom,
+      status: 'checked-in'
+    });
+    setReservations(next);
     alert(`Moved ${currentReservation?.guest} to ${newRoom}\nReason: ${reason}`);
     closeModal('moveRoom');
   };
@@ -108,8 +120,17 @@ const Reservation = () => {
     const printReceipt = document.getElementById('printReceipt')?.checked;
     const sendEmail = document.getElementById('sendEmail')?.checked;
 
+    const next = updateReservation(currentReservation.id, { status: 'checked-out' });
+    setReservations(next);
     alert(`Checked out ${currentReservation?.guest}\nPrint receipt: ${printReceipt ? 'Yes' : 'No'}\nSend email: ${sendEmail ? 'Yes' : 'No'}`);
     closeModal('checkout');
+  };
+
+  const handleDeleteReservation = () => {
+    const next = removeReservationById(currentReservation.id);
+    setReservations(next);
+    setCurrentReservation(null);
+    closeModal('deleteReservation');
   };
 
   const getStatusClass = (status) => {
@@ -440,10 +461,7 @@ const Reservation = () => {
               <button onClick={() => closeModal('deleteReservation')} className="px-4 py-2 border rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                 Cancel
               </button>
-              <button onClick={() => {
-                alert(`Reservation ${currentReservation.id} for ${currentReservation.guest} has been deleted`);
-                closeModal('deleteReservation');
-              }} className="px-4 py-2 border rounded text-sm font-medium text-white bg-red-600 hover:bg-red-700">
+              <button onClick={handleDeleteReservation} className="px-4 py-2 border rounded text-sm font-medium text-white bg-red-600 hover:bg-red-700">
                 Delete Reservation
               </button>
             </div>
@@ -518,13 +536,23 @@ const Reservation = () => {
                 <div className="flex-1">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Search by</label>
                   <div className="flex space-x-2">
-                    <select className="border rounded px-3 py-2 w-full md:w-auto focus:ring-blue-500 focus:border-blue-500">
+                    <select
+                      value={searchBy}
+                      onChange={(e) => setSearchBy(e.target.value)}
+                      className="border rounded px-3 py-2 w-full md:w-auto focus:ring-blue-500 focus:border-blue-500"
+                    >
                       <option>Reservation ID</option>
                       <option>Guest Name</option>
                       <option>Room Number</option>
                     </select>
-                    <input type="text" placeholder="Enter search term..." className="border rounded px-3 py-2 flex-1 focus:ring-blue-500 focus:border-blue-500" />
-                    <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="Enter search term..."
+                      className="border rounded px-3 py-2 flex-1 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <button type="button" className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center">
                       <i className="fas fa-search mr-2"></i> Search
                     </button>
                   </div>
@@ -545,7 +573,7 @@ const Reservation = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {reservations.map((reservation, index) => (
+                {filteredReservations.map((reservation, index) => (
                   <React.Fragment key={reservation.id}>
                     <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => toggleActions(`actions${index + 1}`)}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{reservation.id}</td>
@@ -590,7 +618,7 @@ const Reservation = () => {
 
           <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
             <div className="text-sm text-gray-700">
-              Showing <span className="font-medium">1</span> to <span className="font-medium">5</span> of <span className="font-medium">24</span> results
+              Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredReservations.length}</span> of <span className="font-medium">{reservations.length}</span> results
             </div>
             <div className="flex space-x-2">
               <button className="px-3 py-1 border rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">

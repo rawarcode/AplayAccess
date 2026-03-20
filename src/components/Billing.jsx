@@ -1,19 +1,22 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Sidebar from './Layout/Sidebar';
+
+const BILLING_STORAGE_KEY = 'fd_billing_guest_data_v1';
+
+function parseCurrency(value) {
+  return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0;
+}
+
+function formatCurrency(value) {
+  return `₱${Number(value || 0).toFixed(2)}`;
+}
 
 const Billing = () => {
   const [selectedGuest, setSelectedGuest] = useState(null);
   const [showBillDetails, setShowBillDetails] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
 
-  const guests = [
-    { id: 1, name: 'Robert Chen', reservationId: '#4567', room: '305 - Deluxe Ocean View', dates: 'Jun 12 - Jun 18, 2023', status: 'Checked In', balance: '₱864.08' },
-    { id: 2, name: 'Maria Garcia', reservationId: '#4566', room: '412 - Family Suite', dates: 'Jun 12 - Jun 15, 2023', status: 'Checked In', balance: '₱1,245.50' },
-    { id: 3, name: 'James Wilson', reservationId: '#4565', room: '208 - Standard Garden View', dates: 'Jun 12 - Jun 14, 2023', status: 'Checked Out', balance: '₱320.75' },
-    { id: 4, name: 'Lisa Thompson', reservationId: '#4564', room: '207 - Standard Garden View', dates: 'Jun 12 - Jun 14, 2023', status: 'Pending Payment', balance: '₱725.30' },
-  ];
-
-  const guestData = {
+  const initialGuestData = {
     'Robert Chen': {
       room: '305',
       dates: 'Jun 12 - Jun 18, 2023',
@@ -89,6 +92,39 @@ const Billing = () => {
     }
   };
 
+  const [guestData, setGuestData] = useState(() => {
+    try {
+      const raw = localStorage.getItem(BILLING_STORAGE_KEY);
+      if (!raw) return initialGuestData;
+      return JSON.parse(raw);
+    } catch {
+      return initialGuestData;
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify(guestData));
+  }, [guestData]);
+
+  const guests = useMemo(() => {
+    return Object.entries(guestData).map(([name, data], index) => {
+      const totalDue = parseCurrency(data.total);
+      const paid = (data.payments || []).reduce((sum, p) => sum + parseCurrency(p.amount), 0);
+      const balance = Math.max(totalDue - paid, 0);
+      const status = balance === 0 ? 'Checked Out' : paid > 0 ? 'Checked In' : 'Pending Payment';
+
+      return {
+        id: index + 1,
+        name,
+        reservationId: data.reservationId,
+        room: `${data.room} - ${data.roomType}`,
+        dates: data.dates,
+        status,
+        balance: formatCurrency(balance)
+      };
+    });
+  }, [guestData]);
+
   const selectGuest = (guest) => {
     setSelectedGuest(guest);
     setShowBillDetails(true);
@@ -100,12 +136,52 @@ const Billing = () => {
   };
 
   const processPayment = () => {
+    if (!selectedGuest) {
+      alert('Please select a guest first');
+      return;
+    }
+
     const amount = document.getElementById('paymentAmount')?.value;
-    if (!amount) {
+    const numericAmount = Number(amount);
+
+    if (!amount || Number.isNaN(numericAmount) || numericAmount <= 0) {
       alert('Please enter a payment amount');
       return;
     }
-    alert(`Processing ${amount} payment via ${paymentMethod}\nThis would connect to a payment gateway in a real application`);
+
+    const selected = guestData[selectedGuest];
+    const totalDue = parseCurrency(selected.total);
+    const alreadyPaid = (selected.payments || []).reduce((sum, p) => sum + parseCurrency(p.amount), 0);
+    const remaining = Math.max(totalDue - alreadyPaid, 0);
+
+    if (numericAmount > remaining) {
+      alert(`Amount exceeds remaining balance (${formatCurrency(remaining)})`);
+      return;
+    }
+
+    const paymentEntry = {
+      date: new Date().toLocaleDateString(),
+      amount: formatCurrency(numericAmount),
+      method: paymentMethod
+    };
+
+    setGuestData((prev) => ({
+      ...prev,
+      [selectedGuest]: {
+        ...prev[selectedGuest],
+        payments: [...(prev[selectedGuest].payments || []), paymentEntry]
+      }
+    }));
+
+    alert(`Processed ${formatCurrency(numericAmount)} payment via ${paymentMethod}`);
+  };
+
+  const getRemainingBalance = (guestName) => {
+    const data = guestData[guestName];
+    if (!data) return 0;
+    const totalDue = parseCurrency(data.total);
+    const paid = (data.payments || []).reduce((sum, p) => sum + parseCurrency(p.amount), 0);
+    return Math.max(totalDue - paid, 0);
   };
 
   const getStatusColor = (status) => {
@@ -246,6 +322,10 @@ const Billing = () => {
                             <td className="py-3 text-lg font-bold" colSpan="2">Total Due</td>
                             <td className="py-3 text-lg text-right font-bold">{guestData[selectedGuest].total}</td>
                           </tr>
+                          <tr>
+                            <td className="py-3 text-sm font-medium" colSpan="2">Remaining Balance</td>
+                            <td className="py-3 text-sm text-right font-medium">{formatCurrency(getRemainingBalance(selectedGuest))}</td>
+                          </tr>
                         </tbody>
                       </table>
                     </div>
@@ -273,7 +353,7 @@ const Billing = () => {
                           <input 
                             type="text" 
                             id="paymentAmount" 
-                            defaultValue={guestData[selectedGuest].total} 
+                            defaultValue={String(getRemainingBalance(selectedGuest))} 
                             className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
                           />
                         </div>
