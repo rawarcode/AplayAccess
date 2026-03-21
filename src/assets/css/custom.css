@@ -1,0 +1,66 @@
+.sidebar {
+    transition: all 0.3s ease;
+}
+.sidebar.collapsed {
+    width: 70px;
+}
+.sidebar.collapsed .sidebar-text {
+    display: none;
+}
+.sidebar.collapsed .logo-text {
+    display: none;
+}
+.main-content {
+    transition: all 0.3s ease;
+}
+.sidebar.collapsed + .main-content {
+    margin-left: 70px;
+}
+.notification-dropdown {
+    display: none;
+}
+.notification-dropdown.active {
+    display: block;
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 50;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 50%;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.print-receipt {
+    transition: all 0.2s ease;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+.print-receipt:hover {
+    background-color: #f3f4f6;
+    transform: scale(1.1);
+}
+
+.print-receipt:active {
+    transform: scale(0.95);
+}
