@@ -286,7 +286,7 @@ const Dashboard = () => {
   const confirmLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
       clearSession();
-      navigate('/login');
+      navigate('/staff/login');
     }
   };
 

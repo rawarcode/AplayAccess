@@ -13,18 +13,18 @@ const Sidebar = ({ children }) => {
 
   const menuItems = {
     frontDesk: [
-      { path: '/dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard' },
-      { path: '/reservation', icon: 'fa-calendar-check', label: 'Reservations' },
-      { path: '/billing', icon: 'fa-receipt', label: 'Billing' },
-      { path: '/walkin', icon: 'fa-person-walking', label: 'Walk-ins' },
-      { path: '/records', icon: 'fa-address-book', label: 'Guest Records' },
+      { path: '/staff/dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard' },
+      { path: '/staff/reservation', icon: 'fa-calendar-check', label: 'Reservations' },
+      { path: '/staff/billing', icon: 'fa-receipt', label: 'Billing' },
+      { path: '/staff/walkin', icon: 'fa-person-walking', label: 'Walk-ins' },
+      { path: '/staff/records', icon: 'fa-address-book', label: 'Guest Records' },
     ],
     management: [
-      { path: '/reports', icon: 'fa-chart-bar', label: 'Reports' },
+      { path: '/staff/reports', icon: 'fa-chart-bar', label: 'Reports' },
     ],
     switchInterface: [
-      { path: '/admin', icon: 'fa-user-shield', label: 'Admin Interface' },
-      { path: '/owner', icon: 'fa-desktop', label: 'Owner Interface' },
+      { path: '/staff/admin', icon: 'fa-user-shield', label: 'Admin Interface' },
+      { path: '/staff/owner', icon: 'fa-desktop', label: 'Owner Interface' },
     ]
   };
 
@@ -32,7 +32,7 @@ const Sidebar = ({ children }) => {
 
   const handleLogout = () => {
     clearSession();
-    navigate('/login');
+    navigate('/staff/login');
   };
 
   return (

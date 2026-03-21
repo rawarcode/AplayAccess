@@ -26,7 +26,7 @@ const Login = () => {
         setSession(result.user, keepSignedIn);
         
         // Redirect to dashboard
-        navigate('/dashboard');
+        navigate('/staff/dashboard');
     };
 
     return (

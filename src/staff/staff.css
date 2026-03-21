@@ -1,13 +1,3 @@
-@import "tailwindcss";
-@import "./staff/staff.css";
-
-.hero {
-  background: linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)),
-    url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e");
-  background-size: cover;
-  background-position: center;
-}
-
 .sidebar {
   transition: all 0.3s ease;
 }
@@ -242,12 +232,10 @@
   background: #152c6e;
 }
 
-/* Transitions */
 .sidebar-transition {
   transition: all 0.3s ease;
 }
 
-/* Custom utilities */
 .text-shadow-sm {
   text-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }

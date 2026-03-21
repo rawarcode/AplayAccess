@@ -1,113 +1,53 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
-import Reservation from './components/Reservation';
-import Billing from './components/Billing';
-import WalkIn from './components/WalkIn';
-import GuestRecords from './components/GuestRecords';
-import Reports from './components/Reports';
-import Sidebar from './components/Layout/Sidebar';
-import { isAuthenticated, hasRole } from './utils/appData';
+import { Routes, Route } from "react-router-dom";
+import Layout from "./components/Layout.jsx";
 
-// Protected Route wrapper component
-const ProtectedRoute = ({ children, roles = [] }) => {
-    if (!isAuthenticated()) {
-        return <Navigate to="/login" replace />;
-    }
+import Home from "./pages/Home.jsx";
+import Resort from "./pages/Resort.jsx";
+import Rooms from "./pages/Rooms.jsx";
+import Gallery from "./pages/Gallery.jsx";
+import Signup from "./pages/Signup.jsx";
+import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 
-    if (!hasRole(roles)) {
-        return <Navigate to="/dashboard" replace />;
-    }
+import RequireAuth from "./components/auth/RequireAuth.jsx";
+import DashboardShell from "./components/dashboard/DashboardShell.jsx";
+import GuestDashboard from "./pages/dashboard/GuestDashboard.jsx";
+import MyBookings from "./pages/dashboard/MyBookings.jsx";
+import EditProfile from "./pages/dashboard/EditProfile.jsx";
+import Messages from "./pages/dashboard/Messages.jsx";
 
-    return children;
-};
+import StaffApp from "./staff/StaffApp.jsx";
 
-function App() {
-    return (
-        <Router>
-            <Routes>
-                {/* Public login route */}
-                <Route path="/login" element={<Login />} />
-                
-                {/* Protected routes - Sidebar is now INSIDE each component */}
-                <Route path="/" element={
-                    <ProtectedRoute>
-                        <Dashboard />
-                    </ProtectedRoute>
-                } />
-                
-                <Route path="/dashboard" element={
-                    <ProtectedRoute>
-                        <Dashboard />
-                    </ProtectedRoute>
-                } />
-                
-                <Route path="/reservation" element={
-                    <ProtectedRoute>
-                        <Reservation />
-                    </ProtectedRoute>
-                } />
-                
-                <Route path="/billing" element={
-                    <ProtectedRoute>
-                        <Billing />
-                    </ProtectedRoute>
-                } />
-                
-                <Route path="/walkin" element={
-                    <ProtectedRoute>
-                        <WalkIn />
-                    </ProtectedRoute>
-                } />
-                
-                <Route path="/records" element={
-                    <ProtectedRoute>
-                        <GuestRecords />
-                    </ProtectedRoute>
-                } />
-                
-                <Route path="/reports" element={
-                    <ProtectedRoute>
-                        <Reports />
-                    </ProtectedRoute>
-                } />
+export default function App() {
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/resort" element={<Resort />} />
+        <Route path="/rooms" element={<Rooms />} />
+        <Route path="/gallery" element={<Gallery />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-                {/* Admin and Owner routes */}
-                <Route path="/owner" element={
-                    <ProtectedRoute roles={['owner']}>
-                        <div className="flex h-screen">
-                            <Sidebar>
-                                <div className="p-8 bg-gray-50 min-h-screen w-full">
-                                    <div className="bg-white rounded-2xl p-8 shadow-sm">
-                                        <h1 className="text-2xl font-bold text-[#1e3a8a]">Owner Interface</h1>
-                                        <p className="text-gray-600 mt-2">This area is for owner-level reports and analytics.</p>
-                                    </div>
-                                </div>
-                            </Sidebar>
-                        </div>
-                    </ProtectedRoute>
-                } />
+        {/* Guest dashboard routes (protected) */}
+        <Route
+          path="/dashboard"
+          element={
+            <RequireAuth>
+              <DashboardShell />
+            </RequireAuth>
+          }
+        >
+          <Route index element={<GuestDashboard />} />
+          <Route path="bookings" element={<MyBookings />} />
+          <Route path="profile" element={<EditProfile />} />
+          <Route path="messages" element={<Messages />} />
+        </Route>
+      </Route>
 
-                <Route path="/admin" element={
-                    <ProtectedRoute roles={['admin', 'owner']}>
-                        <div className="flex h-screen">
-                            <Sidebar>
-                                <div className="p-8 bg-gray-50 min-h-screen w-full">
-                                    <div className="bg-white rounded-2xl p-8 shadow-sm">
-                                        <h1 className="text-2xl font-bold text-[#1e3a8a]">Admin Interface</h1>
-                                        <p className="text-gray-600 mt-2">This area is for administrative tasks.</p>
-                                    </div>
-                                </div>
-                            </Sidebar>
-                        </div>
-                    </ProtectedRoute>
-                } />
-
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
-        </Router>
-    );
+      {/* Staff portal – all routes live under /staff/* */}
+      <Route path="/staff/*" element={<StaffApp />} />
+    </Routes>
+  );
 }
-
-export default App;
