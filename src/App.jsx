@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+﻿import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
 import Home from "./pages/Home.jsx";
@@ -9,7 +9,7 @@ import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 
-// Dashboard (protected)
+// Guest Dashboard (protected)
 import RequireAuth from "./components/auth/RequireAuth.jsx";
 import DashboardShell from "./components/dashboard/DashboardShell.jsx";
 import GuestDashboard from "./pages/dashboard/GuestDashboard.jsx";
@@ -17,7 +17,23 @@ import MyBookings from "./pages/dashboard/MyBookings.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
 import Messages from "./pages/dashboard/Messages.jsx";
 
+// Staff portal
 import StaffApp from "./staff/StaffApp.jsx";
+
+// Admin Dashboard (protected)
+import RequireAdmin from "./components/admin/RequireAdmin.jsx";
+import AdminShell from "./components/admin/AdminShell.jsx";
+import AdminDashboard from "./pages/admin/Dashboard.jsx";
+import AdminUsers from "./pages/admin/Users.jsx";
+import AdminRooms from "./pages/admin/Rooms.jsx";
+import AdminFoods from "./pages/admin/Foods.jsx";
+import AdminServices from "./pages/admin/Services.jsx";
+import AdminInventory from "./pages/admin/Inventory.jsx";
+import AdminTransactions from "./pages/admin/Transactions.jsx";
+import AdminHistory from "./pages/admin/History.jsx";
+import AdminContent from "./pages/admin/Content.jsx";
+import AdminReviews from "./pages/admin/Reviews.jsx";
+import AdminGuests from "./pages/admin/Guests.jsx";
 
 export default function App() {
   return (
@@ -31,15 +47,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Dashboard routes (protected) */}
-        <Route
-          path="/dashboard"
-          element={
-            <RequireAuth>
-              <DashboardShell />
-            </RequireAuth>
-          }
-        >
+        <Route path="/dashboard" element={<RequireAuth><DashboardShell /></RequireAuth>}>
           <Route index element={<GuestDashboard />} />
           <Route path="bookings" element={<MyBookings />} />
           <Route path="profile" element={<EditProfile />} />
@@ -47,8 +55,22 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* Staff portal - all routes live under /staff/* */}
       <Route path="/staff/*" element={<StaffApp />} />
+
+      <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
+      <Route path="/admin" element={<RequireAdmin><AdminShell /></RequireAdmin>}>
+        <Route index element={<AdminDashboard />} />
+        <Route path="users" element={<AdminUsers />} />
+        <Route path="rooms" element={<AdminRooms />} />
+        <Route path="foods" element={<AdminFoods />} />
+        <Route path="services" element={<AdminServices />} />
+        <Route path="inventory" element={<AdminInventory />} />
+        <Route path="transactions" element={<AdminTransactions />} />
+        <Route path="history" element={<AdminHistory />} />
+        <Route path="content" element={<AdminContent />} />
+        <Route path="reviews" element={<AdminReviews />} />
+        <Route path="guests" element={<AdminGuests />} />
+      </Route>
     </Routes>
   );
 }

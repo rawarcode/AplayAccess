@@ -5,50 +5,34 @@ import { TOKEN_KEY } from "../lib/api";
 
 const AuthContext = createContext(null);
 
-const STORAGE_KEY = "aplaya_user_v1";
-
-function normalizeUser(payload) {
-  // backend might return { user: {...} } or direct user object
-  if (!payload) return null;
-  if (payload.user) return payload.user;
-  return payload;
-}
+// ✅ Default admin user for demo
+const DEFAULT_ADMIN = {
+  id: 1,
+  name: "Sarah Johnson",
+  email: "admin@aplay.com",
+  role: "admin",
+};
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
+  const [user, setUser] = useState(null);
+
+  // ✅ Load saved session on first mount, or auto-login as admin
+  useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const [booting, setBooting] = useState(true);
-
-  // Restore session from backend (cookie-based)
-  useEffect(() => {
-    let alive = true;
-
-    async function boot() {
-      try {
-        const data = await meRequest();
-        if (!alive) return;
-
-        const u = normalizeUser(data);
-        setUser(u || null);
-        if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-        else localStorage.removeItem(STORAGE_KEY);
-      } catch {
-        if (!alive) return;
-        // If not authenticated, backend will throw 401 → clear user and token
-        setUser(null);
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(TOKEN_KEY);
-      } finally {
-        if (!alive) return;
-        setBooting(false);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object") {
+          setUser(parsed);
+          return;
+        }
       }
+      // ✅ Auto-login as admin if no saved session
+      setUser(DEFAULT_ADMIN);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_ADMIN));
+    } catch {
+      // If storage is corrupted, auto-login as admin
+      setUser(DEFAULT_ADMIN);
     }
 
     boot();
