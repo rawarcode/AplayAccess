@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
 import Home from "./pages/Home.jsx";
@@ -9,7 +9,7 @@ import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 
-// ✅ Guest Dashboard (protected)
+// Guest dashboard (protected)
 import RequireAuth from "./components/auth/RequireAuth.jsx";
 import DashboardShell from "./components/dashboard/DashboardShell.jsx";
 import GuestDashboard from "./pages/dashboard/GuestDashboard.jsx";
@@ -17,11 +17,15 @@ import MyBookings from "./pages/dashboard/MyBookings.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
 import Messages from "./pages/dashboard/Messages.jsx";
 
-// ✅ Admin Dashboard (protected)
+// Owner dashboard (standalone layout with sidebar)
+import OwnerDashboard from "./pages/owner/Dashboard.jsx";
+import OwnerFinancials from "./pages/owner/Financials.jsx";
+import OwnerTransactions from "./pages/owner/Transactions.jsx";
+import StaffLogin from "./pages/StaffLogin.jsx";
+
+// Admin dashboard (protected)
 import RequireAdmin from "./components/admin/RequireAdmin.jsx";
 import AdminShell from "./components/admin/AdminShell.jsx";
-// Admin login page not used; simply redirect
-import { Navigate } from "react-router-dom";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import AdminUsers from "./pages/admin/Users.jsx";
 import AdminRooms from "./pages/admin/Rooms.jsx";
@@ -34,31 +38,20 @@ import AdminContent from "./pages/admin/Content.jsx";
 import AdminReviews from "./pages/admin/Reviews.jsx";
 import AdminGuests from "./pages/admin/Guests.jsx";
 
-function Placeholder({ title }) {
-  return (
-    <div className="min-h-[60vh] flex items-center justify-center p-6">
-      <div className="max-w-xl text-center">
-        <h1 className="text-3xl font-bold mb-3">{title}</h1>
-        <p className="text-gray-600">Not converted yet.</p>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   return (
     <Routes>
-      {/* ✅ Public Routes (with Layout) */}
+      {/* Guest-facing routes (inside shared Layout with Navbar/Footer) */}
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
         <Route path="/resort" element={<Resort />} />
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Placeholder title="Login" />} />
-        <Route path="/forgot-password" element={<Placeholder title="Forgot Password" />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* ✅ Guest Dashboard Routes (protected, inside Layout) */}
+        {/* Guest dashboard routes (protected) */}
         <Route
           path="/dashboard"
           element={
@@ -74,7 +67,15 @@ export default function App() {
         </Route>
       </Route>
 
-      {/* ✅ Admin Routes (NO Layout wrapper) */}
+      {/* Staff login */}
+      <Route path="/staff/login" element={<StaffLogin />} />
+
+      {/* Owner dashboard routes (standalone — uses its own Sidebar/Header layout) */}
+      <Route path="/owner" element={<OwnerDashboard />} />
+      <Route path="/owner/financials" element={<OwnerFinancials />} />
+      <Route path="/owner/transactions" element={<OwnerTransactions />} />
+
+      {/* Admin routes (standalone — uses AdminShell layout) */}
       <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
       <Route
         path="/admin"

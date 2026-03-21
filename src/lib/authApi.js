@@ -1,10 +1,21 @@
 // src/lib/authApi.js
 import { api } from "./api";
 
-// POST /api/login → returns { user, token }
+// POST /api/login → tries admin login first (owner/admin/front_desk),
+// falls back to guest login if the account is not a staff account.
 export async function loginRequest(email, password) {
-  const res = await api.post("/api/login", { email, password });
-  return res.data;
+  try {
+    // Try staff login first — returns a token that works with admin API routes
+    const res = await api.post("/api/admin/login", { email, password });
+    return res.data;
+  } catch (err) {
+    // 403 means it's a guest account — fall back to regular login
+    if (err?.response?.status === 403) {
+      const res = await api.post("/api/login", { email, password });
+      return res.data;
+    }
+    throw err;
+  }
 }
 
 // POST /api/register → returns { user, token }
