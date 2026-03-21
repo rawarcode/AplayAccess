@@ -6,6 +6,8 @@ import Resort from "./pages/Resort.jsx";
 import Rooms from "./pages/Rooms.jsx";
 import Gallery from "./pages/Gallery.jsx";
 import Signup from "./pages/Signup.jsx";
+import Login from "./pages/Login.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 
 // ✅ Guest Dashboard (protected)
 import RequireAuth from "./components/auth/RequireAuth.jsx";

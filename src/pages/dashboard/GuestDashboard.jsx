@@ -1,16 +1,41 @@
 // src/pages/dashboard/GuestDashboard.jsx
 import { Link } from "react-router-dom";
-import { useMemo } from "react";
-import { sampleBookings } from "../../data/dashboard.js";
+import { useEffect, useMemo, useState } from "react";
+import { getBookings } from "../../lib/bookingApi.js";
+
+/** Converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
+function fmtDateTime(str) {
+  if (!str) return str;
+  const d = new Date(str.replace(" ", "T"));
+  if (isNaN(d)) return str;
+  return d.toLocaleString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
 
 export default function GuestDashboard() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getBookings()
+      .then(setBookings)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   const { upcoming, past, pendingCount } = useMemo(() => {
     const now = new Date();
     const upcoming = [];
     const past = [];
     let pendingCount = 0;
 
-    for (const b of sampleBookings) {
+    for (const b of bookings) {
       const ci = new Date(b.checkIn);
       if (b.status === "Pending") pendingCount += 1;
       if (ci >= now) upcoming.push(b);
@@ -18,7 +43,7 @@ export default function GuestDashboard() {
     }
 
     return { upcoming, past, pendingCount };
-  }, []);
+  }, [bookings]);
 
   return (
     <div className="space-y-6">
@@ -31,15 +56,15 @@ export default function GuestDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-blue-100 p-4 rounded-lg shadow-sm text-center">
           <p className="text-sm font-medium text-gray-700">Upcoming Bookings</p>
-          <p className="text-2xl font-bold text-blue-700">{upcoming.length}</p>
+          <p className="text-2xl font-bold text-blue-700">{loading ? "—" : upcoming.length}</p>
         </div>
         <div className="bg-green-100 p-4 rounded-lg shadow-sm text-center">
           <p className="text-sm font-medium text-gray-700">Past Bookings</p>
-          <p className="text-2xl font-bold text-green-700">{past.length}</p>
+          <p className="text-2xl font-bold text-green-700">{loading ? "—" : past.length}</p>
         </div>
         <div className="bg-yellow-100 p-4 rounded-lg shadow-sm text-center">
           <p className="text-sm font-medium text-gray-700">Pending Actions</p>
-          <p className="text-2xl font-bold text-yellow-700">{pendingCount}</p>
+          <p className="text-2xl font-bold text-yellow-700">{loading ? "—" : pendingCount}</p>
         </div>
       </div>
 
@@ -76,14 +101,16 @@ export default function GuestDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Upcoming Bookings</h2>
           <div className="space-y-4">
-            {upcoming.length === 0 ? (
+            {loading ? (
+              <p className="text-gray-400 text-sm">Loading...</p>
+            ) : upcoming.length === 0 ? (
               <p className="text-gray-500">No upcoming bookings.</p>
             ) : (
               upcoming.slice(0, 3).map((b) => (
                 <div key={b.id} className="border rounded-lg p-4 shadow-sm">
                   <p className="font-bold text-gray-800">{b.roomType}</p>
                   <p className="text-sm text-gray-600">
-                    {b.checkIn} - {b.checkOut}
+                    {fmtDateTime(b.checkIn)} – {fmtDateTime(b.checkOut)}
                   </p>
                   <p className="text-sm text-gray-600">{b.guests} Guests</p>
                   <p className="text-sm text-gray-600">Booking ID: {b.id}</p>
@@ -101,14 +128,16 @@ export default function GuestDashboard() {
         <div className="bg-white p-6 rounded-xl shadow-md">
           <h2 className="text-xl font-bold text-gray-900 mb-4">Past Bookings</h2>
           <div className="space-y-4">
-            {past.length === 0 ? (
+            {loading ? (
+              <p className="text-gray-400 text-sm">Loading...</p>
+            ) : past.length === 0 ? (
               <p className="text-gray-500">No past bookings yet.</p>
             ) : (
               past.slice(0, 3).map((b) => (
                 <div key={b.id} className="border rounded-lg p-4 shadow-sm">
                   <p className="font-bold text-gray-800">{b.roomType}</p>
                   <p className="text-sm text-gray-600">
-                    {b.checkIn} - {b.checkOut}
+                    {fmtDateTime(b.checkIn)} – {fmtDateTime(b.checkOut)}
                   </p>
                   <p className="text-sm text-gray-600">Booking ID: {b.id}</p>
                   <div className="mt-3">
