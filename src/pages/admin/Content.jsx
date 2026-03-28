@@ -532,13 +532,14 @@ function GalleryTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter by category, then sort: selected (featured) images first, rest by sort_order
+  // Filter by category, then sort: saved-featured images first, rest by sort_order.
+  // Uses savedIdsRef (not selectedIds) so the order only changes after clicking Save.
   const filtered = (filterCat === "all" ? images : images.filter(i => i.category === filterCat))
     .slice()
     .sort((a, b) => {
-      const aSelected = selectedIds.has(a.id) ? 0 : 1;
-      const bSelected = selectedIds.has(b.id) ? 0 : 1;
-      if (aSelected !== bSelected) return aSelected - bSelected;
+      const aSaved = savedIdsRef.current.has(a.id) ? 0 : 1;
+      const bSaved = savedIdsRef.current.has(b.id) ? 0 : 1;
+      if (aSaved !== bSaved) return aSaved - bSaved;
       return (a.sort_order ?? 0) - (b.sort_order ?? 0);
     });
 
