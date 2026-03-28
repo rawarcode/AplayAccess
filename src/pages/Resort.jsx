@@ -115,7 +115,7 @@ export default function Resort() {
   // API-backed lists (fallback if API is down)
   const [roomsApi, setRoomsApi] = useState([]);
   const [amenitiesApi, setAmenitiesApi] = useState([]);
-  const [galleryApi, setGalleryApi] = useState([]);
+  const [galleryApi, setGalleryApi] = useState(null); // null = not yet loaded
   const [reviewsApi, setReviewsApi] = useState([]);
 
   const anyOverlayOpen =
@@ -149,8 +149,11 @@ export default function Resort() {
   }, [amenitiesApi]);
 
   // Normalize gallery items to { src, alt, caption }
-  // API returns only is_featured=true images (admin-controlled); fallback shows first 6
+  // null  = API not yet responded — show nothing (avoids fallback flash)
+  // []    = API responded with empty or failed — show fallback
+  // [...] = API responded with featured images — show those
   const galleryDisplay = useMemo(() => {
+    if (galleryApi === null) return null; // still loading
     if (galleryApi.length) {
       return galleryApi.map((g) => ({
         src: g.image_url ?? g.src,
@@ -158,6 +161,7 @@ export default function Resort() {
         caption: g.caption ?? "",
       }));
     }
+    // API returned empty or failed — fall back to local data
     return galleryFallback.slice(0, 6).map((g) => ({
       src: g.image_url ?? g.src,
       alt: g.caption ?? g.alt ?? "Gallery image",
@@ -277,7 +281,7 @@ export default function Resort() {
         console.warn("Resort API load failed, using local fallback:", e?.message || e);
         setRoomsApi([]);
         setAmenitiesApi([]);
-        setGalleryApi([]);
+        setGalleryApi([]); // empty array triggers fallback
         setReviewsApi([]);
       }
     }
@@ -556,18 +560,27 @@ export default function Resort() {
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">Take a visual journey through our beautiful resort.</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {galleryDisplay.map((g, i) => (
-                <div key={`${g.alt}-${i}`} className="rounded-xl overflow-hidden shadow-lg">
-                  <img
-                    src={g.src}
-                    alt={g.alt}
-                    className="w-full h-64 object-cover hover:scale-105 transition duration-500 cursor-pointer"
-                    loading="lazy"
-                  />
-                </div>
-              ))}
-            </div>
+            {galleryDisplay === null ? (
+              /* Still fetching — show skeleton cards so layout doesn't jump */
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="rounded-xl overflow-hidden shadow-lg bg-gray-200 animate-pulse h-64" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {galleryDisplay.map((g, i) => (
+                  <div key={`${g.alt}-${i}`} className="rounded-xl overflow-hidden shadow-lg">
+                    <img
+                      src={g.src}
+                      alt={g.alt}
+                      className="w-full h-64 object-cover hover:scale-105 transition duration-500 cursor-pointer"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="text-center mt-12">
               <Link

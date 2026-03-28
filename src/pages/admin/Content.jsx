@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { getAdminGallery, createAdminGallery, updateAdminGallery, deleteAdminGallery, getAdminContacts } from "../../lib/adminApi";
+import { useState, useEffect, useRef } from "react";
+import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts } from "../../lib/adminApi";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v1";
@@ -502,42 +502,83 @@ function formatDate(iso) {
 
 // ─── Gallery Tab ──────────────────────────────────────────────────────────────
 function GalleryTab() {
-  const [images,    setImages]    = useState([]);
-  const [loading,   setLoading]   = useState(true);
-  const [showForm,  setShowForm]  = useState(false);
-  const [filterCat, setFilterCat] = useState("all");
-  const [deleteId,  setDeleteId]  = useState(null);
-  const [deleting,  setDeleting]  = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [apiError,  setApiError]  = useState("");
+  const [images,      setImages]      = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  // selectedIds: Set of image IDs the admin wants on /resort (working copy)
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  // savedIds: what's actually saved in the DB (for dirty detection)
+  const savedIdsRef                   = useRef(new Set());
+  const [showForm,    setShowForm]    = useState(false);
+  const [filterCat,   setFilterCat]   = useState("all");
+  const [deleteId,    setDeleteId]    = useState(null);
+  const [deleting,    setDeleting]    = useState(false);
+  const [saving,      setSaving]      = useState(false);
+  const [addSaving,   setAddSaving]   = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [apiError,    setApiError]    = useState("");
   const [form, setForm] = useState({ image_url: "", caption: "", category: "beach", sort_order: "" });
 
   useEffect(() => {
     setLoading(true);
     getAdminGallery()
-      .then(r => setImages(r.data.data || []))
+      .then(r => {
+        const imgs = r.data.data || [];
+        setImages(imgs);
+        const ids = new Set(imgs.filter(i => i.is_featured).map(i => i.id));
+        setSelectedIds(ids);
+        savedIdsRef.current = new Set(ids);
+      })
       .catch(() => setApiError("Failed to load gallery images."))
       .finally(() => setLoading(false));
   }, []);
 
   const filtered = filterCat === "all" ? images : images.filter(i => i.category === filterCat);
 
-  async function handleToggleFeatured(img) {
-    const next = !img.is_featured;
-    // Optimistic update
-    setImages(prev => prev.map(i => i.id === img.id ? { ...i, is_featured: next } : i));
+  // dirty = selectedIds differs from savedIds
+  const isDirty = (() => {
+    const saved = savedIdsRef.current;
+    if (saved.size !== selectedIds.size) return true;
+    for (const id of selectedIds) if (!saved.has(id)) return true;
+    return false;
+  })();
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+    setSaveSuccess(false);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    setApiError("");
+    setSaveSuccess(false);
     try {
-      await updateAdminGallery(img.id, { is_featured: next });
-    } catch {
-      // Revert on failure
-      setImages(prev => prev.map(i => i.id === img.id ? { ...i, is_featured: img.is_featured } : i));
-      setApiError("Failed to update featured status.");
+      const r = await batchFeaturedGallery([...selectedIds]);
+      const imgs = r.data.data || [];
+      setImages(imgs);
+      const ids = new Set(imgs.filter(i => i.is_featured).map(i => i.id));
+      setSelectedIds(ids);
+      savedIdsRef.current = new Set(ids);
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      setApiError(err?.response?.data?.message || "Failed to save resort gallery.");
+    } finally {
+      setSaving(false);
     }
+  }
+
+  function handleDiscard() {
+    setSelectedIds(new Set(savedIdsRef.current));
+    setSaveSuccess(false);
   }
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    setSaving(true);
+    setAddSaving(true);
     setApiError("");
     try {
       const payload = {
@@ -554,21 +595,47 @@ function GalleryTab() {
     } catch (err) {
       setApiError(err?.response?.data?.message || "Failed to add image.");
     } finally {
-      setSaving(false);
+      setAddSaving(false);
     }
   };
 
-  const featuredCount = images.filter(i => i.is_featured).length;
-
   return (
     <div className="space-y-4">
-      {/* Legend */}
-      <div className="flex flex-wrap items-center gap-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-800">
-        <div className="flex items-center gap-2">
-          <i className="fas fa-star text-yellow-400"></i>
-          <span>Hover an image and click <strong>★</strong> to feature or un-feature it on the <strong>/resort</strong> gallery section.</span>
+
+      {/* Resort gallery save bar */}
+      <div className={`rounded-xl border px-5 py-4 flex flex-wrap items-center gap-3 transition-colors ${
+        isDirty ? "bg-amber-50 border-amber-300" : "bg-slate-50 border-slate-200"
+      }`}>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 text-sm">Resort Gallery Selection</p>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Click images below to select or deselect them.
+            {" "}<strong>{selectedIds.size}</strong> image{selectedIds.size !== 1 ? "s" : ""} selected for <strong>/resort</strong>.
+            {isDirty && <span className="text-amber-600 ml-1">— unsaved changes</span>}
+          </p>
         </div>
-        <span className="ml-auto text-xs text-blue-600 whitespace-nowrap">{featuredCount} of {images.length} featured</span>
+        <div className="flex items-center gap-2">
+          {saveSuccess && (
+            <span className="text-sm text-green-600 font-medium flex items-center gap-1">
+              <i className="fas fa-check-circle"></i> Saved!
+            </span>
+          )}
+          {isDirty && (
+            <button onClick={handleDiscard}
+              className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100">
+              Discard
+            </button>
+          )}
+          <button
+            onClick={handleSave}
+            disabled={saving || !isDirty}
+            className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            {saving
+              ? <><i className="fas fa-spinner fa-spin text-xs"></i> Saving…</>
+              : <><i className="fas fa-save text-xs"></i> Save to Resort</>}
+          </button>
+        </div>
       </div>
 
       {apiError && (
@@ -576,6 +643,7 @@ function GalleryTab() {
           <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
         </div>
       )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500">Filter:</span>
@@ -619,9 +687,9 @@ function GalleryTab() {
             <div className="md:col-span-2 flex justify-end gap-2">
               <button type="button" onClick={() => { setShowForm(false); setApiError(""); }}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
-              <button type="submit" disabled={saving}
+              <button type="submit" disabled={addSaving}
                 className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
-                {saving ? <><i className="fas fa-spinner fa-spin text-xs"></i> Adding…</> : "Add Image"}
+                {addSaving ? <><i className="fas fa-spinner fa-spin text-xs"></i> Adding…</> : "Add Image"}
               </button>
             </div>
           </form>
@@ -638,47 +706,55 @@ function GalleryTab() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filtered.map(img => (
-            <div key={img.id} className={`bg-white rounded-lg shadow overflow-hidden group relative ${img.is_featured ? "ring-2 ring-[#1e3a8a]" : "opacity-75"}`}>
-              <div className="relative h-48 bg-gray-100">
-                <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
-                  onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
+          {filtered.map(img => {
+            const isSelected = selectedIds.has(img.id);
+            return (
+              <div
+                key={img.id}
+                onClick={() => toggleSelect(img.id)}
+                className={`bg-white rounded-lg shadow overflow-hidden cursor-pointer relative transition-all ${
+                  isSelected
+                    ? "ring-3 ring-[#1e3a8a] ring-offset-2"
+                    : "opacity-70 hover:opacity-90 hover:shadow-md"
+                }`}
+              >
+                <div className="relative h-48 bg-gray-100">
+                  <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
+                    onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
 
-                {/* Featured badge */}
-                {img.is_featured && (
-                  <span className="absolute top-2 left-2 bg-[#1e3a8a] text-white text-xs px-2 py-0.5 rounded-full font-medium shadow">
-                    <i className="fas fa-star text-yellow-300 mr-1 text-xs"></i>Featured
-                  </span>
-                )}
+                  {/* Checkmark overlay */}
+                  <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                    isSelected
+                      ? "bg-[#1e3a8a] border-[#1e3a8a]"
+                      : "bg-white/70 border-white"
+                  }`}>
+                    {isSelected && <i className="fas fa-check text-white text-xs"></i>}
+                  </div>
 
-                {/* Action buttons (appear on hover) */}
-                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  {/* Delete button — stop propagation so clicking it doesn't toggle selection */}
                   <button
-                    onClick={() => handleToggleFeatured(img)}
-                    title={img.is_featured ? "Remove from resort gallery" : "Feature on resort page"}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow text-xs transition ${
-                      img.is_featured
-                        ? "bg-yellow-400 hover:bg-yellow-500 text-white"
-                        : "bg-white hover:bg-yellow-50 text-yellow-500 border border-yellow-300"
-                    }`}
+                    onClick={e => { e.stopPropagation(); setDeleteId(img.id); }}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 shadow transition"
+                    title="Delete image"
                   >
-                    <i className="fas fa-star"></i>
-                  </button>
-                  <button onClick={() => setDeleteId(img.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow">
                     <i className="fas fa-trash text-xs"></i>
                   </button>
                 </div>
-              </div>
-              <div className="p-3">
-                <p className="text-sm font-medium text-gray-800 truncate">{img.caption || <span className="text-gray-400 italic">No caption</span>}</p>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{img.category}</span>
-                  <span className="text-xs text-gray-400">#{img.sort_order}</span>
+
+                <div className="p-3">
+                  <p className="text-sm font-medium text-gray-800 truncate">{img.caption || <span className="text-gray-400 italic">No caption</span>}</p>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{img.category}</span>
+                    {isSelected && (
+                      <span className="text-xs text-[#1e3a8a] font-medium flex items-center gap-1">
+                        <i className="fas fa-check-circle text-xs"></i> On resort
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

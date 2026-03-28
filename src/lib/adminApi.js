@@ -37,10 +37,11 @@ export const updateAdminAddon  = (id, data) => api.patch(`/api/admin/addons/${id
 export const deleteAdminAddon  = (id)       => api.delete(`/api/admin/addons/${id}`);
 
 // ── Gallery ───────────────────────────────────────────────────────────────────
-export const getAdminGallery    = ()         => api.get('/api/admin/gallery');
-export const createAdminGallery = (data)     => api.post('/api/admin/gallery', data);
-export const updateAdminGallery = (id, data) => api.patch(`/api/admin/gallery/${id}`, data);
-export const deleteAdminGallery = (id)       => api.delete(`/api/admin/gallery/${id}`);
+export const getAdminGallery          = ()           => api.get('/api/admin/gallery');
+export const createAdminGallery       = (data)       => api.post('/api/admin/gallery', data);
+export const updateAdminGallery       = (id, data)   => api.patch(`/api/admin/gallery/${id}`, data);
+export const batchFeaturedGallery     = (featuredIds) => api.put('/api/admin/gallery/featured', { featured_ids: featuredIds });
+export const deleteAdminGallery       = (id)         => api.delete(`/api/admin/gallery/${id}`);
 
 // ── Contact Submissions ───────────────────────────────────────────────────────
 export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
