@@ -30,7 +30,6 @@ const MENU = {
     { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews"        },
   ],
   manage: [
-    { path: "/admin/foods",     icon: "fa-utensils",       label: "Foods"          },
     { path: "/admin/services",  icon: "fa-concierge-bell", label: "Other Services" },
     { path: "/admin/inventory", icon: "fa-boxes",          label: "Inventory"      },
     { path: "/admin/content",   icon: "fa-globe",          label: "Manage Website" },
