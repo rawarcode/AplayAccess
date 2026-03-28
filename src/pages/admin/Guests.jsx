@@ -1,187 +1,152 @@
 import { useState } from "react";
 
+const initialGuests = [
+  { id: 1, name: "John Doe",     email: "john@example.com",   phone: "+63 917 123 4567", status: "Active",   totalBookings: 3, totalSpent: 15000, joinDate: "2023-06-15" },
+  { id: 2, name: "Maria Garcia", email: "maria@example.com",  phone: "+63 917 987 6543", status: "Active",   totalBookings: 1, totalSpent: 5600,  joinDate: "2024-01-10" },
+  { id: 3, name: "Robert Lee",   email: "robert@example.com", phone: "+63 917 555 1234", status: "Inactive", totalBookings: 2, totalSpent: 8900,  joinDate: "2023-08-22" },
+];
+
 export default function AdminGuests() {
-  const [guests, setGuests] = useState([
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      phone: "+63 917 123 4567",
-      status: "Active",
-      totalBookings: 3,
-      totalSpent: 15000,
-      joinDate: "2023-06-15",
-    },
-    {
-      id: 2,
-      name: "Maria Garcia",
-      email: "maria@example.com",
-      phone: "+63 917 987 6543",
-      status: "Active",
-      totalBookings: 1,
-      totalSpent: 5600,
-      joinDate: "2024-01-10",
-    },
-    {
-      id: 3,
-      name: "Robert Lee",
-      email: "robert@example.com",
-      phone: "+63 917 555 1234",
-      status: "Inactive",
-      totalBookings: 2,
-      totalSpent: 8900,
-      joinDate: "2023-08-22",
-    },
-  ]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [guests,        setGuests]        = useState(initialGuests);
+  const [searchTerm,    setSearchTerm]    = useState("");
+  const [filterStatus,  setFilterStatus]  = useState("");
   const [selectedGuest, setSelectedGuest] = useState(null);
 
-  const filteredGuests = guests.filter((g) => {
-    const matches = g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      g.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const statusMatch = !filterStatus || g.status === filterStatus;
-    return matches && statusMatch;
+  const totalGuests   = guests.length;
+  const activeGuests  = guests.filter((g) => g.status === "Active").length;
+  const totalRevenue  = guests.reduce((sum, g) => sum + g.totalSpent, 0);
+
+  const filtered = guests.filter((g) => {
+    const matchSearch = g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                        g.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = !filterStatus || g.status === filterStatus;
+    return matchSearch && matchStatus;
   });
 
   function toggleStatus(id) {
     setGuests((list) =>
-      list.map((g) =>
-        g.id === id ? { ...g, status: g.status === "Active" ? "Inactive" : "Active" } : g
-      )
+      list.map((g) => g.id === id ? { ...g, status: g.status === "Active" ? "Inactive" : "Active" } : g)
     );
   }
 
-  const totalGuests = guests.length;
-  const activeGuests = guests.filter((g) => g.status === "Active").length;
-  const totalRevenue = guests.reduce((sum, g) => sum + g.totalSpent, 0);
-
   return (
     <div className="p-6 space-y-6">
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold">Guest Records</h2>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-blue-100 rounded-full p-3">
-                <i className="fas fa-users text-blue-600 text-xl"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Total Guests</p>
-                <p className="text-2xl font-bold">{totalGuests}</p>
-              </div>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+              <i className="fas fa-users text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Total Guests</p>
+              <h3 className="text-2xl font-bold">{totalGuests}</h3>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-green-100 rounded-full p-3">
-                <i className="fas fa-user-check text-green-600 text-xl"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Active Guests</p>
-                <p className="text-2xl font-bold">{activeGuests}</p>
-              </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+              <i className="fas fa-user-check text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Active Guests</p>
+              <h3 className="text-2xl font-bold">{activeGuests}</h3>
             </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-4">
-            <div className="flex items-center">
-              <div className="bg-purple-100 rounded-full p-3">
-                <i className="fas fa-peso-sign text-purple-600 text-xl"></i>
-              </div>
-              <div className="ml-4">
-                <p className="text-gray-500 text-sm">Total Revenue</p>
-                <p className="text-2xl font-bold">₱{totalRevenue.toLocaleString()}</p>
-              </div>
+        </div>
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex items-center">
+            <div className="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+              <i className="fas fa-peso-sign text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Total Revenue</p>
+              <h3 className="text-2xl font-bold">₱{totalRevenue.toLocaleString()}</h3>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="p-4 border-b flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1 md:flex-none">
-            <input
-              type="text"
-              placeholder="Search guests by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+      {/* Table */}
+      <div className="rounded-2xl bg-white shadow-lg border border-slate-200 overflow-hidden">
+        {/* Toolbar */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-slate-50 border-b border-slate-200">
+          <div>
+            <p className="text-sm text-slate-600">Total guests</p>
+            <p className="text-2xl font-semibold text-slate-900">{guests.length}</p>
           </div>
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="rounded-lg border border-gray-300 px-3 py-2"
-          >
-            <option value="">Filter by Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-          </select>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search guests..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full sm:w-64 pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
+              />
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            >
+              <option value="">All Statuses</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full text-sm text-slate-700">
+            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Phone
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Bookings
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total Spent
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left">Name</th>
+                <th className="px-6 py-3 text-left">Email</th>
+                <th className="px-6 py-3 text-left">Phone</th>
+                <th className="px-6 py-3 text-left">Bookings</th>
+                <th className="px-6 py-3 text-left">Total Spent</th>
+                <th className="px-6 py-3 text-left">Status</th>
+                <th className="px-6 py-3 text-left">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredGuests.map((guest) => (
-                <tr key={guest.id}>
-                  <td className="px-6 py-4 text-sm font-medium">{guest.name}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{guest.email}</td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{guest.phone}</td>
-                  <td className="px-6 py-4 text-sm">{guest.totalBookings}</td>
-                  <td className="px-6 py-4 text-sm font-medium">₱{guest.totalSpent.toLocaleString()}</td>
+            <tbody className="divide-y divide-slate-200">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">No guests found.</td>
+                </tr>
+              ) : filtered.map((g) => (
+                <tr key={g.id} className={g.status === "Active" ? "hover:bg-slate-50" : "bg-slate-50 opacity-75 hover:bg-slate-100"}>
+                  <td className="px-6 py-4 font-medium text-slate-900">{g.name}</td>
+                  <td className="px-6 py-4 text-slate-500">{g.email}</td>
+                  <td className="px-6 py-4 text-slate-500">{g.phone}</td>
+                  <td className="px-6 py-4">{g.totalBookings}</td>
+                  <td className="px-6 py-4 font-medium">₱{g.totalSpent.toLocaleString()}</td>
                   <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 text-xs rounded-full ${
-                        guest.status === "Active"
-                          ? "bg-green-100 text-green-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
-                    >
-                      {guest.status}
+                    <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
+                      g.status === "Active"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-rose-100 text-rose-800"
+                    }`}>
+                      <span className={`h-2 w-2 rounded-full ${g.status === "Active" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                      {g.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm space-x-2">
+                  <td className="px-6 py-4 space-x-3">
                     <button
-                      onClick={() => setSelectedGuest(guest)}
-                      className="text-blue-600 hover:text-blue-900"
+                      onClick={() => setSelectedGuest(g)}
+                      className="text-sky-600 hover:text-sky-800 font-medium"
                     >
-                      <i className="fas fa-eye"></i>
+                      View
                     </button>
                     <button
-                      onClick={() => toggleStatus(guest.id)}
-                      className="text-yellow-600 hover:text-yellow-900"
+                      onClick={() => toggleStatus(g.id)}
+                      className={g.status === "Active" ? "text-rose-600 hover:text-rose-800 font-medium" : "text-emerald-600 hover:text-emerald-800 font-medium"}
                     >
-                      {guest.status === "Active" ? (
-                        <i className="fas fa-ban"></i>
-                      ) : (
-                        <i className="fas fa-check"></i>
-                      )}
+                      {g.status === "Active" ? "Deactivate" : "Activate"}
                     </button>
                   </td>
                 </tr>
@@ -191,50 +156,61 @@ export default function AdminGuests() {
         </div>
       </div>
 
+      {/* Guest detail modal */}
       {selectedGuest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold">Guest Details</h3>
-              <button
-                onClick={() => setSelectedGuest(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-900">Guest Details</h3>
+              <button onClick={() => setSelectedGuest(null)} className="text-slate-400 hover:text-slate-600">
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            <div className="space-y-3">
-              <div>
-                <p className="text-gray-500 text-sm">Name</p>
-                <p className="font-semibold">{selectedGuest.name}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">Email</p>
-                <p className="font-semibold">{selectedGuest.email}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">Phone</p>
-                <p className="font-semibold">{selectedGuest.phone}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">Joined</p>
-                <p className="font-semibold">{selectedGuest.joinDate}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">Total Bookings</p>
-                <p className="font-semibold">{selectedGuest.totalBookings}</p>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">Total Spent</p>
-                <p className="font-semibold">₱{selectedGuest.totalSpent.toLocaleString()}</p>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-500">Name</p>
+                  <p className="font-semibold text-slate-900">{selectedGuest.name}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Status</p>
+                  <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    selectedGuest.status === "Active" ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${selectedGuest.status === "Active" ? "bg-emerald-500" : "bg-rose-500"}`} />
+                    {selectedGuest.status}
+                  </span>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-slate-500">Email</p>
+                  <p className="font-semibold text-slate-900">{selectedGuest.email}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Phone</p>
+                  <p className="font-semibold text-slate-900">{selectedGuest.phone}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Joined</p>
+                  <p className="font-semibold text-slate-900">{selectedGuest.joinDate}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Total Bookings</p>
+                  <p className="font-semibold text-slate-900">{selectedGuest.totalBookings}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Total Spent</p>
+                  <p className="font-semibold text-slate-900">₱{selectedGuest.totalSpent.toLocaleString()}</p>
+                </div>
               </div>
             </div>
-            <button
-              onClick={() => setSelectedGuest(null)}
-              className="mt-6 w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
-            >
-              Close
-            </button>
+            <div className="px-6 pb-6 flex justify-end">
+              <button
+                onClick={() => setSelectedGuest(null)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
