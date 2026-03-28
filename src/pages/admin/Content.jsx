@@ -532,7 +532,15 @@ function GalleryTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = filterCat === "all" ? images : images.filter(i => i.category === filterCat);
+  // Filter by category, then sort: selected (featured) images first, rest by sort_order
+  const filtered = (filterCat === "all" ? images : images.filter(i => i.category === filterCat))
+    .slice()
+    .sort((a, b) => {
+      const aSelected = selectedIds.has(a.id) ? 0 : 1;
+      const bSelected = selectedIds.has(b.id) ? 0 : 1;
+      if (aSelected !== bSelected) return aSelected - bSelected;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
 
   // dirty = selectedIds differs from savedIds
   const isDirty = (() => {
@@ -602,8 +610,8 @@ function GalleryTab() {
   return (
     <div className="space-y-4">
 
-      {/* Resort gallery save bar */}
-      <div className={`rounded-xl border px-5 py-4 flex flex-wrap items-center gap-3 transition-colors ${
+      {/* Resort gallery save bar — sticky so it follows the viewport while scrolling */}
+      <div className={`sticky top-0 z-20 rounded-xl border px-5 py-4 flex flex-wrap items-center gap-3 transition-colors shadow-sm ${
         isDirty ? "bg-amber-50 border-amber-300" : "bg-slate-50 border-slate-200"
       }`}>
         <div className="flex-1 min-w-0">
