@@ -11,12 +11,6 @@ export default function AdminDashboard() {
   return (
     <div className="p-6 space-y-6">
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-        <p className="text-sm text-gray-500 mt-1">Overview of resort operations and recent activity.</p>
-      </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
