@@ -31,7 +31,7 @@ export default function Sidebar({ children }) {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/frontdesk/login');
+    navigate('/admin/login');
   };
 
   return (
