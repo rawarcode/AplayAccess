@@ -78,7 +78,7 @@ export default function Sidebar({ children }) {
                     }`}
                   >
                     <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
-                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && <span className="text-sm">{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -100,7 +100,7 @@ export default function Sidebar({ children }) {
                     }`}
                   >
                     <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
-                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && <span className="text-sm">{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -118,7 +118,7 @@ export default function Sidebar({ children }) {
               title="Switch to Admin Panel"
             >
               <i className="fas fa-shield-halved mr-3 w-5 text-center"></i>
-              {!collapsed && <span>Admin Panel</span>}
+              {!collapsed && <span className="text-sm">Admin Panel</span>}
             </button>
           </div>
         )}
@@ -136,7 +136,7 @@ export default function Sidebar({ children }) {
             className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
           >
             <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span className="text-sm">Logout</span>}
           </button>
         </div>
       </div>

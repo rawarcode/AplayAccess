@@ -159,7 +159,7 @@ export default function AdminShell() {
                     }`}
                   >
                     <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
-                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && <span className="text-sm">{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -180,7 +180,7 @@ export default function AdminShell() {
                     }`}
                   >
                     <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
-                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && <span className="text-sm">{item.label}</span>}
                   </Link>
                 </li>
               ))}
@@ -197,7 +197,7 @@ export default function AdminShell() {
             title="Switch to Front Desk"
           >
             <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
-            {!collapsed && <span>Front Desk</span>}
+            {!collapsed && <span className="text-sm">Front Desk</span>}
           </button>
         </div>
 
@@ -214,7 +214,7 @@ export default function AdminShell() {
             className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
           >
             <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
-            {!collapsed && <span>Logout</span>}
+            {!collapsed && <span className="text-sm">Logout</span>}
           </button>
         </div>
       </div>
