@@ -18,9 +18,11 @@ import MyBookings from "./pages/dashboard/MyBookings.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
 import Messages from "./pages/dashboard/Messages.jsx";
 
+// Shared staff login
+import StaffLogin from "./pages/StaffLogin.jsx";
+
 // Frontdesk portal
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
-import FrontdeskLogin from "./frontdesk/pages/FrontdeskLogin.jsx";
 import FDDashboard from "./frontdesk/components/Dashboard.jsx";
 import FDReservation from "./frontdesk/components/Reservation.jsx";
 import FDBilling from "./frontdesk/components/Billing.jsx";
@@ -60,8 +62,10 @@ export default function App() {
         </Route>
       </Route>
 
+      {/* ── Shared staff login ── */}
+      <Route path="/admin/login" element={<StaffLogin />} />
+
       {/* ── Frontdesk portal (outside guest Layout) ── */}
-      <Route path="/frontdesk/login" element={<FrontdeskLogin />} />
       <Route
         path="/frontdesk"
         element={

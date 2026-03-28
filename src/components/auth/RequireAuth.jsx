@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-const STAFF_ROLES = ["admin", "owner", "frontdesk"];
+const ROLE_REDIRECTS = { frontdesk: "/frontdesk", admin: "/admin", owner: "/owner" };
 
 export default function RequireAuth({ children }) {
   const { user } = useAuth();
@@ -16,9 +16,9 @@ export default function RequireAuth({ children }) {
     );
   }
 
-  // Staff have their own dashboard — redirect them out of the guest area
-  if (STAFF_ROLES.includes(user.role)) {
-    return <Navigate to="/frontdesk" replace />;
+  // Staff have their own dashboards — redirect them out of the guest area
+  if (ROLE_REDIRECTS[user.role]) {
+    return <Navigate to={ROLE_REDIRECTS[user.role]} replace />;
   }
 
   return children;
