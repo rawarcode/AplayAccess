@@ -1,316 +1,536 @@
 import { useState } from "react";
 
-// ── Sample data (replace with API calls when backend is wired) ───────────────
+// ─── Persistence key ──────────────────────────────────────────────────────────
+const CONTENT_KEY = "aplaya_page_content_v1";
+
+// ─── Default content (mirrors the actual hardcoded values in Home.jsx / Resort.jsx) ─
+const DEFAULT_CONTENT = {
+  // ── Home page (/home) ──────────────────────────────────────────────────────
+  home_hero: {
+    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
+    title:      "Welcome to Paradise",
+    subtitle:   "Choose your perfect getaway from our collection of stunning beach resorts.",
+  },
+  home_resorts: {
+    sectionTitle:    "Our Beach Resorts",
+    sectionSubtitle: "Select the resort that matches your dream vacation.",
+    cards: [
+      {
+        name:  "Aplaya Beach Resort Cavite",
+        desc:  "Experience luxury and breathtaking ocean views at our flagship resort.",
+        image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2070&q=80",
+        badge: "Popular",
+      },
+      {
+        name:  "Aplaya Beach Resort Cebu",
+        desc:  "Relax in our serene bay-side location with world-class amenities.",
+        image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
+        badge: "",
+      },
+      {
+        name:  "Aplaya Beach Resort Bohol",
+        desc:  "Dive into adventure with our exclusive coral reef access and diving center.",
+        image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=2000&q=80",
+        badge: "",
+      },
+    ],
+  },
+  // ── Resort page (/resort) ──────────────────────────────────────────────────
+  resort_hero: {
+    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
+    title:      "Welcome to Paradise",
+    subtitle:   "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.",
+    ctaText:    "Book Your Stay",
+  },
+  resort_about: {
+    title:      "Discover Aplaya Beach Resort",
+    paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.",
+    paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.",
+    image:      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
+    rating:     "4.9",
+  },
+  resort_rooms: {
+    sectionTitle:    "Our Accommodations",
+    sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation.",
+  },
+  resort_contact: {
+    address: "123 Beachfront Avenue, Coastal City, Paradise Island",
+    phone:   "+1 (555) 123-4567",
+    email:   "reservations@aplayabeachresort.com",
+  },
+  resort_newsletter: {
+    title:    "Subscribe to Our Newsletter",
+    subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!",
+  },
+};
+
+function loadContent() {
+  try {
+    const raw = localStorage.getItem(CONTENT_KEY);
+    if (!raw) return DEFAULT_CONTENT;
+    return { ...DEFAULT_CONTENT, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_CONTENT;
+  }
+}
+
+function saveContent(content) {
+  localStorage.setItem(CONTENT_KEY, JSON.stringify(content));
+}
+
+// ─── Small helpers ─────────────────────────────────────────────────────────────
+function ImagePreview({ url }) {
+  if (!url) return null;
+  return (
+    <img
+      src={url}
+      alt="preview"
+      className="mt-2 w-full h-32 object-cover rounded-lg border border-gray-200"
+      onError={e => { e.target.style.display = "none"; }}
+    />
+  );
+}
+
+function Field({ label, value, onChange, type = "text", rows }) {
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</label>
+      {rows ? (
+        <textarea
+          rows={rows}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Section card wrapper ─────────────────────────────────────────────────────
+function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, onCancel }) {
+  return (
+    <div className={`bg-white rounded-lg shadow border ${editing ? "border-[#1e3a8a]" : "border-gray-200"} overflow-hidden`}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#1e3a8a]">
+            <i className={`fas ${icon} text-sm`}></i>
+          </div>
+          <div>
+            <p className="font-semibold text-gray-800 text-sm">{title}</p>
+            {badge && <span className="text-xs text-gray-400">{badge}</span>}
+          </div>
+        </div>
+        {!editing && (
+          <button
+            onClick={onEdit}
+            className="text-xs bg-gray-100 hover:bg-[#1e3a8a] hover:text-white text-gray-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+          >
+            <i className="fas fa-pen text-xs"></i> Edit
+          </button>
+        )}
+      </div>
+
+      <div className="px-5 py-4">
+        {children}
+        {editing && (
+          <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100">
+            <button onClick={onCancel}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+              Cancel
+            </button>
+            <button onClick={onSave}
+              className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg flex items-center gap-2">
+              <i className="fas fa-check text-xs"></i> Save Changes
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Individual section editors ───────────────────────────────────────────────
+
+function HomeHeroEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-image" title="Hero Section" badge="Home page · /" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="relative rounded-lg overflow-hidden h-28 bg-gray-100">
+          <img src={content.background} alt="hero bg"
+            className="w-full h-full object-cover"
+            onError={e => { e.target.style.display = "none"; }} />
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
+            <p className="font-bold text-sm leading-tight">{content.title}</p>
+            <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Background Image URL" value={form.background} onChange={f("background")} />
+          <ImagePreview url={form.background} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Title" value={form.title} onChange={f("title")} />
+            <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function HomeResortsEditor({ content, onSave }) {
+  const [editing,      setEditing]      = useState(false);
+  const [expandedCard, setExpandedCard] = useState(null);
+  const [form, setForm] = useState(content);
+
+  const cancel = () => { setForm(content); setEditing(false); setExpandedCard(null); };
+  const save   = () => { onSave(form); setEditing(false); setExpandedCard(null); };
+  const updateCard = (i, key, val) =>
+    setForm(p => ({ ...p, cards: p.cards.map((c, ci) => ci === i ? { ...c, [key]: val } : c) }));
+
+  return (
+    <SectionCard icon="fa-th-large" title="Resort Cards" badge="Home page · /" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">{content.sectionTitle}</p>
+          <p className="text-xs text-gray-400 mb-3">{content.sectionSubtitle}</p>
+          <div className="grid grid-cols-3 gap-2">
+            {content.cards.map((c, i) => (
+              <div key={i} className="rounded-lg overflow-hidden border border-gray-100">
+                <img src={c.image} alt={c.name}
+                  className="w-full h-16 object-cover"
+                  onError={e => { e.target.style.display = "none"; }} />
+                <p className="text-xs text-gray-600 px-2 py-1 truncate">{c.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Section Title" value={form.sectionTitle} onChange={v => setForm(p => ({ ...p, sectionTitle: v }))} />
+            <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={v => setForm(p => ({ ...p, sectionSubtitle: v }))} />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Resort Cards</p>
+            <div className="space-y-2">
+              {form.cards.map((card, i) => (
+                <div key={i} className="border border-gray-200 rounded-lg overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedCard(expandedCard === i ? null : i)}
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 text-left"
+                  >
+                    <div className="flex items-center gap-3">
+                      <img src={card.image} alt={card.name}
+                        className="w-10 h-10 rounded object-cover"
+                        onError={e => { e.target.style.display = "none"; }} />
+                      <span className="text-sm font-medium text-gray-700">{card.name}</span>
+                    </div>
+                    <i className={`fas fa-chevron-${expandedCard === i ? "up" : "down"} text-xs text-gray-400`}></i>
+                  </button>
+                  {expandedCard === i && (
+                    <div className="p-4 space-y-3">
+                      <Field label="Resort Name" value={card.name} onChange={v => updateCard(i, "name", v)} />
+                      <Field label="Description" value={card.desc} onChange={v => updateCard(i, "desc", v)} rows={2} />
+                      <Field label="Badge Text (leave empty for none)" value={card.badge} onChange={v => updateCard(i, "badge", v)} />
+                      <Field label="Card Image URL" value={card.image} onChange={v => updateCard(i, "image", v)} />
+                      <ImagePreview url={card.image} />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ResortHeroEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-image" title="Hero Section" badge="Resort page · /resort" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="relative rounded-lg overflow-hidden h-28 bg-gray-100">
+          <img src={content.background} alt="hero bg"
+            className="w-full h-full object-cover"
+            onError={e => { e.target.style.display = "none"; }} />
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
+            <p className="font-bold text-sm leading-tight">{content.title}</p>
+            <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
+            <span className="mt-2 text-xs bg-blue-600 px-2 py-0.5 rounded">{content.ctaText}</span>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Background Image URL" value={form.background} onChange={f("background")} />
+          <ImagePreview url={form.background} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Title" value={form.title} onChange={f("title")} />
+            <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+            <Field label="CTA Button Text" value={form.ctaText} onChange={f("ctaText")} />
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ResortAboutEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-info-circle" title="About Section" badge="Resort page · /resort" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="flex gap-3">
+          <img src={content.image} alt="about"
+            className="w-24 h-20 object-cover rounded-lg flex-shrink-0"
+            onError={e => { e.target.style.display = "none"; }} />
+          <div>
+            <p className="font-semibold text-gray-800 text-sm">{content.title}</p>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.paragraph1}</p>
+            <span className="text-xs text-blue-600 mt-1 inline-block">★ {content.rating} Guest Rating</span>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Section Title" value={form.title} onChange={f("title")} />
+            <Field label="Guest Rating" value={form.rating} onChange={f("rating")} />
+            <Field label="Paragraph 1" value={form.paragraph1} onChange={f("paragraph1")} rows={3} />
+            <Field label="Paragraph 2" value={form.paragraph2} onChange={f("paragraph2")} rows={3} />
+          </div>
+          <Field label="Section Image URL" value={form.image} onChange={f("image")} />
+          <ImagePreview url={form.image} />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ResortRoomsSectionEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-bed" title="Rooms Section Header" badge="Resort page · /resort" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div>
+          <p className="font-semibold text-gray-800 text-sm">{content.sectionTitle}</p>
+          <p className="text-xs text-gray-500 mt-1">{content.sectionSubtitle}</p>
+          <p className="text-xs text-gray-300 mt-2 italic">Individual rooms are managed in Manage Rooms</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Section Title" value={form.sectionTitle} onChange={f("sectionTitle")} />
+          <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={f("sectionSubtitle")} rows={2} />
+          <p className="text-xs text-gray-400 italic">
+            <i className="fas fa-info-circle mr-1"></i>
+            Individual rooms are managed in <strong>Manage Rooms</strong>.
+          </p>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ResortContactEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-address-book" title="Contact Info" badge="Resort page · /resort" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="space-y-1.5 text-sm text-gray-600">
+          <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-1"></i>{content.address}</p>
+          <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-1"></i>{content.phone}</p>
+          <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-1"></i>{content.email}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Address" value={form.address} onChange={f("address")} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Phone" value={form.phone} onChange={f("phone")} />
+            <Field label="Email" type="email" value={form.email} onChange={f("email")} />
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function ResortNewsletterEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-envelope-open-text" title="Newsletter Section" badge="Resort page · /resort" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div>
+          <p className="font-semibold text-gray-800 text-sm">{content.title}</p>
+          <p className="text-xs text-gray-500 mt-1">{content.subtitle}</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Title" value={form.title} onChange={f("title")} />
+          <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── Sample data for Gallery & Contacts ──────────────────────────────────────
 
 const SAMPLE_GALLERY = [
-  { id: 1, image_url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400", caption: "Beach front view", category: "beach", sort_order: 1 },
-  { id: 2, image_url: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400", caption: "Deluxe suite interior", category: "rooms", sort_order: 2 },
-  { id: 3, image_url: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400", caption: "Pool area at sunset", category: "amenities", sort_order: 3 },
-  { id: 4, image_url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400", caption: "Dining experience", category: "dining", sort_order: 4 },
+  { id: 1, image_url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400", caption: "Beach front view",    category: "beach",     sort_order: 1 },
+  { id: 2, image_url: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400", caption: "Deluxe suite",        category: "rooms",     sort_order: 2 },
+  { id: 3, image_url: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400", caption: "Pool at sunset",      category: "amenities", sort_order: 3 },
+  { id: 4, image_url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400", caption: "Dining experience",   category: "dining",    sort_order: 4 },
 ];
 
 const SAMPLE_CONTACTS = [
-  { id: 1, name: "Maria Santos",  email: "maria@email.com",  subject: "Room inquiry",        message: "Hi, I would like to ask about available rooms for July.",          created_at: "2025-06-10T09:15:00Z" },
-  { id: 2, name: "Juan Dela Cruz",email: "juan@email.com",   subject: "Event booking",       message: "We are planning a small gathering for 20 people. Do you have function rooms?", created_at: "2025-06-12T14:30:00Z" },
-  { id: 3, name: "Anna Reyes",    email: "anna@email.com",   subject: "Feedback",            message: "Just wanted to say we had a wonderful stay last weekend. Thank you!", created_at: "2025-06-14T08:00:00Z" },
-  { id: 4, name: "Carlos Lim",    email: "carlos@email.com", subject: "Lost and found",      message: "I think I left my charger in Room 205 last week.",                  created_at: "2025-06-15T11:45:00Z" },
+  { id: 1, name: "Maria Santos",   email: "maria@email.com",  subject: "Room inquiry",   message: "Hi, I would like to ask about available rooms for July.",                    created_at: "2025-06-10T09:15:00Z" },
+  { id: 2, name: "Juan Dela Cruz", email: "juan@email.com",   subject: "Event booking",  message: "We are planning a small gathering for 20 people. Do you have function rooms?", created_at: "2025-06-12T14:30:00Z" },
+  { id: 3, name: "Anna Reyes",     email: "anna@email.com",   subject: "Feedback",       message: "Just wanted to say we had a wonderful stay last weekend. Thank you!",          created_at: "2025-06-14T08:00:00Z" },
+  { id: 4, name: "Carlos Lim",     email: "carlos@email.com", subject: "Lost and found", message: "I think I left my charger in Room 205 last week.",                            created_at: "2025-06-15T11:45:00Z" },
 ];
 
 const CATEGORIES = ["beach", "rooms", "amenities", "dining", "events", "other"];
 
-const TABS = ["Website Content", "Gallery", "Contact Submissions"];
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
 function formatDate(iso) {
-  return new Date(iso).toLocaleDateString("en-PH", {
-    year: "numeric", month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit",
-  });
+  return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
-// ── Sub-components ───────────────────────────────────────────────────────────
-
-function WebsiteContentTab() {
-  const [content, setContent] = useState({
-    heroTitle:       "Welcome to Aplay Resort",
-    heroSubtitle:    "Experience Paradise at the Best Beach Resort in Philippines",
-    aboutTitle:      "About Aplay Resort",
-    aboutText:       "Aplay Resort is a premier destination offering world-class amenities and unforgettable experiences.",
-    contactEmail:    "info@aplayresort.com",
-    contactPhone:    "+63 2 1234 5678",
-    contactAddress:  "123 Beach Road, Aplaya, Cavite, Philippines",
-  });
-  const [editing, setEditing] = useState(false);
-  const [temp,    setTemp]    = useState({ ...content });
-
-  const save = (e) => { e.preventDefault(); setContent(temp); setEditing(false); };
-  const cancel = () => { setTemp(content); setEditing(false); };
-
-  if (!editing) return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          onClick={() => setEditing(true)}
-          className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm"
-        >
-          <i className="fas fa-edit"></i> Edit Content
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <i className="fas fa-image text-[#1e3a8a]"></i> Hero Section
-        </h3>
-        <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Title:</span> {content.heroTitle}</p>
-        <p className="text-sm text-gray-600"><span className="font-medium">Subtitle:</span> {content.heroSubtitle}</p>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <i className="fas fa-info-circle text-[#1e3a8a]"></i> About Section
-        </h3>
-        <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Title:</span> {content.aboutTitle}</p>
-        <p className="text-sm text-gray-600"><span className="font-medium">Text:</span> {content.aboutText}</p>
-      </div>
-
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-          <i className="fas fa-address-book text-[#1e3a8a]"></i> Contact Information
-        </h3>
-        <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Email:</span> {content.contactEmail}</p>
-        <p className="text-sm text-gray-600 mb-1"><span className="font-medium">Phone:</span> {content.contactPhone}</p>
-        <p className="text-sm text-gray-600"><span className="font-medium">Address:</span> {content.contactAddress}</p>
-      </div>
-
-      <p className="text-xs text-gray-400 italic">
-        <i className="fas fa-info-circle mr-1"></i>
-        Changes here will reflect on the public-facing website once backend is connected.
-      </p>
-    </div>
-  );
-
-  return (
-    <form onSubmit={save} className="bg-white rounded-lg shadow p-6 space-y-5">
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold text-gray-800">Edit Website Content</h2>
-        <button type="button" onClick={cancel} className="text-gray-400 hover:text-gray-600">
-          <i className="fas fa-times"></i>
-        </button>
-      </div>
-
-      <div>
-        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Hero Section</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input type="text" value={temp.heroTitle}
-              onChange={(e) => setTemp(x => ({ ...x, heroTitle: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
-            <input type="text" value={temp.heroSubtitle}
-              onChange={(e) => setTemp(x => ({ ...x, heroSubtitle: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">About Section</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-            <input type="text" value={temp.aboutTitle}
-              onChange={(e) => setTemp(x => ({ ...x, aboutTitle: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Text</label>
-            <textarea rows={3} value={temp.aboutText}
-              onChange={(e) => setTemp(x => ({ ...x, aboutText: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <h4 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Contact Information</h4>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input type="email" value={temp.contactEmail}
-              onChange={(e) => setTemp(x => ({ ...x, contactEmail: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-            <input type="text" value={temp.contactPhone}
-              onChange={(e) => setTemp(x => ({ ...x, contactPhone: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-            <input type="text" value={temp.contactAddress}
-              onChange={(e) => setTemp(x => ({ ...x, contactAddress: e.target.value }))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-        <button type="button" onClick={cancel}
-          className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-          Cancel
-        </button>
-        <button type="submit"
-          className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg">
-          Save Changes
-        </button>
-      </div>
-    </form>
-  );
-}
-
+// ─── Gallery Tab ──────────────────────────────────────────────────────────────
 function GalleryTab() {
-  const [images,     setImages]     = useState(SAMPLE_GALLERY);
-  const [showForm,   setShowForm]   = useState(false);
-  const [filterCat,  setFilterCat]  = useState("all");
-  const [deleteId,   setDeleteId]   = useState(null);
+  const [images,    setImages]    = useState(SAMPLE_GALLERY);
+  const [showForm,  setShowForm]  = useState(false);
+  const [filterCat, setFilterCat] = useState("all");
+  const [deleteId,  setDeleteId]  = useState(null);
   const [form, setForm] = useState({ image_url: "", caption: "", category: "beach", sort_order: "" });
 
   const filtered = filterCat === "all" ? images : images.filter(i => i.category === filterCat);
 
   const handleAdd = (e) => {
     e.preventDefault();
-    const newImage = {
-      id: Date.now(),
-      image_url:  form.image_url,
-      caption:    form.caption,
-      category:   form.category,
-      sort_order: parseInt(form.sort_order) || images.length + 1,
-    };
-    setImages(prev => [...prev, newImage]);
+    setImages(prev => [...prev, { id: Date.now(), ...form, sort_order: parseInt(form.sort_order) || prev.length + 1 }]);
     setForm({ image_url: "", caption: "", category: "beach", sort_order: "" });
     setShowForm(false);
   };
 
-  const handleDelete = (id) => {
-    setImages(prev => prev.filter(i => i.id !== id));
-    setDeleteId(null);
-  };
-
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500">Filter:</span>
           {["all", ...CATEGORIES].map(cat => (
-            <button
-              key={cat}
-              onClick={() => setFilterCat(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                filterCat === cat
-                  ? "bg-[#1e3a8a] text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
+            <button key={cat} onClick={() => setFilterCat(cat)}
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterCat === cat ? "bg-[#1e3a8a] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {cat.charAt(0).toUpperCase() + cat.slice(1)}
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm"
-        >
+        <button onClick={() => setShowForm(true)}
+          className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm">
           <i className="fas fa-plus"></i> Add Image
         </button>
       </div>
 
-      {/* Add Image Form */}
       {showForm && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
           <h3 className="font-semibold text-gray-800 mb-4">Add New Gallery Image</h3>
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
-              <input
-                type="url" required
-                placeholder="https://example.com/image.jpg"
-                value={form.image_url}
+              <input type="url" required placeholder="https://example.com/image.jpg" value={form.image_url}
                 onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-              />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
+              <ImagePreview url={form.image_url} />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Caption <span className="text-gray-400 font-normal">(optional)</span></label>
-              <input
-                type="text"
-                placeholder="Short description"
-                value={form.caption}
+              <input type="text" placeholder="Short description" value={form.caption}
                 onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-              />
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
-              <select
-                value={form.category}
-                onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-              >
-                {CATEGORIES.map(c => (
-                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
-                ))}
+              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
+                {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Sort Order <span className="text-gray-400 font-normal">(optional)</span></label>
-              <input
-                type="number" min="1"
-                placeholder="e.g. 5"
-                value={form.sort_order}
-                onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-              />
             </div>
             <div className="md:col-span-2 flex justify-end gap-2">
               <button type="button" onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-                Cancel
-              </button>
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
               <button type="submit"
-                className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg">
-                Add Image
-              </button>
+                className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg">Add Image</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Image Grid */}
       {filtered.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">
-          <i className="fas fa-images text-4xl mb-3"></i>
-          <p>No images in this category.</p>
+          <i className="fas fa-images text-4xl mb-3"></i><p>No images in this category.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(img => (
             <div key={img.id} className="bg-white rounded-lg shadow overflow-hidden group relative">
               <div className="relative h-48 bg-gray-100">
-                <img
-                  src={img.image_url}
-                  alt={img.caption || "Gallery image"}
-                  className="w-full h-full object-cover"
-                  onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }}
-                />
-                <button
-                  onClick={() => setDeleteId(img.id)}
-                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow"
-                >
+                <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
+                  onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
+                <button onClick={() => setDeleteId(img.id)}
+                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">
                   <i className="fas fa-trash text-xs"></i>
                 </button>
               </div>
@@ -326,7 +546,6 @@ function GalleryTab() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
       {deleteId && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
@@ -341,13 +560,9 @@ function GalleryTab() {
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setDeleteId(null)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-                Cancel
-              </button>
-              <button onClick={() => handleDelete(deleteId)}
-                className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg">
-                Delete
-              </button>
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button onClick={() => { setImages(p => p.filter(i => i.id !== deleteId)); setDeleteId(null); }}
+                className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg">Delete</button>
             </div>
           </div>
         </div>
@@ -356,32 +571,25 @@ function GalleryTab() {
   );
 }
 
+// ─── Contact Submissions Tab ──────────────────────────────────────────────────
 function ContactSubmissionsTab() {
-  const [contacts]    = useState(SAMPLE_CONTACTS);
-  const [selected,    setSelected]   = useState(null);
-  const [search,      setSearch]     = useState("");
+  const [contacts] = useState(SAMPLE_CONTACTS);
+  const [selected, setSelected] = useState(null);
+  const [search,   setSearch]   = useState("");
 
   const filtered = contacts.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.email.toLowerCase().includes(search.toLowerCase()) ||
-    c.subject.toLowerCase().includes(search.toLowerCase())
+    [c.name, c.email, c.subject].some(v => v.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
     <div className="space-y-4">
-      {/* Search */}
       <div className="relative">
         <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-        <input
-          type="text"
-          placeholder="Search by name, email or subject..."
-          value={search}
+        <input type="text" placeholder="Search by name, email or subject..." value={search}
           onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-        />
+          className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-gray-700">
@@ -396,11 +604,7 @@ function ContactSubmissionsTab() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-gray-400">
-                    No contact submissions found.
-                  </td>
-                </tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400">No submissions found.</td></tr>
               ) : filtered.map(c => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 font-medium text-gray-900">{c.name}</td>
@@ -408,12 +612,8 @@ function ContactSubmissionsTab() {
                   <td className="px-6 py-4">{c.subject}</td>
                   <td className="px-6 py-4 text-gray-400 whitespace-nowrap">{formatDate(c.created_at)}</td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => setSelected(c)}
-                      className="text-[#1e3a8a] hover:underline text-sm font-medium"
-                    >
-                      View
-                    </button>
+                    <button onClick={() => setSelected(c)}
+                      className="text-[#1e3a8a] hover:underline text-sm font-medium">View</button>
                   </td>
                 </tr>
               ))}
@@ -422,56 +622,32 @@ function ContactSubmissionsTab() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 italic">
-        <i className="fas fa-info-circle mr-1"></i>
-        {contacts.length} total submission{contacts.length !== 1 ? "s" : ""}. Read-only — replies should be sent via email.
-      </p>
-
-      {/* Detail Modal */}
       {selected && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900 text-lg">Contact Submission</h3>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
-                <i className="fas fa-times"></i>
-              </button>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600"><i className="fas fa-times"></i></button>
             </div>
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-xs text-gray-400">Name</p>
-                  <p className="font-medium text-gray-800">{selected.name}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400">Email</p>
-                  <p className="font-medium text-gray-800">{selected.email}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-400">Subject</p>
-                  <p className="font-medium text-gray-800">{selected.subject}</p>
-                </div>
-                <div className="col-span-2">
-                  <p className="text-xs text-gray-400">Date</p>
-                  <p className="font-medium text-gray-800">{formatDate(selected.created_at)}</p>
-                </div>
+                <div><p className="text-xs text-gray-400">Name</p><p className="font-medium">{selected.name}</p></div>
+                <div><p className="text-xs text-gray-400">Email</p><p className="font-medium">{selected.email}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400">Subject</p><p className="font-medium">{selected.subject}</p></div>
+                <div className="col-span-2"><p className="text-xs text-gray-400">Date</p><p className="font-medium">{formatDate(selected.created_at)}</p></div>
               </div>
               <div>
                 <p className="text-xs text-gray-400 mb-1">Message</p>
                 <p className="text-gray-700 bg-gray-50 rounded-lg p-4 leading-relaxed">{selected.message}</p>
               </div>
             </div>
-            <div className="flex justify-end mt-5">
-              <a
-                href={`mailto:${selected.email}?subject=Re: ${encodeURIComponent(selected.subject)}`}
-                className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm mr-2"
-              >
+            <div className="flex justify-end mt-5 gap-2">
+              <a href={`mailto:${selected.email}?subject=Re: ${encodeURIComponent(selected.subject)}`}
+                className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm">
                 <i className="fas fa-reply"></i> Reply via Email
               </a>
               <button onClick={() => setSelected(null)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
-                Close
-              </button>
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Close</button>
             </div>
           </div>
         </div>
@@ -480,34 +656,74 @@ function ContactSubmissionsTab() {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
+
+const TABS = ["Page Editor", "Gallery", "Contact Submissions"];
 
 export default function AdminContent() {
   const [activeTab, setActiveTab] = useState(0);
+  const [content,   setContent]   = useState(loadContent);
+
+  const update = (key) => (val) => {
+    const next = { ...content, [key]: val };
+    setContent(next);
+    saveContent(next);
+  };
 
   return (
     <div className="p-6 space-y-6">
-      {/* Tab bar */}
+      {/* Tabs */}
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex gap-1">
           {TABS.map((tab, i) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(i)}
+            <button key={tab} onClick={() => setActiveTab(i)}
               className={`px-5 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
                 activeTab === i
                   ? "border-[#1e3a8a] text-[#1e3a8a]"
                   : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}
-            >
+              }`}>
               {tab}
             </button>
           ))}
         </nav>
       </div>
 
-      {/* Tab content */}
-      {activeTab === 0 && <WebsiteContentTab />}
+      {/* Page Editor */}
+      {activeTab === 0 && (
+        <div className="space-y-6">
+          {/* Home page */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <i className="fas fa-home text-[#1e3a8a]"></i>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Home Page <span className="text-gray-300 font-normal normal-case">/</span></h2>
+            </div>
+            <div className="space-y-3">
+              <HomeHeroEditor    content={content.home_hero}    onSave={update("home_hero")} />
+              <HomeResortsEditor content={content.home_resorts} onSave={update("home_resorts")} />
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-gray-200 pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <i className="fas fa-umbrella-beach text-[#1e3a8a]"></i>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Resort Page <span className="text-gray-300 font-normal normal-case">/resort</span></h2>
+            </div>
+            <div className="space-y-3">
+              <ResortHeroEditor          content={content.resort_hero}       onSave={update("resort_hero")} />
+              <ResortAboutEditor         content={content.resort_about}      onSave={update("resort_about")} />
+              <ResortRoomsSectionEditor  content={content.resort_rooms}      onSave={update("resort_rooms")} />
+              <ResortContactEditor       content={content.resort_contact}    onSave={update("resort_contact")} />
+              <ResortNewsletterEditor    content={content.resort_newsletter} onSave={update("resort_newsletter")} />
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 italic">
+            <i className="fas fa-info-circle mr-1"></i>
+            Changes are saved to your browser for now. Backend endpoint needed to persist across devices.
+          </p>
+        </div>
+      )}
+
       {activeTab === 1 && <GalleryTab />}
       {activeTab === 2 && <ContactSubmissionsTab />}
     </div>
