@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getReservations, removeReservationById, updateReservation } from '../utils/appData';
 

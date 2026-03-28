@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { addReservationFromWalkin, addWalkin, getWalkins, updateWalkin } from '../utils/appData';
 
