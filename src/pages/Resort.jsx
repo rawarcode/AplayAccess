@@ -261,7 +261,7 @@ export default function Resort() {
         const [roomsRes, amenitiesRes, galleryRes, reviewsRes] = await Promise.all([
           api.get(`/api/resorts/${RESORT_ID}/rooms`),
           api.get(`/api/resorts/${RESORT_ID}/amenities`),
-          api.get(`/api/resorts/${RESORT_ID}/gallery`),
+          api.get(`/api/resorts/${RESORT_ID}/gallery?featured=1`),
           api.get(`/api/resorts/${RESORT_ID}/reviews`),
         ]);
 
