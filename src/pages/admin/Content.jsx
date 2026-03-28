@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { getAdminGallery, createAdminGallery, deleteAdminGallery, getAdminContacts } from "../../lib/adminApi";
+import { getAdminGallery, createAdminGallery, updateAdminGallery, deleteAdminGallery, getAdminContacts } from "../../lib/adminApi";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v1";
@@ -522,6 +522,19 @@ function GalleryTab() {
 
   const filtered = filterCat === "all" ? images : images.filter(i => i.category === filterCat);
 
+  async function handleToggleFeatured(img) {
+    const next = !img.is_featured;
+    // Optimistic update
+    setImages(prev => prev.map(i => i.id === img.id ? { ...i, is_featured: next } : i));
+    try {
+      await updateAdminGallery(img.id, { is_featured: next });
+    } catch {
+      // Revert on failure
+      setImages(prev => prev.map(i => i.id === img.id ? { ...i, is_featured: img.is_featured } : i));
+      setApiError("Failed to update featured status.");
+    }
+  }
+
   const handleAdd = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -545,8 +558,19 @@ function GalleryTab() {
     }
   };
 
+  const featuredCount = images.filter(i => i.is_featured).length;
+
   return (
     <div className="space-y-4">
+      {/* Legend */}
+      <div className="flex flex-wrap items-center gap-4 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-sm text-blue-800">
+        <div className="flex items-center gap-2">
+          <i className="fas fa-star text-yellow-400"></i>
+          <span>Hover an image and click <strong>★</strong> to feature or un-feature it on the <strong>/resort</strong> gallery section.</span>
+        </div>
+        <span className="ml-auto text-xs text-blue-600 whitespace-nowrap">{featuredCount} of {images.length} featured</span>
+      </div>
+
       {apiError && (
         <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
@@ -615,14 +639,36 @@ function GalleryTab() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map(img => (
-            <div key={img.id} className="bg-white rounded-lg shadow overflow-hidden group relative">
+            <div key={img.id} className={`bg-white rounded-lg shadow overflow-hidden group relative ${img.is_featured ? "ring-2 ring-[#1e3a8a]" : "opacity-75"}`}>
               <div className="relative h-48 bg-gray-100">
                 <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
                   onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
-                <button onClick={() => setDeleteId(img.id)}
-                  className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow">
-                  <i className="fas fa-trash text-xs"></i>
-                </button>
+
+                {/* Featured badge */}
+                {img.is_featured && (
+                  <span className="absolute top-2 left-2 bg-[#1e3a8a] text-white text-xs px-2 py-0.5 rounded-full font-medium shadow">
+                    <i className="fas fa-star text-yellow-300 mr-1 text-xs"></i>Featured
+                  </span>
+                )}
+
+                {/* Action buttons (appear on hover) */}
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                  <button
+                    onClick={() => handleToggleFeatured(img)}
+                    title={img.is_featured ? "Remove from resort gallery" : "Feature on resort page"}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center shadow text-xs transition ${
+                      img.is_featured
+                        ? "bg-yellow-400 hover:bg-yellow-500 text-white"
+                        : "bg-white hover:bg-yellow-50 text-yellow-500 border border-yellow-300"
+                    }`}
+                  >
+                    <i className="fas fa-star"></i>
+                  </button>
+                  <button onClick={() => setDeleteId(img.id)}
+                    className="bg-red-500 hover:bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center shadow">
+                    <i className="fas fa-trash text-xs"></i>
+                  </button>
+                </div>
               </div>
               <div className="p-3">
                 <p className="text-sm font-medium text-gray-800 truncate">{img.caption || <span className="text-gray-400 italic">No caption</span>}</p>
