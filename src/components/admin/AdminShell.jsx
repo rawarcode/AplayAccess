@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
+const ADMIN_PROFILE_KEY = "admin_profile_v1";
+
 const PAGE_TITLES = {
   "/admin":              "Dashboard",
   "/admin/users":        "Manage Users",
@@ -34,9 +36,21 @@ const MENU = {
   ],
 };
 
+function readLocalJson(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
 export default function AdminShell() {
   const [collapsed,    setCollapsed]    = useState(false);
   const [profileOpen,  setProfileOpen]  = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isEditing,    setIsEditing]    = useState(false);
   const location   = useLocation();
   const navigate   = useNavigate();
   const { user, logout } = useAuth();
@@ -48,6 +62,17 @@ export default function AdminShell() {
   const initials  = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   const pageTitle = PAGE_TITLES[location.pathname] ?? "Admin";
 
+  const [profile, setProfile] = useState(() =>
+    readLocalJson(ADMIN_PROFILE_KEY, {
+      name:  userName,
+      email: userEmail,
+      phone: "",
+      role:  userRole,
+    })
+  );
+  const [editProfile,   setEditProfile]   = useState({ ...profile });
+  const [passwordData,  setPasswordData]  = useState({ current: "", new: "", confirm: "" });
+
   // Close profile dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e) {
@@ -58,6 +83,26 @@ export default function AdminShell() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  const openSettings = () => {
+    setEditProfile({ ...profile });
+    setPasswordData({ current: "", new: "", confirm: "" });
+    setIsEditing(false);
+    setProfileOpen(false);
+    setSettingsOpen(true);
+  };
+
+  const saveSettings = () => {
+    if (passwordData.new && passwordData.new !== passwordData.confirm) {
+      alert("New passwords do not match.");
+      return;
+    }
+    const updated = { ...editProfile };
+    setProfile(updated);
+    localStorage.setItem(ADMIN_PROFILE_KEY, JSON.stringify(updated));
+    setIsEditing(false);
+    alert("Profile updated successfully.");
+  };
 
   const isActive = (path) =>
     path === "/admin"
@@ -195,7 +240,7 @@ export default function AdminShell() {
 
                     {/* Account Settings */}
                     <button
-                      onClick={() => setProfileOpen(false)}
+                      onClick={openSettings}
                       className="p-3 flex items-center w-full text-left hover:bg-gray-50 border-b border-gray-100"
                     >
                       <i className="fas fa-user-cog mr-3 text-gray-500"></i>
@@ -223,6 +268,167 @@ export default function AdminShell() {
           <Outlet />
         </div>
       </div>
+
+      {/* Account Settings Modal */}
+      {settingsOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-800">Account Settings</h3>
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-gray-700">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="p-6">
+              {/* Profile Header */}
+              <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="h-14 w-14 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-lg font-semibold mr-4">
+                  {initials}
+                </div>
+                <div className="flex-1">
+                  <p className="font-bold text-gray-900">{profile.name}</p>
+                  <p className="text-sm text-gray-500">{profile.role}</p>
+                  <p className="text-xs text-gray-400">{profile.email}</p>
+                </div>
+                {!isEditing && (
+                  <button
+                    onClick={() => { setEditProfile({ ...profile }); setIsEditing(true); }}
+                    className="px-4 py-2 bg-[#1e3a8a] text-white rounded text-sm hover:bg-[#152c6e]"
+                  >
+                    <i className="fas fa-edit mr-2"></i>Edit
+                  </button>
+                )}
+              </div>
+
+              {isEditing ? (
+                <>
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-3 text-gray-700">Profile Information</h4>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                      <input
+                        type="text"
+                        value={editProfile.name}
+                        onChange={(e) => setEditProfile({ ...editProfile, name: e.target.value })}
+                        className="border rounded px-3 py-2 w-full focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={editProfile.email}
+                        onChange={(e) => setEditProfile({ ...editProfile, email: e.target.value })}
+                        className="border rounded px-3 py-2 w-full focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                      <input
+                        type="tel"
+                        value={editProfile.phone}
+                        onChange={(e) => setEditProfile({ ...editProfile, phone: e.target.value })}
+                        className="border rounded px-3 py-2 w-full focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                      <input
+                        type="text"
+                        value={editProfile.role}
+                        readOnly
+                        className="border rounded px-3 py-2 w-full bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-3 text-gray-700">Change Password</h4>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                      <input
+                        type="password"
+                        value={passwordData.current}
+                        onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
+                        className="border rounded px-3 py-2 w-full focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                      <input
+                        type="password"
+                        value={passwordData.new}
+                        onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
+                        className="border rounded px-3 py-2 w-full focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                      <input
+                        type="password"
+                        value={passwordData.confirm}
+                        onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
+                        className="border rounded px-3 py-2 w-full focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="mb-6">
+                    <h4 className="font-medium mb-3 text-gray-700">Profile Information</h4>
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded">
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Full Name</p>
+                        <p className="font-medium">{profile.name}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Email</p>
+                        <p className="font-medium">{profile.email}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Phone</p>
+                        <p className="font-medium">{profile.phone || "—"}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Role</p>
+                        <p className="font-medium">{profile.role}</p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="flex justify-end space-x-3">
+                {isEditing ? (
+                  <>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="px-4 py-2 border rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={saveSettings}
+                      className="px-4 py-2 rounded text-sm font-medium text-white bg-[#1e3a8a] hover:bg-[#152c6e]"
+                    >
+                      Save Changes
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setSettingsOpen(false)}
+                    className="px-4 py-2 border rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
