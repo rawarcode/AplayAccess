@@ -129,6 +129,11 @@ php artisan migrate:fresh --seed
 - GET/POST /api/admin/promo-codes, PATCH/DELETE /api/admin/promo-codes/{id}
 - GET /api/admin/newsletter
 
+## Content Page (src/pages/admin/Content.jsx)
+- Tab 1 — Page Editor: section-based editor for Home hero, Resort cards, Resort hero/about/rooms/contact/reviews/newsletter. Saves to localStorage (browser only).
+- Tab 2 — Gallery: wired to real API (getAdminGallery, createAdminGallery, deleteAdminGallery). resort_id defaults to 1.
+- Tab 3 — Contact Submissions: wired to real API (getAdminContacts). Read-only with search + "Reply via Email" mailto link.
+
 ## Admin Controllers (app/Http/Controllers/Admin/)
 - AuthController — login (rejects guests), me, logout
 - BookingController — index (all bookings with guest info), updateStatus

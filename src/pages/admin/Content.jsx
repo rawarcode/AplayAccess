@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { getAdminGallery, createAdminGallery, deleteAdminGallery, getAdminContacts } from "../../lib/adminApi";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v1";
@@ -491,21 +492,7 @@ function ResortNewsletterEditor({ content, onSave }) {
   );
 }
 
-// ─── Sample data for Gallery & Contacts ──────────────────────────────────────
-
-const SAMPLE_GALLERY = [
-  { id: 1, image_url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400", caption: "Beach front view",    category: "beach",     sort_order: 1 },
-  { id: 2, image_url: "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=400", caption: "Deluxe suite",        category: "rooms",     sort_order: 2 },
-  { id: 3, image_url: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=400", caption: "Pool at sunset",      category: "amenities", sort_order: 3 },
-  { id: 4, image_url: "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400", caption: "Dining experience",   category: "dining",    sort_order: 4 },
-];
-
-const SAMPLE_CONTACTS = [
-  { id: 1, name: "Maria Santos",   email: "maria@email.com",  subject: "Room inquiry",   message: "Hi, I would like to ask about available rooms for July.",                    created_at: "2025-06-10T09:15:00Z" },
-  { id: 2, name: "Juan Dela Cruz", email: "juan@email.com",   subject: "Event booking",  message: "We are planning a small gathering for 20 people. Do you have function rooms?", created_at: "2025-06-12T14:30:00Z" },
-  { id: 3, name: "Anna Reyes",     email: "anna@email.com",   subject: "Feedback",       message: "Just wanted to say we had a wonderful stay last weekend. Thank you!",          created_at: "2025-06-14T08:00:00Z" },
-  { id: 4, name: "Carlos Lim",     email: "carlos@email.com", subject: "Lost and found", message: "I think I left my charger in Room 205 last week.",                            created_at: "2025-06-15T11:45:00Z" },
-];
+// ─── Gallery categories ───────────────────────────────────────────────────────
 
 const CATEGORIES = ["beach", "rooms", "amenities", "dining", "events", "other"];
 
@@ -515,23 +502,56 @@ function formatDate(iso) {
 
 // ─── Gallery Tab ──────────────────────────────────────────────────────────────
 function GalleryTab() {
-  const [images,    setImages]    = useState(SAMPLE_GALLERY);
+  const [images,    setImages]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
   const [showForm,  setShowForm]  = useState(false);
   const [filterCat, setFilterCat] = useState("all");
   const [deleteId,  setDeleteId]  = useState(null);
+  const [deleting,  setDeleting]  = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [apiError,  setApiError]  = useState("");
   const [form, setForm] = useState({ image_url: "", caption: "", category: "beach", sort_order: "" });
+
+  useEffect(() => {
+    setLoading(true);
+    getAdminGallery()
+      .then(r => setImages(r.data.data || []))
+      .catch(() => setApiError("Failed to load gallery images."))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = filterCat === "all" ? images : images.filter(i => i.category === filterCat);
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
-    setImages(prev => [...prev, { id: Date.now(), ...form, sort_order: parseInt(form.sort_order) || prev.length + 1 }]);
-    setForm({ image_url: "", caption: "", category: "beach", sort_order: "" });
-    setShowForm(false);
+    setSaving(true);
+    setApiError("");
+    try {
+      const payload = {
+        resort_id:  1,
+        image_url:  form.image_url,
+        caption:    form.caption || null,
+        category:   form.category,
+        sort_order: parseInt(form.sort_order) || images.length + 1,
+      };
+      const r = await createAdminGallery(payload);
+      setImages(prev => [...prev, r.data.data]);
+      setForm({ image_url: "", caption: "", category: "beach", sort_order: "" });
+      setShowForm(false);
+    } catch (err) {
+      setApiError(err?.response?.data?.message || "Failed to add image.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="space-y-4">
+      {apiError && (
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm text-gray-500">Filter:</span>
@@ -573,16 +593,22 @@ function GalleryTab() {
               </select>
             </div>
             <div className="md:col-span-2 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowForm(false)}
+              <button type="button" onClick={() => { setShowForm(false); setApiError(""); }}
                 className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
-              <button type="submit"
-                className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg">Add Image</button>
+              <button type="submit" disabled={saving}
+                className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
+                {saving ? <><i className="fas fa-spinner fa-spin text-xs"></i> Adding…</> : "Add Image"}
+              </button>
             </div>
           </form>
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">
+          <i className="fas fa-spinner fa-spin text-2xl mb-3"></i><p>Loading gallery…</p>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">
           <i className="fas fa-images text-4xl mb-3"></i><p>No images in this category.</p>
         </div>
@@ -623,10 +649,27 @@ function GalleryTab() {
               </div>
             </div>
             <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteId(null)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
-              <button onClick={() => { setImages(p => p.filter(i => i.id !== deleteId)); setDeleteId(null); }}
-                className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg">Delete</button>
+              <button onClick={() => setDeleteId(null)} disabled={deleting}
+                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-60">Cancel</button>
+              <button
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  setApiError("");
+                  try {
+                    await deleteAdminGallery(deleteId);
+                    setImages(p => p.filter(i => i.id !== deleteId));
+                    setDeleteId(null);
+                  } catch {
+                    setApiError("Failed to delete image. Please try again.");
+                    setDeleteId(null);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
+                {deleting ? <><i className="fas fa-spinner fa-spin text-xs"></i> Deleting…</> : "Delete"}
+              </button>
             </div>
           </div>
         </div>
@@ -637,16 +680,31 @@ function GalleryTab() {
 
 // ─── Contact Submissions Tab ──────────────────────────────────────────────────
 function ContactSubmissionsTab() {
-  const [contacts] = useState(SAMPLE_CONTACTS);
+  const [contacts, setContacts] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [apiError, setApiError] = useState("");
   const [selected, setSelected] = useState(null);
   const [search,   setSearch]   = useState("");
 
+  useEffect(() => {
+    setLoading(true);
+    getAdminContacts()
+      .then(r => setContacts(r.data.data || []))
+      .catch(() => setApiError("Failed to load contact submissions."))
+      .finally(() => setLoading(false));
+  }, []);
+
   const filtered = contacts.filter(c =>
-    [c.name, c.email, c.subject].some(v => v.toLowerCase().includes(search.toLowerCase()))
+    [c.name, c.email, c.subject].some(v => v && v.toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
     <div className="space-y-4">
+      {apiError && (
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
+        </div>
+      )}
       <div className="relative">
         <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
         <input type="text" placeholder="Search by name, email or subject..." value={search}
@@ -667,7 +725,9 @@ function ContactSubmissionsTab() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.length === 0 ? (
+              {loading ? (
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400"><i className="fas fa-spinner fa-spin mr-2"></i>Loading submissions…</td></tr>
+              ) : filtered.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400">No submissions found.</td></tr>
               ) : filtered.map(c => (
                 <tr key={c.id} className="hover:bg-gray-50">
