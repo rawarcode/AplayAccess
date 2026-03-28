@@ -1,129 +1,132 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-function NavItem({ to, icon, label }) {
-  return (
-    <NavLink
-      to={to}
-      end={to === "/admin"}
-      className={({ isActive }) =>
-        `flex items-center p-3 rounded-lg transition ${
-          isActive
-            ? "bg-blue-600 text-white font-medium"
-            : "text-white hover:bg-blue-700"
-        }`
-      }
-    >
-      <i className={`fas ${icon} w-6`}></i>
-      <span className="ml-3">{label}</span>
-    </NavLink>
-  );
-}
+const MENU = {
+  main: [
+    { path: "/admin",              icon: "fa-tachometer-alt",   label: "Dashboard"       },
+    { path: "/admin/users",        icon: "fa-users",            label: "Manage Users"    },
+    { path: "/admin/rooms",        icon: "fa-bed",              label: "Manage Rooms"    },
+    { path: "/admin/guests",       icon: "fa-user-check",       label: "Guests"          },
+    { path: "/admin/transactions", icon: "fa-money-bill-wave",  label: "Transactions"    },
+    { path: "/admin/history",      icon: "fa-history",          label: "History"         },
+    { path: "/admin/reviews",      icon: "fa-star",             label: "Reviews"         },
+  ],
+  manage: [
+    { path: "/admin/foods",        icon: "fa-utensils",         label: "Foods"           },
+    { path: "/admin/services",     icon: "fa-concierge-bell",   label: "Other Services"  },
+    { path: "/admin/inventory",    icon: "fa-boxes",            label: "Inventory"       },
+    { path: "/admin/content",      icon: "fa-globe",            label: "Manage Website"  },
+  ],
+};
 
 export default function AdminShell() {
+  const [collapsed, setCollapsed] = useState(false);
+  const location  = useLocation();
+  const navigate  = useNavigate();
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  async function handleLogout() {
-    await logout?.();
+  const userName  = user?.name  || "Admin";
+  const userEmail = user?.email || "admin@aplayaccess.com";
+  const userRole  = user?.role  === "owner" ? "Owner" : "Administrator";
+
+  const isActive = (path) =>
+    path === "/admin"
+      ? location.pathname === "/admin"
+      : location.pathname.startsWith(path);
+
+  const handleLogout = async () => {
+    await logout();
     navigate("/admin/login");
-  }
+  };
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <aside
-        className={`bg-blue-800 text-white h-screen fixed top-0 left-0 shadow-lg transition-all duration-300 ${
-          sidebarCollapsed ? "w-20" : "w-64"
-        } overflow-y-auto`}
-      >
-        {/* Logo & Toggle */}
-        <div className="p-4 flex items-center justify-between border-b border-blue-700">
+      <div className={`bg-[#1e3a8a] text-white ${collapsed ? "w-20" : "w-64"} flex flex-col transition-all duration-300 flex-shrink-0`}>
+
+        {/* Logo */}
+        <div className="p-4 flex items-center justify-between border-b border-[#2e4a9a]">
           <div className="flex items-center">
-            <i className="fas fa-umbrella-beach text-2xl"></i>
-            {!sidebarCollapsed && <span className="ml-3 font-bold text-xl">AplayAccess</span>}
+            <i className="fas fa-umbrella-beach text-2xl mr-3 text-white"></i>
+            {!collapsed && <span className="text-xl font-bold text-white">AplayAccess</span>}
           </div>
           <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="text-white hover:text-blue-200"
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-white hover:bg-[#2e4a9a] p-2 rounded focus:outline-none"
           >
-            <i className="fas fa-bars"></i>
+            <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`}></i>
           </button>
         </div>
 
-        {/* Admin Profile */}
-        <div className="p-4">
-          <div className="flex items-center mb-8">
-            <img
-              alt="Admin"
-              className="w-10 h-10 rounded-full mr-3"
-              src="https://randomuser.me/api/portraits/women/44.jpg"
-            />
-            {!sidebarCollapsed && (
-              <div>
-                <div className="font-semibold">Sarah Johnson</div>
-                <div className="text-xs text-blue-200">Resort Owner</div>
-              </div>
-            )}
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-4">
+          {/* Main */}
+          <div className="mb-6">
+            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Admin</h3>}
+            <ul>
+              {MENU.main.map((item) => (
+                <li key={item.path} className="mb-2">
+                  <Link
+                    to={item.path}
+                    className={`flex items-center p-2 rounded transition ${
+                      isActive(item.path)
+                        ? "bg-[#2e4a9a] text-white"
+                        : "text-blue-100 hover:bg-[#2e4a9a] hover:text-white"
+                    }`}
+                  >
+                    <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Navigation */}
-          <nav className="space-y-2">
-            <NavItem to="/admin" icon="fa-tachometer-alt" label="Dashboard" />
-            <NavItem to="/admin/users" icon="fa-users" label="Manage Users" />
-            <NavItem to="/admin/rooms" icon="fa-bed" label="Manage Rooms" />
-            <NavItem to="/admin/foods" icon="fa-utensils" label="Manage Foods" />
-            <NavItem to="/admin/services" icon="fa-concierge-bell" label="Other Services" />
-            <NavItem to="/admin/inventory" icon="fa-boxes" label="Inventory" />
-            <NavItem to="/admin/transactions" icon="fa-money-bill-wave" label="Transactions" />
-            <NavItem to="/admin/history" icon="fa-history" label="History" />
-            <NavItem to="/admin/content" icon="fa-globe" label="Manage Website" />
-          </nav>
-        </div>
+          {/* Management */}
+          <div className="mb-6">
+            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Management</h3>}
+            <ul>
+              {MENU.manage.map((item) => (
+                <li key={item.path} className="mb-2">
+                  <Link
+                    to={item.path}
+                    className={`flex items-center p-2 rounded transition ${
+                      isActive(item.path)
+                        ? "bg-[#2e4a9a] text-white"
+                        : "text-blue-100 hover:bg-[#2e4a9a] hover:text-white"
+                    }`}
+                  >
+                    <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
+                    {!collapsed && <span>{item.label}</span>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </nav>
 
-        {/* Bottom Section */}
-        <div className="absolute bottom-0 w-full p-4 border-t border-blue-700 space-y-2">
-          <button className="w-full flex items-center p-3 rounded-lg hover:bg-blue-700 transition text-left">
-            <i className="fas fa-user-cog w-6"></i>
-            {!sidebarCollapsed && <span className="ml-3">Profile Settings</span>}
-          </button>
+        {/* User info + logout */}
+        <div className="p-4 border-t border-[#2e4a9a]">
+          {!collapsed && (
+            <div className="mb-3">
+              <p className="text-sm font-medium text-white truncate">{userName}</p>
+              <p className="text-xs text-blue-200 truncate">{userRole} · {userEmail}</p>
+            </div>
+          )}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center p-3 rounded-lg hover:bg-blue-700 transition text-left"
+            className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
           >
-            <i className="fas fa-sign-out-alt w-6"></i>
-            {!sidebarCollapsed && <span className="ml-3">Logout</span>}
+            <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+            {!collapsed && <span>Logout</span>}
           </button>
         </div>
-      </aside>
+      </div>
 
-      {/* Main Content */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${sidebarCollapsed ? "ml-20" : "ml-64"}`}>
-        {/* Top Header */}
-        <header className="bg-white shadow-sm p-4 flex justify-between items-center sticky top-0 z-20">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
-          <div className="flex items-center space-x-4">
-            <button className="relative p-2 text-gray-600 hover:text-gray-800">
-              <i className="fas fa-bell"></i>
-              <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-red-500"></span>
-            </button>
-            <div className="flex items-center space-x-2">
-              <img
-                alt="Admin"
-                className="w-10 h-10 rounded-full"
-                src="https://randomuser.me/api/portraits/women/44.jpg"
-              />
-              <span className="hidden md:inline text-gray-700">{user?.name || "Admin"}</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-auto p-6">
-          <Outlet />
-        </main>
+      {/* Main content */}
+      <div className="flex-1 overflow-auto">
+        <Outlet />
       </div>
     </div>
   );
