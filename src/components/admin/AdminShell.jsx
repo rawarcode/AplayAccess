@@ -26,7 +26,7 @@ export default function AdminShell() {
   const navigate = useNavigate();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  function handleLogout() {
+  async function handleLogout() {
     await logout?.();
     navigate("/admin/login");
   }
