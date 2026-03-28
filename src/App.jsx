@@ -10,13 +10,23 @@ import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import PaymentReturn from "./pages/PaymentReturn.jsx";
 
-// Dashboard (protected)
+// Guest dashboard (protected)
 import RequireAuth from "./components/auth/RequireAuth.jsx";
 import DashboardShell from "./components/dashboard/DashboardShell.jsx";
 import GuestDashboard from "./pages/dashboard/GuestDashboard.jsx";
 import MyBookings from "./pages/dashboard/MyBookings.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
 import Messages from "./pages/dashboard/Messages.jsx";
+
+// Frontdesk portal
+import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
+import FrontdeskLogin from "./frontdesk/pages/FrontdeskLogin.jsx";
+import FDDashboard from "./frontdesk/components/Dashboard.jsx";
+import FDReservation from "./frontdesk/components/Reservation.jsx";
+import FDBilling from "./frontdesk/components/Billing.jsx";
+import FDWalkIn from "./frontdesk/components/WalkIn.jsx";
+import FDGuestRecords from "./frontdesk/components/GuestRecords.jsx";
+import FDReports from "./frontdesk/components/Reports.jsx";
 
 export default function App() {
   return (
@@ -49,6 +59,57 @@ export default function App() {
           <Route path="messages" element={<Messages />} />
         </Route>
       </Route>
+
+      {/* ── Frontdesk portal (outside guest Layout) ── */}
+      <Route path="/frontdesk/login" element={<FrontdeskLogin />} />
+      <Route
+        path="/frontdesk"
+        element={
+          <RequireFrontdesk>
+            <FDDashboard />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/reservation"
+        element={
+          <RequireFrontdesk>
+            <FDReservation />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/billing"
+        element={
+          <RequireFrontdesk>
+            <FDBilling />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/walkin"
+        element={
+          <RequireFrontdesk>
+            <FDWalkIn />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/records"
+        element={
+          <RequireFrontdesk>
+            <FDGuestRecords />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/reports"
+        element={
+          <RequireFrontdesk>
+            <FDReports />
+          </RequireFrontdesk>
+        }
+      />
     </Routes>
   );
 }

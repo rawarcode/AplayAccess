@@ -18,7 +18,7 @@ export default function RequireAuth({ children }) {
 
   // Staff have their own dashboard — redirect them out of the guest area
   if (STAFF_ROLES.includes(user.role)) {
-    return <Navigate to="/admin" replace />;
+    return <Navigate to="/frontdesk" replace />;
   }
 
   return children;
