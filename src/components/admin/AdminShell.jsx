@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
@@ -18,33 +18,46 @@ const PAGE_TITLES = {
 
 const MENU = {
   main: [
-    { path: "/admin",              icon: "fa-tachometer-alt",   label: "Dashboard"       },
-    { path: "/admin/users",        icon: "fa-users",            label: "Manage Users"    },
-    { path: "/admin/rooms",        icon: "fa-bed",              label: "Manage Rooms"    },
-    { path: "/admin/guests",       icon: "fa-user-check",       label: "Guests"          },
-    { path: "/admin/transactions", icon: "fa-money-bill-wave",  label: "Transactions"    },
-    { path: "/admin/history",      icon: "fa-history",          label: "History"         },
-    { path: "/admin/reviews",      icon: "fa-star",             label: "Reviews"         },
+    { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard"      },
+    { path: "/admin/users",        icon: "fa-users",           label: "Manage Users"   },
+    { path: "/admin/rooms",        icon: "fa-bed",             label: "Manage Rooms"   },
+    { path: "/admin/guests",       icon: "fa-user-check",      label: "Guests"         },
+    { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions"   },
+    { path: "/admin/history",      icon: "fa-history",         label: "History"        },
+    { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews"        },
   ],
   manage: [
-    { path: "/admin/foods",        icon: "fa-utensils",         label: "Foods"           },
-    { path: "/admin/services",     icon: "fa-concierge-bell",   label: "Other Services"  },
-    { path: "/admin/inventory",    icon: "fa-boxes",            label: "Inventory"       },
-    { path: "/admin/content",      icon: "fa-globe",            label: "Manage Website"  },
+    { path: "/admin/foods",     icon: "fa-utensils",       label: "Foods"          },
+    { path: "/admin/services",  icon: "fa-concierge-bell", label: "Other Services" },
+    { path: "/admin/inventory", icon: "fa-boxes",          label: "Inventory"      },
+    { path: "/admin/content",   icon: "fa-globe",          label: "Manage Website" },
   ],
 };
 
 export default function AdminShell() {
-  const [collapsed, setCollapsed] = useState(false);
-  const location  = useLocation();
-  const navigate  = useNavigate();
+  const [collapsed,    setCollapsed]    = useState(false);
+  const [profileOpen,  setProfileOpen]  = useState(false);
+  const location   = useLocation();
+  const navigate   = useNavigate();
   const { user, logout } = useAuth();
+  const profileRef = useRef(null);
 
-  const userName   = user?.name  || "Admin";
-  const userEmail  = user?.email || "admin@aplayaccess.com";
-  const userRole   = user?.role  === "owner" ? "Owner" : "Administrator";
-  const initials   = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-  const pageTitle  = PAGE_TITLES[location.pathname] ?? "Admin";
+  const userName  = user?.name  || "Admin";
+  const userEmail = user?.email || "admin@aplayaccess.com";
+  const userRole  = user?.role  === "owner" ? "Owner" : "Administrator";
+  const initials  = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const pageTitle = PAGE_TITLES[location.pathname] ?? "Admin";
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (profileRef.current && !profileRef.current.contains(e.target)) {
+        setProfileOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const isActive = (path) =>
     path === "/admin"
@@ -52,12 +65,14 @@ export default function AdminShell() {
       : location.pathname.startsWith(path);
 
   const handleLogout = async () => {
+    setProfileOpen(false);
     await logout();
     navigate("/admin/login");
   };
 
   return (
     <div className="flex h-screen overflow-hidden">
+
       {/* Sidebar */}
       <div className={`bg-[#1e3a8a] text-white ${collapsed ? "w-20" : "w-64"} flex flex-col transition-all duration-300 flex-shrink-0`}>
 
@@ -77,7 +92,6 @@ export default function AdminShell() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
-          {/* Main */}
           <div className="mb-6">
             {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Admin</h3>}
             <ul>
@@ -99,7 +113,6 @@ export default function AdminShell() {
             </ul>
           </div>
 
-          {/* Management */}
           <div className="mb-6">
             {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Management</h3>}
             <ul>
@@ -148,19 +161,59 @@ export default function AdminShell() {
           <div className="flex items-center justify-between p-4">
             <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
             <div className="flex items-center space-x-4">
+
               {/* Bell */}
               <button className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none">
                 <i className="fas fa-bell text-xl"></i>
               </button>
 
-              {/* Avatar + name */}
-              <div className="flex items-center gap-2 text-gray-700">
-                <div className="h-8 w-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold">
-                  {initials}
-                </div>
-                <span className="hidden md:inline text-sm font-medium">{userName}</span>
-                <i className="fas fa-chevron-down text-xs text-gray-400"></i>
+              {/* Profile dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                >
+                  <div className="h-8 w-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold">
+                    {initials}
+                  </div>
+                  <span className="hidden md:inline text-sm font-medium">{userName}</span>
+                  <i className="fas fa-chevron-down text-xs text-gray-400"></i>
+                </button>
+
+                {profileOpen && (
+                  <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    {/* Profile info */}
+                    <div className="p-3 flex items-center border-b border-gray-100">
+                      <div className="h-10 w-10 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold mr-3">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{userName}</p>
+                        <p className="text-xs text-gray-500">{userRole}</p>
+                      </div>
+                    </div>
+
+                    {/* Account Settings */}
+                    <button
+                      onClick={() => setProfileOpen(false)}
+                      className="p-3 flex items-center w-full text-left hover:bg-gray-50 border-b border-gray-100"
+                    >
+                      <i className="fas fa-user-cog mr-3 text-gray-500"></i>
+                      <span className="text-sm text-gray-700">Account Settings</span>
+                    </button>
+
+                    {/* Logout */}
+                    <button
+                      onClick={handleLogout}
+                      className="p-3 flex items-center w-full text-left hover:bg-gray-50 text-red-500"
+                    >
+                      <i className="fas fa-sign-out-alt mr-3"></i>
+                      <span className="text-sm">Logout</span>
+                    </button>
+                  </div>
+                )}
               </div>
+
             </div>
           </div>
         </header>
