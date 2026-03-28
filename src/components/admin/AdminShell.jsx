@@ -180,6 +180,19 @@ export default function AdminShell() {
           </div>
         </nav>
 
+        {/* Portal switcher — admin/owner can access frontdesk */}
+        <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
+          {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2">Switch Portal</p>}
+          <Link
+            to="/frontdesk"
+            className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
+            title="Switch to Front Desk"
+          >
+            <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
+            {!collapsed && <span>Front Desk</span>}
+          </Link>
+        </div>
+
         {/* User info + logout */}
         <div className="p-4 border-t border-[#2e4a9a]">
           {!collapsed && (
