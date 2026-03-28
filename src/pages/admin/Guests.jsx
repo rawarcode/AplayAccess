@@ -57,7 +57,7 @@ export default function AdminGuests() {
   const totalRevenue = guests.reduce((sum, g) => sum + g.totalSpent, 0);
 
   return (
-    <div>
+    <div className="p-6 space-y-6">
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Guest Records</h2>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
