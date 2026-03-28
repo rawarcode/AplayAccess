@@ -65,7 +65,7 @@ export default function Sidebar({ children }) {
         <nav className="flex-1 overflow-y-auto p-4">
           {/* Front Desk */}
           <div className="mb-6">
-            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Front Desk</h3>}
+            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Front Desk</h3>}
             <ul>
               {menuItems.frontDesk.map((item) => (
                 <li key={item.path} className="mb-2">
@@ -87,7 +87,7 @@ export default function Sidebar({ children }) {
 
           {/* Management */}
           <div className="mb-6">
-            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Management</h3>}
+            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Management</h3>}
             <ul>
               {menuItems.management.map((item) => (
                 <li key={item.path} className="mb-2">
@@ -111,7 +111,7 @@ export default function Sidebar({ children }) {
         {/* Portal switcher — admin/owner only */}
         {(user?.role === 'admin' || user?.role === 'owner') && (
           <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
-            {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2">Switch Portal</p>}
+            {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
             <button
               onClick={() => switchPortal('/admin', 'Switching to Admin Panel...')}
               className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"

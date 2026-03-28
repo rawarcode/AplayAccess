@@ -146,7 +146,7 @@ export default function AdminShell() {
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">
           <div className="mb-6">
-            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Admin</h3>}
+            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Admin</h3>}
             <ul>
               {MENU.main.map((item) => (
                 <li key={item.path} className="mb-2">
@@ -167,7 +167,7 @@ export default function AdminShell() {
           </div>
 
           <div className="mb-6">
-            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3">Management</h3>}
+            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Management</h3>}
             <ul>
               {MENU.manage.map((item) => (
                 <li key={item.path} className="mb-2">
@@ -190,7 +190,7 @@ export default function AdminShell() {
 
         {/* Portal switcher — admin/owner can access frontdesk */}
         <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
-          {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2">Switch Portal</p>}
+          {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
           <button
             onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
             className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
