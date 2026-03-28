@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
 import { createBooking } from "../../lib/bookingApi.js";
 import { createPaymentLink } from "../../lib/paymentApi.js";
@@ -44,6 +44,7 @@ function todayStr() {
 }
 
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked }) {
+  const modalRef = useRef(null);
   const [bookingType, setBookingType] = useState("day"); // "day" | "overnight"
   const [visitDate, setVisitDate]     = useState("");
   const [visitTime, setVisitTime]     = useState("09:00");
@@ -81,6 +82,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       entrance_fee:     Number(rawPricing.entrance_fee      ?? DEFAULTS.entrance_fee),
     });
   }, [rawPricing, roomType]);
+
+  // Scroll modal to top whenever an error appears so it's always visible
+  useEffect(() => {
+    if (error && modalRef.current) {
+      const scrollParent = modalRef.current.closest(".overflow-y-auto");
+      if (scrollParent) scrollParent.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [error]);
 
   // Reset form when modal opens
   useEffect(() => {
@@ -144,7 +153,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
   return (
     <Modal open={open} onClose={onClose} maxWidth="max-w-2xl">
-      <div className="p-6">
+      <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-2xl font-bold text-gray-900">Book Your Visit at Aplaya</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">✕</button>
@@ -360,9 +369,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             </div>
           </div>
 
+          {error && (
+            <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
+              <i className="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
+              <span>{error}</span>
+            </div>
+          )}
+
           <button
             disabled={submitting}
-            className="mt-6 w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
           >
             {submitting ? "Redirecting to checkout..." : `Pay ${formatPHP(pricing.reservation_fee)} Online →`}
           </button>
