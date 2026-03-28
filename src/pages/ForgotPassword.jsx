@@ -1,16 +1,29 @@
 // src/pages/ForgotPassword.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { forgotPasswordRequest } from "../lib/authApi.js";
 
 export default function ForgotPassword() {
   const [email, setEmail]       = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
-    // For the capstone MVP, we just show a success message.
-    // A real implementation would call POST /api/forgot-password.
-    setSubmitted(true);
+    setError("");
+    setLoading(true);
+    try {
+      await forgotPasswordRequest(email);
+      setSubmitted(true);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        "Something went wrong. Please try again.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -18,7 +31,6 @@ export default function ForgotPassword() {
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg p-8">
 
-          {/* Logo */}
           <div className="flex justify-center items-center gap-2 mb-6">
             <span className="text-3xl">🏖️</span>
             <span className="text-2xl font-bold text-blue-600">Aplaya Beach Resort</span>
@@ -30,6 +42,12 @@ export default function ForgotPassword() {
               <p className="text-center text-sm text-gray-500 mb-6">
                 Enter your email and we&apos;ll send you reset instructions.
               </p>
+
+              {error && (
+                <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                  {error}
+                </div>
+              )}
 
               <form onSubmit={submit} className="space-y-4">
                 <div>
@@ -46,9 +64,10 @@ export default function ForgotPassword() {
 
                 <button
                   type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-md transition"
+                  disabled={loading}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md transition"
                 >
-                  Send Reset Link
+                  {loading ? "Sending..." : "Send Reset Link"}
                 </button>
               </form>
 
@@ -62,31 +81,28 @@ export default function ForgotPassword() {
               </div>
             </>
           ) : (
-            <>
-              {/* Success state */}
-              <div className="text-center">
-                <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                  <span className="text-green-600 text-3xl">✓</span>
-                </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
-                <p className="text-gray-600 mb-2">
-                  If <span className="font-medium">{email}</span> is registered, you&apos;ll receive reset instructions shortly.
-                </p>
-                <p className="text-sm text-gray-500 mb-6">
-                  Didn&apos;t get an email? Check your spam folder or contact{" "}
-                  <a href="mailto:reservations@aplayabeachresort.com" className="text-blue-600 underline">
-                    our support team
-                  </a>
-                  .
-                </p>
-                <button
-                  onClick={() => { setSubmitted(false); setEmail(""); }}
-                  className="text-sm text-blue-600 hover:underline"
-                >
-                  Try a different email
-                </button>
+            <div className="text-center">
+              <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <span className="text-green-600 text-3xl">✓</span>
               </div>
-            </>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Check Your Email</h2>
+              <p className="text-gray-600 mb-2">
+                If <span className="font-medium">{email}</span> is registered, you&apos;ll receive
+                reset instructions shortly.
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                Didn&apos;t get an email? Check your spam folder or contact{" "}
+                <a href="mailto:reservations@aplayabeachresort.com" className="text-blue-600 underline">
+                  our support team
+                </a>.
+              </p>
+              <button
+                onClick={() => { setSubmitted(false); setEmail(""); setError(""); }}
+                className="text-sm text-blue-600 hover:underline"
+              >
+                Try a different email
+              </button>
+            </div>
           )}
 
           <p className="text-center mt-6 text-sm text-gray-600">

@@ -1,387 +1,324 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { Bar } from 'react-chartjs-2';
+import {
+  Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
+} from 'chart.js';
 import Sidebar from './Layout/Sidebar';
-import Chart from 'chart.js/auto';
+import { getFdBookings } from '../../lib/frontdeskApi';
 
-const Reports = () => {
-  const [fullReportModalOpen, setFullReportModalOpen] = useState(false);
-  const [allTransactionsModalOpen, setAllTransactionsModalOpen] = useState(false);
-  
-  const dailyChartRef = useRef(null);
-  const dailyChartInstance = useRef(null);
-  const fullChartRef = useRef(null);
-  const fullChartInstance = useRef(null);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
+// ─── sample data (fallback when API has no bookings) ──────────────────────────
+function makeSampleBookings() {
+  const rooms  = ['Deluxe Room', 'Standard Room', 'Family Suite', 'Premium Cottage', 'Garden Villa'];
+  const guests = ['Maria Santos', 'Juan dela Cruz', 'Ana Reyes', 'Pedro Lim', 'Rosa Garcia',
+                  'Carlo Mendoza', 'Elena Torres', 'Miguel Cruz', 'Luz Bautista', 'Ramon Aquino',
+                  'Celine Ramos', 'Dante Villanueva', 'Marites Ocampo', 'Ferdie Castillo', 'Liza Diaz'];
+  const statuses = ['Completed','Completed','Completed','Confirmed','Cancelled','Completed','Confirmed'];
+  const payments = ['gcash','cash','maya','gcash','cash'];
+  const slots    = ['08:00','09:00','10:00','11:00','13:00','14:00'];
+
+  let id = 9001;
+  const bookings = [];
+
+  // Spread ~2–4 bookings across each of the last 7 days
+  const counts = [2, 3, 2, 4, 3, 2, 4]; // Mon→today
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const n = counts[6 - i];
+
+    for (let j = 0; j < n; j++) {
+      const g       = guests[(id - 9001) % guests.length];
+      const room    = rooms[(id - 9001) % rooms.length];
+      const slot    = slots[j % slots.length];
+      const [hh]    = slot.split(':').map(Number);
+      const checkIn = `${dateStr} ${slot}:00`;
+      const checkOut = `${dateStr} ${String(hh + 8).padStart(2, '0')}:00:00`;
+      const gCount  = (j % 3) + 2;
+      const total   = 1500 + Math.max(0, gCount - 5) * 50;
+      const status  = i === 0
+        ? (j % 3 === 0 ? 'Confirmed' : j % 3 === 1 ? 'Completed' : 'Pending')
+        : statuses[(id - 9001) % statuses.length];
+
+      bookings.push({
+        id:              `RES-${String(id).padStart(6, '0')}`,
+        booking_id:      id,
+        guest:           g,
+        guest_email:     g.toLowerCase().replace(/\s+/g, '.') + '@example.com',
+        guest_phone:     '+6391' + String(10000000 + id).slice(1),
+        roomType:        room,
+        checkIn,
+        checkOut,
+        guests:          gCount,
+        total,
+        status,
+        paymentMethod:   payments[id % payments.length],
+        specialRequests: '',
+        createdAt:       checkIn,
+      });
+      id++;
+    }
+  }
+  return bookings;
+}
+
+const SAMPLE_BOOKINGS = makeSampleBookings();
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function fmtMoney(n) {
+  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+}
+function fmtTime(dt) {
+  if (!dt) return '—';
+  return new Date(dt.replace(' ', 'T')).toLocaleTimeString('en-PH', {
+    hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+}
+
+function buildWeekChart(bookings) {
+  const labels = [], confirmed = [], completed = [], cancelled = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const day = bookings.filter(b => b.checkIn?.slice(0, 10) === key);
+    labels.push(d.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' }));
+    confirmed.push(day.filter(b => b.status === 'Confirmed').length);
+    completed.push(day.filter(b => b.status === 'Completed').length);
+    cancelled.push(day.filter(b => b.status === 'Cancelled').length);
+  }
+  return { labels, confirmed, completed, cancelled };
+}
+
+function exportCSV(rows, filename) {
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── component ────────────────────────────────────────────────────────────────
+export default function Reports() {
+  const [bookings, setBookings]       = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState('');
+  const [reportDate, setReportDate]   = useState(todayStr());
+  const [usingDemo, setUsingDemo]     = useState(false);
 
   useEffect(() => {
-    if (dailyChartRef.current) {
-      if (dailyChartInstance.current) {
-        dailyChartInstance.current.destroy();
-      }
-      
-      dailyChartInstance.current = new Chart(dailyChartRef.current, {
-        type: 'bar',
-        data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          datasets: [{
-            label: 'Occupancy %',
-            data: [65, 59, 80, 81, 56, 95, 100],
-            backgroundColor: 'rgba(59, 130, 246, 0.7)',
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100
-            }
-          }
-        }
-      });
-    }
+    getFdBookings()
+      .then(data => {
+        if (data.length === 0) { setBookings(SAMPLE_BOOKINGS); setUsingDemo(true); }
+        else { setBookings(data); setUsingDemo(false); }
+        setError('');
+      })
+      .catch(() => {
+        setBookings(SAMPLE_BOOKINGS);
+        setUsingDemo(true);
+        setError('');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    // Initialize full report chart when modal opens
-    if (fullReportModalOpen && fullChartRef.current) {
-      if (fullChartInstance.current) {
-        fullChartInstance.current.destroy();
-      }
-      
-      fullChartInstance.current = new Chart(fullChartRef.current, {
-        type: 'line',
-        data: {
-          labels: ['Jul 17', 'Jul 18', 'Jul 19', 'Jul 20', 'Jul 21', 'Jul 22', 'Jul 23'],
-          datasets: [{
-            label: 'Occupancy %',
-            data: [65, 59, 80, 81, 56, 95, 100],
-            borderColor: 'rgba(59, 130, 246, 1)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: {
-              beginAtZero: true,
-              max: 100
-            }
-          }
-        }
-      });
-    }
-  }, [fullReportModalOpen]);
+  const dateBookings  = bookings.filter(b => b.checkIn?.slice(0, 10) === reportDate);
+  const totalRevenue  = dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total), 0);
 
-  const openFullReportModal = () => setFullReportModalOpen(true);
-  const closeFullReportModal = () => setFullReportModalOpen(false);
-  const openAllTransactionsModal = () => setAllTransactionsModalOpen(true);
-  const closeAllTransactionsModal = () => setAllTransactionsModalOpen(false);
+  const { labels, confirmed, completed, cancelled } = buildWeekChart(bookings);
+  const chartData = {
+    labels,
+    datasets: [
+      { label: 'Confirmed', data: confirmed, backgroundColor: 'rgba(59,130,246,0.7)',  borderRadius: 3 },
+      { label: 'Completed', data: completed, backgroundColor: 'rgba(16,185,129,0.7)',  borderRadius: 3 },
+      { label: 'Cancelled', data: cancelled, backgroundColor: 'rgba(239,68,68,0.5)',   borderRadius: 3 },
+    ],
+  };
 
-  // Close modals when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (fullReportModalOpen && event.target === document.querySelector('.modal')) {
-        closeFullReportModal();
-      }
-      if (allTransactionsModalOpen && event.target === document.querySelector('.modal')) {
-        closeAllTransactionsModal();
-      }
-    };
+  function handleExport() {
+    const rows = [
+      ['Booking ID', 'Guest', 'Room', 'Check-in', 'Check-out', 'Duration', 'Guests', 'Total', 'Status', 'Payment'],
+      ...dateBookings.map(b => [
+        b.id, b.guest, b.roomType,
+        b.checkIn, b.checkOut, '8 hrs',
+        b.guests, b.total, b.status, b.paymentMethod || '',
+      ]),
+    ];
+    exportCSV(rows, `frontdesk-report-${reportDate}.csv`);
+  }
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [fullReportModalOpen, allTransactionsModalOpen]);
+  const reportDateLabel = new Date(reportDate + 'T00:00:00').toLocaleDateString('en-PH', {
+    month: 'long', day: 'numeric', year: 'numeric',
+  });
 
+  // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
-      {/* Full Report Modal */}
-      {fullReportModalOpen && (
-        <div className="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="modal-content bg-white p-6 rounded-lg w-4/5 max-w-4xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">Full Occupancy Report</h3>
-              <button onClick={closeFullReportModal} className="text-gray-500 hover:text-gray-700">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="mb-6">
-              <div className="flex justify-between mb-2">
-                <div>
-                  <label htmlFor="reportDateRange" className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
-                  <select id="reportDateRange" className="border rounded p-2">
-                    <option>Last 7 days</option>
-                    <option>Last 30 days</option>
-                    <option>This month</option>
-                    <option>Last month</option>
-                    <option>Custom range</option>
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="reportType" className="block text-sm font-medium text-gray-700 mb-1">Report Type</label>
-                  <select id="reportType" className="border rounded p-2">
-                    <option>Daily</option>
-                    <option>Weekly</option>
-                    <option>Monthly</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="h-96 mb-4">
-              <canvas ref={fullChartRef}></canvas>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">Date</th>
-                    <th className="text-right py-2">Occupancy %</th>
-                    <th className="text-right py-2">Total Rooms</th>
-                    <th className="text-right py-2">Occupied</th>
-                    <th className="text-right py-2">Available</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-3">Mon, Jul 17</td>
-                    <td className="py-3 text-right">65%</td>
-                    <td className="py-3 text-right">50</td>
-                    <td className="py-3 text-right">32</td>
-                    <td className="py-3 text-right">18</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3">Tue, Jul 18</td>
-                    <td className="py-3 text-right">59%</td>
-                    <td className="py-3 text-right">50</td>
-                    <td className="py-3 text-right">29</td>
-                    <td className="py-3 text-right">21</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3">Wed, Jul 19</td>
-                    <td className="py-3 text-right">80%</td>
-                    <td className="py-3 text-right">50</td>
-                    <td className="py-3 text-right">40</td>
-                    <td className="py-3 text-right">10</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3">Thu, Jul 20</td>
-                    <td className="py-3 text-right">81%</td>
-                    <td className="py-3 text-right">50</td>
-                    <td className="py-3 text-right">40</td>
-                    <td className="py-3 text-right">9</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 flex justify-end">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Export Report</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* All Transactions Modal */}
-      {allTransactionsModalOpen && (
-        <div className="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="modal-content bg-white p-6 rounded-lg w-4/5 max-w-4xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">All Guest Transactions</h3>
-              <button onClick={closeAllTransactionsModal} className="text-gray-500 hover:text-gray-700">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="mb-6">
-              <div className="flex justify-between mb-2">
-                <div>
-                  <label htmlFor="transactionsDate" className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input type="date" id="transactionsDate" className="border rounded p-2" defaultValue="2023-07-20" />
-                </div>
-                <div>
-                  <label htmlFor="transactionsFilter" className="block text-sm font-medium text-gray-700 mb-1">Filter</label>
-                  <select id="transactionsFilter" className="border rounded p-2">
-                    <option>All Transactions</option>
-                    <option>Check-ins Only</option>
-                    <option>Check-outs Only</option>
-                    <option>Reservations Only</option>
-                    <option>Extensions Only</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-2">Time</th>
-                    <th className="text-left py-2">Room/Cottage</th>
-                    <th className="text-left py-2">Guest Name</th>
-                    <th className="text-left py-2">Type</th>
-                    <th className="text-left py-2">Status</th>
-                    <th className="text-left py-2">Staff</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr className="border-b">
-                    <td className="py-3">9:00 AM</td>
-                    <td className="py-3">Cottage 2</td>
-                    <td className="py-3">Maria Santos</td>
-                    <td className="py-3">Check-out</td>
-                    <td className="py-3"><span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Completed</span></td>
-                    <td className="py-3">Sarah J.</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3">11:00 AM</td>
-                    <td className="py-3">Room 205</td>
-                    <td className="py-3">Robert Johnson</td>
-                    <td className="py-3">Extension</td>
-                    <td className="py-3"><span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Extended</span></td>
-                    <td className="py-3">Mark T.</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3">1:30 PM</td>
-                    <td className="py-3">Room 107</td>
-                    <td className="py-3">Lisa Ray</td>
-                    <td className="py-3">Reservation</td>
-                    <td className="py-3"><span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">New</span></td>
-                    <td className="py-3">Sarah J.</td>
-                  </tr>
-                  <tr className="border-b">
-                    <td className="py-3">2:00 PM</td>
-                    <td className="py-3">Room 101</td>
-                    <td className="py-3">Juan Dela Cruz</td>
-                    <td className="py-3">Check-in</td>
-                    <td className="py-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Active</span></td>
-                    <td className="py-3">Sarah J.</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-4 flex justify-between items-center">
-              <div>
-                <span className="text-sm text-gray-600">Showing 1 to 5 of 12 entries</span>
-              </div>
-              <div className="flex space-x-2">
-                <button className="border px-3 py-1 rounded">Previous</button>
-                <button className="bg-blue-600 text-white px-3 py-1 rounded">1</button>
-                <button className="border px-3 py-1 rounded">2</button>
-                <button className="border px-3 py-1 rounded">3</button>
-                <button className="border px-3 py-1 rounded">Next</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       <header className="bg-white shadow-sm">
         <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Reports</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-800">Reports</h1>
+            {usingDemo && (
+              <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
+                Sample Data
+              </span>
+            )}
+          </div>
         </div>
       </header>
 
       <main className="p-6">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-semibold mb-6">Reports</h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="font-medium mb-4">Daily Occupancy</h3>
-              <div className="h-48">
-                <canvas ref={dailyChartRef}></canvas>
-              </div>
-              <div className="mt-4">
-                <button onClick={openFullReportModal} className="text-blue-600 hover:text-blue-800 text-sm">View Full Report →</button>
-              </div>
-            </div>
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="font-medium mb-4">Today's Guest Transactions</h3>
-              <div className="h-48 overflow-y-auto">
-                <ul className="space-y-3">
-                  <li className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">Room 101</p>
-                      <p className="text-sm text-gray-500">Check-in: 2:00 PM</p>
-                    </div>
-                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Active</span>
-                  </li>
-                  <li className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">Room 205</p>
-                      <p className="text-sm text-gray-500">Check-out: 11:00 AM</p>
-                    </div>
-                    <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Completed</span>
-                  </li>
-                  <li className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">Cottage 3</p>
-                      <p className="text-sm text-gray-500">Extended stay</p>
-                    </div>
-                    <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Extended</span>
-                  </li>
-                  <li className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">Room 107</p>
-                      <p className="text-sm text-gray-500">New reservation</p>
-                    </div>
-                    <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded">New</span>
-                  </li>
-                </ul>
-              </div>
-              <div className="mt-4">
-                <button onClick={openAllTransactionsModal} className="text-blue-600 hover:text-blue-800 text-sm">View All Transactions →</button>
-              </div>
-            </div>
-            <div className="bg-gray-50 p-6 rounded-lg md:col-span-2">
-              <h3 className="font-medium mb-4">Today's Activity Summary</h3>
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Room/Cottage</th>
-                      <th className="text-left py-2">Guest Name</th>
-                      <th className="text-left py-2">Status</th>
-                      <th className="text-left py-2">Check-in Time</th>
-                      <th className="text-left py-2">Check-out Time</th>
-                      <th className="text-left py-2">Duration</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b">
-                      <td className="py-3">Room 101</td>
-                      <td className="py-3">Juan Dela Cruz</td>
-                      <td className="py-3"><span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded">Checked-in</span></td>
-                      <td className="py-3">2:00 PM</td>
-                      <td className="py-3">11:00 AM (next day)</td>
-                      <td className="py-3">21 hours</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3">Cottage 2</td>
-                      <td className="py-3">Maria Santos</td>
-                      <td className="py-3"><span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">Checked-out</span></td>
-                      <td className="py-3">9:00 AM</td>
-                      <td className="py-3">5:00 PM</td>
-                      <td className="py-3">8 hours</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-3">Room 205</td>
-                      <td className="py-3">Robert Johnson</td>
-                      <td className="py-3"><span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">Extended</span></td>
-                      <td className="py-3">3:00 PM</td>
-                      <td className="py-3">3:00 PM (next day)</td>
-                      <td className="py-3">24 hours</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+            <i className="fas fa-exclamation-circle mr-2"></i>{error}
           </div>
+        )}
+
+        {/* Summary Cards for selected date */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {[
+            { label: 'Total Bookings', value: dateBookings.length,                                              color: 'blue',   icon: 'fa-calendar'      },
+            { label: 'Confirmed',      value: dateBookings.filter(b => b.status === 'Confirmed').length,        color: 'indigo', icon: 'fa-check-circle'  },
+            { label: 'Completed',      value: dateBookings.filter(b => b.status === 'Completed').length,        color: 'green',  icon: 'fa-check-double'  },
+            { label: 'Revenue',        value: fmtMoney(totalRevenue),                                           color: 'purple', icon: 'fa-peso-sign'     },
+          ].map(card => (
+            <div key={card.label} className="bg-white rounded-lg shadow p-5 flex items-center">
+              <div className={`p-3 rounded-full bg-${card.color}-100 text-${card.color}-600 mr-4`}>
+                <i className={`fas ${card.icon} text-lg`}></i>
+              </div>
+              <div>
+                <p className="text-gray-500 text-xs">{card.label}</p>
+                <p className="text-xl font-bold">{loading ? '—' : card.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Weekly Chart */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Bookings — Last 7 Days</h2>
+            {loading ? (
+              <div className="h-52 flex items-center justify-center text-gray-400">Loading...</div>
+            ) : (
+              <div className="h-52">
+                <Bar
+                  data={chartData}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12 } } },
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Date selector + quick stats */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Daily Report</h2>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Select Date</label>
+              <input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)}
+                className="border rounded px-3 py-2 w-full text-sm" />
+            </div>
+            <div className="space-y-2 text-sm">
+              {[
+                ['Total Bookings', dateBookings.length],
+                ['Pending',        dateBookings.filter(b => b.status === 'Pending').length],
+                ['Confirmed',      dateBookings.filter(b => b.status === 'Confirmed').length],
+                ['Completed',      dateBookings.filter(b => b.status === 'Completed').length],
+                ['Cancelled',      dateBookings.filter(b => b.status === 'Cancelled').length],
+                ['Revenue',        fmtMoney(totalRevenue)],
+              ].map(([label, val]) => (
+                <div key={label} className="flex justify-between border-b pb-1 last:border-0">
+                  <span className="text-gray-600">{label}</span>
+                  <span className="font-medium">{loading ? '—' : val}</span>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleExport}
+              disabled={loading || dateBookings.length === 0}
+              className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
+            >
+              <i className="fas fa-download mr-2"></i>Export CSV
+            </button>
+          </div>
+        </div>
+
+        {/* Activity Table */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold">Activity for {reportDateLabel}</h2>
+            <button onClick={() => window.print()}
+              className="flex items-center gap-2 text-sm text-gray-600 border rounded px-3 py-1 hover:bg-gray-50">
+              <i className="fas fa-print"></i> Print
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="py-10 text-center text-gray-400">
+              <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading...
+            </div>
+          ) : dateBookings.length === 0 ? (
+            <p className="text-gray-400 text-center py-6">No bookings for this date.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Booking ID', 'Guest', 'Room', 'Check-in', 'Check-out', 'Duration', 'Guests', 'Total', 'Status'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {dateBookings.map(b => (
+                    <tr key={b.booking_id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-xs text-gray-500">{b.id}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{b.guest}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{b.roomType}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{fmtTime(b.checkIn)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{fmtTime(b.checkOut)}</td>
+                      <td className="px-4 py-3 text-sm text-gray-500">8 hrs</td>
+                      <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
+                      <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          b.status === 'Completed' ? 'bg-green-100 text-green-800' :
+                          b.status === 'Confirmed' ? 'bg-blue-100 text-blue-800' :
+                          b.status === 'Cancelled' ? 'bg-red-100 text-red-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>{b.status}</span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50 font-semibold text-sm">
+                  <tr>
+                    <td colSpan={6} className="px-4 py-3 text-right text-gray-600">Totals:</td>
+                    <td className="px-4 py-3 text-center">
+                      {dateBookings.reduce((s, b) => s + b.guests, 0)}
+                    </td>
+                    <td className="px-4 py-3">
+                      {fmtMoney(dateBookings.reduce((s, b) => s + Number(b.total), 0))}
+                    </td>
+                    <td className="px-4 py-3 text-green-700">
+                      {fmtMoney(totalRevenue)} collected
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
         </div>
       </main>
     </Sidebar>
   );
-};
-
-export default Reports;
+}

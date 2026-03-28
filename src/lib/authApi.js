@@ -24,3 +24,15 @@ export async function logoutRequest() {
   const res = await api.post("/api/logout");
   return res.data;
 }
+
+// POST /api/forgot-password — sends reset link email
+export async function forgotPasswordRequest(email) {
+  const res = await api.post("/api/forgot-password", { email });
+  return res.data;
+}
+
+// POST /api/reset-password — sets new password using token from email link
+export async function resetPasswordRequest({ token, email, password, password_confirmation }) {
+  const res = await api.post("/api/reset-password", { token, email, password, password_confirmation });
+  return res.data;
+}

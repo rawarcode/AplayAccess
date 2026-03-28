@@ -14,25 +14,25 @@ const PAGE_TITLES = {
   "/admin/history":      "History",
   "/admin/reviews":      "Reviews",
   "/admin/foods":        "Manage Foods",
-  "/admin/services":     "Other Services",
-  "/admin/inventory":    "Inventory",
+  "/admin/inventory":    "Add-ons & Amenities",
   "/admin/content":      "Manage Website",
+  "/admin/settings":     "Pricing & Settings",
 };
 
 const MENU = {
   main: [
-    { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard"      },
-    { path: "/admin/users",        icon: "fa-users",           label: "Manage Users"   },
-    { path: "/admin/rooms",        icon: "fa-bed",             label: "Manage Rooms"   },
-    { path: "/admin/guests",       icon: "fa-user-check",      label: "Guests"         },
-    { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions"   },
-    { path: "/admin/history",      icon: "fa-history",         label: "History"        },
-    { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews"        },
+    { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard",    ownerOnly: false },
+    { path: "/admin/users",        icon: "fa-users",           label: "Manage Users", ownerOnly: true  },
+    { path: "/admin/rooms",        icon: "fa-bed",             label: "Manage Rooms", ownerOnly: false },
+    { path: "/admin/guests",       icon: "fa-user-check",      label: "Guests",       ownerOnly: false },
+    { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions", ownerOnly: false },
+    { path: "/admin/history",      icon: "fa-history",         label: "History",      ownerOnly: false },
+    { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews",      ownerOnly: false },
   ],
   manage: [
-    { path: "/admin/services",  icon: "fa-concierge-bell", label: "Other Services" },
-    { path: "/admin/inventory", icon: "fa-boxes",          label: "Inventory"      },
-    { path: "/admin/content",   icon: "fa-globe",          label: "Manage Website" },
+    { path: "/admin/inventory", icon: "fa-concierge-bell",  label: "Add-ons"            },
+    { path: "/admin/settings",  icon: "fa-sliders-h",       label: "Pricing & Settings" },
+    { path: "/admin/content",   icon: "fa-globe",           label: "Manage Website"     },
   ],
 };
 
@@ -148,7 +148,9 @@ export default function AdminShell() {
           <div className="mb-6">
             {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Admin</h3>}
             <ul>
-              {MENU.main.map((item) => (
+              {MENU.main
+                .filter(item => !item.ownerOnly || user?.role === "owner")
+                .map((item) => (
                 <li key={item.path} className="mb-2">
                   <Link
                     to={item.path}
@@ -188,9 +190,19 @@ export default function AdminShell() {
           </div>
         </nav>
 
-        {/* Portal switcher — admin/owner can access frontdesk */}
+        {/* Portal switcher — admin/owner can access frontdesk; owner can also access owner panel */}
         <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
           {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
+          {user?.role === "owner" && (
+            <button
+              onClick={() => switchPortal("/owner", "Switching to Owner Panel...")}
+              className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition mb-1"
+              title="Switch to Owner Panel"
+            >
+              <i className="fas fa-crown mr-3 w-5 text-center"></i>
+              {!collapsed && <span className="text-sm">Owner Panel</span>}
+            </button>
+          )}
           <button
             onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
             className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"

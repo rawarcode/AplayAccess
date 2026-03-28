@@ -8,6 +8,7 @@ import Gallery from "./pages/Gallery.jsx";
 import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
+import ResetPassword from "./pages/ResetPassword.jsx";
 import PaymentReturn from "./pages/PaymentReturn.jsx";
 
 // Guest dashboard (protected)
@@ -27,14 +28,21 @@ import AdminShell from "./components/admin/AdminShell.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import AdminUsers from "./pages/admin/Users.jsx";
 import AdminRooms from "./pages/admin/Rooms.jsx";
-import AdminFoods from "./pages/admin/Foods.jsx";
-import AdminServices from "./pages/admin/Services.jsx";
-import AdminInventory from "./pages/admin/Inventory.jsx";
+import AdminAddons from "./pages/admin/Addons.jsx";
+import AdminSettings from "./pages/admin/Settings.jsx";
 import AdminTransactions from "./pages/admin/Transactions.jsx";
 import AdminHistory from "./pages/admin/History.jsx";
 import AdminContent from "./pages/admin/Content.jsx";
 import AdminReviews from "./pages/admin/Reviews.jsx";
 import AdminGuests from "./pages/admin/Guests.jsx";
+
+// Owner portal
+import RequireOwner from "./components/auth/RequireOwner.jsx";
+import OwnerShell from "./components/owner/OwnerShell.jsx";
+import OwnerDashboard from "./pages/owner/Dashboard.jsx";
+import OwnerFinancials from "./pages/owner/Financials.jsx";
+import OwnerTransactions from "./pages/owner/Transactions.jsx";
+import OwnerReports from "./pages/owner/Reports.jsx";
 
 // Frontdesk portal
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
@@ -44,6 +52,7 @@ import FDBilling from "./frontdesk/components/Billing.jsx";
 import FDWalkIn from "./frontdesk/components/WalkIn.jsx";
 import FDGuestRecords from "./frontdesk/components/GuestRecords.jsx";
 import FDReports from "./frontdesk/components/Reports.jsx";
+import FDRooms from "./frontdesk/components/Rooms.jsx";
 
 export default function App() {
   return (
@@ -56,6 +65,7 @@ export default function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password"  element={<ResetPassword />} />
 
         {/* PayMongo return pages */}
         <Route path="/payment/success" element={<PaymentReturn outcome="success" />} />
@@ -92,14 +102,28 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="users" element={<AdminUsers />} />
         <Route path="rooms" element={<AdminRooms />} />
-        <Route path="foods" element={<AdminFoods />} />
-        <Route path="services" element={<AdminServices />} />
-        <Route path="inventory" element={<AdminInventory />} />
+        <Route path="inventory" element={<AdminAddons />} />
+        <Route path="settings"  element={<AdminSettings />} />
         <Route path="transactions" element={<AdminTransactions />} />
         <Route path="history" element={<AdminHistory />} />
         <Route path="content" element={<AdminContent />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="guests" element={<AdminGuests />} />
+      </Route>
+
+      {/* ── Owner portal ── */}
+      <Route
+        path="/owner"
+        element={
+          <RequireOwner>
+            <OwnerShell />
+          </RequireOwner>
+        }
+      >
+        <Route index element={<OwnerDashboard />} />
+        <Route path="financials"   element={<OwnerFinancials />} />
+        <Route path="transactions" element={<OwnerTransactions />} />
+        <Route path="reports"      element={<OwnerReports />} />
       </Route>
 
       {/* ── Frontdesk portal (outside guest Layout) ── */}
@@ -148,6 +172,14 @@ export default function App() {
         element={
           <RequireFrontdesk>
             <FDReports />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/rooms"
+        element={
+          <RequireFrontdesk>
+            <FDRooms />
           </RequireFrontdesk>
         }
       />

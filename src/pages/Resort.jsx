@@ -49,8 +49,9 @@ function amenityIcon(name = "") {
 }
 
 function buildRoomCard(room) {
-  const name = room?.name ?? "Room";
-  const price = room?.price ?? 0;
+  const name     = room?.name ?? "Room";
+  const dayRate  = Number(room?.day_rate  ?? 0);
+  const nightRate = Number(room?.overnight_rate ?? 0);
 
   // Find matching local room card by name (to reuse nicer UI fields)
   const local = roomsFallback.find((r) => r?.name === name);
@@ -61,16 +62,15 @@ function buildRoomCard(room) {
 
   const img = local?.img ?? FALLBACK_ROOM_IMG;
 
-  // Optional badge (reuse local badge if exists)
+  // Optional badge (reuse local badge if exists, otherwise derive from day rate)
   let badge = local?.badge ?? null;
   if (!badge) {
-    const p = Number(price || 0);
-    if (p >= 6000) badge = { text: "Premium", className: "bg-purple-600" };
-    else if (p >= 4500) badge = { text: "Popular", className: "bg-green-600" };
-    else if (p > 0) badge = { text: "Best Value", className: "bg-blue-600" };
+    if (dayRate >= 6000)      badge = { text: "Premium",    className: "bg-purple-600" };
+    else if (dayRate >= 4500) badge = { text: "Popular",    className: "bg-green-600"  };
+    else if (dayRate > 0)     badge = { text: "Best Value", className: "bg-blue-600"   };
   }
 
-  return { ...room, name, price, img, desc, badge };
+  return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, img, desc, badge };
 }
 
 export default function Resort() {
@@ -131,9 +131,10 @@ export default function Resort() {
   const bookingRooms = useMemo(() => {
     const base = roomsApi.length ? roomsApi : roomsFallback;
     return base.map((r) => ({
-      id: r?.id ?? null,
-      name: r?.name ?? "Room",
-      price: r?.price ?? 0,
+      id:            r?.id            ?? null,
+      name:          r?.name          ?? "Room",
+      day_rate:      Number(r?.day_rate      ?? 0),
+      overnight_rate: Number(r?.overnight_rate ?? 0),
     }));
   }, [roomsApi]);
 
@@ -470,8 +471,8 @@ export default function Resort() {
                     <p className="text-gray-600 mb-4">{r.desc}</p>
                     <div className="flex justify-between items-center">
                       <div>
-                        <span className="text-2xl font-bold text-blue-600">{formatPHP(r.price)}</span>
-                        <span className="text-gray-500 text-sm">/ night</span>
+                        <span className="text-2xl font-bold text-blue-600">{formatPHP(r.day_rate)}</span>
+                        <span className="text-gray-500 text-sm">/ day visit</span>
                       </div>
                       <button
                         onClick={() => requestBooking(r.name)}

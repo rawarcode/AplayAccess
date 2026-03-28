@@ -1,117 +1,117 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
+import { getAdminRooms, createAdminRoom, updateAdminRoom } from "../../lib/adminApi";
 
-const initialRooms = [
-  {
-    id: 1,
-    number: "#201",
-    name: "Deluxe Suite",
-    type: "Deluxe Suite",
-    capacity: "2 Adults",
-    price: 250,
-    status: "Available",
-    image: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=200&h=200&fit=crop",
-  },
-  {
-    id: 2,
-    number: "#105",
-    name: "Beach Villa",
-    type: "Beach Villa",
-    capacity: "4 Adults",
-    price: 350,
-    status: "Occupied",
-    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?w=200&h=200&fit=crop",
-  },
-  {
-    id: 3,
-    number: "#302",
-    name: "Family Bungalow",
-    type: "Family Bungalow",
-    capacity: "6 Adults",
-    price: 450,
-    status: "Maintenance",
-    image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=200&h=200&fit=crop",
-  },
-];
+// ── Availability status config ────────────────────────────────────────────────
+const AVAIL = {
+  available:   { label: "Available",            color: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-500", icon: "fa-check-circle" },
+  renovation:  { label: "Under Renovation",     color: "bg-rose-100 text-rose-800",       dot: "bg-rose-500",    icon: "fa-hard-hat"    },
+  maintenance: { label: "Under Maintenance",    color: "bg-amber-100 text-amber-800",     dot: "bg-amber-500",   icon: "fa-wrench"      },
+  reserved:    { label: "Reserved / Blocked",   color: "bg-purple-100 text-purple-800",   dot: "bg-purple-500",  icon: "fa-lock"        },
+  closed:      { label: "Temporarily Closed",   color: "bg-slate-100 text-slate-600",     dot: "bg-slate-400",   icon: "fa-ban"         },
+};
+
+// ── Housekeeping status config ────────────────────────────────────────────────
+const HK = {
+  clean:    { label: "Clean",    color: "bg-sky-100 text-sky-800",    dot: "bg-sky-500"    },
+  dirty:    { label: "Dirty",    color: "bg-rose-100 text-rose-800",  dot: "bg-rose-500"   },
+  cleaning: { label: "Cleaning", color: "bg-amber-100 text-amber-800",dot: "bg-amber-500"  },
+};
+
+const BLANK = {
+  name: "", description: "", day_rate: 1500, overnight_rate: 2000,
+  capacity: 2, size: "", beds: "", occupancy: "", view: "", image: "",
+  availability_status: "available",
+};
+
+function AvailBadge({ status }) {
+  const cfg = AVAIL[status] || AVAIL.available;
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${cfg.color}`}>
+      <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
+      {cfg.label}
+    </span>
+  );
+}
 
 export default function AdminRooms() {
-  const [rooms, setRooms] = useState(initialRooms);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
+  const [rooms,        setRooms]        = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [saving,       setSaving]       = useState(false);
+  const [error,        setError]        = useState(null);
+  const [modalOpen,    setModalOpen]    = useState(false);
+  const [editing,      setEditing]      = useState(null);
+  const [viewRoom,     setViewRoom]     = useState(null);
+  const [searchTerm,   setSearchTerm]   = useState("");
+  const [filterAvail,  setFilterAvail]  = useState("");
 
-  const filteredRooms = rooms.filter((room) => {
-    const matchesSearch =
-      room.number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      room.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = !filterType || room.type === filterType;
-    const matchesStatus = !filterStatus || room.status === filterStatus;
-    return matchesSearch && matchesType && matchesStatus;
+  const load = useCallback(() => {
+    setLoading(true);
+    getAdminRooms()
+      .then(r => setRooms(r.data.data))
+      .catch(() => setError("Failed to load rooms."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = rooms.filter(r => {
+    const matchSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchAvail  = !filterAvail || r.availability_status === filterAvail;
+    return matchSearch && matchAvail;
   });
 
-  function openNew() {
-    setEditing({
-      number: "",
-      name: "",
-      type: "Standard",
-      capacity: "",
-      price: 0,
-      status: "Available",
-    });
-    setModalOpen(true);
-  }
+  function openNew()      { setEditing({ ...BLANK }); setModalOpen(true); }
+  function openEdit(room) { setEditing({ ...room, availability_status: room.availability_status || "available" }); setViewRoom(null); setModalOpen(true); }
+  function setField(k, v) { setEditing(x => ({ ...x, [k]: v })); }
 
-  function openEdit(room) {
-    setEditing({ ...room });
-    setModalOpen(true);
-  }
-
-  function saveRoom(e) {
+  async function saveRoom(e) {
     e.preventDefault();
-    if (!editing.number || !editing.name) return;
-
-    setRooms((list) => {
-      if (editing.id) {
-        return list.map((r) => (r.id === editing.id ? editing : r));
-      }
-      const nextId = Math.max(0, ...list.map((r) => r.id)) + 1;
-      return [...list, { ...editing, id: nextId }];
-    });
-    setModalOpen(false);
-  }
-
-  function deleteRoom(id) {
-    if (window.confirm("Are you sure you want to delete this room?")) {
-      setRooms((list) => list.filter((r) => r.id !== id));
+    setSaving(true);
+    const payload = {
+      name:                editing.name,
+      description:         editing.description,
+      day_rate:            Number(editing.day_rate),
+      overnight_rate:      Number(editing.overnight_rate),
+      capacity:            Number(editing.capacity),
+      availability_status: editing.availability_status || "available",
+      size:                editing.size      || undefined,
+      beds:                editing.beds      || undefined,
+      occupancy:           editing.occupancy || undefined,
+      view:                editing.view      || undefined,
+      image:               editing.image     || undefined,
+      resort_id:           1,
+    };
+    try {
+      editing.id ? await updateAdminRoom(editing.id, payload) : await createAdminRoom(payload);
+      setModalOpen(false);
+      load();
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to save room.");
+    } finally {
+      setSaving(false);
     }
   }
 
-  const statusColors = {
-    Available: "bg-emerald-100 text-emerald-800",
-    Occupied: "bg-sky-100 text-sky-800",
-    Maintenance: "bg-amber-100 text-amber-800",
-  };
-
   return (
     <div className="p-6 space-y-6">
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Room Management</h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Manage rooms, availability, and pricing in one place.
-          </p>
+          <p className="text-sm text-slate-500 mt-1">Manage rooms, rates, and availability status.</p>
         </div>
-        <button
-          onClick={openNew}
-          className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-        >
+        <button onClick={openNew}
+          className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-xl shadow-sm">
           <i className="fas fa-plus"></i>
           <span className="text-sm font-medium">New Room</span>
         </button>
       </div>
 
+      {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4">{error}</div>}
+
+      {/* Table card */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-slate-50 border-b border-slate-200">
           <div>
@@ -120,223 +120,244 @@ export default function AdminRooms() {
           </div>
           <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
             <div className="relative w-full md:w-64">
-              <input
-                type="text"
-                placeholder="Search rooms..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              <input type="text" placeholder="Search rooms…"
+                value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="min-w-40 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
-              >
-                <option value="">Filter by Type</option>
-                <option value="Standard">Standard</option>
-                <option value="Deluxe Suite">Deluxe Suite</option>
-                <option value="Beach Villa">Beach Villa</option>
-                <option value="Family Bungalow">Family Bungalow</option>
-              </select>
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="min-w-40 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
-              >
-                <option value="">Filter by Status</option>
-                <option value="Available">Available</option>
-                <option value="Occupied">Occupied</option>
-                <option value="Maintenance">Maintenance</option>
-              </select>
-            </div>
+            <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
+              className="min-w-44 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm">
+              <option value="">All Availability</option>
+              {Object.entries(AVAIL).map(([val, { label }]) => (
+                <option key={val} value={val}>{label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-              <tr>
-                <th className="px-6 py-3 text-left"></th>
-                <th className="px-6 py-3 text-left">Room Number</th>
-                <th className="px-6 py-3 text-left">Type</th>
-                <th className="px-6 py-3 text-left">Capacity</th>
-                <th className="px-6 py-3 text-left">Price/Night</th>
-                <th className="px-6 py-3 text-left">Status</th>
-                <th className="px-6 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {filteredRooms.map((room) => (
-                <tr key={room.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <img
-                      alt={room.name}
-                      className="h-10 w-10 rounded-full object-cover"
-                      src={room.image}
-                    />
-                  </td>
-                  <td className="px-6 py-4 font-medium text-slate-900">{room.number}</td>
-                  <td className="px-6 py-4 text-slate-600">{room.type}</td>
-                  <td className="px-6 py-4 text-slate-600">{room.capacity}</td>
-                  <td className="px-6 py-4 text-slate-600">₱{room.price}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${
-                        statusColors[room.status] || "bg-slate-100 text-slate-800"
-                      }`}
-                    >
-                      <span
-                        className={
-                          room.status === "Available"
-                            ? "h-2.5 w-2.5 rounded-full bg-emerald-500"
-                            : room.status === "Occupied"
-                            ? "h-2.5 w-2.5 rounded-full bg-sky-500"
-                            : "h-2.5 w-2.5 rounded-full bg-amber-500"
-                        }
-                      />
-                      {room.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 space-x-3">
-                    <button
-                      onClick={() => openEdit(room)}
-                      className="text-sky-600 hover:text-sky-800 font-medium"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => deleteRoom(room.id)}
-                      className="text-rose-600 hover:text-rose-800 font-medium"
-                    >
-                      Delete
-                    </button>
-                  </td>
+          {loading ? (
+            <p className="px-6 py-10 text-center text-slate-400"><i className="fas fa-spinner fa-spin mr-2"></i>Loading…</p>
+          ) : filtered.length === 0 ? (
+            <p className="px-6 py-10 text-center text-slate-400">No rooms found.</p>
+          ) : (
+            <table className="min-w-full text-sm text-slate-700">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
+                <tr>
+                  <th className="px-6 py-3 text-left"></th>
+                  <th className="px-6 py-3 text-left">Name</th>
+                  <th className="px-6 py-3 text-left">Capacity</th>
+                  <th className="px-6 py-3 text-left">Day Rate</th>
+                  <th className="px-6 py-3 text-left">Overnight Rate</th>
+                  <th className="px-6 py-3 text-left">Availability</th>
+                  <th className="px-6 py-3 text-left">Housekeeping</th>
+                  <th className="px-6 py-3 text-left">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="bg-white divide-y divide-slate-200">
+                {filtered.map(room => {
+                  const avail = room.availability_status || "available";
+                  const hk    = HK[room.housekeeping_status];
+                  const isUnavailable = avail !== "available";
+                  return (
+                    <tr
+                      key={room.id}
+                      onClick={() => setViewRoom(room)}
+                      className={`cursor-pointer transition-colors ${isUnavailable ? "opacity-60 bg-slate-50 hover:bg-slate-100" : "hover:bg-slate-50"}`}
+                    >
+                      <td className="px-6 py-4">
+                        {room.image
+                          ? <img src={room.image} alt={room.name} className="h-10 w-10 rounded-full object-cover" />
+                          : <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i className="fas fa-bed"></i></div>
+                        }
+                      </td>
+                      <td className="px-6 py-4 font-medium text-slate-900">
+                        {room.name}
+                        {room.size && <span className="ml-1 text-xs text-slate-400">· {room.size}</span>}
+                      </td>
+                      <td className="px-6 py-4 text-slate-600">{room.capacity} pax</td>
+                      <td className="px-6 py-4 text-slate-600">₱{Number(room.day_rate).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-600">₱{Number(room.overnight_rate).toLocaleString()}</td>
+                      <td className="px-6 py-4"><AvailBadge status={avail} /></td>
+                      <td className="px-6 py-4">
+                        {hk ? (
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${hk.color}`}>
+                            <span className={`h-2 w-2 rounded-full ${hk.dot}`} />
+                            {hk.label}
+                          </span>
+                        ) : <span className="text-slate-400 text-xs">—</span>}
+                      </td>
+                      <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => openEdit(room)} className="text-sky-600 hover:text-sky-800 font-medium">
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
+      {/* View Room Modal */}
+      {viewRoom && (() => {
+        const avail = viewRoom.availability_status || "available";
+        const hk    = HK[viewRoom.housekeeping_status];
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+                <h3 className="text-lg font-semibold text-slate-900">Room Details</h3>
+                <button onClick={() => setViewRoom(null)} className="text-slate-400 hover:text-slate-600">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                {viewRoom.image && (
+                  <img src={viewRoom.image} alt={viewRoom.name} className="w-full h-40 object-cover rounded-xl" />
+                )}
+
+                {/* Availability highlight */}
+                {avail !== "available" && (
+                  <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${AVAIL[avail].color}`}>
+                    <i className={`fas ${AVAIL[avail].icon}`}></i>
+                    {AVAIL[avail].label}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  {[
+                    ["Name",           viewRoom.name],
+                    ["Capacity",       `${viewRoom.capacity} pax`],
+                    ["Day Rate",       `₱${Number(viewRoom.day_rate).toLocaleString()}`],
+                    ["Overnight Rate", `₱${Number(viewRoom.overnight_rate).toLocaleString()}`],
+                    ["Size",           viewRoom.size || "—"],
+                    ["Beds",           viewRoom.beds || "—"],
+                    ["View",           viewRoom.view || "—"],
+                  ].map(([label, val]) => (
+                    <div key={label}>
+                      <p className="text-slate-500 text-xs">{label}</p>
+                      <p className="font-semibold text-slate-900">{val}</p>
+                    </div>
+                  ))}
+                  <div>
+                    <p className="text-slate-500 text-xs">Housekeeping</p>
+                    {hk
+                      ? <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold ${hk.color}`}><span className={`h-1.5 w-1.5 rounded-full ${hk.dot}`}/>{hk.label}</span>
+                      : <p className="font-semibold text-slate-900">—</p>
+                    }
+                  </div>
+                  {viewRoom.description && (
+                    <div className="col-span-2">
+                      <p className="text-slate-500 text-xs">Description</p>
+                      <p className="text-slate-700">{viewRoom.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="px-6 pb-6 flex justify-end gap-2">
+                <button onClick={() => setViewRoom(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50">
+                  Close
+                </button>
+                <button onClick={() => openEdit(viewRoom)}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm">
+                  Edit
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Edit / Create Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <form onSubmit={saveRoom} className="p-6 space-y-5">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">
-                {editing?.id ? "Edit Room" : "Add New Room"}
-              </h2>
-              <p className="text-sm text-slate-500">
-                {editing?.id
-                  ? "Update room details and availability."
-                  : "Create a new room listing."}
-              </p>
+              <h2 className="text-xl font-semibold text-slate-900">{editing?.id ? "Edit Room" : "Add New Room"}</h2>
+              <p className="text-sm text-slate-500">{editing?.id ? "Update room details, rates, and availability." : "Create a new room listing."}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="text-slate-400 hover:text-slate-600"
-            >
+            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
               <i className="fas fa-times"></i>
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Room Number</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-                value={editing?.number || ""}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x, number: e.target.value }))
-                }
-                required
-              />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Room Name *</label>
+              <input required value={editing?.name || ""} onChange={e => setField("name", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Room Name</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-                value={editing?.name || ""}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x, name: e.target.value }))
-                }
-                required
-              />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
+              <textarea required rows={2} value={editing?.description || ""} onChange={e => setField("description", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm resize-none" />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Room Type</label>
-              <select
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-                value={editing?.type || "Standard"}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x, type: e.target.value }))
-                }
-              >
-                <option>Standard</option>
-                <option>Deluxe</option>
-                <option>Suite</option>
-                <option>Family</option>
+            {/* Availability — full width, prominent */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Availability Status *</label>
+              <select value={editing?.availability_status || "available"} onChange={e => setField("availability_status", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm">
+                {Object.entries(AVAIL).map(([val, { label, icon }]) => (
+                  <option key={val} value={val}>{label}</option>
+                ))}
               </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Price per Night (₱)</label>
-              <input
-                type="number"
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-                value={editing?.price || 0}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x, price: parseFloat(e.target.value) }))
-                }
-              />
+              {editing?.availability_status && editing.availability_status !== "available" && (
+                <p className="mt-1 text-xs text-amber-600 flex items-center gap-1">
+                  <i className="fas fa-exclamation-triangle"></i>
+                  This room will not appear for booking until set back to Available.
+                </p>
+              )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Capacity</label>
-              <input
-                type="text"
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-                value={editing?.capacity || ""}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x, capacity: e.target.value }))
-                }
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Day Rate (₱) *</label>
+              <input required type="number" min={0} value={editing?.day_rate ?? 1500} onChange={e => setField("day_rate", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-              <select
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400"
-                value={editing?.status || "Available"}
-                onChange={(e) =>
-                  setEditing((x) => ({ ...x, status: e.target.value }))
-                }
-              >
-                <option>Available</option>
-                <option>Occupied</option>
-                <option>Maintenance</option>
-              </select>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Overnight Rate (₱) *</label>
+              <input required type="number" min={0} value={editing?.overnight_rate ?? 2000} onChange={e => setField("overnight_rate", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Capacity (pax) *</label>
+              <input required type="number" min={1} value={editing?.capacity ?? 2} onChange={e => setField("capacity", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Size</label>
+              <input placeholder="e.g. 35 sqm" value={editing?.size || ""} onChange={e => setField("size", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Beds</label>
+              <input placeholder="e.g. 1 King Bed" value={editing?.beds || ""} onChange={e => setField("beds", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">View</label>
+              <input placeholder="e.g. Ocean View" value={editing?.view || ""} onChange={e => setField("view", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
+              <input type="url" placeholder="https://…" value={editing?.image || ""} onChange={e => setField("image", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="px-4 py-2 text-slate-600 rounded-xl hover:bg-slate-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl"
-            >
-              Save Room
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setModalOpen(false)}
+              className="px-4 py-2 text-slate-600 rounded-xl hover:bg-slate-50 text-sm">Cancel</button>
+            <button type="submit" disabled={saving}
+              className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm disabled:opacity-60">
+              {saving ? "Saving…" : "Save Room"}
             </button>
           </div>
         </form>

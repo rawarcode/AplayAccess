@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const ROLE_REDIRECTS = {
   front_desk: '/frontdesk',
   admin:      '/admin',
-  owner:      '/admin', // temporary until /owner is merged
+  owner:      '/owner',
 };
 
 const ALLOWED_ROLES = Object.keys(ROLE_REDIRECTS);

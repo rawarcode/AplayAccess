@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { getBookings, cancelBooking } from "../../lib/bookingApi.js";
 import { submitReview } from "../../lib/reviewApi.js";
+import { api } from "../../lib/api.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 
 // ─── Datetime formatter ───────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ function StarRating({ value, onChange }) {
 }
 
 // ─── Cancel confirm modal ─────────────────────────────────────────────────────
-function CancelModal({ booking, onClose, onConfirmed }) {
+function CancelModal({ booking, reservationFee, onClose, onConfirmed }) {
   useLockBodyScroll(true);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError]           = useState("");
@@ -92,7 +93,8 @@ function CancelModal({ booking, onClose, onConfirmed }) {
               <span className="font-semibold text-gray-900">{booking.id}</span>?
             </p>
             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-3 text-sm text-yellow-800">
-              The ₱150.00 reservation fee is <span className="font-medium">non-refundable</span> upon cancellation.
+              The ₱{Number(reservationFee || 150).toLocaleString()}.00 reservation fee is{" "}
+              <span className="font-medium">non-refundable</span> upon cancellation.
             </div>
 
             {error ? (
@@ -225,17 +227,23 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function MyBookings() {
-  const [items, setItems]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState("");
-  const [reviewing, setReviewing] = useState(null); // booking object for review modal
-  const [cancelling, setCancelling] = useState(null); // booking object for cancel modal
+  const [items, setItems]           = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState("");
+  const [reviewing, setReviewing]   = useState(null);
+  const [cancelling, setCancelling] = useState(null);
+  const [reservationFee, setReservationFee] = useState(150); // fetched from /api/pricing
 
   useEffect(() => {
     getBookings()
       .then(setItems)
       .catch(() => setError("Failed to load bookings."))
       .finally(() => setLoading(false));
+
+    // Fetch live reservation fee so the cancel warning is always accurate
+    api.get("/api/pricing")
+      .then(r => setReservationFee(Number(r.data?.data?.reservation_fee ?? 150)))
+      .catch(() => {}); // keep default on failure
   }, []);
 
   function handleCancelConfirmed(bookingId) {
@@ -350,6 +358,7 @@ export default function MyBookings() {
       {cancelling && (
         <CancelModal
           booking={cancelling}
+          reservationFee={reservationFee}
           onClose={() => setCancelling(null)}
           onConfirmed={handleCancelConfirmed}
         />

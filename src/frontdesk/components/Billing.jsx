@@ -1,413 +1,335 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
+import { getFdBookings, updateBookingStatus } from '../../lib/frontdeskApi';
 
-const BILLING_STORAGE_KEY = 'fd_billing_guest_data_v1';
+// Reservation fee collected online at time of booking
+const RESERVATION_FEE = 150;
 
-function parseCurrency(value) {
-  return Number(String(value || '').replace(/[^\d.-]/g, '')) || 0;
+// ─── helpers ──────────────────────────────────────────────────────────────────
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+function fmtMoney(n) {
+  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 }
-
-function formatCurrency(value) {
-  return `₱${Number(value || 0).toFixed(2)}`;
-}
-
-const Billing = () => {
-  const [selectedGuest, setSelectedGuest] = useState(null);
-  const [showBillDetails, setShowBillDetails] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('Credit Card');
-
-  const initialGuestData = {
-    'Robert Chen': {
-      room: '305',
-      dates: 'Jun 12 - Jun 18, 2023',
-      reservationId: '#4567',
-      roomType: 'Deluxe Ocean View',
-      items: [
-        { date: 'Jun 12', description: 'Room Charge (1 night)', amount: '₱245.00' },
-        { date: 'Jun 12', description: 'Beach Cabana Rental', amount: '₱75.00' },
-        { date: 'Jun 13', description: 'Room Charge (1 night)', amount: '₱245.00' },
-        { date: 'Jun 13', description: 'Spa Service', amount: '₱120.00' },
-        { date: 'Jun 13', description: 'Restaurant Charges', amount: '₱86.50' }
-      ],
-      subtotal: '₱771.50',
-      tax: '₱92.58',
-      total: '₱864.08',
-      payments: [
-        { date: 'Jun 12, 2023', amount: '₱500.00', method: 'Credit Card (ending in 3456)' },
-        { date: 'Jun 13, 2023', amount: '₱364.08', method: 'Credit Card (ending in 3456)' }
-      ]
-    },
-    'Maria Garcia': {
-      room: '412',
-      dates: 'Jun 12 - Jun 15, 2023',
-      reservationId: '#4566',
-      roomType: 'Family Suite',
-      items: [
-        { date: 'Jun 12', description: 'Room Charge (1 night)', amount: '₱350.00' },
-        { date: 'Jun 12', description: 'Dinner for 4', amount: '₱220.50' },
-        { date: 'Jun 13', description: 'Room Charge (1 night)', amount: '₱350.00' },
-        { date: 'Jun 13', description: 'Spa Package', amount: '₱250.00' },
-        { date: 'Jun 14', description: 'Room Charge (1 night)', amount: '₱350.00' }
-      ],
-      subtotal: '₱1,112.50',
-      tax: '₱133.50',
-      total: '₱1,245.50',
-      payments: [
-        { date: 'Jun 12, 2023', amount: '₱500.00', method: 'Cash' },
-        { date: 'Jun 14, 2023', amount: '₱500.00', method: 'Debit Card (ending in 7890)' }
-      ]
-    },
-    'James Wilson': {
-      room: '208',
-      dates: 'Jun 12 - Jun 14, 2023',
-      reservationId: '#4565',
-      roomType: 'Standard Garden View',
-      items: [
-        { date: 'Jun 12', description: 'Room Charge (1 night)', amount: '₱180.00' },
-        { date: 'Jun 13', description: 'Room Charge (1 night)', amount: '₱180.00' }
-      ],
-      subtotal: '₱360.00',
-      tax: '₱43.20',
-      total: '₱403.20',
-      payments: [
-        { date: 'Jun 12, 2023', amount: '₱200.00', method: 'Cash' }
-      ]
-    },
-    'Lisa Thompson': {
-      room: '207',
-      dates: 'Jun 12 - Jun 14, 2023',
-      reservationId: '#4564',
-      roomType: 'Standard Garden View',
-      items: [
-        { date: 'Jun 12', description: 'Room Charge (1 night)', amount: '₱180.00' },
-        { date: 'Jun 12', description: 'Pool Bar', amount: '₱42.50' },
-        { date: 'Jun 13', description: 'Room Charge (1 night)', amount: '₱180.00' },
-        { date: 'Jun 13', description: 'Massage', amount: '₱120.00' },
-        { date: 'Jun 13', description: 'Dinner', amount: '₱85.80' }
-      ],
-      subtotal: '₱608.30',
-      tax: '₱73.00',
-      total: '₱681.30',
-      payments: []
-    }
-  };
-
-  const [guestData, setGuestData] = useState(() => {
-    try {
-      const raw = localStorage.getItem(BILLING_STORAGE_KEY);
-      if (!raw) return initialGuestData;
-      return JSON.parse(raw);
-    } catch {
-      return initialGuestData;
-    }
+function fmtDateTime(dt) {
+  if (!dt) return '—';
+  return new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
   });
+}
+
+function PayIcon({ method }) {
+  const m = (method || '').toLowerCase();
+  if (m === 'cash')
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-money-bill-wave text-green-600"></i> Cash</span>;
+  if (m === 'gcash')
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-blue-500"></i> GCash</span>;
+  if (m === 'maya' || m === 'paymaya')
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-green-500"></i> Maya</span>;
+  return <span className="capitalize">{method || '—'}</span>;
+}
+
+function StatusBadge({ status }) {
+  const cls = {
+    Confirmed: 'bg-blue-100 text-blue-800',
+    Completed: 'bg-green-100 text-green-800',
+    Cancelled: 'bg-red-100 text-red-800',
+    Pending:   'bg-yellow-100 text-yellow-800',
+  };
+  return (
+    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
+      {status}
+    </span>
+  );
+}
+
+// ─── component ────────────────────────────────────────────────────────────────
+export default function Billing() {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState('');
+
+  const [billing, setBilling]     = useState(null); // booking being billed
+  const [payMethod, setPayMethod] = useState('Cash');
+  const [paying, setPaying]       = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(BILLING_STORAGE_KEY, JSON.stringify(guestData));
-  }, [guestData]);
+    getFdBookings()
+      .then(data => { setBookings(data); setError(''); })
+      .catch(() => setError('Failed to load billing data.'))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const guests = useMemo(() => {
-    return Object.entries(guestData).map(([name, data], index) => {
-      const totalDue = parseCurrency(data.total);
-      const paid = (data.payments || []).reduce((sum, p) => sum + parseCurrency(p.amount), 0);
-      const balance = Math.max(totalDue - paid, 0);
-      const status = balance === 0 ? 'Checked Out' : paid > 0 ? 'Checked In' : 'Pending Payment';
+  const today          = todayStr();
+  const todayAll       = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
+  const todayConfirmed = todayAll.filter(b => b.status === 'Confirmed');
+  const todayCompleted = todayAll.filter(b => b.status === 'Completed');
 
-      return {
-        id: index + 1,
-        name,
-        reservationId: data.reservationId,
-        room: `${data.room} - ${data.roomType}`,
-        dates: data.dates,
-        status,
-        balance: formatCurrency(balance)
-      };
-    });
-  }, [guestData]);
-
-  const selectGuest = (guest) => {
-    setSelectedGuest(guest);
-    setShowBillDetails(true);
-  };
-
-  const backToGuestList = () => {
-    setShowBillDetails(false);
-    setSelectedGuest(null);
-  };
-
-  const processPayment = () => {
-    if (!selectedGuest) {
-      alert('Please select a guest first');
-      return;
+  async function handleCollect() {
+    if (!billing) return;
+    setPaying(true);
+    try {
+      await updateBookingStatus(billing.booking_id, 'Completed');
+      setBookings(prev =>
+        prev.map(b => b.booking_id === billing.booking_id ? { ...b, status: 'Completed' } : b)
+      );
+      setBilling(null);
+    } catch {
+      alert('Failed to update booking. Please try again.');
+    } finally {
+      setPaying(false);
     }
+  }
 
-    const amount = document.getElementById('paymentAmount')?.value;
-    const numericAmount = Number(amount);
+  const balanceDue = billing ? Math.max(0, Number(billing.total) - RESERVATION_FEE) : 0;
 
-    if (!amount || Number.isNaN(numericAmount) || numericAmount <= 0) {
-      alert('Please enter a payment amount');
-      return;
-    }
-
-    const selected = guestData[selectedGuest];
-    const totalDue = parseCurrency(selected.total);
-    const alreadyPaid = (selected.payments || []).reduce((sum, p) => sum + parseCurrency(p.amount), 0);
-    const remaining = Math.max(totalDue - alreadyPaid, 0);
-
-    if (numericAmount > remaining) {
-      alert(`Amount exceeds remaining balance (${formatCurrency(remaining)})`);
-      return;
-    }
-
-    const paymentEntry = {
-      date: new Date().toLocaleDateString(),
-      amount: formatCurrency(numericAmount),
-      method: paymentMethod
-    };
-
-    setGuestData((prev) => ({
-      ...prev,
-      [selectedGuest]: {
-        ...prev[selectedGuest],
-        payments: [...(prev[selectedGuest].payments || []), paymentEntry]
-      }
-    }));
-
-    alert(`Processed ${formatCurrency(numericAmount)} payment via ${paymentMethod}`);
-  };
-
-  const getRemainingBalance = (guestName) => {
-    const data = guestData[guestName];
-    if (!data) return 0;
-    const totalDue = parseCurrency(data.total);
-    const paid = (data.payments || []).reduce((sum, p) => sum + parseCurrency(p.amount), 0);
-    return Math.max(totalDue - paid, 0);
-  };
-
-  const getStatusColor = (status) => {
-    switch(status) {
-      case 'Checked In': return 'bg-blue-100 text-blue-800';
-      case 'Checked Out': return 'bg-green-100 text-green-800';
-      case 'Pending Payment': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
+  // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Billing</h1>
-          <div className="flex items-center space-x-4">
-            <div className="relative">
-              <input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" />
-              <i className="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+      {/* ── Payment Collection Modal ── */}
+      {billing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Collect Payment — {billing.id}</h3>
+                <button onClick={() => setBilling(null)} className="text-gray-500 hover:text-gray-700">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              {/* Guest summary */}
+              <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
+                <p className="font-medium text-gray-800">{billing.guest}</p>
+                <p className="text-gray-600">{billing.roomType} · {billing.guests} pax</p>
+                <p className="text-gray-500 text-xs mt-1">
+                  {fmtDateTime(billing.checkIn)} → {fmtDateTime(billing.checkOut)}
+                </p>
+              </div>
+
+              {/* Bill breakdown */}
+              <div className="border rounded mb-4 text-sm">
+                <div className="flex justify-between px-4 py-3 border-b">
+                  <span className="text-gray-600">Full Visit Rate</span>
+                  <span>{fmtMoney(billing.total)}</span>
+                </div>
+                <div className="flex justify-between px-4 py-3 border-b text-green-700">
+                  <span>Reservation Fee (paid online)</span>
+                  <span>− {fmtMoney(RESERVATION_FEE)}</span>
+                </div>
+                <div className="flex justify-between px-4 py-3 font-semibold text-blue-800 text-base">
+                  <span>Balance Due Now</span>
+                  <span>{fmtMoney(balanceDue)}</span>
+                </div>
+              </div>
+
+              {/* Payment method */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-green-600' },
+                    { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-blue-500'  },
+                    { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-green-500' },
+                  ].map(opt => (
+                    <button key={opt.value} type="button"
+                      onClick={() => setPayMethod(opt.value)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded text-sm font-medium transition-colors ${
+                        payMethod === opt.value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <i className={`fas ${opt.icon} ${payMethod === opt.value ? '' : opt.color}`}></i>
+                      {opt.value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setBilling(null)}
+                  className="px-4 py-2 border rounded text-sm text-gray-700">
+                  Cancel
+                </button>
+                <button onClick={handleCollect} disabled={paying}
+                  className="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60">
+                  <i className="fas fa-check mr-1"></i>
+                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue)} & Complete`}
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Header ── */}
+      <header className="bg-white shadow-sm">
+        <div className="flex items-center justify-between p-4">
+          <h1 className="text-2xl font-bold text-gray-800">Billing</h1>
+          <p className="text-sm text-gray-500">
+            {new Date().toLocaleDateString('en-PH', {
+              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+            })}
+          </p>
+        </div>
       </header>
 
+      {/* ── Main ── */}
       <main className="p-6">
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {/* Guest List View */}
-          {!showBillDetails && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold">Guests with Outstanding Bills</h2>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 guest-list">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guest</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in/Check-out</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance Due</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {guests.map((guest) => (
-                      <tr 
-                        key={guest.id} 
-                        onClick={() => selectGuest(guest.name)}
-                        className="hover:bg-gray-50 cursor-pointer"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{guest.name}</div>
-                          <div className="text-sm text-gray-500">{guest.reservationId}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{guest.room}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{guest.dates}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(guest.status)}`}>
-                            {guest.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">{guest.balance}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+        {/* Summary cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow p-5 flex items-center">
+            <div className="p-3 rounded-full bg-blue-100 text-blue-600 mr-4">
+              <i className="fas fa-file-invoice-dollar text-xl"></i>
             </div>
-          )}
+            <div>
+              <p className="text-gray-500 text-sm">Awaiting Collection</p>
+              <h3 className="text-2xl font-bold">{loading ? '—' : todayConfirmed.length}</h3>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center">
+            <div className="p-3 rounded-full bg-green-100 text-green-600 mr-4">
+              <i className="fas fa-check-circle text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Completed Today</p>
+              <h3 className="text-2xl font-bold">{loading ? '—' : todayCompleted.length}</h3>
+            </div>
+          </div>
+          <div className="bg-white rounded-lg shadow p-5 flex items-center">
+            <div className="p-3 rounded-full bg-purple-100 text-purple-600 mr-4">
+              <i className="fas fa-peso-sign text-xl"></i>
+            </div>
+            <div>
+              <p className="text-gray-500 text-sm">Revenue Today</p>
+              <h3 className="text-xl font-bold">
+                {loading ? '—' : fmtMoney(todayCompleted.reduce((s, b) => s + Number(b.total), 0))}
+              </h3>
+            </div>
+          </div>
+        </div>
 
-          {/* Bill Details View */}
-          {showBillDetails && selectedGuest && (
-            <div className="bill-details active">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-semibold">Billing Details</h2>
-                  <button onClick={backToGuestList} className="text-blue-600 hover:text-blue-800 flex items-center">
-                    <i className="fas fa-arrow-left mr-2"></i> Back to Guest List
-                  </button>
-                </div>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+            <i className="fas fa-exclamation-circle mr-2"></i>{error}
+          </div>
+        )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
-                  <div className="lg:col-span-2 p-6">
-                    <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-medium">Guest Information</h3>
-                        <span className="text-sm text-gray-600">Room {guestData[selectedGuest].room}</span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-sm text-gray-600">Guest Name</p>
-                          <p className="font-medium">{selectedGuest}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Check-in/Check-out</p>
-                          <p className="font-medium">{guestData[selectedGuest].dates}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Reservation ID</p>
-                          <p className="font-medium">{guestData[selectedGuest].reservationId}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-600">Room Type</p>
-                          <p className="font-medium">{guestData[selectedGuest].roomType}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <h3 className="font-medium mb-3">Current Charges</h3>
-                      <table className="min-w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left text-sm font-medium text-gray-700 pb-2">Date</th>
-                            <th className="text-left text-sm font-medium text-gray-700 pb-2">Description</th>
-                            <th className="text-right text-sm font-medium text-gray-700 pb-2">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {guestData[selectedGuest].items.map((item, index) => (
-                            <tr key={index} className="border-b">
-                              <td className="py-3 text-sm">{item.date}</td>
-                              <td className="py-3 text-sm">{item.description}</td>
-                              <td className="py-3 text-sm text-right">{item.amount}</td>
-                            </tr>
-                          ))}
-                          <tr>
-                            <td className="py-3 text-sm font-medium" colSpan="2">Subtotal</td>
-                            <td className="py-3 text-sm text-right font-medium">{guestData[selectedGuest].subtotal}</td>
-                          </tr>
-                          <tr>
-                            <td className="py-3 text-sm font-medium" colSpan="2">Tax (12%)</td>
-                            <td className="py-3 text-sm text-right font-medium">{guestData[selectedGuest].tax}</td>
-                          </tr>
-                          <tr className="border-t-2 border-gray-300">
-                            <td className="py-3 text-lg font-bold" colSpan="2">Total Due</td>
-                            <td className="py-3 text-lg text-right font-bold">{guestData[selectedGuest].total}</td>
-                          </tr>
-                          <tr>
-                            <td className="py-3 text-sm font-medium" colSpan="2">Remaining Balance</td>
-                            <td className="py-3 text-sm text-right font-medium">{formatCurrency(getRemainingBalance(selectedGuest))}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
+        {/* Awaiting payment */}
+        {!loading && todayConfirmed.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-lg font-semibold mb-4 text-blue-700">
+              <i className="fas fa-exclamation-circle mr-2"></i>
+              Awaiting Payment Collection ({todayConfirmed.length})
+            </h2>
+            <div className="space-y-3">
+              {todayConfirmed.map(b => (
+                <div key={b.booking_id}
+                  className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                  <div>
+                    <p className="font-medium">{b.guest}</p>
+                    <p className="text-sm text-gray-600">{b.roomType} · {b.guests} pax</p>
+                    <p className="text-xs text-gray-500">
+                      {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
+                    </p>
                   </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">Balance Due</p>
+                    <p className="font-bold text-blue-700 text-lg">
+                      {fmtMoney(Math.max(0, Number(b.total) - RESERVATION_FEE))}
+                    </p>
+                    <button
+                      onClick={() => { setBilling(b); setPayMethod('Cash'); }}
+                      className="mt-2 px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                    >
+                      <i className="fas fa-hand-holding-usd mr-1"></i>Collect
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                  <div className="payment-section p-6 bg-gray-50">
-                    <div className="mb-6">
-                      <h3 className="font-medium mb-3">Payment</h3>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
-                          <select 
-                            value={paymentMethod}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                            className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
+        {/* Full today's table */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Today's Billing Summary</h2>
+
+          {loading ? (
+            <div className="py-10 text-center text-gray-400">
+              <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading...
+            </div>
+          ) : todayAll.length === 0 ? (
+            <p className="text-gray-400 text-center py-6">No bookings for today.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    {['Booking ID', 'Guest', 'Room', 'Time Slot', 'Visit Rate', 'Balance Due', 'Status', 'Action'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {todayAll.map(b => (
+                    <tr key={b.booking_id}
+                      className={`hover:bg-gray-50 ${b.status === 'Confirmed' ? 'cursor-pointer' : ''}`}
+                      onClick={b.status === 'Confirmed' ? () => { setBilling(b); setPayMethod('Cash'); } : undefined}
+                    >
+                      <td className="px-4 py-3 text-xs text-gray-500">{b.id}</td>
+                      <td className="px-4 py-3 text-sm font-medium">{b.guest}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{b.roomType}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                        {fmtDateTime(b.checkIn)}<br />
+                        <span className="text-gray-400">→ {fmtDateTime(b.checkOut)}</span>
+                      </td>
+                      <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
+                      <td className="px-4 py-3 text-sm font-medium">
+                        {b.status === 'Completed'
+                          ? <span className="text-green-600"><i className="fas fa-check mr-1"></i>Collected</span>
+                          : b.status === 'Cancelled'
+                          ? <span className="text-gray-400">—</span>
+                          : <span className="text-blue-700">{fmtMoney(Math.max(0, Number(b.total) - RESERVATION_FEE))}</span>
+                        }
+                      </td>
+                      <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                        {b.status === 'Confirmed' && (
+                          <button
+                            onClick={() => { setBilling(b); setPayMethod('Cash'); }}
+                            className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
                           >
-                            <option>Credit Card</option>
-                            <option>Debit Card</option>
-                            <option>Cash</option>
-                            <option>Bank Transfer</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
-                          <input 
-                            type="text" 
-                            id="paymentAmount" 
-                            defaultValue={String(getRemainingBalance(selectedGuest))} 
-                            className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                        {(paymentMethod === 'Credit Card' || paymentMethod === 'Debit Card') && (
-                          <div className="space-y-4">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700 mb-1">Card Number</label>
-                              <input type="text" placeholder="1234 5678 9012 3456" className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500" />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date</label>
-                                <input type="text" placeholder="MM/YY" className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500" />
-                              </div>
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">CVV</label>
-                                <input type="text" placeholder="123" className="border rounded px-3 py-2 w-full focus:ring-blue-500 focus:border-blue-500" />
-                              </div>
-                            </div>
-                          </div>
+                            Collect
+                          </button>
                         )}
-                        <button onClick={processPayment} className="bg-green-600 text-white px-4 py-2 rounded w-full hover:bg-green-700 transition flex items-center justify-center">
-                          <i className="fas fa-credit-card mr-2"></i> Process Payment
-                        </button>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="font-medium mb-3">Payment History</h3>
-                      <div className="space-y-3">
-                        {guestData[selectedGuest].payments.length === 0 ? (
-                          <div className="text-sm text-gray-500 italic">No payments recorded yet</div>
-                        ) : (
-                          guestData[selectedGuest].payments.map((payment, index) => (
-                            <div key={index} className="border-b pb-2">
-                              <div className="flex justify-between">
-                                <span className="text-sm font-medium">{payment.date}</span>
-                                <span className="text-sm font-medium">{payment.amount}</span>
-                              </div>
-                              <p className="text-xs text-gray-600">{payment.method}</p>
-                            </div>
-                          ))
+                        {b.status === 'Completed' && (
+                          <span className="text-xs text-green-600">
+                            <i className="fas fa-check-circle mr-1"></i>Paid
+                          </span>
                         )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot className="bg-gray-50 text-sm font-semibold">
+                  <tr>
+                    <td colSpan={4} className="px-4 py-3 text-right text-gray-600">Totals:</td>
+                    <td className="px-4 py-3">
+                      {fmtMoney(todayAll.reduce((s, b) => s + Number(b.total), 0))}
+                    </td>
+                    <td className="px-4 py-3 text-green-700">
+                      {fmtMoney(todayCompleted.reduce((s, b) => s + Number(b.total), 0))} collected
+                    </td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           )}
         </div>
       </main>
     </Sidebar>
   );
-};
-
-export default Billing;
+}

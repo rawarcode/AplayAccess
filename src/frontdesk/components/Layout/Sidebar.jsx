@@ -20,6 +20,7 @@ export default function Sidebar({ children }) {
       { path: '/frontdesk/billing',     icon: 'fa-receipt',          label: 'Billing'       },
       { path: '/frontdesk/walkin',      icon: 'fa-person-walking',   label: 'Walk-ins'      },
       { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
+      { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms'         },
     ],
     management: [
       { path: '/frontdesk/reports', icon: 'fa-chart-bar', label: 'Reports' },
@@ -114,12 +115,22 @@ export default function Sidebar({ children }) {
             {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
             <button
               onClick={() => switchPortal('/admin', 'Switching to Admin Panel...')}
-              className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
+              className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition mb-1"
               title="Switch to Admin Panel"
             >
               <i className="fas fa-shield-halved mr-3 w-5 text-center"></i>
               {!collapsed && <span className="text-sm">Admin Panel</span>}
             </button>
+            {user?.role === 'owner' && (
+              <button
+                onClick={() => switchPortal('/owner', 'Switching to Owner Panel...')}
+                className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
+                title="Switch to Owner Panel"
+              >
+                <i className="fas fa-crown mr-3 w-5 text-center"></i>
+                {!collapsed && <span className="text-sm">Owner Panel</span>}
+              </button>
+            )}
           </div>
         )}
 

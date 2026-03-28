@@ -1,24 +1,28 @@
 import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
 import AlertModal from "../../components/modals/AlertModal.jsx";
-import { getAdminAddons, updateAdminAddon } from "../../lib/adminApi";
+import { getAdminAddons, createAdminAddon, updateAdminAddon } from "../../lib/adminApi";
 
 const ICONS = { Pillow: "fa-bed", Karaoke: "fa-microphone" };
 
-export default function AdminInventory() {
-  const [addons,     setAddons]     = useState([]);
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [editing,    setEditing]    = useState(null);
-  const [modalOpen,  setModalOpen]  = useState(false);
-  const [viewItem,   setViewItem]   = useState(null);
-  const [alert,      setAlert]      = useState({ open: false, type: "info", title: "", message: "" });
+const BLANK = {
+  name: "", description: "", price: 0, max_qty: 1, per_booking: false, is_active: true,
+};
+
+export default function AdminAddons() {
+  const [addons,    setAddons]    = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [saving,    setSaving]    = useState(false);
+  const [editing,   setEditing]   = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [viewItem,  setViewItem]  = useState(null);
+  const [alert,     setAlert]     = useState({ open: false, type: "info", title: "", message: "" });
 
   const load = useCallback(() => {
     setLoading(true);
     getAdminAddons()
       .then(r => setAddons(r.data.data))
-      .catch(() => showAlert("error", "Error", "Failed to load inventory."))
+      .catch(() => showAlert("error", "Error", "Failed to load add-ons."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -28,21 +32,43 @@ export default function AdminInventory() {
     setAlert({ open: true, type, title, message });
   }
 
+  function openNew() {
+    setEditing({ ...BLANK });
+    setViewItem(null);
+    setModalOpen(true);
+  }
+
   function openEdit(item) {
     setEditing({ ...item });
     setViewItem(null);
     setModalOpen(true);
   }
 
+  function setField(k, v) {
+    setEditing(x => ({ ...x, [k]: v }));
+  }
+
   async function saveAddon(e) {
     e.preventDefault();
+    if (!editing.name?.trim()) {
+      showAlert("error", "Error", "Name is required.");
+      return;
+    }
     setSaving(true);
+    const payload = {
+      name:        editing.name.trim(),
+      description: editing.description || undefined,
+      price:       Number(editing.price),
+      max_qty:     Number(editing.max_qty),
+      per_booking: Boolean(editing.per_booking),
+      is_active:   Boolean(editing.is_active),
+    };
     try {
-      await updateAdminAddon(editing.id, {
-        price:       Number(editing.price),
-        max_qty:     Number(editing.max_qty),
-        is_active:   editing.is_active,
-      });
+      if (editing.id) {
+        await updateAdminAddon(editing.id, payload);
+      } else {
+        await createAdminAddon(payload);
+      }
       setModalOpen(false);
       load();
     } catch (err) {
@@ -68,15 +94,22 @@ export default function AdminInventory() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Inventory</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage add-on items available to guests.</p>
+          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Add-ons & Amenities</h1>
+          <p className="text-sm text-slate-500 mt-1">Manage bookable add-ons guests can attach to their reservation.</p>
         </div>
+        <button
+          onClick={openNew}
+          className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+        >
+          <i className="fas fa-plus"></i>
+          <span className="text-sm font-medium">New Add-on</span>
+        </button>
       </div>
 
       {/* Table card */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="px-6 py-5 bg-slate-50 border-b border-slate-200">
-          <p className="text-sm text-slate-600">Total items</p>
+          <p className="text-sm text-slate-600">Total add-ons</p>
           <p className="text-2xl font-semibold text-slate-900">{addons.length}</p>
         </div>
 
@@ -86,12 +119,12 @@ export default function AdminInventory() {
               <i className="fas fa-spinner fa-spin mr-2"></i>Loading…
             </p>
           ) : addons.length === 0 ? (
-            <p className="px-6 py-10 text-center text-slate-400">No items found.</p>
+            <p className="px-6 py-10 text-center text-slate-400">No add-ons yet. Click "New Add-on" to create one.</p>
           ) : (
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
-                  <th className="px-6 py-3 text-left">Item</th>
+                  <th className="px-6 py-3 text-left">Name</th>
                   <th className="px-6 py-3 text-left">Price</th>
                   <th className="px-6 py-3 text-left">Max Qty</th>
                   <th className="px-6 py-3 text-left">Type</th>
@@ -108,7 +141,7 @@ export default function AdminInventory() {
                   >
                     <td className="px-6 py-4 font-medium text-slate-900">
                       <span className="flex items-center gap-2">
-                        <i className={`fas ${ICONS[item.name] || "fa-box"} text-slate-400`}></i>
+                        <i className={`fas ${ICONS[item.name] || "fa-tag"} text-slate-400`}></i>
                         {item.name}
                       </span>
                     </td>
@@ -131,10 +164,7 @@ export default function AdminInventory() {
                     </td>
                     <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => openEdit(item)}
-                          className="text-sky-600 hover:text-sky-800 font-medium"
-                        >
+                        <button onClick={() => openEdit(item)} className="text-sky-600 hover:text-sky-800 font-medium">
                           Edit
                         </button>
                         <button
@@ -161,7 +191,7 @@ export default function AdminInventory() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <i className={`fas ${ICONS[viewItem.name] || "fa-box"} text-slate-500`}></i>
+                <i className={`fas ${ICONS[viewItem.name] || "fa-tag"} text-slate-500`}></i>
                 {viewItem.name}
               </h3>
               <button onClick={() => setViewItem(null)} className="text-slate-400 hover:text-slate-600">
@@ -171,10 +201,10 @@ export default function AdminInventory() {
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">
                 {[
-                  ["Price",       `₱${Number(viewItem.price).toLocaleString()}`],
-                  ["Max Qty",     viewItem.max_qty],
-                  ["Type",        viewItem.per_booking ? "Per Booking (flat)" : "Per Item"],
-                  ["Status",      viewItem.is_active ? "Active" : "Inactive"],
+                  ["Price",    `₱${Number(viewItem.price).toLocaleString()}`],
+                  ["Max Qty",  viewItem.max_qty],
+                  ["Type",     viewItem.per_booking ? "Per Booking (flat)" : "Per Item"],
+                  ["Status",   viewItem.is_active ? "Active" : "Inactive"],
                 ].map(([label, val]) => (
                   <div key={label}>
                     <p className="text-slate-500 text-xs">{label}</p>
@@ -190,16 +220,12 @@ export default function AdminInventory() {
               </div>
             </div>
             <div className="px-6 pb-6 flex justify-end gap-2">
-              <button
-                onClick={() => setViewItem(null)}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50"
-              >
+              <button onClick={() => setViewItem(null)}
+                className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50">
                 Close
               </button>
-              <button
-                onClick={() => openEdit(viewItem)}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm"
-              >
+              <button onClick={() => openEdit(viewItem)}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm">
                 Edit
               </button>
             </div>
@@ -207,13 +233,17 @@ export default function AdminInventory() {
         </div>
       )}
 
-      {/* Edit Modal */}
+      {/* Create / Edit Modal */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <form onSubmit={saveAddon} className="p-6 space-y-5">
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-slate-900">Edit — {editing?.name}</h2>
-              <p className="text-sm text-slate-500">Update pricing and availability.</p>
+              <h2 className="text-xl font-semibold text-slate-900">
+                {editing?.id ? `Edit — ${editing.name}` : "New Add-on"}
+              </h2>
+              <p className="text-sm text-slate-500">
+                {editing?.id ? "Update pricing and settings." : "Create a new bookable add-on for guests."}
+              </p>
             </div>
             <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
               <i className="fas fa-times"></i>
@@ -221,48 +251,97 @@ export default function AdminInventory() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Name — editable on create, read-only on edit */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Name *</label>
+              {editing?.id ? (
+                <div className="w-full px-4 py-2 border border-slate-100 rounded-xl bg-slate-50 text-sm text-slate-500">
+                  {editing.name}
+                </div>
+              ) : (
+                <input
+                  required
+                  placeholder="e.g. Extra Towel"
+                  value={editing?.name || ""}
+                  onChange={e => setField("name", e.target.value)}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
+                />
+              )}
+            </div>
+
+            {/* Description */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+              <input
+                placeholder="Short description shown to guests"
+                value={editing?.description || ""}
+                onChange={e => setField("description", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
+              />
+            </div>
+
+            {/* Price */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Price (₱) *</label>
               <input
                 required type="number" min={0}
                 value={editing?.price ?? 0}
-                onChange={e => setEditing(x => ({ ...x, price: e.target.value }))}
+                onChange={e => setField("price", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
             </div>
+
+            {/* Max Qty */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Max Qty *</label>
               <input
                 required type="number" min={1} max={100}
                 value={editing?.max_qty ?? 1}
-                onChange={e => setEditing(x => ({ ...x, max_qty: e.target.value }))}
+                onChange={e => setField("max_qty", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
             </div>
-            <div className="md:col-span-2">
+
+            {/* Type */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Pricing Type *</label>
+              <select
+                value={editing?.per_booking ? "1" : "0"}
+                onChange={e => setField("per_booking", e.target.value === "1")}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
+              >
+                <option value="0">Per Item (×qty)</option>
+                <option value="1">Per Booking (flat fee)</option>
+              </select>
+              <p className="mt-1 text-xs text-slate-400">
+                {editing?.per_booking
+                  ? "One flat charge per booking regardless of quantity."
+                  : "Price multiplied by the quantity the guest selects."}
+              </p>
+            </div>
+
+            {/* Status */}
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
               <select
                 value={editing?.is_active ? "1" : "0"}
-                onChange={e => setEditing(x => ({ ...x, is_active: e.target.value === "1" }))}
+                onChange={e => setField("is_active", e.target.value === "1")}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               >
                 <option value="1">Active</option>
                 <option value="0">Inactive</option>
               </select>
             </div>
-          </div>
 
-          <p className="text-xs text-slate-400">
-            <i className="fas fa-info-circle mr-1"></i>
-            Type and name are fixed. Contact a developer to add new item types.
-          </p>
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setModalOpen(false)}
               className="px-4 py-2 text-slate-600 rounded-xl hover:bg-slate-50 text-sm">Cancel</button>
             <button type="submit" disabled={saving}
               className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm disabled:opacity-60">
-              {saving ? "Saving…" : "Save"}
+              {saving ? "Saving…" : editing?.id ? "Save Changes" : "Create Add-on"}
             </button>
           </div>
         </form>

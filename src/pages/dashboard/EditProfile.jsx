@@ -29,25 +29,20 @@ export default function EditProfile() {
   const fileRef = useRef(null);
 
   const initial = useMemo(() => {
-    const name = user?.name || "John Doe";
+    const name = user?.name || "";
     const [firstName, ...rest] = name.split(" ");
-    const lastName = rest.join(" ") || "Doe";
+    const lastName = rest.join(" ") || "";
     return {
       firstName,
       lastName,
-      email: user?.email || "john.doe@example.com",
-      phone: user?.phone || "+63 900 000 0000",
-      dateOfBirth: "",
-      country: "PH",
-      gender: "",
-      nonSmoking: true,
-      highFloor: false,
-      avatar: user?.avatar || "https://randomuser.me/api/portraits/men/45.jpg",
+      email:  user?.email  || "",
+      phone:  user?.phone  || "",
+      avatar: user?.avatar || "",
     };
   }, [user]);
 
-  const [form, setForm] = useState(initial);
-  const [saving, setSaving] = useState(false);
+  const [form, setForm]         = useState(initial);
+  const [saving, setSaving]     = useState(false);
   const [savedOpen, setSavedOpen] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -74,14 +69,13 @@ export default function EditProfile() {
 
     try {
       const payload = {
-        name: `${form.firstName} ${form.lastName}`.trim(),
-        email: form.email,
-        phone: form.phone,
-        avatar: form.avatar,
+        name:   `${form.firstName} ${form.lastName}`.trim(),
+        email:  form.email,
+        phone:  form.phone,
+        avatar: form.avatar || undefined,
       };
 
       const data = await updateProfile(payload);
-      // Update global user in AuthContext
       login(data.user || { ...(user || {}), ...payload });
       setSavedOpen(true);
     } catch (err) {
@@ -103,12 +97,13 @@ export default function EditProfile() {
       </div>
 
       <form onSubmit={onSave} className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+
         {/* Avatar */}
         <div className="lg:col-span-1">
           <div className="flex flex-col items-center">
             <div className="relative">
               <img
-                src={form.avatar}
+                src={form.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent((form.firstName + " " + form.lastName).trim() || "Guest")}&background=0ea5e9&color=fff&size=128`}
                 alt="Profile"
                 className="w-28 h-28 rounded-full object-cover border-4 border-gray-200"
               />
@@ -136,12 +131,14 @@ export default function EditProfile() {
             </div>
           ) : null}
 
+          {/* Name */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
               <input
                 value={form.firstName}
                 onChange={(e) => setField("firstName", e.target.value)}
+                placeholder="First name"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -150,102 +147,34 @@ export default function EditProfile() {
               <input
                 value={form.lastName}
                 onChange={(e) => setField("lastName", e.target.value)}
+                placeholder="Last name"
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
           </div>
 
+          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
             <input
               type="email"
               value={form.email}
               onChange={(e) => setField("email", e.target.value)}
+              placeholder="you@email.com"
               className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-              <input
-                value={form.phone}
-                onChange={(e) => setField("phone", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
-              <input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={(e) => setField("dateOfBirth", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
-              <select
-                value={form.country}
-                onChange={(e) => setField("country", e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="PH">Philippines</option>
-                <option value="US">United States</option>
-                <option value="CA">Canada</option>
-                <option value="UK">United Kingdom</option>
-                <option value="AU">Australia</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
-              <div className="flex gap-4 pt-2">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="radio"
-                    name="gender"
-                    checked={form.gender === "male"}
-                    onChange={() => setField("gender", "male")}
-                  />
-                  Male
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="radio"
-                    name="gender"
-                    checked={form.gender === "female"}
-                    onChange={() => setField("gender", "female")}
-                  />
-                  Female
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t pt-6">
-            <h3 className="font-semibold text-gray-900 mb-3">Room Preferences</h3>
-            <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.nonSmoking}
-                  onChange={(e) => setField("nonSmoking", e.target.checked)}
-                />
-                Non-smoking room
-              </label>
-              <label className="flex items-center gap-2 text-sm text-gray-700">
-                <input
-                  type="checkbox"
-                  checked={form.highFloor}
-                  onChange={(e) => setField("highFloor", e.target.checked)}
-                />
-                High floor preferred
-              </label>
-            </div>
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setField("phone", e.target.value)}
+              placeholder="+63 9XX XXX XXXX"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-end pt-2">
