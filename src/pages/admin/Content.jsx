@@ -58,7 +58,13 @@ const DEFAULT_CONTENT = {
     phone:   "+1 (555) 123-4567",
     email:   "reservations@aplayabeachresort.com",
   },
+  resort_reviews: {
+    visible:         true,
+    sectionTitle:    "What Our Guests Say",
+    sectionSubtitle: "Don't just take our word for it — hear from our satisfied guests.",
+  },
   resort_newsletter: {
+    visible:  true,
     title:    "Subscribe to Our Newsletter",
     subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!",
   },
@@ -115,27 +121,50 @@ function Field({ label, value, onChange, type = "text", rows }) {
 }
 
 // ─── Section card wrapper ─────────────────────────────────────────────────────
-function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, onCancel }) {
+function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, onCancel, visible, onToggleVisible }) {
+  const hideable = visible !== undefined;
+
   return (
-    <div className={`bg-white rounded-lg shadow border ${editing ? "border-[#1e3a8a]" : "border-gray-200"} overflow-hidden`}>
+    <div className={`bg-white rounded-lg shadow border ${editing ? "border-[#1e3a8a]" : visible === false ? "border-gray-200 opacity-60" : "border-gray-200"} overflow-hidden`}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-[#1e3a8a]">
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${visible === false ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-[#1e3a8a]"}`}>
             <i className={`fas ${icon} text-sm`}></i>
           </div>
           <div>
-            <p className="font-semibold text-gray-800 text-sm">{title}</p>
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-gray-800 text-sm">{title}</p>
+              {hideable && visible === false && (
+                <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Hidden</span>
+              )}
+            </div>
             {badge && <span className="text-xs text-gray-400">{badge}</span>}
           </div>
         </div>
-        {!editing && (
-          <button
-            onClick={onEdit}
-            className="text-xs bg-gray-100 hover:bg-[#1e3a8a] hover:text-white text-gray-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
-          >
-            <i className="fas fa-pen text-xs"></i> Edit
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {hideable && !editing && (
+            <button
+              onClick={onToggleVisible}
+              title={visible ? "Hide section" : "Show section"}
+              className={`text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+                visible
+                  ? "bg-gray-100 hover:bg-yellow-50 hover:text-yellow-600 text-gray-500"
+                  : "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+              }`}
+            >
+              <i className={`fas ${visible ? "fa-eye-slash" : "fa-eye"} text-xs`}></i>
+              {visible ? "Hide" : "Show"}
+            </button>
+          )}
+          {!editing && (
+            <button
+              onClick={onEdit}
+              className="text-xs bg-gray-100 hover:bg-[#1e3a8a] hover:text-white text-gray-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+            >
+              <i className="fas fa-pen text-xs"></i> Edit
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-5 py-4">
@@ -401,6 +430,39 @@ function ResortContactEditor({ content, onSave }) {
   );
 }
 
+function ResortReviewsEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+  const toggleVisible = () => onSave({ ...content, visible: !content.visible });
+
+  return (
+    <SectionCard icon="fa-star" title="Reviews Section" badge="Resort page · /resort" editing={editing}
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}
+      visible={content.visible} onToggleVisible={toggleVisible}>
+      {!editing ? (
+        <div>
+          <p className="font-semibold text-gray-800 text-sm">{content.sectionTitle}</p>
+          <p className="text-xs text-gray-500 mt-1">{content.sectionSubtitle}</p>
+          <p className="text-xs text-gray-300 mt-2 italic">Individual reviews come from guest submissions.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Section Title" value={form.sectionTitle} onChange={f("sectionTitle")} />
+          <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={f("sectionSubtitle")} rows={2} />
+          <p className="text-xs text-gray-400 italic">
+            <i className="fas fa-info-circle mr-1"></i>
+            Individual reviews come from guest submissions via the Reviews page.
+          </p>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 function ResortNewsletterEditor({ content, onSave }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(content);
@@ -408,10 +470,12 @@ function ResortNewsletterEditor({ content, onSave }) {
 
   const cancel = () => { setForm(content); setEditing(false); };
   const save   = () => { onSave(form); setEditing(false); };
+  const toggleVisible = () => onSave({ ...content, visible: !content.visible });
 
   return (
     <SectionCard icon="fa-envelope-open-text" title="Newsletter Section" badge="Resort page · /resort" editing={editing}
-      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}
+      visible={content.visible} onToggleVisible={toggleVisible}>
       {!editing ? (
         <div>
           <p className="font-semibold text-gray-800 text-sm">{content.title}</p>
@@ -713,6 +777,7 @@ export default function AdminContent() {
               <ResortAboutEditor         content={content.resort_about}      onSave={update("resort_about")} />
               <ResortRoomsSectionEditor  content={content.resort_rooms}      onSave={update("resort_rooms")} />
               <ResortContactEditor       content={content.resort_contact}    onSave={update("resort_contact")} />
+              <ResortReviewsEditor       content={content.resort_reviews}    onSave={update("resort_reviews")} />
               <ResortNewsletterEditor    content={content.resort_newsletter} onSave={update("resort_newsletter")} />
             </div>
           </div>
