@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
-import PortalTransition from '../../components/PortalTransition.jsx';
+import PortalTransition from '../../../components/PortalTransition.jsx';
 
 export default function Sidebar({ children }) {
   const [collapsed,  setCollapsed]  = useState(false);
