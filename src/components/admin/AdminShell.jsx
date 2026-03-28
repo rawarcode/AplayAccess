@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import PortalTransition from "../PortalTransition.jsx";
 
 const ADMIN_PROFILE_KEY = "admin_profile_v1";
 
@@ -51,6 +52,7 @@ export default function AdminShell() {
   const [profileOpen,  setProfileOpen]  = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isEditing,    setIsEditing]    = useState(false);
+  const [switching,    setSwitching]    = useState(null); // label string while transitioning
   const location   = useLocation();
   const navigate   = useNavigate();
   const { user, logout } = useAuth();
@@ -92,6 +94,11 @@ export default function AdminShell() {
     setSettingsOpen(true);
   };
 
+  const switchPortal = (path, label) => {
+    setSwitching(label);
+    setTimeout(() => navigate(path), 1800);
+  };
+
   const saveSettings = () => {
     if (passwordData.new && passwordData.new !== passwordData.confirm) {
       alert("New passwords do not match.");
@@ -114,6 +121,8 @@ export default function AdminShell() {
     await logout();
     navigate("/admin/login");
   };
+
+  if (switching) return <PortalTransition label={switching} />;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -183,14 +192,14 @@ export default function AdminShell() {
         {/* Portal switcher — admin/owner can access frontdesk */}
         <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
           {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2">Switch Portal</p>}
-          <Link
-            to="/frontdesk"
+          <button
+            onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
             className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
             title="Switch to Front Desk"
           >
             <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
             {!collapsed && <span>Front Desk</span>}
-          </Link>
+          </button>
         </div>
 
         {/* User info + logout */}

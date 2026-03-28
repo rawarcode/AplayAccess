@@ -274,10 +274,8 @@ const Dashboard = () => {
   };
 
   const confirmLogout = async () => {
-    if (confirm('Are you sure you want to logout?')) {
-      await logout();
-      navigate('/admin/login');
-    }
+    await logout();
+    navigate('/admin/login');
   };
 
   return (

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
+import PortalTransition from '../../components/PortalTransition.jsx';
 
 export default function Sidebar({ children }) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed,  setCollapsed]  = useState(false);
+  const [switching,  setSwitching]  = useState(null);
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout } = useAuth();
@@ -33,6 +35,13 @@ export default function Sidebar({ children }) {
     await logout();
     navigate('/admin/login');
   };
+
+  const switchPortal = (path, label) => {
+    setSwitching(label);
+    setTimeout(() => navigate(path), 1800);
+  };
+
+  if (switching) return <PortalTransition label={switching} />;
 
   return (
     <div className="flex h-screen overflow-hidden">
@@ -104,7 +113,7 @@ export default function Sidebar({ children }) {
           <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
             {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2">Switch Portal</p>}
             <button
-              onClick={() => navigate('/admin')}
+              onClick={() => switchPortal('/admin', 'Switching to Admin Panel...')}
               className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
               title="Switch to Admin Panel"
             >
