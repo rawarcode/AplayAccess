@@ -3,9 +3,9 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_REDIRECTS = {
-  frontdesk: '/frontdesk',
-  admin:     '/admin',
-  owner:     '/owner',
+  front_desk: '/frontdesk',
+  admin:      '/admin',
+  owner:      '/owner',
 };
 
 const ALLOWED_ROLES = Object.keys(ROLE_REDIRECTS);

@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-const ROLE_REDIRECTS = { frontdesk: "/frontdesk", admin: "/admin", owner: "/owner" };
+const ROLE_REDIRECTS = { front_desk: "/frontdesk", admin: "/admin", owner: "/owner" };
 
 export default function RequireAuth({ children }) {
   const { user } = useAuth();

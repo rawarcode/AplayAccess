@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-const ALLOWED_ROLES = ["frontdesk", "admin", "owner"];
+const ALLOWED_ROLES = ["front_desk", "admin", "owner"];
 
 export default function RequireFrontdesk({ children }) {
   const { isLoggedIn, user, booting } = useAuth();
