@@ -102,6 +102,16 @@ export default function Resort() {
   // Newsletter inline feedback (no modal needed)
   const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "", submitting: false });
 
+  // Page content — fetched from /api/content, falls back to hardcoded defaults
+  const [pc, setPc] = useState(() => ({
+    hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Welcome to Paradise", subtitle: "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.", ctaText: "Book Your Stay" },
+    about:      { title: "Discover Aplaya Beach Resort", paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.", paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
+    rooms:      { sectionTitle: "Our Accommodations", sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation." },
+    contact:    { address: "Brgy. Caylaway, Nasugbu, Batangas, Philippines", phone: "+63 (046) 123-4567", email: "reservations@aplayabeachresort.com", facebook: "", instagram: "", twitter: "", tiktok: "" },
+    reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
+    newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },
+  }));
+
   // API-backed lists (fallback if API is down)
   const [roomsApi, setRoomsApi] = useState([]);
   const [amenitiesApi, setAmenitiesApi] = useState([]);
@@ -139,9 +149,16 @@ export default function Resort() {
   }, [amenitiesApi]);
 
   // Normalize gallery items to { src, alt, caption }
+  // API returns only is_featured=true images (admin-controlled); fallback shows first 6
   const galleryDisplay = useMemo(() => {
-    const base = galleryApi.length ? galleryApi : galleryFallback;
-    return base.slice(0, 6).map((g) => ({
+    if (galleryApi.length) {
+      return galleryApi.map((g) => ({
+        src: g.image_url ?? g.src,
+        alt: g.caption ?? g.alt ?? "Gallery image",
+        caption: g.caption ?? "",
+      }));
+    }
+    return galleryFallback.slice(0, 6).map((g) => ({
       src: g.image_url ?? g.src,
       alt: g.caption ?? g.alt ?? "Gallery image",
       caption: g.caption ?? "",
@@ -217,6 +234,23 @@ export default function Resort() {
     requestBooking(roomFromUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
+
+  // Fetch page content from API (overrides defaults)
+  useEffect(() => {
+    api.get("/api/content")
+      .then(r => {
+        const d = r.data?.data ?? {};
+        setPc(prev => ({
+          hero:       { ...prev.hero,       ...(d.page_resort_hero       ?? {}) },
+          about:      { ...prev.about,      ...(d.page_resort_about      ?? {}) },
+          rooms:      { ...prev.rooms,      ...(d.page_resort_rooms      ?? {}) },
+          contact:    { ...prev.contact,    ...(d.page_resort_contact    ?? {}) },
+          reviews:    { ...prev.reviews,    ...(d.page_resort_reviews    ?? {}) },
+          newsletter: { ...prev.newsletter, ...(d.page_resort_newsletter ?? {}) },
+        }));
+      })
+      .catch(() => {}); // keep defaults silently
+  }, []);
 
   // Load rooms + amenities (public endpoints now)
   useEffect(() => {
@@ -318,25 +352,22 @@ export default function Resort() {
           id="home"
           className="min-h-screen flex items-center justify-center text-center relative"
           style={{
-            backgroundImage:
-              "linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80')",
+            backgroundImage: `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${pc.hero.background}')`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
           }}
         >
           <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">Welcome to Paradise</h1>
-            <p className="text-xl md:text-2xl mb-8">
-              Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.
-            </p>
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">{pc.hero.title}</h1>
+            <p className="text-xl md:text-2xl mb-8">{pc.hero.subtitle}</p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <button
                 onClick={() => requestBooking("")}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md text-lg font-medium"
               >
-                Book Your Stay
+                {pc.hero.ctaText}
               </button>
 
               {isLoggedIn ? (
@@ -369,35 +400,32 @@ export default function Resort() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="lg:flex lg:items-center lg:justify-between gap-10">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Discover Aplaya Beach Resort</h2>
-                <p className="text-gray-600 mb-4">
-                  Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious
-                  accommodations, world-class amenities, and unforgettable experiences.
-                </p>
-                <p className="text-gray-600 mb-6">
-                  Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream
-                  vacation.
-                </p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-6">{pc.about.title}</h2>
+                <p className="text-gray-600 mb-4">{pc.about.paragraph1}</p>
+                <p className="text-gray-600 mb-6">{pc.about.paragraph2}</p>
 
-                <div className="flex flex-wrap gap-4 text-gray-700">
-                  <span className="inline-flex items-center gap-2">📶 Free WiFi</span>
-                  <span className="inline-flex items-center gap-2">🏊 Infinity Pool</span>
-                  <span className="inline-flex items-center gap-2">🍽️ Fine Dining</span>
-                  <span className="inline-flex items-center gap-2">💆 Spa Services</span>
-                </div>
+                {amenityCards.length > 0 && (
+                  <div className="flex flex-wrap gap-4 text-gray-700">
+                    {amenityCards.slice(0, 4).map((a) => (
+                      <span key={a.title} className="inline-flex items-center gap-2">
+                        {a.icon} {a.title}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="lg:w-1/2 relative">
                 <div className="relative rounded-xl overflow-hidden shadow-xl">
                   <img
-                    src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80"
+                    src={pc.about.image}
                     alt="Resort View"
                     className="w-full h-auto"
                     loading="lazy"
                   />
                   <div className="absolute -bottom-6 -right-6 bg-blue-600 text-white p-6 rounded-xl shadow-lg">
                     <div className="text-center">
-                      <p className="text-2xl font-bold">4.9</p>
+                      <p className="text-2xl font-bold">{pc.about.rating}</p>
                       <p className="text-sm">Guest Rating</p>
                       <p className="text-sm mt-1">★★★★★</p>
                     </div>
@@ -412,11 +440,8 @@ export default function Resort() {
         <section id="rooms" className="py-20 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Accommodations</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and
-                relaxation.
-              </p>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">{pc.rooms.sectionTitle}</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">{pc.rooms.sectionSubtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -492,13 +517,12 @@ export default function Resort() {
         </section>
 
         {/* TESTIMONIALS */}
+        {pc.reviews.visible !== false && (
         <section className="py-20 bg-blue-600 text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">What Our Guests Say</h2>
-              <p className="text-xl text-blue-100 max-w-3xl mx-auto">
-                Don&apos;t just take our word for it - hear from our satisfied guests.
-              </p>
+              <h2 className="text-3xl font-bold mb-4">{pc.reviews.sectionTitle}</h2>
+              <p className="text-xl text-blue-100 max-w-3xl mx-auto">{pc.reviews.sectionSubtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -522,6 +546,7 @@ export default function Resort() {
             </div>
           </div>
         </section>
+        )}
 
         {/* GALLERY */}
         <section id="gallery" className="py-20 bg-white">
@@ -570,7 +595,7 @@ export default function Resort() {
                     <span className="text-blue-600 mt-0.5">📍</span>
                     <div>
                       <p className="font-medium text-gray-900">Address</p>
-                      <p className="text-gray-500">123 Beachfront Avenue, Coastal City, Paradise Island</p>
+                      <p className="text-gray-500">{pc.contact.address}</p>
                     </div>
                   </div>
 
@@ -578,7 +603,7 @@ export default function Resort() {
                     <span className="text-blue-600 mt-0.5">📞</span>
                     <div>
                       <p className="font-medium text-gray-900">Phone</p>
-                      <p className="text-gray-500">+1 (555) 123-4567</p>
+                      <p className="text-gray-500">{pc.contact.phone}</p>
                     </div>
                   </div>
 
@@ -586,20 +611,22 @@ export default function Resort() {
                     <span className="text-blue-600 mt-0.5">✉️</span>
                     <div>
                       <p className="font-medium text-gray-900">Email</p>
-                      <p className="text-gray-500">reservations@aplayabeachresort.com</p>
+                      <p className="text-gray-500">{pc.contact.email}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Follow Us</h3>
-                  <div className="flex space-x-4 text-xl">
-                    <a href="#" className="text-gray-500 hover:text-blue-600">f</a>
-                    <a href="#" className="text-gray-500 hover:text-blue-600">ig</a>
-                    <a href="#" className="text-gray-500 hover:text-blue-600">x</a>
-                    <a href="#" className="text-gray-500 hover:text-blue-600">ta</a>
+                {(pc.contact.facebook || pc.contact.instagram || pc.contact.twitter || pc.contact.tiktok) && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Follow Us</h3>
+                    <div className="flex space-x-4 text-xl">
+                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600"><i className="fab fa-facebook"></i></a>}
+                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pink-500"><i className="fab fa-instagram"></i></a>}
+                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-sky-500"><i className="fab fa-twitter"></i></a>}
+                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-900"><i className="fab fa-tiktok"></i></a>}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="lg:w-1/2">
@@ -665,13 +692,12 @@ export default function Resort() {
         </section>
 
         {/* NEWSLETTER */}
+        {pc.newsletter.visible !== false && (
         <section className="py-16 bg-blue-600">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-2xl shadow-lg px-8 py-10 max-w-2xl mx-auto text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">Subscribe to Our Newsletter</h2>
-              <p className="text-gray-600 mb-6">
-                Stay updated with our latest offers, news, and events. Join our mailing list today!
-              </p>
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">{pc.newsletter.title}</h2>
+              <p className="text-gray-600 mb-6">{pc.newsletter.subtitle}</p>
 
               <form onSubmit={submitNewsletter}>
                 <div className="flex">
@@ -703,6 +729,7 @@ export default function Resort() {
             </div>
           </div>
         </section>
+        )}
       </div>
 
       {/* Modals */}
