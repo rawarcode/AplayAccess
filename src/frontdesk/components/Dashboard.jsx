@@ -7,6 +7,7 @@ import {
 import Sidebar from './Layout/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { getFdBookings } from '../../lib/frontdeskApi';
+import NotificationBell from '../../components/ui/NotificationBell';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -32,16 +33,6 @@ function buildWeekChart(bookings) {
   return { labels, counts };
 }
 
-// ─── notification helpers ─────────────────────────────────────────────────────
-const NOTIF_KEY = 'fd_dashboard_notifications_v2';
-const DEFAULT_NOTIFS = [
-  { id: 'n1', title: 'FrontDesk Portal', message: 'Portal loaded. Data is live from the backend.', time: 'Now', read: false },
-];
-function readLocalJson(key, fallback) {
-  try { const r = localStorage.getItem(key); return r ? JSON.parse(r) : fallback; }
-  catch { return fallback; }
-}
-
 // ─── component ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -51,19 +42,14 @@ export default function Dashboard() {
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState('');
 
-  const [notifOpen, setNotifOpen]       = useState(false);
   const [profileOpen, setProfileOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [allNotifsOpen, setAllNotifsOpen] = useState(false);
-  const [notifications, setNotifications] = useState(() => readLocalJson(NOTIF_KEY, DEFAULT_NOTIFS));
 
-  const notifRef   = useRef(null);
   const profileRef = useRef(null);
 
-  const userName = session?.name  || 'Front Desk';
+  const userName  = session?.name  || 'Front Desk';
   const userEmail = session?.email || '';
   const initials  = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-  const unread    = notifications.filter(n => !n.read).length;
 
   // ── load bookings ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -73,14 +59,9 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications));
-  }, [notifications]);
-
   // ── click-outside ───────────────────────────────────────────────────────────
   useEffect(() => {
     const handler = (e) => {
-      if (notifRef.current   && !notifRef.current.contains(e.target))   setNotifOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
     };
     document.addEventListener('mousedown', handler);
@@ -101,48 +82,11 @@ export default function Dashboard() {
   };
 
   // ── handlers ────────────────────────────────────────────────────────────────
-  const markRead    = (id) => setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  const markAllRead = ()   => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-
   const handleLogout = async () => { await logout(); navigate('/admin/login'); };
 
   // ─── render ──────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
-      {/* ── All Notifications Modal ── */}
-      {allNotifsOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold">All Notifications</h3>
-              <button onClick={() => setAllNotifsOpen(false)} className="text-gray-500 hover:text-gray-700">
-                <i className="fas fa-times"></i>
-              </button>
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {notifications.map(n => (
-                <button key={n.id} onClick={() => markRead(n.id)}
-                  className={`w-full text-left p-3 border-b rounded ${n.read ? 'bg-white' : 'bg-blue-50'}`}>
-                  <div className="flex justify-between">
-                    <span className={`font-medium text-sm ${n.read ? 'text-gray-900' : 'text-blue-600'}`}>{n.title}</span>
-                    <span className="text-xs text-gray-500">{n.time}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{n.message}</p>
-                </button>
-              ))}
-            </div>
-            <div className="flex justify-between mt-4">
-              <button onClick={markAllRead} className="px-4 py-2 bg-blue-50 text-blue-700 rounded text-sm hover:bg-blue-100">
-                Mark All Read
-              </button>
-              <button onClick={() => setAllNotifsOpen(false)} className="px-4 py-2 border rounded text-sm text-gray-700">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ── Account Settings Modal ── */}
       {settingsOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -180,43 +124,7 @@ export default function Dashboard() {
           <div className="flex items-center space-x-4">
 
             {/* Notifications */}
-            <div className="relative" ref={notifRef}>
-              <button onClick={() => setNotifOpen(!notifOpen)}
-                className="relative p-2 text-gray-600 hover:text-gray-800">
-                <i className="fas fa-bell text-xl"></i>
-                {unread > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                    {unread}
-                  </span>
-                )}
-              </button>
-              {notifOpen && (
-                <div className="absolute right-0 top-14 w-80 bg-white rounded-lg shadow-lg border z-50">
-                  <div className="px-4 py-3 border-b bg-gray-50 rounded-t-lg flex justify-between items-center">
-                    <h3 className="font-medium text-gray-900">Notifications</h3>
-                    <button onClick={markAllRead} className="text-blue-600 text-sm">Mark all read</button>
-                  </div>
-                  <div className="max-h-72 overflow-y-auto">
-                    {notifications.slice(0, 3).map(n => (
-                      <button key={n.id} onClick={() => markRead(n.id)}
-                        className={`w-full text-left p-3 border-b ${n.read ? 'bg-white' : 'bg-blue-50'}`}>
-                        <div className="flex justify-between">
-                          <span className={`font-medium text-sm ${n.read ? 'text-gray-900' : 'text-blue-600'}`}>{n.title}</span>
-                          <span className="text-xs text-gray-500">{n.time}</span>
-                        </div>
-                        <p className="text-sm text-gray-600">{n.message}</p>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="px-4 py-3 border-t bg-gray-50 rounded-b-lg text-center">
-                    <button onClick={() => { setNotifOpen(false); setAllNotifsOpen(true); }}
-                      className="text-sm text-blue-600 hover:text-blue-800">
-                      View All
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
+            <NotificationBell />
 
             {/* Profile */}
             <div className="relative" ref={profileRef}>
