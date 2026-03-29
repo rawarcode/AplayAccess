@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import PortalTransition from "../PortalTransition.jsx";
+import { useStaffNotifications } from "../../hooks/useStaffNotifications.js";
+import NotificationContext from "../../context/NotificationContext.jsx";
+import NotificationBell from "../ui/NotificationBell.jsx";
 
 const ADMIN_PROFILE_KEY = "admin_profile_v1";
 
@@ -17,6 +20,7 @@ const PAGE_TITLES = {
   "/admin/inventory":    "Add-ons & Amenities",
   "/admin/content":      "Manage Website",
   "/admin/settings":     "Pricing & Settings",
+  "/admin/messages":     "Messages",
 };
 
 const MENU = {
@@ -25,10 +29,10 @@ const MENU = {
     { path: "/admin/users",        icon: "fa-users",           label: "Manage Users", ownerOnly: true  },
     { path: "/admin/rooms",        icon: "fa-bed",             label: "Manage Rooms", ownerOnly: false },
     { path: "/admin/guests",       icon: "fa-user-check",      label: "Guests",       ownerOnly: false },
-    { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions", ownerOnly: false },
+    { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions", ownerOnly: false, badgeKey: "pendingBookings" },
     { path: "/admin/history",      icon: "fa-history",         label: "History",      ownerOnly: false },
     { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews",      ownerOnly: false },
-    { path: "/admin/messages",     icon: "fa-envelope",        label: "Messages",     ownerOnly: false },
+    { path: "/admin/messages",     icon: "fa-envelope",        label: "Messages",     ownerOnly: false, badgeKey: "unreadMessages"  },
   ],
   manage: [
     { path: "/admin/inventory", icon: "fa-concierge-bell",  label: "Add-ons"            },
@@ -74,6 +78,9 @@ export default function AdminShell() {
   );
   const [editProfile,   setEditProfile]   = useState({ ...profile });
   const [passwordData,  setPasswordData]  = useState({ current: "", new: "", confirm: "" });
+
+  // ── Notification polling ────────────────────────────────────────────────────
+  const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications();
 
   // Close profile dropdown on outside click
   useEffect(() => {
@@ -124,7 +131,10 @@ export default function AdminShell() {
 
   if (switching) return <PortalTransition label={switching} />;
 
+  const notifCtx = { counts, items: notifItems, total: notifTotal, refresh: notifRefresh };
+
   return (
+    <NotificationContext.Provider value={notifCtx}>
     <div className="flex h-screen overflow-hidden">
 
       {/* Sidebar */}
@@ -151,21 +161,37 @@ export default function AdminShell() {
             <ul>
               {MENU.main
                 .filter(item => !item.ownerOnly || user?.role === "owner")
-                .map((item) => (
-                <li key={item.path} className="mb-2">
-                  <Link
-                    to={item.path}
-                    className={`flex items-center p-2 rounded transition ${
-                      isActive(item.path)
-                        ? "bg-[#2e4a9a] text-white"
-                        : "text-blue-100 hover:bg-[#2e4a9a] hover:text-white"
-                    }`}
-                  >
-                    <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
-                    {!collapsed && <span className="text-sm">{item.label}</span>}
-                  </Link>
-                </li>
-              ))}
+                .map((item) => {
+                  const badge = item.badgeKey ? counts[item.badgeKey] : 0;
+                  return (
+                    <li key={item.path} className="mb-2 relative">
+                      <Link
+                        to={item.path}
+                        className={`flex items-center p-2 rounded transition ${
+                          isActive(item.path)
+                            ? "bg-[#2e4a9a] text-white"
+                            : "text-blue-100 hover:bg-[#2e4a9a] hover:text-white"
+                        }`}
+                      >
+                        <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
+                        {!collapsed && (
+                          <>
+                            <span className="text-sm flex-1">{item.label}</span>
+                            {badge > 0 && (
+                              <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white
+                                text-[10px] font-bold flex items-center justify-center px-1 leading-none shrink-0">
+                                {badge > 99 ? "99+" : badge}
+                              </span>
+                            )}
+                          </>
+                        )}
+                        {collapsed && badge > 0 && (
+                          <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-red-500 pointer-events-none"></span>
+                        )}
+                      </Link>
+                    </li>
+                  );
+                })}
             </ul>
           </div>
 
@@ -242,9 +268,7 @@ export default function AdminShell() {
             <div className="flex items-center space-x-4">
 
               {/* Bell */}
-              <button className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none">
-                <i className="fas fa-bell text-xl"></i>
-              </button>
+              <NotificationBell />
 
               {/* Profile dropdown */}
               <div className="relative" ref={profileRef}>
@@ -464,5 +488,6 @@ export default function AdminShell() {
         </div>
       )}
     </div>
+    </NotificationContext.Provider>
   );
 }
