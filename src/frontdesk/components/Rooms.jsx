@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
+import NotificationBell from '../../components/ui/NotificationBell';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -298,9 +299,12 @@ export default function FDRooms() {
               <span className="ml-2 text-gray-300">· Auto-refreshes every 60s</span>
             </p>
           </div>
-          <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-            <i className="fas fa-sync-alt"></i> Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              <i className="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
         </div>
       </header>
 

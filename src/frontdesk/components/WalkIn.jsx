@@ -3,6 +3,7 @@ import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
 import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
+import NotificationBell from '../../components/ui/NotificationBell';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -547,12 +548,15 @@ export default function WalkIn() {
       <header className="bg-white shadow-sm">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold text-gray-800">Walk-in Bookings</h1>
-          <button
-            onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-          >
-            <i className="fas fa-plus mr-2"></i>New Walk-in
-          </button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button
+              onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+            >
+              <i className="fas fa-plus mr-2"></i>New Walk-in
+            </button>
+          </div>
         </div>
       </header>
 

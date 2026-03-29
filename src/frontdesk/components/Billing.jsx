@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
+import NotificationBell from '../../components/ui/NotificationBell';
 import { getFdBookings, updateBookingStatus } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 
@@ -182,11 +183,14 @@ export default function Billing() {
       <header className="bg-white shadow-sm">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold text-gray-800">Billing</h1>
-          <p className="text-sm text-gray-500">
-            {new Date().toLocaleDateString('en-PH', {
-              weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-            })}
-          </p>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <p className="text-sm text-gray-500">
+              {new Date().toLocaleDateString('en-PH', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+              })}
+            </p>
+          </div>
         </div>
       </header>
 

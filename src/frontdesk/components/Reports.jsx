@@ -5,6 +5,7 @@ import {
 } from 'chart.js';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
+import NotificationBell from '../../components/ui/NotificationBell';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -176,6 +177,7 @@ export default function Reports() {
               </span>
             )}
           </div>
+          <NotificationBell />
         </div>
       </header>
 

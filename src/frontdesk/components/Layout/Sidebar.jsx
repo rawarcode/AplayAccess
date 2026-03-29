@@ -4,7 +4,6 @@ import { useAuth } from '../../../context/AuthContext';
 import PortalTransition from '../../../components/PortalTransition.jsx';
 import { useStaffNotifications } from '../../../hooks/useStaffNotifications.js';
 import NotificationContext from '../../../context/NotificationContext.jsx';
-import NotificationBell from '../../../components/ui/NotificationBell.jsx';
 
 export default function Sidebar({ children }) {
   const [collapsed,  setCollapsed]  = useState(false);
@@ -63,22 +62,13 @@ export default function Sidebar({ children }) {
             <i className="fas fa-umbrella-beach text-2xl mr-3 text-white shrink-0"></i>
             {!collapsed && <span className="text-xl font-bold text-white truncate">AplayAccess</span>}
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {!collapsed && <NotificationBell variant="dark" />}
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="text-white hover:bg-[#2e4a9a] p-2 rounded focus:outline-none"
-            >
-              <i className={`fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
-            </button>
-          </div>
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="text-white hover:bg-[#2e4a9a] p-2 rounded focus:outline-none shrink-0"
+          >
+            <i className={`fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
+          </button>
         </div>
-        {/* Collapsed bell (shown when sidebar is collapsed) */}
-        {collapsed && (
-          <div className="flex justify-center py-2 border-b border-[#2e4a9a]">
-            <NotificationBell variant="dark" />
-          </div>
-        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4">

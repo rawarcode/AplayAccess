@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
+import NotificationBell from '../../components/ui/NotificationBell';
 import Toast, { useToast } from '../../components/ui/Toast';
 import {
   getFdBookings, updateBookingStatus,
@@ -384,9 +385,12 @@ export default function Reservation() {
       <header className="bg-white shadow-sm">
         <div className="flex items-center justify-between p-4">
           <h1 className="text-2xl font-bold text-gray-800">Reservations</h1>
-          <button onClick={load} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm">
-            <i className="fas fa-sync-alt"></i> Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            <NotificationBell />
+            <button onClick={load} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm">
+              <i className="fas fa-sync-alt"></i> Refresh
+            </button>
+          </div>
         </div>
       </header>
 
