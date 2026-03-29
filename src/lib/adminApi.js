@@ -45,3 +45,8 @@ export const deleteAdminGallery       = (id)         => api.delete(`/api/admin/g
 
 // ── Contact Submissions ───────────────────────────────────────────────────────
 export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
+
+// ── Messages ─────────────────────────────────────────────────────────────────
+export const getAdminMessages       = ()           => api.get('/api/admin/messages');
+export const replyAdminMessage      = (id, body)   => api.post(`/api/admin/messages/${id}/reply`, { body });
+export const markAdminMessageRead   = (id)         => api.patch(`/api/admin/messages/${id}/read`);
