@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
+import Toast, { useToast } from '../../components/ui/Toast';
 import {
   getFdBookings, updateBookingStatus,
   checkInBooking, checkOutBooking,
@@ -80,6 +81,7 @@ export default function Reservation() {
   // Amenity add state (within modal)
   const [addingAmenity, setAddingAmenity] = useState(null); // { name, qty }
   const [amenityLoading, setAmenityLoading] = useState(false);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   function load() {
     setLoading(true);
@@ -138,7 +140,7 @@ export default function Reservation() {
     try {
       await updateBookingStatus(bookingId, newStatus);
       syncBooking(bookingId, { status: newStatus });
-    } catch { alert('Failed to update booking status.'); }
+    } catch { showToast('Failed to update booking status.'); }
     finally { setActionLoading(null); }
   }
 
@@ -147,7 +149,7 @@ export default function Reservation() {
     try {
       const res = await checkInBooking(bookingId);
       syncBooking(bookingId, { status: 'Checked In', checkedInAt: res.checked_in_at });
-    } catch { alert('Failed to check in.'); }
+    } catch { showToast('Failed to check in.'); }
     finally { setActionLoading(null); }
   }
 
@@ -156,7 +158,7 @@ export default function Reservation() {
     try {
       const res = await checkOutBooking(bookingId);
       syncBooking(bookingId, { status: 'Completed', checkedOutAt: res.checked_out_at });
-    } catch { alert('Failed to check out.'); }
+    } catch { showToast('Failed to check out.'); }
     finally { setActionLoading(null); }
   }
 
@@ -175,7 +177,7 @@ export default function Reservation() {
       syncBooking(viewBooking.booking_id, updated);
       setAddingAmenity(null);
     } catch (err) {
-      alert(err?.response?.data?.message || 'Failed to add amenity.');
+      showToast(err?.response?.data?.message || 'Failed to add amenity.');
     } finally {
       setAmenityLoading(false);
     }
@@ -191,13 +193,14 @@ export default function Reservation() {
         total: res.new_total,
       };
       syncBooking(viewBooking.booking_id, updated);
-    } catch { alert('Failed to remove amenity.'); }
+    } catch { showToast('Failed to remove amenity.'); }
     finally { setAmenityLoading(false); }
   }
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── View Booking Modal ── */}
       {viewBooking && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
