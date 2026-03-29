@@ -1,5 +1,5 @@
 // src/pages/dashboard/Messages.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../../lib/messageApi.js";
 import { changePassword } from "../../lib/profileApi.js";
@@ -32,6 +32,9 @@ export default function Messages() {
   const [sending, setSending]   = useState(false);
   const [replyError, setReplyError] = useState("");
 
+  const bottomRef    = useRef(null);
+  const [scrollTick, setScrollTick] = useState(0);
+
   const [newMsgOpen, setNewMsgOpen] = useState(false);
   const [pwdOpen, setPwdOpen]       = useState(false);
 
@@ -54,6 +57,21 @@ export default function Messages() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Poll for new messages every 10 s (picks up staff replies without a refresh)
+  useEffect(() => {
+    const id = setInterval(() => {
+      getMessages()
+        .then((data) => setThreads(data))
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Scroll to bottom when thread is switched or after we send
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [currentId, scrollTick]);
 
   const totalUnread = useMemo(() => threads.reduce((t, c) => t + (c.unread || 0), 0), [threads]);
 
@@ -90,6 +108,7 @@ export default function Messages() {
         })
       );
       setReply("");
+      setScrollTick((t) => t + 1);
     } catch {
       setReplyError("Failed to send reply. Please try again.");
     } finally {
@@ -243,6 +262,7 @@ export default function Messages() {
                 </div>
               ))
             )}
+            <div ref={bottomRef} />
           </div>
 
           {/* Reply input */}

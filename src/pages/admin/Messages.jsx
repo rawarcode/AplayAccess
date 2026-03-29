@@ -119,6 +119,7 @@ export default function AdminMessages() {
   const [sending,     setSending]     = useState(false);
   const [searchTerm,  setSearchTerm]  = useState("");
   const [filterRead,  setFilterRead]  = useState("all"); // "all" | "unread" | "replied"
+  const [scrollTick,  setScrollTick]  = useState(0);
   const bottomRef = useRef(null);
   const [toast, showToast, clearToast, toastType] = useToast();
 
@@ -134,10 +135,21 @@ export default function AdminMessages() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Scroll to latest message when thread changes or reply sent
+  // Poll every 10 s — picks up new guest messages without a manual refresh
+  useEffect(() => {
+    const id = setInterval(() => {
+      getAdminMessages()
+        .then(r => setThreads(r.data.data))
+        .catch(() => {});
+    }, 10_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Scroll to latest message only when the active thread changes or after sending
+  // (not on every poll, so the viewport doesn't jump while typing)
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [activeId, threads]);
+  }, [activeId, scrollTick]);
 
   // ── derived ───────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -191,6 +203,7 @@ export default function AdminMessages() {
         }
       ));
       setReply("");
+      setScrollTick((t) => t + 1);
       showToast("Reply sent.", "success");
     } catch {
       showToast("Failed to send reply. Please try again.");
