@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../../lib/messageApi.js";
 import { changePassword } from "../../lib/profileApi.js";
+import Toast, { useToast } from "../../components/ui/Toast.jsx";
 
 function Modal({ open, title, children, onClose }) {
   useLockBodyScroll(open);
@@ -34,6 +35,7 @@ export default function Messages() {
 
   const bottomRef    = useRef(null);
   const [scrollTick, setScrollTick] = useState(0);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   const [newMsgOpen, setNewMsgOpen] = useState(false);
   const [pwdOpen, setPwdOpen]       = useState(false);
@@ -109,6 +111,7 @@ export default function Messages() {
       );
       setReply("");
       setScrollTick((t) => t + 1);
+      showToast("Reply sent!", "success");
     } catch {
       setReplyError("Failed to send reply. Please try again.");
     } finally {
@@ -129,6 +132,7 @@ export default function Messages() {
       if (data.length > 0) setCurrentId(data[0].id);
       setNewMsgOpen(false);
       setCompose({ subject: "", content: "" });
+      showToast("Message sent to Aplaya Beach Resort!", "success");
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -173,6 +177,7 @@ export default function Messages() {
 
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden">
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       <div className="p-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Messages</h1>

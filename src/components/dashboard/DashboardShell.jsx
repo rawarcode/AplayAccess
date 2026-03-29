@@ -39,7 +39,7 @@ function NotificationBell() {
         .catch(() => {});
     }
     load();
-    const id = setInterval(load, 60_000);
+    const id = setInterval(load, 15_000);
     return () => clearInterval(id);
   }, []);
 
