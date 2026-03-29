@@ -2,8 +2,6 @@ import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, updateBookingStatus } from '../../lib/frontdeskApi';
 
-// Reservation fee collected online at time of booking
-const RESERVATION_FEE = 150;
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -60,10 +58,24 @@ export default function Billing() {
       .finally(() => setLoading(false));
   }, []);
 
-  const today          = todayStr();
-  const todayAll       = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
-  const todayConfirmed = todayAll.filter(b => b.status === 'Confirmed');
-  const todayCompleted = todayAll.filter(b => b.status === 'Completed');
+  const today = todayStr();
+
+  // Today's billing = check-ins scheduled for today PLUS any cancellations
+  // that happened today (their forfeited reservation_fee is earned today).
+  // We use updatedAt as the cancellation date since we have no cancelled_at column.
+  const todayAll = bookings.filter(b =>
+    b.checkIn?.slice(0, 10) === today ||
+    (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === today)
+  );
+
+  const todayConfirmed  = todayAll.filter(b => b.status === 'Confirmed');
+  const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
+  const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
+
+  // Revenue = completed totals + forfeited reservation fees from cancellations
+  const revenueToday =
+    todayCompleted.reduce((s, b) => s + Number(b.total ?? 0), 0) +
+    todayCancelled.reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0);
 
   async function handleCollect() {
     if (!billing) return;
@@ -81,7 +93,7 @@ export default function Billing() {
     }
   }
 
-  const balanceDue = billing ? Math.max(0, Number(billing.total) - RESERVATION_FEE) : 0;
+  const balanceDue = billing ? Math.max(0, Number(billing.total) - Number(billing.reservation_fee ?? 0)) : 0;
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -115,7 +127,7 @@ export default function Billing() {
                 </div>
                 <div className="flex justify-between px-4 py-3 border-b text-green-700">
                   <span>Reservation Fee (paid online)</span>
-                  <span>− {fmtMoney(RESERVATION_FEE)}</span>
+                  <span>− {fmtMoney(billing.reservation_fee ?? 0)}</span>
                 </div>
                 <div className="flex justify-between px-4 py-3 font-semibold text-blue-800 text-base">
                   <span>Balance Due Now</span>
@@ -204,7 +216,7 @@ export default function Billing() {
             <div>
               <p className="text-gray-500 text-sm">Revenue Today</p>
               <h3 className="text-xl font-bold">
-                {loading ? '—' : fmtMoney(todayCompleted.reduce((s, b) => s + Number(b.total), 0))}
+                {loading ? '—' : fmtMoney(revenueToday)}
               </h3>
             </div>
           </div>
@@ -237,7 +249,7 @@ export default function Billing() {
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Balance Due</p>
                     <p className="font-bold text-blue-700 text-lg">
-                      {fmtMoney(Math.max(0, Number(b.total) - RESERVATION_FEE))}
+                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservation_fee ?? 0)))}
                     </p>
                     <button
                       onClick={() => { setBilling(b); setPayMethod('Cash'); }}
@@ -290,8 +302,8 @@ export default function Billing() {
                         {b.status === 'Completed'
                           ? <span className="text-green-600"><i className="fas fa-check mr-1"></i>Collected</span>
                           : b.status === 'Cancelled'
-                          ? <span className="text-gray-400">—</span>
-                          : <span className="text-blue-700">{fmtMoney(Math.max(0, Number(b.total) - RESERVATION_FEE))}</span>
+                          ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservation_fee ?? 0)}</span>
+                          : <span className="text-blue-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservation_fee ?? 0)))}</span>
                         }
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
@@ -320,7 +332,7 @@ export default function Billing() {
                       {fmtMoney(todayAll.reduce((s, b) => s + Number(b.total), 0))}
                     </td>
                     <td className="px-4 py-3 text-green-700">
-                      {fmtMoney(todayCompleted.reduce((s, b) => s + Number(b.total), 0))} collected
+                      {fmtMoney(revenueToday)} earned
                     </td>
                     <td colSpan={2}></td>
                   </tr>
