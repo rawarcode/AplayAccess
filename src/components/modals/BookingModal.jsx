@@ -58,6 +58,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [pricing,    setPricing]    = useState(DEFAULTS);
   const [rawPricing, setRawPricing] = useState(null);
 
+  // Room availability: { [roomName]: true|false } — null means not yet checked
+  const [availability,     setAvailability]     = useState(null);
+  const [availChecking,    setAvailChecking]    = useState(false);
+
   // Fetch pricing once on mount
   useEffect(() => {
     api.get("/api/pricing")
@@ -83,6 +87,26 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     });
   }, [rawPricing, roomType]);
 
+  // Check room availability whenever date, time, or booking type changes
+  useEffect(() => {
+    if (!visitDate) { setAvailability(null); return; }
+    // For overnight we only need the date; for day visits we also need a time
+    const params = new URLSearchParams({
+      date:      visitDate,
+      time:      visitTime,
+      overnight: bookingType === "overnight" ? "1" : "0",
+    });
+    setAvailChecking(true);
+    api.get(`/api/availability?${params}`)
+      .then(r => {
+        const map = {};
+        (r.data?.data ?? []).forEach(rm => { map[rm.name] = rm.available; });
+        setAvailability(map);
+      })
+      .catch(() => setAvailability(null)) // on error, show no indicators
+      .finally(() => setAvailChecking(false));
+  }, [visitDate, visitTime, bookingType]);
+
   // Scroll modal to top whenever an error appears so it's always visible
   useEffect(() => {
     if (error && modalRef.current) {
@@ -98,6 +122,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setVisitDate("");
       setError("");
       setBookingType("day");
+      setAvailability(null);
     }
   }, [open, selectedRoom]);
 
@@ -248,6 +273,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Room Type <span className="text-red-500">*</span>
+                {availChecking && (
+                  <span className="ml-2 text-xs text-gray-400 font-normal">
+                    <i className="fas fa-spinner fa-spin mr-1"></i>Checking availability…
+                  </span>
+                )}
               </label>
               <select
                 value={roomType}
@@ -256,10 +286,34 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Room Type</option>
-                {rooms.map((r) => (
-                  <option key={r.name} value={r.name}>{r.name}</option>
-                ))}
+                {rooms.map((r) => {
+                  const avail = availability?.[r.name];
+                  const label = availability === null
+                    ? r.name
+                    : avail === false
+                    ? `${r.name} — Not Available`
+                    : `${r.name} — Available`;
+                  return (
+                    <option key={r.name} value={r.name} disabled={avail === false}>
+                      {label}
+                    </option>
+                  );
+                })}
               </select>
+              {/* Availability badge for selected room */}
+              {availability !== null && roomType && (
+                availability[roomType] === false ? (
+                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                    <i className="fas fa-times-circle"></i>
+                    This room is already booked for the selected date and time. Please choose another.
+                  </p>
+                ) : availability[roomType] === true ? (
+                  <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
+                    <i className="fas fa-check-circle"></i>
+                    Available for the selected slot.
+                  </p>
+                ) : null
+              )}
             </div>
 
             {/* Guests */}
