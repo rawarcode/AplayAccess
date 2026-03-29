@@ -35,6 +35,7 @@ import AdminHistory from "./pages/admin/History.jsx";
 import AdminContent from "./pages/admin/Content.jsx";
 import AdminReviews from "./pages/admin/Reviews.jsx";
 import AdminGuests from "./pages/admin/Guests.jsx";
+import AdminMessages from "./pages/admin/Messages.jsx";
 
 // Owner portal
 import RequireOwner from "./components/auth/RequireOwner.jsx";
@@ -109,6 +110,7 @@ export default function App() {
         <Route path="content" element={<AdminContent />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="guests" element={<AdminGuests />} />
+        <Route path="messages" element={<AdminMessages />} />
       </Route>
 
       {/* ── Owner portal ── */}

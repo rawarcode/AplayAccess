@@ -28,6 +28,7 @@ const MENU = {
     { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions", ownerOnly: false },
     { path: "/admin/history",      icon: "fa-history",         label: "History",      ownerOnly: false },
     { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews",      ownerOnly: false },
+    { path: "/admin/messages",     icon: "fa-envelope",        label: "Messages",     ownerOnly: false },
   ],
   manage: [
     { path: "/admin/inventory", icon: "fa-concierge-bell",  label: "Add-ons"            },
