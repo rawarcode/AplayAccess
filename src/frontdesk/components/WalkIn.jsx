@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
 import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus } from '../../lib/frontdeskApi';
+import Toast, { useToast } from '../../components/ui/Toast';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -103,6 +104,7 @@ export default function WalkIn() {
   const [formError, setFormError]         = useState('');
   const [form, setForm]                   = useState(EMPTY_FORM);
   const [viewWalkin, setViewWalkin]       = useState(null);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   const today = todayStr();
 
@@ -196,7 +198,7 @@ export default function WalkIn() {
       await updateBookingStatus(bookingId, status);
       setBookings(prev => prev.map(b => b.booking_id === bookingId ? { ...b, status } : b));
     } catch {
-      alert('Failed to update status. Please try again.');
+      showToast('Failed to update status. Please try again.');
     } finally {
       setActionLoading(null);
     }
@@ -205,6 +207,7 @@ export default function WalkIn() {
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── View Booking Modal ── */}
       {viewWalkin && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
