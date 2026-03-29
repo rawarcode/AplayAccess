@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getAdminReviews, updateAdminReview } from "../../lib/adminApi";
+import Toast, { useToast } from "../../components/ui/Toast";
 
 export default function AdminReviews() {
   const [reviews,      setReviews]      = useState([]);
@@ -9,6 +10,7 @@ export default function AdminReviews() {
   const [filterRating, setFilterRating] = useState("");
   const [searchTerm,   setSearchTerm]   = useState("");
   const [viewReview,   setViewReview]   = useState(null);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   useEffect(() => {
     getAdminReviews()
@@ -29,14 +31,14 @@ export default function AdminReviews() {
     try {
       await updateAdminReview(id, { status });
       setReviews(rs => rs.map(r => r.id === id ? { ...r, status } : r));
-    } catch { alert("Failed to update review."); }
+    } catch { showToast("Failed to update review."); }
   }
 
   async function handleFeature(id, featured) {
     try {
       await updateAdminReview(id, { featured });
       setReviews(rs => rs.map(r => r.id === id ? { ...r, featured } : r));
-    } catch { alert("Failed to update review."); }
+    } catch { showToast("Failed to update review."); }
   }
 
   const avgRating = reviews.length
@@ -45,6 +47,7 @@ export default function AdminReviews() {
 
   return (
     <div className="p-6 space-y-6">
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       <div>
         <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Guest Reviews</h1>
         <p className="text-sm text-slate-500 mt-1">Monitor guest feedback and keep your service quality high.</p>
