@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, updateBookingStatus } from '../../lib/frontdeskApi';
+import Toast, { useToast } from '../../components/ui/Toast';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -50,6 +51,7 @@ export default function Billing() {
   const [billing, setBilling]     = useState(null); // booking being billed
   const [payMethod, setPayMethod] = useState('Cash');
   const [paying, setPaying]       = useState(false);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   useEffect(() => {
     getFdBookings()
@@ -87,7 +89,7 @@ export default function Billing() {
       );
       setBilling(null);
     } catch {
-      alert('Failed to update booking. Please try again.');
+      showToast('Failed to update booking. Please try again.');
     } finally {
       setPaying(false);
     }
@@ -98,6 +100,7 @@ export default function Billing() {
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── Payment Collection Modal ── */}
       {billing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
