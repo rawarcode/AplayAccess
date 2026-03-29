@@ -126,8 +126,16 @@ export default function Reports() {
       .finally(() => setLoading(false));
   }, []);
 
-  const dateBookings  = bookings.filter(b => b.checkIn?.slice(0, 10) === reportDate);
-  const totalRevenue  = dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total), 0);
+  // Include check-ins for the selected date PLUS any cancellations on that date
+  const dateBookings = bookings.filter(b =>
+    b.checkIn?.slice(0, 10) === reportDate ||
+    (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
+  );
+
+  // Revenue = completed totals + forfeited reservation fees from cancellations
+  const totalRevenue =
+    dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total ?? 0), 0) +
+    dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0);
 
   const { labels, confirmed, completed, cancelled } = buildWeekChart(bookings);
   const chartData = {
