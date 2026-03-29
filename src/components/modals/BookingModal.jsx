@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
-import { createBooking } from "../../lib/bookingApi.js";
+import { createBooking, cancelBooking } from "../../lib/bookingApi.js";
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
 
@@ -53,8 +53,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]             = useState("");
-  // Payment popup state: { bookingId, popup } while waiting for payment
+  // Payment popup state: { bookingId, checkoutUrl, popup } while waiting for payment
+  // popup can be null when the user closed the window (we keep bookingId/checkoutUrl for reopen)
   const [paymentPopup, setPaymentPopup] = useState(null);
+  // Countdown in seconds — starts at 5 min, auto-cancels at 0
+  const [timeLeft, setTimeLeft] = useState(null);
 
   // Pricing fetched from /api/pricing (admin-configurable)
   const [pricing,    setPricing]    = useState(DEFAULTS);
@@ -117,26 +120,25 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
   }, [error]);
 
-  // Poll payment status while the PayMongo popup is open
+  // Poll payment status while waiting for payment (runs whether popup is open or closed)
   useEffect(() => {
-    if (!paymentPopup) return;
+    if (!paymentPopup?.bookingId) return;
     const { bookingId, popup } = paymentPopup;
 
     const interval = setInterval(async () => {
-      // User closed the popup manually without completing payment
-      if (popup.closed) {
-        clearInterval(interval);
-        setPaymentPopup(null);
-        setError("Payment window was closed. Your booking is saved — you can reopen the payment window by trying again.");
-        return;
+      // Popup just closed — keep state but show "Reopen" button
+      if (popup && popup.closed) {
+        setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
+        return; // effect re-runs with popup=null; status polling continues
       }
-      // Check if payment went through
+      // Check if payment went through on PayMongo
       try {
         const status = await getPaymentStatus(bookingId);
         if (status.paid) {
           clearInterval(interval);
-          try { popup.close(); } catch { /* ignore cross-origin close errors */ }
+          try { popup?.close(); } catch { /* ignore */ }
           setPaymentPopup(null);
+          setTimeLeft(null);
           onBooked?.();
           onClose();
         }
@@ -148,6 +150,23 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     return () => clearInterval(interval);
   }, [paymentPopup, onBooked, onClose]);
 
+  // Countdown timer — decrements every second while payment is pending
+  useEffect(() => {
+    if (timeLeft === null) return;
+    if (timeLeft <= 0) {
+      // Time expired — cancel the booking automatically
+      const bId = paymentPopup?.bookingId;
+      try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
+      setPaymentPopup(null);
+      setTimeLeft(null);
+      if (bId) cancelBooking(bId).catch(() => {});
+      setError("Payment timed out (5 minutes). Your booking was automatically cancelled.");
+      return;
+    }
+    const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(id);
+  }, [timeLeft, paymentPopup]);
+
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
@@ -157,6 +176,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setBookingType("day");
       setAvailability(null);
       setPaymentPopup(null);
+      setTimeLeft(null);
     }
   }, [open, selectedRoom]);
 
@@ -233,7 +253,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         return;
       }
 
-      setPaymentPopup({ bookingId, popup });
+      setPaymentPopup({ bookingId, checkoutUrl: checkout_url, popup });
+      setTimeLeft(5 * 60); // 5-minute window to complete payment
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -508,20 +529,91 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           )}
 
           {paymentPopup ? (
-            <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 rounded-md">
-              <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
-              <p className="text-sm font-medium text-blue-800">Waiting for payment in the checkout window…</p>
-              <p className="text-xs text-blue-600">Complete payment there, or close this modal to cancel.</p>
-              <button
-                type="button"
-                onClick={() => {
-                  try { paymentPopup.popup?.focus(); } catch { /* ignore */ }
-                }}
-                className="px-4 py-1.5 border border-blue-400 text-blue-700 rounded text-sm hover:bg-blue-100"
-              >
-                <i className="fas fa-external-link-alt mr-1"></i>Bring payment window to front
-              </button>
-            </div>
+            paymentPopup.popup ? (
+              /* Popup is open — show waiting state with countdown */
+              <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md">
+                <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+                <p className="text-sm font-medium text-blue-800">Waiting for payment in the checkout window…</p>
+                {timeLeft !== null && (
+                  <p className={`text-xs font-semibold ${timeLeft <= 60 ? "text-red-600" : "text-blue-600"}`}>
+                    <i className="fas fa-clock mr-1"></i>
+                    Expires in {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { try { paymentPopup.popup?.focus(); } catch { /* ignore */ } }}
+                    className="px-4 py-1.5 border border-blue-400 text-blue-700 rounded text-sm hover:bg-blue-100"
+                  >
+                    <i className="fas fa-external-link-alt mr-1"></i>Bring to front
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const bId = paymentPopup.bookingId;
+                      try { paymentPopup.popup?.close(); } catch { /* ignore */ }
+                      setPaymentPopup(null);
+                      setTimeLeft(null);
+                      if (bId) cancelBooking(bId).catch(() => {});
+                      setError("Booking cancelled.");
+                    }}
+                    className="px-4 py-1.5 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Popup was closed — offer to reopen */
+              <div className="flex flex-col items-center gap-3 py-4 bg-amber-50 border border-amber-200 rounded-md">
+                <i className="fas fa-window-restore text-amber-500 text-2xl"></i>
+                <p className="text-sm font-medium text-amber-800">Payment window was closed.</p>
+                <p className="text-xs text-amber-700">Your booking is saved. Reopen the window to complete payment.</p>
+                {timeLeft !== null && (
+                  <p className={`text-xs font-semibold ${timeLeft <= 60 ? "text-red-600" : "text-amber-600"}`}>
+                    <i className="fas fa-clock mr-1"></i>
+                    Time remaining: {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const { checkoutUrl, bookingId } = paymentPopup;
+                      const pw = 600, ph = 700;
+                      const pl = Math.round(window.screen.width  / 2 - pw / 2);
+                      const pt = Math.round(window.screen.height / 2 - ph / 2);
+                      const newPopup = window.open(
+                        checkoutUrl, "paymongo_checkout",
+                        `width=${pw},height=${ph},left=${pl},top=${pt},resizable=yes,scrollbars=yes`
+                      );
+                      if (!newPopup || newPopup.closed) {
+                        window.location.href = checkoutUrl;
+                        return;
+                      }
+                      setPaymentPopup({ bookingId, checkoutUrl, popup: newPopup });
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 font-medium"
+                  >
+                    <i className="fas fa-redo mr-1"></i>Reopen Payment Window
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const bId = paymentPopup.bookingId;
+                      setPaymentPopup(null);
+                      setTimeLeft(null);
+                      if (bId) cancelBooking(bId).catch(() => {});
+                      setError("Booking cancelled.");
+                    }}
+                    className="px-4 py-1.5 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"
+                  >
+                    Cancel Booking
+                  </button>
+                </div>
+              </div>
+            )
           ) : (
             <button
               disabled={submitting}
