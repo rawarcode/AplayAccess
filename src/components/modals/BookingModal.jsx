@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
 import { createBooking } from "../../lib/bookingApi.js";
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
@@ -160,6 +160,24 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
   }, [open, selectedRoom]);
 
+  // ── Available time slots (hide past slots when date is today) ─────────────
+  const availableSlots = useMemo(() => {
+    if (visitDate !== todayStr()) return DAY_TIME_SLOTS;
+    const now     = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    return DAY_TIME_SLOTS.filter(s => {
+      const [hh, mm] = s.value.split(":").map(Number);
+      return hh * 60 + mm > nowMins;
+    });
+  }, [visitDate]);
+
+  // Auto-advance to earliest valid slot whenever the available list changes
+  useEffect(() => {
+    if (availableSlots.length === 0) return;
+    const stillValid = availableSlots.some(s => s.value === visitTime);
+    if (!stillValid) setVisitTime(availableSlots[0].value);
+  }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Derived pricing ────────────────────────────────────────────────────────
   const isOvernight = bookingType === "overnight";
   const baseRate    = isOvernight ? pricing.overnight_rate : pricing.day_rate;
@@ -301,15 +319,22 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   Start Time <span className="text-red-500">*</span>
                   <span className="text-gray-400 font-normal ml-1">(up to 8 hrs, ends by 5PM)</span>
                 </label>
-                <select
-                  value={visitTime}
-                  onChange={(e) => setVisitTime(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {DAY_TIME_SLOTS.map((s) => (
-                    <option key={s.value} value={s.value}>{s.label} – {s.end}</option>
-                  ))}
-                </select>
+                {availableSlots.length === 0 ? (
+                  <div className="w-full px-4 py-2 border border-red-200 bg-red-50 rounded-md text-red-700 text-sm flex items-center gap-2">
+                    <i className="fas fa-clock"></i>
+                    No day visit slots available for today. Please select a future date or choose Overnight.
+                  </div>
+                ) : (
+                  <select
+                    value={visitTime}
+                    onChange={(e) => setVisitTime(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {availableSlots.map((s) => (
+                      <option key={s.value} value={s.value}>{s.label} – {s.end}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             ) : (
               <div>
