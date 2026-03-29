@@ -144,7 +144,7 @@ function RoomCard({ room, info, onHousekeepingChange }) {
         <span className={`
           flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase
           px-2 py-1 rounded-full
-          ${info.status === 'pending' ? 'bg-yellow-500 text-gray-900' : 'bg-white bg-opacity-20'}
+          ${info.status === 'pending' ? 'bg-yellow-500 text-gray-900' : 'bg-black bg-opacity-25 text-white'}
         `}>
           <i className={`fas ${config.icon} text-xs`}></i>
           {config.label}
