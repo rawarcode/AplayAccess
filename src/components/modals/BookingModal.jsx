@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
 import { createBooking } from "../../lib/bookingApi.js";
-import { createPaymentLink } from "../../lib/paymentApi.js";
+import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
 
 // Day visit: check-in slots 7AM–4PM (check-out capped at 5PM)
@@ -53,6 +53,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting, setSubmitting]   = useState(false);
   const [error, setError]             = useState("");
+  // Payment popup state: { bookingId, popup } while waiting for payment
+  const [paymentPopup, setPaymentPopup] = useState(null);
 
   // Pricing fetched from /api/pricing (admin-configurable)
   const [pricing,    setPricing]    = useState(DEFAULTS);
@@ -115,6 +117,37 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
   }, [error]);
 
+  // Poll payment status while the PayMongo popup is open
+  useEffect(() => {
+    if (!paymentPopup) return;
+    const { bookingId, popup } = paymentPopup;
+
+    const interval = setInterval(async () => {
+      // User closed the popup manually without completing payment
+      if (popup.closed) {
+        clearInterval(interval);
+        setPaymentPopup(null);
+        setError("Payment window was closed. Your booking is saved — you can reopen the payment window by trying again.");
+        return;
+      }
+      // Check if payment went through
+      try {
+        const status = await getPaymentStatus(bookingId);
+        if (status.paid) {
+          clearInterval(interval);
+          try { popup.close(); } catch { /* ignore cross-origin close errors */ }
+          setPaymentPopup(null);
+          onBooked?.();
+          onClose();
+        }
+      } catch {
+        // ignore transient polling errors; keep trying
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [paymentPopup, onBooked, onClose]);
+
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
@@ -123,6 +156,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setError("");
       setBookingType("day");
       setAvailability(null);
+      setPaymentPopup(null);
     }
   }, [open, selectedRoom]);
 
@@ -164,7 +198,24 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
       const bookingId = result.data?.id;
       const { checkout_url } = await createPaymentLink(bookingId);
-      window.location.href = checkout_url;
+
+      // Open PayMongo in a small centered popup so the main page stays visible
+      const pw = 600, ph = 700;
+      const pl = Math.round(window.screen.width  / 2 - pw / 2);
+      const pt = Math.round(window.screen.height / 2 - ph / 2);
+      const popup = window.open(
+        checkout_url,
+        "paymongo_checkout",
+        `width=${pw},height=${ph},left=${pl},top=${pt},resizable=yes,scrollbars=yes`
+      );
+
+      if (!popup || popup.closed) {
+        // Popup blocked by browser — fall back to full redirect
+        window.location.href = checkout_url;
+        return;
+      }
+
+      setPaymentPopup({ bookingId, popup });
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -416,8 +467,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-md px-3 py-2">
                 <span className="text-blue-500 mt-0.5">🔒</span>
                 <span>
-                  You will be redirected to a secure <span className="font-medium">PayMongo</span> checkout page to pay the
+                  A secure <span className="font-medium">PayMongo</span> checkout window will open for you to pay the
                   reservation fee via <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.
+                  This page will stay open in the background.
                 </span>
               </div>
             </div>
@@ -430,12 +482,29 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             </div>
           )}
 
-          <button
-            disabled={submitting}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
-          >
-            {submitting ? "Redirecting to checkout..." : `Pay ${formatPHP(pricing.reservation_fee)} Online →`}
-          </button>
+          {paymentPopup ? (
+            <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 rounded-md">
+              <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+              <p className="text-sm font-medium text-blue-800">Waiting for payment in the checkout window…</p>
+              <p className="text-xs text-blue-600">Complete payment there, or close this modal to cancel.</p>
+              <button
+                type="button"
+                onClick={() => {
+                  try { paymentPopup.popup?.focus(); } catch { /* ignore */ }
+                }}
+                className="px-4 py-1.5 border border-blue-400 text-blue-700 rounded text-sm hover:bg-blue-100"
+              >
+                <i className="fas fa-external-link-alt mr-1"></i>Bring payment window to front
+              </button>
+            </div>
+          ) : (
+            <button
+              disabled={submitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
+            >
+              {submitting ? "Opening checkout window..." : `Pay ${formatPHP(pricing.reservation_fee)} Online →`}
+            </button>
+          )}
         </form>
       </div>
     </Modal>
