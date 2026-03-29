@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
+import Toast, { useToast } from '../../components/ui/Toast';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -223,6 +224,7 @@ export default function FDRooms() {
   const [error, setError]       = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [filter, setFilter]     = useState('all');
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   const load = useCallback(() => {
     setLoading(true);
@@ -240,7 +242,7 @@ export default function FDRooms() {
     } catch {
       // Revert on failure
       load();
-      alert('Failed to update housekeeping status.');
+      showToast('Failed to update housekeeping status.');
     }
   }
 
@@ -285,6 +287,7 @@ export default function FDRooms() {
 
   return (
     <Sidebar>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── Header ── */}
       <header className="bg-white shadow-sm">
         <div className="flex items-center justify-between p-4">
