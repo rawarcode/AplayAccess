@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
 import { getAdminRooms, createAdminRoom, updateAdminRoom } from "../../lib/adminApi";
+import Toast, { useToast } from "../../components/ui/Toast";
 
 // ── Availability status config ────────────────────────────────────────────────
 const AVAIL = {
@@ -39,6 +40,8 @@ export default function AdminRooms() {
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [error,        setError]        = useState(null);
+  const [saveError,    setSaveError]    = useState("");
+  const [toast, showToast, clearToast, toastType] = useToast();
   const [modalOpen,    setModalOpen]    = useState(false);
   const [editing,      setEditing]      = useState(null);
   const [viewRoom,     setViewRoom]     = useState(null);
@@ -61,8 +64,8 @@ export default function AdminRooms() {
     return matchSearch && matchAvail;
   });
 
-  function openNew()      { setEditing({ ...BLANK }); setModalOpen(true); }
-  function openEdit(room) { setEditing({ ...room, availability_status: room.availability_status || "available" }); setViewRoom(null); setModalOpen(true); }
+  function openNew()      { setEditing({ ...BLANK }); setSaveError(""); setModalOpen(true); }
+  function openEdit(room) { setEditing({ ...room, availability_status: room.availability_status || "available" }); setSaveError(""); setViewRoom(null); setModalOpen(true); }
   function setField(k, v) { setEditing(x => ({ ...x, [k]: v })); }
 
   async function saveRoom(e) {
@@ -87,7 +90,7 @@ export default function AdminRooms() {
       setModalOpen(false);
       load();
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to save room.");
+      setSaveError(err?.response?.data?.message || "Failed to save room.");
     } finally {
       setSaving(false);
     }
@@ -95,6 +98,7 @@ export default function AdminRooms() {
 
   return (
     <div className="p-6 space-y-6">
+      <Toast message={toast} type={toastType} onClose={clearToast} />
 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -352,6 +356,11 @@ export default function AdminRooms() {
             </div>
           </div>
 
+          {saveError && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-center gap-2">
+              <i className="fas fa-exclamation-circle shrink-0"></i>{saveError}
+            </div>
+          )}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setModalOpen(false)}
               className="px-4 py-2 text-slate-600 rounded-xl hover:bg-slate-50 text-sm">Cancel</button>
