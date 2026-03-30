@@ -131,7 +131,32 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
   }, [error]);
 
-  // Poll payment status while waiting for payment (runs whether popup is open or closed)
+  // Listen for postMessage from PaymentReturn page running inside the popup.
+  // This fires immediately when PayMongo redirects to our /payment/success page.
+  useEffect(() => {
+    if (!paymentPopup?.bookingId) return;
+
+    function handleMessage(event) {
+      if (event.data?.type === "paymongo_paid") {
+        try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
+        setPaymentPopup(null);
+        setTimeLeft(null);
+        onBooked?.();
+        onClose();
+      }
+      if (event.data?.type === "paymongo_cancelled") {
+        try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
+        setPaymentPopup(null);
+        setTimeLeft(null);
+        setError("Payment was cancelled. Your booking has been released.");
+      }
+    }
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [paymentPopup, onBooked, onClose]);
+
+  // Poll payment status as fallback (runs whether popup is open or closed)
   useEffect(() => {
     if (!paymentPopup?.bookingId) return;
     const { bookingId, popup } = paymentPopup;
@@ -140,7 +165,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       // Popup just closed — keep state but show "Reopen" button
       if (popup && popup.closed) {
         setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
-        return; // effect re-runs with popup=null; status polling continues
+        return;
       }
       // Check if payment went through on PayMongo
       try {

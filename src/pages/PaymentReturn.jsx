@@ -1,66 +1,108 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { getPaymentStatus } from "../lib/paymentApi.js";
 
 /**
- * Handles the redirect back from PayMongo after GCash / Maya payment.
- * Route: /payment/success?booking=<id>
- *        /payment/failed?booking=<id>
+ * Handles the redirect back from PayMongo after checkout.
+ *
+ * Two modes:
+ *  A) Popup mode  — opened by BookingModal; notifies parent via postMessage then closes.
+ *  B) Full-page   — user somehow landed here directly; shows success/failed UI.
+ *
+ * Routes:
+ *   /payment/success?booking=<id>
+ *   /payment/failed?booking=<id>
  */
 export default function PaymentReturn({ outcome }) {
-  const [searchParams]  = useSearchParams();
-  const navigate        = useNavigate();
-  const bookingId       = searchParams.get("booking");
+  const [searchParams] = useSearchParams();
+  const bookingId      = searchParams.get("booking");
+  const isPopup        = Boolean(window.opener);
 
-  const [status, setStatus]   = useState("loading"); // loading | confirmed | pending | failed
-  const [attempts, setAttempts] = useState(0);
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
-    if (!bookingId) {
-      setStatus("failed");
+    // ── POPUP MODE ────────────────────────────────────────────────────────────
+    // Notify the parent window and close immediately.
+    if (isPopup) {
+      if (outcome === "failed") {
+        try { window.opener.postMessage({ type: "paymongo_cancelled", bookingId }, "*"); } catch { /* ignore */ }
+        window.close();
+      } else {
+        // Poll a couple of times so the parent gets a definitive "paid" signal
+        let tries = 0;
+        async function pollAndClose() {
+          try {
+            if (bookingId) {
+              const data = await getPaymentStatus(bookingId);
+              if (data.paid || data.status === "Confirmed") {
+                try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
+                window.close();
+                return;
+              }
+            }
+          } catch { /* ignore */ }
+          tries++;
+          if (tries < 5) {
+            setTimeout(pollAndClose, 1500);
+          } else {
+            // Payment confirmed on PayMongo side (we got redirected here) but
+            // backend hasn't caught up yet — tell parent anyway and close.
+            try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
+            window.close();
+          }
+        }
+        pollAndClose();
+      }
+      // Show a brief closing message while the above runs
+      setStatus(outcome === "failed" ? "closing_failed" : "closing_success");
       return;
     }
 
-    // If PayMongo returned "failed", no need to poll
-    if (outcome === "failed") {
-      setStatus("failed");
-      return;
-    }
+    // ── FULL-PAGE MODE ────────────────────────────────────────────────────────
+    if (outcome === "failed") { setStatus("failed"); return; }
+    if (!bookingId)           { setStatus("failed"); return; }
 
-    // Poll the backend a few times — webhook may arrive slightly after redirect
     let tries = 0;
-    const maxTries = 6;
-
     async function poll() {
       try {
         const data = await getPaymentStatus(bookingId);
-        setAttempts((a) => a + 1);
-
-        if (data.paid || data.status === "Confirmed") {
-          setStatus("confirmed");
-          return;
-        }
-
+        if (data.paid || data.status === "Confirmed") { setStatus("confirmed"); return; }
         tries++;
-        if (tries < maxTries) {
-          setTimeout(poll, 2000); // retry every 2 s
-        } else {
-          // Webhook may still be on its way — show a soft "pending" state
-          setStatus("pending");
-        }
-      } catch {
-        setStatus("failed");
-      }
+        if (tries < 6) setTimeout(poll, 2000);
+        else           setStatus("pending");
+      } catch { setStatus("failed"); }
     }
-
     poll();
-  }, [bookingId, outcome]);
+  }, [bookingId, outcome, isPopup]);
 
+  // ── Popup closing screen ──────────────────────────────────────────────────
+  if (isPopup) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center p-8">
+          {status === "closing_success" ? (
+            <>
+              <div className="text-5xl mb-4">✅</div>
+              <p className="text-lg font-semibold text-gray-800">Payment received!</p>
+              <p className="text-sm text-gray-500 mt-1">Closing window…</p>
+            </>
+          ) : (
+            <>
+              <div className="text-5xl mb-4">❌</div>
+              <p className="text-lg font-semibold text-gray-800">Payment cancelled.</p>
+              <p className="text-sm text-gray-500 mt-1">Closing window…</p>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full-page screens ─────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-8 text-center">
 
-        {/* Loading */}
         {status === "loading" && (
           <>
             <div className="flex justify-center mb-4">
@@ -71,61 +113,46 @@ export default function PaymentReturn({ outcome }) {
           </>
         )}
 
-        {/* Success */}
         {status === "confirmed" && (
           <>
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-4xl">✅</div>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Confirmed!</h2>
-            <p className="text-gray-600 mb-1">
-              Your reservation fee has been received.
-            </p>
+            <p className="text-gray-600 mb-1">Your reservation fee has been received.</p>
             <p className="text-gray-500 text-sm mb-6">
-              Your booking is now <span className="font-semibold text-green-600">Confirmed</span>. Check your dashboard for details.
+              Your booking is now <span className="font-semibold text-green-600">Confirmed</span>.
             </p>
             <div className="flex flex-col gap-3">
-              <Link
-                to="/dashboard/bookings"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg"
-              >
+              <Link to="/dashboard/bookings"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg">
                 View My Bookings
               </Link>
-              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">
-                Back to Resort
-              </Link>
+              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
             </div>
           </>
         )}
 
-        {/* Pending (webhook delayed) */}
         {status === "pending" && (
           <>
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center text-4xl">⏳</div>
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Processing</h2>
-            <p className="text-gray-600 mb-1">
-              We received your payment but confirmation is still processing.
-            </p>
+            <p className="text-gray-600 mb-1">We received your payment but confirmation is still processing.</p>
             <p className="text-gray-500 text-sm mb-6">
-              Your booking will be updated to <span className="font-semibold">Confirmed</span> within a few minutes. Check your dashboard shortly.
+              Your booking will update to <span className="font-semibold">Confirmed</span> within a few minutes.
             </p>
             <div className="flex flex-col gap-3">
-              <Link
-                to="/dashboard/bookings"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg"
-              >
+              <Link to="/dashboard/bookings"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg">
                 Go to My Bookings
               </Link>
-              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">
-                Back to Resort
-              </Link>
+              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
             </div>
           </>
         )}
 
-        {/* Failed */}
         {status === "failed" && (
           <>
             <div className="flex justify-center mb-4">
@@ -133,18 +160,14 @@ export default function PaymentReturn({ outcome }) {
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h2>
             <p className="text-gray-600 mb-6">
-              Your payment was not completed. Your booking slot has been held for a short time — please try again.
+              Your payment was not completed. Please try again.
             </p>
             <div className="flex flex-col gap-3">
-              <Link
-                to="/resort?book=1"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg"
-              >
+              <Link to="/resort?book=1"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg">
                 Try Again
               </Link>
-              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">
-                Back to Resort
-              </Link>
+              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
             </div>
           </>
         )}
