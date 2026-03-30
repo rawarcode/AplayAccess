@@ -303,7 +303,17 @@ export default function MyBookings() {
                   <div className="text-gray-400 text-xs">→ {fmtDateTime(b.checkOut)}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{b.guests}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">₱{Number(b.total).toLocaleString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                  <div className="font-medium">₱{Number(b.total).toLocaleString()}</div>
+                  {b.promo_code && Number(b.discount) > 0 && (
+                    <div className="mt-0.5 flex items-center gap-1">
+                      <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
+                        <i className="fas fa-tag text-[10px]"></i>{b.promo_code}
+                      </span>
+                      <span className="text-xs text-green-600 font-medium">−₱{Number(b.discount).toLocaleString()}</span>
+                    </div>
+                  )}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={statusPill(b.status)}>{b.status}</span>
                 </td>

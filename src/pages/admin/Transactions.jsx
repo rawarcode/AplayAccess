@@ -185,6 +185,21 @@ export default function AdminTransactions() {
                     <p className="font-semibold text-slate-900">{val}</p>
                   </div>
                 ))}
+                {viewBooking.promo_code && Number(viewBooking.discount) > 0 && (
+                  <div className="col-span-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-tag text-green-600 text-sm"></i>
+                      <div>
+                        <p className="text-xs text-green-700 font-semibold">Promo Applied</p>
+                        <p className="text-sm font-mono font-bold text-green-800">{viewBooking.promo_code}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-green-700">Discount</p>
+                      <p className="text-sm font-bold text-green-800">−₱{Number(viewBooking.discount).toLocaleString()}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="col-span-2">
                   <p className="text-slate-500 text-xs">Status</p>
                   <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[viewBooking.status] || "bg-slate-100 text-slate-700"}`}>
