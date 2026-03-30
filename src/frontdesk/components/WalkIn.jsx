@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
 import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus } from '../../lib/frontdeskApi';
@@ -96,6 +97,9 @@ const EMPTY_FORM = {
 
 // ─── component ────────────────────────────────────────────────────────────────
 export default function WalkIn() {
+  const location = useLocation();
+  const preselectedRoom = location.state?.preselectedRoom ?? null;
+
   const [bookings, setBookings]           = useState([]);
   const [rooms, setRooms]                 = useState([]);
   const [pricing, setPricing]             = useState(PRICING_DEFAULTS);
@@ -136,6 +140,13 @@ export default function WalkIn() {
       .finally(() => setLoading(false));
   }
   useEffect(() => { loadAll(); }, []);
+
+  // Auto-open form with the pre-selected room when coming from Rooms board
+  useEffect(() => {
+    if (!preselectedRoom || loading) return;
+    setForm(f => ({ ...f, roomId: String(preselectedRoom.id) }));
+    setFormOpen(true);
+  }, [preselectedRoom, loading]);
 
   // Room availability — same check as BookingModal
   const [availability,  setAvailability]  = useState(null);

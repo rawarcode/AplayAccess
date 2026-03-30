@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
@@ -131,7 +132,7 @@ const HK_CONFIG = {
 const HK_NEXT = { clean: 'dirty', dirty: 'cleaning', cleaning: 'clean' };
 
 // ─── HousekeepingModal — shown when card has no active booking (vacant) ───────
-function HousekeepingModal({ room, onClose, onHousekeepingChange }) {
+function HousekeepingModal({ room, onClose, onHousekeepingChange, onWalkIn }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
          onMouseDown={e => e.target === e.currentTarget && onClose()}>
@@ -149,6 +150,15 @@ function HousekeepingModal({ room, onClose, onHousekeepingChange }) {
           </button>
         </div>
         <div className="p-5">
+          {/* Walk-in button */}
+          <button
+            onClick={onWalkIn}
+            className="w-full mb-4 flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+          >
+            <i className="fas fa-person-walking"></i>
+            Walk-in Booking for {room.name}
+          </button>
+
           <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Housekeeping Status</p>
           <div className="flex gap-2">
             {['clean', 'dirty', 'cleaning'].map(status => {
@@ -282,6 +292,7 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
 
 // ─── component ────────────────────────────────────────────────────────────────
 export default function FDRooms() {
+  const navigate = useNavigate();
   const [rooms, setRooms]       = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading]   = useState(true);
@@ -366,6 +377,7 @@ export default function FDRooms() {
             room={selectedSlot.room}
             onClose={() => setSelectedSlot(null)}
             onHousekeepingChange={handleHousekeeping}
+            onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: selectedSlot.room } })}
           />
         )
       )}
