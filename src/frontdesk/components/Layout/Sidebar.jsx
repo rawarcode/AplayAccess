@@ -15,7 +15,12 @@ export default function Sidebar({ children }) {
   const userName  = user?.name  || 'Staff Member';
   const userEmail = user?.email || 'staff@aplayaccess.com';
 
-  const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications();
+  const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
+    pendingBookings: '/frontdesk/reservation',
+    messages:        '/frontdesk/messages',
+    arrivals:        '/frontdesk/reservation',
+    rooms:           '/frontdesk/rooms',
+  });
 
   const menuItems = {
     frontDesk: [

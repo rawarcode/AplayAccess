@@ -79,7 +79,12 @@ export default function AdminShell() {
   const [passwordData,  setPasswordData]  = useState({ current: "", new: "", confirm: "" });
 
   // ── Notification polling ────────────────────────────────────────────────────
-  const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications();
+  const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
+    pendingBookings: '/admin/transactions',
+    messages:        '/admin/messages',
+    arrivals:        '/admin/transactions',
+    rooms:           '/admin/rooms',
+  });
 
   // Close profile dropdown on outside click
   useEffect(() => {
