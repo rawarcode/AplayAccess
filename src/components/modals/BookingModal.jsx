@@ -3,6 +3,7 @@ import Modal from "./Modal.jsx";
 import { createBooking, cancelBooking } from "../../lib/bookingApi.js";
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
+import { validatePromo } from "../../lib/adminApi.js";
 
 // Day visit: check-in slots 7AM–4PM (check-out capped at 5PM)
 const DAY_TIME_SLOTS = [
@@ -51,8 +52,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [roomType, setRoomType]       = useState(selectedRoom || "");
   const [guests, setGuests]           = useState(2);
   const [specialRequests, setSpecialRequests] = useState("");
-  const [submitting, setSubmitting]   = useState(false);
-  const [error, setError]             = useState("");
+  const [submitting,   setSubmitting]   = useState(false);
+  const [error,        setError]        = useState("");
+  const [confirmOpen,  setConfirmOpen]  = useState(false);
   // Payment popup state: { bookingId, checkoutUrl, popup } while waiting for payment
   // popup can be null when the user closed the window (we keep bookingId/checkoutUrl for reopen)
   const [paymentPopup, setPaymentPopup] = useState(null);
@@ -62,6 +64,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // Pricing fetched from /api/pricing (admin-configurable)
   const [pricing,    setPricing]    = useState(DEFAULTS);
   const [rawPricing, setRawPricing] = useState(null);
+
+  // Payment option: "reservation" = pay reservation fee only | "full" = pay full amount now
+  const [paymentOption, setPaymentOption] = useState("reservation");
+
+  // Promo code
+  const [promoInput,   setPromoInput]   = useState("");
+  const [promoResult,  setPromoResult]  = useState(null);  // { discount_amount, message, type, value }
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError,   setPromoError]   = useState("");
 
   // Room availability: { [roomName]: true|false } — null means not yet checked
   const [availability,     setAvailability]     = useState(null);
@@ -177,6 +188,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setAvailability(null);
       setPaymentPopup(null);
       setTimeLeft(null);
+      setPromoInput("");
+      setPromoResult(null);
+      setPromoError("");
+      setPaymentOption("reservation");
+      setConfirmOpen(false);
     }
   }, [open, selectedRoom]);
 
@@ -199,23 +215,58 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived pricing ────────────────────────────────────────────────────────
-  const isOvernight = bookingType === "overnight";
-  const baseRate    = isOvernight ? pricing.overnight_rate : pricing.day_rate;
-  const extraGuests = Math.max(0, guests - pricing.free_guest_limit);
-  const extraCharge = extraGuests * pricing.extra_guest_fee;
-  const entranceFee = guests * pricing.entrance_fee;
+  const isOvernight  = bookingType === "overnight";
+  const baseRate     = isOvernight ? pricing.overnight_rate : pricing.day_rate;
+  const extraGuests  = Math.max(0, guests - pricing.free_guest_limit);
+  const extraCharge  = extraGuests * pricing.extra_guest_fee;
+  const entranceFee  = guests * pricing.entrance_fee;
+  const totalRate    = baseRate + extraCharge + entranceFee;
+  const discount        = promoResult?.discount_amount ?? 0;
+  const discountedTotal = Math.max(totalRate - discount, pricing.reservation_fee);
+  const amountDue       = paymentOption === "full" ? discountedTotal : pricing.reservation_fee;
+  const balanceDue      = discountedTotal - amountDue;
 
-  const totalRate  = baseRate + extraCharge + entranceFee;
-  const balanceDue = totalRate - pricing.reservation_fee;
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError("");
+    setPromoResult(null);
+    try {
+      const res = await validatePromo(code, totalRate);
+      const d   = res.data;
+      if (d.valid) {
+        setPromoResult(d);
+      } else {
+        setPromoError(d.message || "Invalid promo code.");
+      }
+    } catch {
+      setPromoError("Could not validate promo code. Please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
 
-  // ── Submit ─────────────────────────────────────────────────────────────────
-  async function submit(e) {
+  function removePromo() {
+    setPromoResult(null);
+    setPromoInput("");
+    setPromoError("");
+  }
+
+  // ── Step 1: validate → show confirmation ──────────────────────────────────
+  function submit(e) {
     e.preventDefault();
     setError("");
-
     if (!visitDate) { setError("Please select a visit date."); return; }
     if (!roomType)  { setError("Please select a room type."); return; }
+    const room = rooms.find((r) => r.name === roomType);
+    if (!room?.id)  { setError("Could not determine room. Please try again."); return; }
+    setConfirmOpen(true);
+  }
 
+  // ── Step 2: confirmed → call API ───────────────────────────────────────────
+  async function handleConfirm() {
+    setError("");
     const room = rooms.find((r) => r.name === roomType);
     if (!room?.id) { setError("Could not determine room. Please try again."); return; }
 
@@ -223,6 +274,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       ? `${visitDate} 18:00:00`
       : `${visitDate} ${visitTime}:00`;
 
+    setConfirmOpen(false);
     setSubmitting(true);
     try {
       const result = await createBooking({
@@ -232,10 +284,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         payment_method:   "Online",
         special_requests: specialRequests || null,
         overnight:        isOvernight,
+        promo_code:       promoResult ? promoInput.trim().toUpperCase() : null,
+        discount:         discount,
       });
 
       const bookingId = result.data?.id;
-      const { checkout_url } = await createPaymentLink(bookingId);
+      const { checkout_url } = await createPaymentLink(bookingId, paymentOption === "full");
 
       // Open PayMongo in a small centered popup so the main page stays visible
       const pw = 600, ph = 700;
@@ -469,6 +523,87 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </p>
               </div>
 
+              {/* Promo code input */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <i className="fas fa-tag mr-1 text-blue-500"></i>Promo Code <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                {promoResult ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-md">
+                    <i className="fas fa-check-circle text-green-600"></i>
+                    <span className="text-sm text-green-800 font-medium flex-1">{promoResult.message}</span>
+                    <button type="button" onClick={removePromo} className="text-xs text-gray-500 hover:text-red-600 underline">Remove</button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={promoInput}
+                      onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                      onKeyDown={e => e.key === "Enter" && (e.preventDefault(), applyPromo())}
+                      placeholder="Enter promo code"
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyPromo}
+                      disabled={!promoInput.trim() || promoLoading}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md"
+                    >
+                      {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : "Apply"}
+                    </button>
+                  </div>
+                )}
+                {promoError && <p className="mt-1 text-xs text-red-600"><i className="fas fa-times-circle mr-1"></i>{promoError}</p>}
+              </div>
+
+              {/* Payment option selector */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <i className="fas fa-wallet mr-1 text-blue-500"></i>Payment Option
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentOption("reservation")}
+                    className={`flex flex-col items-start p-3 border-2 rounded-xl transition-colors text-left ${
+                      paymentOption === "reservation"
+                        ? "border-blue-500 bg-blue-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "reservation" ? "text-blue-600" : "text-gray-500"}`}>
+                      <i className="fas fa-bookmark mr-1"></i>Reserve Only
+                    </span>
+                    <span className={`text-base font-bold ${paymentOption === "reservation" ? "text-blue-700" : "text-gray-700"}`}>
+                      {formatPHP(pricing.reservation_fee)} now
+                    </span>
+                    <span className="text-xs text-gray-500 mt-0.5">
+                      Pay {formatPHP(Math.max(discountedTotal - pricing.reservation_fee, 0))} at check-in
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentOption("full")}
+                    className={`flex flex-col items-start p-3 border-2 rounded-xl transition-colors text-left ${
+                      paymentOption === "full"
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "full" ? "text-emerald-600" : "text-gray-500"}`}>
+                      <i className="fas fa-check-circle mr-1"></i>Pay in Full
+                    </span>
+                    <span className={`text-base font-bold ${paymentOption === "full" ? "text-emerald-700" : "text-gray-700"}`}>
+                      {formatPHP(discountedTotal)} now
+                    </span>
+                    <span className="text-xs text-gray-500 mt-0.5">
+                      ₱0 balance · fully paid
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               {/* Payment summary */}
               <div className="bg-blue-50 p-4 rounded-md mb-4">
                 <h4 className="font-medium text-gray-900 mb-2">Payment Summary</h4>
@@ -497,24 +632,41 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
 
                 <div className="flex justify-between mb-1 text-sm font-medium border-t border-blue-200 pt-2 mt-1">
-                  <span className="text-gray-700">Total Rate:</span>
-                  <span className="text-gray-900">{formatPHP(totalRate)}</span>
+                  <span className="text-gray-700">Subtotal:</span>
+                  <span className={discount > 0 ? "line-through text-gray-400" : "text-gray-900"}>{formatPHP(totalRate)}</span>
                 </div>
+                {discount > 0 && (
+                  <>
+                    <div className="flex justify-between mb-1 text-sm text-green-700 font-medium">
+                      <span><i className="fas fa-tag mr-1"></i>Promo ({promoInput}):</span>
+                      <span>− {formatPHP(discount)}</span>
+                    </div>
+                    <div className="flex justify-between mb-1 text-sm font-semibold">
+                      <span className="text-gray-800">Total Rate:</span>
+                      <span className="text-gray-900">{formatPHP(discountedTotal)}</span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
-                  <span className="text-gray-900 font-bold">Reservation Fee (Due Now):</span>
-                  <span className="text-blue-700 font-bold text-lg">{formatPHP(pricing.reservation_fee)}</span>
+                  <span className="text-gray-900 font-bold">
+                    {paymentOption === "full" ? "Total Due Now:" : "Reservation Fee (Due Now):"}
+                  </span>
+                  <span className="text-blue-700 font-bold text-lg">{formatPHP(amountDue)}</span>
                 </div>
                 <div className="flex justify-between mt-1 text-sm">
                   <span className="text-gray-600">Balance Due at Check-in:</span>
-                  <span className="text-gray-900 font-medium">{formatPHP(balanceDue)}</span>
+                  <span className={`font-medium ${balanceDue === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                    {balanceDue === 0 ? "₱0.00 — Fully Paid" : formatPHP(balanceDue)}
+                  </span>
                 </div>
               </div>
 
               <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-md px-3 py-2">
                 <span className="text-blue-500 mt-0.5">🔒</span>
                 <span>
-                  A secure <span className="font-medium">PayMongo</span> checkout window will open for you to pay the
-                  reservation fee via <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.
+                  A secure <span className="font-medium">PayMongo</span> checkout window will open for you to pay{" "}
+                  <span className="font-medium">{formatPHP(amountDue)}</span> via{" "}
+                  <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.
                   This page will stay open in the background.
                 </span>
               </div>
@@ -617,12 +769,173 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           ) : (
             <button
               disabled={submitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md"
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
             >
-              {submitting ? "Opening checkout window..." : `Pay ${formatPHP(pricing.reservation_fee)} Online →`}
+              {submitting
+                ? <><i className="fas fa-spinner fa-spin"></i> Opening checkout window...</>
+                : <><i className="fas fa-eye"></i> Review Booking</>}
             </button>
           )}
         </form>
+
+        {/* ── Booking Confirmation ── */}
+        {confirmOpen && (
+          <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
+            <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
+            <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+
+              {/* Header */}
+              <div className="bg-blue-600 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3 text-white">
+                  <i className="fas fa-clipboard-check text-xl"></i>
+                  <div>
+                    <h3 className="font-bold text-lg">Booking Summary</h3>
+                    <p className="text-blue-100 text-xs">Please review before proceeding to payment</p>
+                  </div>
+                </div>
+                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white text-lg">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+
+                {/* Booking Type Badge */}
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
+                    isOvernight ? "bg-indigo-100 text-indigo-800" : "bg-blue-100 text-blue-800"
+                  }`}>
+                    <i className={`fas ${isOvernight ? "fa-moon" : "fa-sun"}`}></i>
+                    {isOvernight ? "Overnight Stay" : "Day Visit"}
+                  </span>
+                </div>
+
+                {/* Details Grid */}
+                <div className="bg-gray-50 rounded-xl overflow-hidden border border-gray-200">
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100">
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium w-36">Room</td>
+                        <td className="px-4 py-2.5 font-semibold text-gray-900">{roomType}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Date</td>
+                        <td className="px-4 py-2.5 text-gray-900">
+                          {visitDate ? new Date(visitDate + "T00:00:00").toLocaleDateString("en-PH", {
+                            weekday: "long", year: "numeric", month: "long", day: "numeric"
+                          }) : "—"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Check-in</td>
+                        <td className="px-4 py-2.5 text-gray-900">
+                          {isOvernight ? "6:00 PM" : DAY_TIME_SLOTS.find(s => s.value === visitTime)?.label}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Check-out</td>
+                        <td className="px-4 py-2.5 text-gray-900">
+                          {isOvernight ? "6:00 AM (next day)" : DAY_TIME_SLOTS.find(s => s.value === visitTime)?.end}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Guests</td>
+                        <td className="px-4 py-2.5 text-gray-900">{guests} {guests === 1 ? "person" : "persons"}</td>
+                      </tr>
+                      {specialRequests && (
+                        <tr>
+                          <td className="px-4 py-2.5 text-gray-500 font-medium align-top">Requests</td>
+                          <td className="px-4 py-2.5 text-gray-700 italic">"{specialRequests}"</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pricing Breakdown */}
+                <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 space-y-2 text-sm">
+                  <p className="font-semibold text-blue-900 mb-1">Payment Breakdown</p>
+                  <div className="flex justify-between text-gray-700">
+                    <span>{isOvernight ? "Overnight rate" : "Day visit rate"}</span>
+                    <span>{formatPHP(baseRate)}</span>
+                  </div>
+                  {extraGuests > 0 && (
+                    <div className="flex justify-between text-orange-700">
+                      <span>Extra guests ({extraGuests} × {formatPHP(pricing.extra_guest_fee)})</span>
+                      <span>+ {formatPHP(extraCharge)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-700">
+                    <span>Entrance fee ({guests} × {formatPHP(pricing.entrance_fee)})</span>
+                    <span>{formatPHP(entranceFee)}</span>
+                  </div>
+                  {discount > 0 ? (
+                    <>
+                      <div className="flex justify-between text-gray-400 border-t border-blue-200 pt-2">
+                        <span>Subtotal</span>
+                        <span className="line-through">{formatPHP(totalRate)}</span>
+                      </div>
+                      <div className="flex justify-between text-green-700 font-medium">
+                        <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput.toUpperCase()})</span>
+                        <span>− {formatPHP(discount)}</span>
+                      </div>
+                      <div className="flex justify-between font-semibold text-gray-900">
+                        <span>Total Rate</span>
+                        <span>{formatPHP(discountedTotal)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between font-semibold text-gray-900 border-t border-blue-200 pt-2">
+                      <span>Total Rate</span>
+                      <span>{formatPHP(totalRate)}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-blue-300 pt-2 flex justify-between font-bold text-blue-800 text-base">
+                    <span>{paymentOption === "full" ? "Total (Pay Now)" : "Reservation Fee (Pay Now)"}</span>
+                    <span>{formatPHP(amountDue)}</span>
+                  </div>
+                  <div className="flex justify-between text-gray-600">
+                    <span>Balance at Check-in</span>
+                    <span className={`font-medium ${balanceDue === 0 ? "text-emerald-600" : ""}`}>
+                      {balanceDue === 0 ? "₱0.00 — Fully Paid" : formatPHP(balanceDue)}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment option badge */}
+                <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
+                  paymentOption === "full"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-blue-50 text-blue-800 border border-blue-200"
+                }`}>
+                  <i className={`fas ${paymentOption === "full" ? "fa-check-circle text-emerald-600" : "fa-bookmark text-blue-500"}`}></i>
+                  {paymentOption === "full"
+                    ? `Paying in full — ₱0 balance at check-in`
+                    : `Reserve only — balance of ${formatPHP(balanceDue)} due at check-in`}
+                </div>
+
+                {/* Payment note */}
+                <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
+                  <span className="text-blue-500 mt-0.5">🔒</span>
+                  <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+                <button onClick={() => setConfirmOpen(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  <i className="fas fa-arrow-left mr-2"></i>Back
+                </button>
+                <button onClick={handleConfirm}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                  <i className="fas fa-lock"></i>
+                  Confirm &amp; Pay {formatPHP(amountDue)}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );

@@ -2,11 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
 import NotificationBell from '../../components/ui/NotificationBell';
 import Toast, { useToast } from '../../components/ui/Toast';
-import {
-  getFdBookings, updateBookingStatus,
-  checkInBooking, checkOutBooking,
-  addAmenity, removeAmenity,
-} from '../../lib/frontdeskApi';
+import BookingDetailModal from './BookingDetailModal';
+import { getFdBookings, updateBookingStatus, checkInBooking, checkOutBooking } from '../../lib/frontdeskApi';
+
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDateTime(dt) {
@@ -60,11 +58,6 @@ function StatusBadge({ status }) {
   );
 }
 
-const AMENITY_CATALOG = [
-  { name: 'Pillow',  icon: 'fa-bed',        unit_price: 50,  type: 'qty'   },
-  { name: 'Karaoke', icon: 'fa-microphone', unit_price: 800, type: 'fixed' },
-];
-
 // ─── component ────────────────────────────────────────────────────────────────
 export default function Reservation() {
   const [bookings, setBookings]           = useState([]);
@@ -78,10 +71,7 @@ export default function Reservation() {
   const [filterStatus, setFilterStatus]   = useState('All');
 
   const [viewBooking, setViewBooking]     = useState(null);
-
-  // Amenity add state (within modal)
-  const [addingAmenity, setAddingAmenity] = useState(null); // { name, qty }
-  const [amenityLoading, setAmenityLoading] = useState(false);
+  const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }
   const [toast, showToast, clearToast, toastType] = useToast();
 
   function load() {
@@ -112,7 +102,13 @@ export default function Reservation() {
         );
       });
     }
+    const STATUS_PRIORITY = { Pending: 0, 'Checked In': 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
     return [...list].sort((a, b) => {
+      // Status priority always applied first
+      const pa = STATUS_PRIORITY[a.status] ?? 5;
+      const pb = STATUS_PRIORITY[b.status] ?? 5;
+      if (pa !== pb) return pa - pb;
+      // Then secondary sort by selected column
       let valA = '', valB = '';
       if (sortBy === 'Guest Name') {
         const wiA = parseWalkIn(a), wiB = parseWalkIn(b);
@@ -130,255 +126,101 @@ export default function Reservation() {
     });
   }, [bookings, filterStatus, searchTerm, sortBy, sortDir]);
 
-  // ── status update (confirm / cancel) ──────────────────────────────────────
+  // ── status update (table row quick-actions only) ──────────────────────────
   function syncBooking(bookingId, updates) {
     setBookings(prev => prev.map(b => b.booking_id === bookingId ? { ...b, ...updates } : b));
-    if (viewBooking?.booking_id === bookingId) setViewBooking(v => ({ ...v, ...updates }));
   }
 
-  async function handleStatus(bookingId, newStatus) {
+  async function execConfirm() {
+    if (!confirmState) return;
+    const { bookingId, action } = confirmState;
+    setConfirmState(null);
     setActionLoading(bookingId);
     try {
-      await updateBookingStatus(bookingId, newStatus);
-      syncBooking(bookingId, { status: newStatus });
-    } catch { showToast('Failed to update booking status.'); }
+      if (action === 'confirm') {
+        await updateBookingStatus(bookingId, 'Confirmed');
+        syncBooking(bookingId, { status: 'Confirmed' });
+      } else if (action === 'checkin') {
+        const res = await checkInBooking(bookingId);
+        syncBooking(bookingId, { status: 'Checked In', checkedInAt: res.checked_in_at });
+      } else if (action === 'checkout') {
+        const res = await checkOutBooking(bookingId);
+        syncBooking(bookingId, { status: 'Completed', checkedOutAt: res.checked_out_at });
+      } else if (action === 'cancel') {
+        await updateBookingStatus(bookingId, 'Cancelled');
+        syncBooking(bookingId, { status: 'Cancelled' });
+      }
+    } catch { showToast('Failed to update booking.'); }
     finally { setActionLoading(null); }
   }
 
-  async function handleCheckIn(bookingId) {
-    setActionLoading(bookingId);
-    try {
-      const res = await checkInBooking(bookingId);
-      syncBooking(bookingId, { status: 'Checked In', checkedInAt: res.checked_in_at });
-    } catch { showToast('Failed to check in.'); }
-    finally { setActionLoading(null); }
-  }
-
-  async function handleCheckOut(bookingId) {
-    setActionLoading(bookingId);
-    try {
-      const res = await checkOutBooking(bookingId);
-      syncBooking(bookingId, { status: 'Completed', checkedOutAt: res.checked_out_at });
-    } catch { showToast('Failed to check out.'); }
-    finally { setActionLoading(null); }
-  }
-
-  // ── amenities ──────────────────────────────────────────────────────────────
-  async function handleAddAmenity() {
-    if (!addingAmenity?.name || !viewBooking) return;
-    setAmenityLoading(true);
-    try {
-      const res = await addAmenity(viewBooking.booking_id, addingAmenity.name, addingAmenity.qty || 1);
-      const newAmenity = res.data;
-      const newTotal   = res.new_total;
-      const updated = {
-        amenities: [...(viewBooking.amenities || []), newAmenity],
-        total: newTotal,
-      };
-      syncBooking(viewBooking.booking_id, updated);
-      setAddingAmenity(null);
-    } catch (err) {
-      showToast(err?.response?.data?.message || 'Failed to add amenity.');
-    } finally {
-      setAmenityLoading(false);
-    }
-  }
-
-  async function handleRemoveAmenity(amenityId, amenityTotal) {
-    if (!viewBooking) return;
-    setAmenityLoading(true);
-    try {
-      const res = await removeAmenity(viewBooking.booking_id, amenityId);
-      const updated = {
-        amenities: (viewBooking.amenities || []).filter(a => a.id !== amenityId),
-        total: res.new_total,
-      };
-      syncBooking(viewBooking.booking_id, updated);
-    } catch { showToast('Failed to remove amenity.'); }
-    finally { setAmenityLoading(false); }
-  }
+  const CONFIRM_CONFIG = {
+    confirm:  { label: 'Confirm Booking', icon: 'fa-check',        color: 'blue',   desc: 'Mark this booking as confirmed?' },
+    checkin:  { label: 'Check In Guest',  icon: 'fa-door-open',    color: 'purple', desc: 'Check in the guest for this booking?' },
+    checkout: { label: 'Check Out Guest', icon: 'fa-sign-out-alt', color: 'green',  desc: 'Complete this booking and check out the guest?' },
+    cancel:   { label: 'Cancel Booking',  icon: 'fa-ban',          color: 'red',    desc: 'Cancel this booking? This cannot be undone.' },
+  };
+  const COLOR_BTN = { blue: 'bg-blue-600 hover:bg-blue-700', purple: 'bg-purple-600 hover:bg-purple-700', green: 'bg-green-600 hover:bg-green-700', red: 'bg-red-600 hover:bg-red-700' };
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
       <Toast message={toast} type={toastType} onClose={clearToast} />
-      {/* ── View Booking Modal ── */}
-      {viewBooking && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Booking — {viewBooking.id}</h3>
-                <button onClick={() => { setViewBooking(null); setAddingAmenity(null); }}
-                  className="text-gray-500 hover:text-gray-700">
-                  <i className="fas fa-times"></i>
+      {/* ── Quick-Action Confirmation Modal ── */}
+      {confirmState && (() => {
+        const cfg = CONFIRM_CONFIG[confirmState.action];
+        const b   = confirmState.booking;
+        const wi  = parseWalkIn(b);
+        const guest = wi ? wi.name : b.guest;
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+              <div className={`rounded-t-2xl px-6 py-4 flex items-center gap-3 ${{confirm:'bg-blue-600',checkin:'bg-purple-600',checkout:'bg-green-600',cancel:'bg-red-600'}[confirmState.action]}`}>
+                <i className={`fas ${cfg.icon} text-white text-lg`}></i>
+                <h3 className="text-white font-semibold text-base">{cfg.label}</h3>
+              </div>
+              <div className="px-6 py-5 space-y-4">
+                <p className="text-sm text-slate-600">{cfg.desc}</p>
+                <div className="bg-slate-50 rounded-xl divide-y divide-slate-100 text-sm">
+                  {[
+                    ['Booking ID', b.id],
+                    ['Guest',      guest],
+                    ['Room',       b.roomType],
+                    ['Total',      fmtMoney(b.total)],
+                  ].map(([label, val]) => (
+                    <div key={label} className="flex justify-between px-4 py-2">
+                      <span className="text-slate-500">{label}</span>
+                      <span className="font-medium text-slate-800">{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="px-6 pb-5 flex justify-end gap-3">
+                <button onClick={() => setConfirmState(null)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                  Cancel
                 </button>
-              </div>
-
-              {(() => {
-                const wi = parseWalkIn(viewBooking);
-                const guestName  = wi ? wi.name  : viewBooking.guest;
-                const guestEmail = wi ? wi.email : (viewBooking.guest_email || '—');
-                const guestPhone = wi ? wi.phone : (viewBooking.guest_phone || '—');
-                return (
-                  <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded text-sm mb-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Guest</p>
-                      <p className="font-medium">{guestName}</p>
-                      {wi && <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">Walk-in</span>}
-                    </div>
-                    <div><p className="text-xs text-gray-500">Status</p><StatusBadge status={viewBooking.status} /></div>
-                    <div><p className="text-xs text-gray-500">Email</p><p>{guestEmail}</p></div>
-                    <div><p className="text-xs text-gray-500">Phone</p><p>{guestPhone}</p></div>
-                    <div><p className="text-xs text-gray-500">Room Type</p><p className="font-medium">{viewBooking.roomType}</p></div>
-                    <div><p className="text-xs text-gray-500">Guests</p><p>{viewBooking.guests} pax</p></div>
-                    <div><p className="text-xs text-gray-500">Check-in</p><p>{fmtDateTime(viewBooking.checkIn)}</p></div>
-                    <div><p className="text-xs text-gray-500">Check-out</p><p>{fmtDateTime(viewBooking.checkOut)}</p></div>
-                    {viewBooking.checkedInAt && (
-                      <div><p className="text-xs text-gray-500">Actual Check-in</p>
-                        <p className="text-purple-700 font-medium">{fmtDateTime(viewBooking.checkedInAt)}</p></div>
-                    )}
-                    {viewBooking.checkedOutAt && (
-                      <div><p className="text-xs text-gray-500">Actual Check-out</p>
-                        <p className="text-green-700 font-medium">{fmtDateTime(viewBooking.checkedOutAt)}</p></div>
-                    )}
-                    <div>
-                      <p className="text-xs text-gray-500">Total Amount</p>
-                      <p className="font-semibold text-blue-700">{fmtMoney(viewBooking.total)}</p>
-                    </div>
-                    <div><p className="text-xs text-gray-500">Payment Method</p><PayIcon method={viewBooking.paymentMethod} /></div>
-                    {!wi && viewBooking.specialRequests && (
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Special Requests</p>
-                        <p className="italic text-gray-700">{viewBooking.specialRequests}</p>
-                      </div>
-                    )}
-                    <div className="col-span-2">
-                      <p className="text-xs text-gray-500">Booked On</p>
-                      <p>{fmtDateTime(viewBooking.createdAt)}</p>
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* ── Amenities ── */}
-              <div className="mb-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Amenities</p>
-                {(viewBooking.amenities?.length ?? 0) === 0 ? (
-                  <p className="text-xs text-gray-400 mb-2">No amenities added.</p>
-                ) : (
-                  <div className="space-y-1 mb-2">
-                    {viewBooking.amenities.map(a => (
-                      <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm">
-                        <span>
-                          <i className={`fas ${a.name === 'Karaoke' ? 'fa-microphone' : 'fa-bed'} mr-2 text-gray-500`}></i>
-                          {a.name} {a.qty > 1 && `× ${a.qty}`}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-gray-600 text-xs">{fmtMoney(a.total)}</span>
-                          {['Confirmed', 'Checked In'].includes(viewBooking.status) && (
-                            <button
-                              onClick={() => handleRemoveAmenity(a.id, a.total)}
-                              disabled={amenityLoading}
-                              className="text-red-400 hover:text-red-600 text-xs disabled:opacity-40"
-                              title="Remove"
-                            ><i className="fas fa-times"></i></button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Add amenity — only for active bookings */}
-                {['Confirmed', 'Checked In'].includes(viewBooking.status) && (
-                  addingAmenity ? (
-                    <div className="border rounded-lg p-3 bg-blue-50">
-                      <p className="text-xs font-medium text-gray-700 mb-2">Add Amenity</p>
-                      <div className="flex gap-2 mb-2">
-                        {AMENITY_CATALOG.map(cat => (
-                          <button key={cat.name} type="button"
-                            onClick={() => setAddingAmenity({ name: cat.name, qty: 1 })}
-                            className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
-                              addingAmenity.name === cat.name
-                                ? 'border-blue-500 bg-blue-100 text-blue-700'
-                                : 'border-gray-300 bg-white text-gray-600'
-                            }`}
-                          >
-                            <i className={`fas ${cat.icon} mr-1`}></i>{cat.name}
-                            <br /><span className="text-gray-400">₱{cat.unit_price}{cat.type === 'qty' ? '/ea' : ' flat'}</span>
-                          </button>
-                        ))}
-                      </div>
-                      {addingAmenity.name === 'Pillow' && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="text-xs text-gray-600">Qty:</span>
-                          <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
-                            className="w-6 h-6 border rounded text-xs">−</button>
-                          <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
-                          <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(10, (a.qty || 1) + 1) }))}
-                            className="w-6 h-6 border rounded text-xs">+</button>
-                          <span className="ml-auto text-xs font-medium text-blue-700">
-                            ₱{(addingAmenity.qty || 1) * 50}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex gap-2">
-                        <button onClick={() => setAddingAmenity(null)}
-                          className="px-3 py-1 border rounded text-xs text-gray-600">Cancel</button>
-                        <button onClick={handleAddAmenity} disabled={amenityLoading}
-                          className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-40">
-                          {amenityLoading ? 'Adding...' : 'Add'}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setAddingAmenity({ name: 'Pillow', qty: 1 })}
-                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                    >
-                      <i className="fas fa-plus-circle"></i> Add amenity
-                    </button>
-                  )
-                )}
-              </div>
-
-              {/* Modal actions */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
-                {viewBooking.status === 'Pending' && (
-                  <button onClick={() => handleStatus(viewBooking.booking_id, 'Confirmed')}
-                    disabled={actionLoading === viewBooking.booking_id}
-                    className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50">
-                    <i className="fas fa-check mr-1"></i>Confirm
-                  </button>
-                )}
-                {viewBooking.status === 'Confirmed' && (
-                  <button onClick={() => handleCheckIn(viewBooking.booking_id)}
-                    disabled={actionLoading === viewBooking.booking_id}
-                    className="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50">
-                    <i className="fas fa-door-open mr-1"></i>Check In
-                  </button>
-                )}
-                {viewBooking.status === 'Checked In' && (
-                  <button onClick={() => handleCheckOut(viewBooking.booking_id)}
-                    disabled={actionLoading === viewBooking.booking_id}
-                    className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50">
-                    <i className="fas fa-sign-out-alt mr-1"></i>Check Out
-                  </button>
-                )}
-                {['Pending', 'Confirmed'].includes(viewBooking.status) && (
-                  <button onClick={() => handleStatus(viewBooking.booking_id, 'Cancelled')}
-                    disabled={actionLoading === viewBooking.booking_id}
-                    className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50">
-                    <i className="fas fa-times mr-1"></i>Cancel
-                  </button>
-                )}
-                <button onClick={() => { setViewBooking(null); setAddingAmenity(null); }}
-                  className="px-3 py-2 border rounded text-sm text-gray-700">Close</button>
+                <button onClick={execConfirm}
+                  className={`px-4 py-2 rounded-xl text-sm text-white font-medium ${COLOR_BTN[cfg.color]}`}>
+                  {cfg.label}
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        );
+      })()}
+
+      {/* ── View Booking Modal ── */}
+      {viewBooking && (
+        <BookingDetailModal
+          booking={viewBooking}
+          onClose={() => setViewBooking(null)}
+          onUpdated={updated => {
+            setViewBooking(updated);
+            syncBooking(updated.booking_id, updated);
+          }}
+          showToast={showToast}
+        />
       )}
 
       {/* ── Header ── */}
@@ -451,7 +293,7 @@ export default function Reservation() {
                   ) : filtered.map(b => {
                     const wi = parseWalkIn(b);
                     return (
-                      <tr key={b.booking_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => { setViewBooking(b); setAddingAmenity(null); }}>
+                      <tr key={b.booking_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewBooking(b)}>
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-gray-900">{wi ? wi.name : b.guest}</p>
@@ -468,33 +310,33 @@ export default function Reservation() {
                         <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
-                            <button onClick={() => { setViewBooking(b); setAddingAmenity(null); }} title="View details"
+                            <button onClick={() => setViewBooking(b)} title="View details"
                               className="text-blue-600 hover:text-blue-800">
                               <i className="fas fa-eye"></i>
                             </button>
                             {b.status === 'Pending' && (
-                              <button onClick={() => handleStatus(b.booking_id, 'Confirmed')}
+                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'confirm', booking: b })}
                                 disabled={actionLoading === b.booking_id}
                                 title="Confirm" className="text-blue-600 hover:text-blue-800 disabled:opacity-40">
                                 <i className="fas fa-check"></i>
                               </button>
                             )}
                             {b.status === 'Confirmed' && (
-                              <button onClick={() => handleCheckIn(b.booking_id)}
+                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'checkin', booking: b })}
                                 disabled={actionLoading === b.booking_id}
                                 title="Check In" className="text-purple-600 hover:text-purple-800 disabled:opacity-40">
                                 <i className="fas fa-door-open"></i>
                               </button>
                             )}
                             {b.status === 'Checked In' && (
-                              <button onClick={() => handleCheckOut(b.booking_id)}
+                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'checkout', booking: b })}
                                 disabled={actionLoading === b.booking_id}
                                 title="Check Out" className="text-green-600 hover:text-green-800 disabled:opacity-40">
                                 <i className="fas fa-sign-out-alt"></i>
                               </button>
                             )}
                             {['Pending', 'Confirmed'].includes(b.status) && (
-                              <button onClick={() => handleStatus(b.booking_id, 'Cancelled')}
+                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'cancel', booking: b })}
                                 disabled={actionLoading === b.booking_id}
                                 title="Cancel" className="text-red-600 hover:text-red-800 disabled:opacity-40">
                                 <i className="fas fa-ban"></i>

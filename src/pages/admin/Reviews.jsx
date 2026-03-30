@@ -10,6 +10,7 @@ export default function AdminReviews() {
   const [filterRating, setFilterRating] = useState("");
   const [searchTerm,   setSearchTerm]   = useState("");
   const [viewReview,   setViewReview]   = useState(null);
+  const [pendingAction, setPendingAction] = useState(null); // { id, type: 'approve'|'reject'|'feature', label, desc, featured? }
   const [toast, showToast, clearToast, toastType] = useToast();
 
   useEffect(() => {
@@ -27,17 +28,24 @@ export default function AdminReviews() {
     return matchSearch && matchStatus && matchRating;
   });
 
-  async function handleStatus(id, status) {
+  async function execPendingAction() {
+    if (!pendingAction) return;
+    const { id, type, featured } = pendingAction;
+    setPendingAction(null);
     try {
-      await updateAdminReview(id, { status });
-      setReviews(rs => rs.map(r => r.id === id ? { ...r, status } : r));
-    } catch { showToast("Failed to update review."); }
-  }
-
-  async function handleFeature(id, featured) {
-    try {
-      await updateAdminReview(id, { featured });
-      setReviews(rs => rs.map(r => r.id === id ? { ...r, featured } : r));
+      if (type === 'approve') {
+        await updateAdminReview(id, { status: 'Approved' });
+        setReviews(rs => rs.map(r => r.id === id ? { ...r, status: 'Approved' } : r));
+        if (viewReview?.id === id) setViewReview(v => ({ ...v, status: 'Approved' }));
+      } else if (type === 'reject') {
+        await updateAdminReview(id, { status: 'Rejected' });
+        setReviews(rs => rs.map(r => r.id === id ? { ...r, status: 'Rejected' } : r));
+        if (viewReview?.id === id) setViewReview(v => ({ ...v, status: 'Rejected' }));
+      } else if (type === 'feature') {
+        await updateAdminReview(id, { featured });
+        setReviews(rs => rs.map(r => r.id === id ? { ...r, featured } : r));
+        if (viewReview?.id === id) setViewReview(v => ({ ...v, featured }));
+      }
     } catch { showToast("Failed to update review."); }
   }
 
@@ -48,6 +56,44 @@ export default function AdminReviews() {
   return (
     <div className="p-6 space-y-6">
       <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* ── Review Action Confirmation Modal ── */}
+      {pendingAction && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+            <div className={`rounded-t-2xl px-6 py-4 flex items-center gap-3 ${{ approve: 'bg-sky-600', reject: 'bg-rose-600', feature: 'bg-emerald-600' }[pendingAction.type]}`}>
+              <i className={`fas ${{ approve: 'fa-check', reject: 'fa-ban', feature: 'fa-heart' }[pendingAction.type]} text-white text-lg`}></i>
+              <h3 className="text-white font-semibold text-base">{pendingAction.label}</h3>
+            </div>
+            <div className="px-6 py-5 space-y-3">
+              <p className="text-sm text-slate-600">{pendingAction.desc}</p>
+              <div className="bg-slate-50 rounded-xl divide-y divide-slate-100 text-sm">
+                {[
+                  ['Guest',   reviews.find(r => r.id === pendingAction.id)?.guestName || '—'],
+                  ['Rating',  `${reviews.find(r => r.id === pendingAction.id)?.rating || '—'} / 5`],
+                  ['Status',  reviews.find(r => r.id === pendingAction.id)?.status || '—'],
+                ].map(([lbl, val]) => (
+                  <div key={lbl} className="flex justify-between px-4 py-2">
+                    <span className="text-slate-500">{lbl}</span>
+                    <span className="font-medium text-slate-800">{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="px-6 pb-5 flex justify-end gap-3">
+              <button onClick={() => setPendingAction(null)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button onClick={execPendingAction}
+                className={`px-4 py-2 rounded-xl text-sm text-white font-medium ${{ approve: 'bg-sky-600 hover:bg-sky-700', reject: 'bg-rose-600 hover:bg-rose-700', feature: 'bg-emerald-600 hover:bg-emerald-700' }[pendingAction.type]}`}>
+                {pendingAction.label}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Guest Reviews</h1>
         <p className="text-sm text-slate-500 mt-1">Monitor guest feedback and keep your service quality high.</p>
@@ -140,18 +186,18 @@ export default function AdminReviews() {
 
                     {review.status === "Pending" && (
                       <>
-                        <button onClick={() => handleStatus(review.id, "Approved")}
+                        <button onClick={() => setPendingAction({ id: review.id, type: 'approve', label: 'Approve Review', desc: 'This review will be approved and made visible to guests.' })}
                           className="inline-flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700 hover:bg-sky-100">
                           <i className="fas fa-check"></i> Approve
                         </button>
-                        <button onClick={() => handleStatus(review.id, "Rejected")}
+                        <button onClick={() => setPendingAction({ id: review.id, type: 'reject', label: 'Reject Review', desc: 'This review will be rejected and hidden from guests.' })}
                           className="inline-flex items-center gap-1 rounded-lg bg-rose-50 px-3 py-1 text-xs font-medium text-rose-700 hover:bg-rose-100">
                           <i className="fas fa-ban"></i> Reject
                         </button>
                       </>
                     )}
 
-                    <button onClick={() => handleFeature(review.id, !review.featured)}
+                    <button onClick={() => setPendingAction({ id: review.id, type: 'feature', label: review.featured ? 'Unfeature Review' : 'Feature Review', desc: review.featured ? 'Remove this review from the featured section.' : 'This review will be highlighted in the featured section.', featured: !review.featured })}
                       className={`inline-flex items-center gap-1 rounded-lg px-3 py-1 text-xs font-medium ${
                         review.featured ? "bg-rose-50 text-rose-700 hover:bg-rose-100" : "bg-sky-50 text-sky-700 hover:bg-sky-100"
                       }`}>
@@ -212,12 +258,12 @@ export default function AdminReviews() {
               {viewReview.status === "Pending" && (
                 <>
                   <button
-                    onClick={() => { handleStatus(viewReview.id, "Approved"); setViewReview(v => ({ ...v, status: "Approved" })); }}
+                    onClick={() => setPendingAction({ id: viewReview.id, type: 'approve', label: 'Approve Review', desc: 'This review will be approved and made visible to guests.' })}
                     className="px-3 py-2 bg-sky-600 text-white rounded-xl text-sm hover:bg-sky-700">
                     Approve
                   </button>
                   <button
-                    onClick={() => { handleStatus(viewReview.id, "Rejected"); setViewReview(v => ({ ...v, status: "Rejected" })); }}
+                    onClick={() => setPendingAction({ id: viewReview.id, type: 'reject', label: 'Reject Review', desc: 'This review will be rejected and hidden from guests.' })}
                     className="px-3 py-2 bg-rose-600 text-white rounded-xl text-sm hover:bg-rose-700">
                     Reject
                   </button>

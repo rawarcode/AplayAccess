@@ -3,6 +3,7 @@ import Sidebar from './Layout/Sidebar';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import NotificationBell from '../../components/ui/NotificationBell';
+import BookingDetailModal from './BookingDetailModal';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -129,18 +130,75 @@ const HK_CONFIG = {
 };
 const HK_NEXT = { clean: 'dirty', dirty: 'cleaning', cleaning: 'clean' };
 
+// ─── HousekeepingModal — shown when card has no active booking (vacant) ───────
+function HousekeepingModal({ room, onClose, onHousekeepingChange }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+         onMouseDown={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl">
+        <div className="bg-green-500 rounded-t-xl p-5 flex items-center justify-between">
+          <div>
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-2 py-1 rounded-full bg-black bg-opacity-25 text-white mb-2">
+              <i className="fas fa-check-circle text-xs"></i> VACANT
+            </span>
+            <h2 className="text-xl font-bold text-white leading-tight">{room.name}</h2>
+            {room.type && <p className="text-sm opacity-80 text-white mt-0.5">{room.type}</p>}
+          </div>
+          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 text-xl font-bold">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+        <div className="p-5">
+          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Housekeeping Status</p>
+          <div className="flex gap-2">
+            {['clean', 'dirty', 'cleaning'].map(status => {
+              const hk = HK_CONFIG[status];
+              const active = (room.housekeeping_status ?? 'clean') === status;
+              return (
+                <button
+                  key={status}
+                  onClick={() => { onHousekeepingChange(room.id, status); onClose(); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border-2 transition-all
+                    ${active ? `${hk.bg} ${hk.text} border-current` : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
+                >
+                  <i className={`fas ${hk.icon}`}></i>{hk.label}
+                  {active && <i className="fas fa-check text-[10px]"></i>}
+                </button>
+              );
+            })}
+          </div>
+          <button onClick={onClose} className="mt-4 w-full py-2 border rounded text-sm text-gray-600 hover:bg-gray-50">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function guestName(booking) {
+  if (!booking) return null;
+  const match = booking.specialRequests?.match(/^Walk-in:\s*([^,]+)/);
+  return match?.[1]?.trim() || booking.guest || null;
+}
+
 // ─── RoomCard ─────────────────────────────────────────────────────────────────
-function RoomCard({ room, info, onHousekeepingChange }) {
+function RoomCard({ room, info, onHousekeepingChange, onClick }) {
   const config = STATUS_CONFIG[info.status];
   const hk     = HK_CONFIG[room.housekeeping_status ?? 'clean'];
+  const guest  = guestName(info.booking);
 
   return (
-    <div className={`
-      ${config.bg} ${config.border} ${config.text}
-      border-2 rounded-xl p-4 flex flex-col justify-between
-      min-h-[160px] shadow-md transition-all duration-300
-      ${info.status === 'occupied' && info.urgency === 'soon' ? 'animate-pulse' : ''}
-    `}>
+    <div
+      onClick={onClick}
+      className={`
+        ${config.bg} ${config.border} ${config.text}
+        border-2 rounded-xl p-4 flex flex-col justify-between
+        min-h-[160px] shadow-md transition-all duration-300 cursor-pointer
+        hover:opacity-90 hover:scale-[1.02]
+        ${info.status === 'occupied' && info.urgency === 'soon' ? 'animate-pulse' : ''}
+      `}
+    >
       {/* Status badge */}
       <div className="flex items-center justify-between mb-2">
         <span className={`
@@ -162,6 +220,11 @@ function RoomCard({ room, info, onHousekeepingChange }) {
         {room.type && (
           <p className={`text-xs mt-0.5 ${info.status === 'pending' ? 'text-gray-700' : 'opacity-80'}`}>
             {room.type}
+          </p>
+        )}
+        {guest && (
+          <p className={`text-xs mt-1 font-semibold truncate ${info.status === 'pending' ? 'text-gray-800' : 'text-white opacity-90'}`}>
+            <i className="fas fa-user mr-1 opacity-70"></i>{guest}
           </p>
         )}
       </div>
@@ -225,6 +288,7 @@ export default function FDRooms() {
   const [error, setError]       = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [filter, setFilter]     = useState('all');
+  const [selectedSlot, setSelectedSlot] = useState(null); // { room, info }
   const [toast, showToast, clearToast, toastType] = useToast();
 
   const load = useCallback(() => {
@@ -289,6 +353,22 @@ export default function FDRooms() {
   return (
     <Sidebar>
       <Toast message={toast} type={toastType} onClose={clearToast} />
+      {selectedSlot && (
+        selectedSlot.info.booking ? (
+          <BookingDetailModal
+            booking={selectedSlot.info.booking}
+            onClose={() => setSelectedSlot(null)}
+            onUpdated={() => load()}
+            showToast={showToast}
+          />
+        ) : (
+          <HousekeepingModal
+            room={selectedSlot.room}
+            onClose={() => setSelectedSlot(null)}
+            onHousekeepingChange={handleHousekeeping}
+          />
+        )
+      )}
       {/* ── Header ── */}
       <header className="bg-white shadow-sm">
         <div className="flex items-center justify-between p-4">
@@ -373,7 +453,8 @@ export default function FDRooms() {
                 {filteredInfos
                   .filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter)
                   .map(({ room, dayInfo }) => (
-                    <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping} />
+                    <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
+                      onClick={() => setSelectedSlot({ room, info: dayInfo })} />
                   ))
                 }
               </div>
@@ -395,7 +476,8 @@ export default function FDRooms() {
                 {filteredInfos
                   .filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter)
                   .map(({ room, nightInfo }) => (
-                    <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping} />
+                    <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
+                      onClick={() => setSelectedSlot({ room, info: nightInfo })} />
                   ))
                 }
               </div>

@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
 import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus } from '../../lib/frontdeskApi';
+import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import NotificationBell from '../../components/ui/NotificationBell';
+import BookingDetailModal from './BookingDetailModal';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -99,13 +101,20 @@ export default function WalkIn() {
   const [pricing, setPricing]             = useState(PRICING_DEFAULTS);
   const [loading, setLoading]             = useState(true);
   const [formOpen, setFormOpen]           = useState(false);
-  const [submitting, setSubmitting]       = useState(false);
+  const [submitting,   setSubmitting]     = useState(false);
+  const [confirmOpen,  setConfirmOpen]   = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [error, setError]                 = useState('');
   const [formError, setFormError]         = useState('');
   const [form, setForm]                   = useState(EMPTY_FORM);
   const [viewWalkin, setViewWalkin]       = useState(null);
   const [toast, showToast, clearToast, toastType] = useToast();
+
+  // Promo code
+  const [promoInput,   setPromoInput]   = useState('');
+  const [promoResult,  setPromoResult]  = useState(null);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError,   setPromoError]   = useState('');
 
   const today = todayStr();
 
@@ -128,6 +137,47 @@ export default function WalkIn() {
   }
   useEffect(() => { loadAll(); }, []);
 
+  // Room availability — same check as BookingModal
+  const [availability,  setAvailability]  = useState(null);
+  const [availChecking, setAvailChecking] = useState(false);
+
+  useEffect(() => {
+    if (!form.date) { setAvailability(null); return; }
+    if (form.bookingType === 'day' && !form.time) return;
+    const params = new URLSearchParams({
+      date:      form.date,
+      time:      form.time,
+      overnight: form.bookingType === 'overnight' ? '1' : '0',
+    });
+    setAvailChecking(true);
+    api.get(`/api/availability?${params}`)
+      .then(r => {
+        const map = {};
+        (r.data?.data ?? []).forEach(rm => { map[rm.name] = rm.available; });
+        setAvailability(map);
+      })
+      .catch(() => setAvailability(null))
+      .finally(() => setAvailChecking(false));
+  }, [form.date, form.time, form.bookingType]);
+
+  // Hide past time slots when date is today
+  const availableSlots = useMemo(() => {
+    if (form.date !== today) return DAY_TIME_SLOTS;
+    const now     = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    return DAY_TIME_SLOTS.filter(s => {
+      const [hh, mm] = s.value.split(':').map(Number);
+      return hh * 60 + mm > nowMins;
+    });
+  }, [form.date, today]);
+
+  // Auto-advance to earliest valid slot when available slots change
+  useEffect(() => {
+    if (availableSlots.length === 0) return;
+    const stillValid = availableSlots.some(s => s.value === form.time);
+    if (!stillValid) setField('time', availableSlots[0].value);
+  }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
   const todayBookings = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
@@ -142,25 +192,59 @@ export default function WalkIn() {
   const previewExtraFee = Math.max(0, previewGuests - pricing.free_guest_limit) * pricing.extra_guest_fee;
   const previewEntrance = previewGuests * pricing.entrance_fee;
   const amenityTotal    = (Number(form.pillow) || 0) * 50 + (form.karaoke ? 800 : 0);
-  const previewTotal    = baseRate + previewExtraFee + previewEntrance + amenityTotal;
+  const previewSubtotal = baseRate + previewExtraFee + previewEntrance + amenityTotal;
+  const promoDiscount   = promoResult?.discount_amount ?? 0;
+  const previewTotal    = Math.max(previewSubtotal - promoDiscount, 0);
   const previewCheckOut = computeCheckOut(form.date, form.time, form.bookingType);
 
-  async function handleCreate(e) {
+  async function applyPromo() {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError('');
+    setPromoResult(null);
+    try {
+      const res = await validatePromo(code, previewSubtotal);
+      const d   = res.data;
+      if (d.valid) {
+        setPromoResult(d);
+      } else {
+        setPromoError(d.message || 'Invalid promo code.');
+      }
+    } catch {
+      setPromoError('Could not validate promo code.');
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  function removePromo() {
+    setPromoResult(null);
+    setPromoInput('');
+    setPromoError('');
+  }
+
+  // Step 1 — validate → show confirmation
+  function handleCreate(e) {
     e.preventDefault();
     setFormError('');
-
     if (!form.firstName.trim() || !form.lastName.trim()) {
       setFormError('Guest name is required.'); return;
     }
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
-    if (!form.roomId) { setFormError('Please select a room.'); return; }
+    if (!form.roomId)       { setFormError('Please select a room.'); return; }
+    const selRoom = rooms.find(r => String(r.id) === String(form.roomId));
+    if (selRoom && availability?.[selRoom.name] === false) {
+      setFormError('This room is not available for the selected date and time.'); return;
+    }
+    setConfirmOpen(true);
+  }
 
-    // For overnight, backend forces 6PM; for day, send chosen time
-    const checkIn   = isOvernight
-      ? `${form.date} 18:00:00`
-      : `${form.date} ${form.time}:00`;
+  // Step 2 — confirmed → call API
+  async function handleConfirmCreate() {
+    setConfirmOpen(false);
+    const checkIn   = isOvernight ? `${form.date} 18:00:00` : `${form.date} ${form.time}:00`;
     const guestName = `${form.firstName.trim()} ${form.lastName.trim()}`;
-
     const amenities = [];
     if (Number(form.pillow) > 0) amenities.push({ name: 'Pillow',  qty: Number(form.pillow) });
     if (form.karaoke)            amenities.push({ name: 'Karaoke', qty: 1 });
@@ -178,10 +262,12 @@ export default function WalkIn() {
         special_requests:  form.notes.trim() || undefined,
         overnight:         isOvernight,
         amenities,
+        promo_code:        promoResult ? promoInput.trim().toUpperCase() : null,
+        discount:          promoDiscount,
       });
-
       setFormOpen(false);
       setForm({ ...EMPTY_FORM, date: today });
+      setPromoInput(''); setPromoResult(null); setPromoError('');
       loadAll();
     } catch (err) {
       setFormError(
@@ -209,63 +295,196 @@ export default function WalkIn() {
   return (
     <Sidebar>
       <Toast message={toast} type={toastType} onClose={clearToast} />
-      {/* ── View Booking Modal ── */}
-      {viewWalkin && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-lg">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold">Booking Details</h3>
-                <button onClick={() => setViewWalkin(null)} className="text-gray-500 hover:text-gray-700">
+      {/* ── Walk-in Confirmation Modal ── */}
+      {confirmOpen && (() => {
+        const selRoom    = rooms.find(r => String(r.id) === String(form.roomId));
+        const guestName  = `${form.firstName.trim()} ${form.lastName.trim()}`;
+        const checkInLabel  = isOvernight ? '6:00 PM' : DAY_TIME_SLOTS.find(t => t.value === form.time)?.label;
+        const checkOutLabel = isOvernight ? '6:00 AM (next day)' : fmtTime12(computeCheckOut(form.date, form.time, form.bookingType));
+        const dateLabel  = form.date ? new Date(form.date + 'T00:00:00').toLocaleDateString('en-PH', {
+          weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+        }) : '—';
+        return (
+          <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
+            <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
+            <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+
+              {/* Header */}
+              <div className="bg-blue-700 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3 text-white">
+                  <i className="fas fa-clipboard-check text-xl"></i>
+                  <div>
+                    <h3 className="font-bold text-lg">Walk-in Booking Summary</h3>
+                    <p className="text-blue-200 text-xs">Review all details before confirming</p>
+                  </div>
+                </div>
+                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><p className="text-xs text-gray-500">Reservation ID</p><p className="font-medium">{viewWalkin.id}</p></div>
-                <div><p className="text-xs text-gray-500">Status</p><StatusBadge status={viewWalkin.status} /></div>
-                <div><p className="text-xs text-gray-500">Guest</p><p className="font-medium">{walkInName(viewWalkin)}</p></div>
-                <div><p className="text-xs text-gray-500">Phone</p><p>{viewWalkin.specialRequests?.match(/Phone:\s*([^,]+)/)?.[1]?.trim() || '—'}</p></div>
-                <div><p className="text-xs text-gray-500">Email</p><p>{viewWalkin.specialRequests?.match(/Email:\s*([^,]+)/)?.[1]?.trim() || '—'}</p></div>
-                <div><p className="text-xs text-gray-500">Room</p><p>{viewWalkin.roomType}</p></div>
-                <div><p className="text-xs text-gray-500">Check-in</p><p>{fmtDateTime(viewWalkin.checkIn)}</p></div>
-                <div><p className="text-xs text-gray-500">Check-out</p><p>{fmtDateTime(viewWalkin.checkOut)}</p></div>
-                <div><p className="text-xs text-gray-500">Guests</p><p>{viewWalkin.guests}</p></div>
-                <div><p className="text-xs text-gray-500">Total</p><p className="font-semibold text-green-700">{fmtMoney(viewWalkin.total)}</p></div>
-                <div><p className="text-xs text-gray-500">Payment</p><p className="capitalize">{viewWalkin.paymentMethod || '—'}</p></div>
-                <div><p className="text-xs text-gray-500">Booked At</p><p>{fmtDateTime(viewWalkin.createdAt)}</p></div>
-              </div>
-              <div className="flex justify-between items-center mt-6 pt-4 border-t">
-                <div className="flex gap-2">
-                  {viewWalkin.status === 'Pending' && (
-                    <button
-                      onClick={() => { handleStatus(viewWalkin.booking_id, 'Confirmed'); setViewWalkin(v => ({ ...v, status: 'Confirmed' })); }}
-                      disabled={actionLoading === viewWalkin.booking_id}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-40"
-                    >Confirm</button>
-                  )}
-                  {viewWalkin.status === 'Confirmed' && (
-                    <button
-                      onClick={() => { handleStatus(viewWalkin.booking_id, 'Completed'); setViewWalkin(v => ({ ...v, status: 'Completed' })); }}
-                      disabled={actionLoading === viewWalkin.booking_id}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-40"
-                    >Mark Completed</button>
-                  )}
-                  {['Pending', 'Confirmed'].includes(viewWalkin.status) && (
-                    <button
-                      onClick={() => { handleStatus(viewWalkin.booking_id, 'Cancelled'); setViewWalkin(v => ({ ...v, status: 'Cancelled' })); }}
-                      disabled={actionLoading === viewWalkin.booking_id}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-40"
-                    >Cancel</button>
+
+              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+
+                {/* Booking type badge */}
+                <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
+                  isOvernight ? 'bg-indigo-100 text-indigo-800' : 'bg-blue-100 text-blue-800'
+                }`}>
+                  <i className={`fas ${isOvernight ? 'fa-moon' : 'fa-sun'}`}></i>
+                  {isOvernight ? 'Overnight Stay' : 'Day Visit'}
+                </span>
+
+                {/* Guest & Booking Details */}
+                <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
+                  <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Guest</div>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100">
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium w-32">Name</td>
+                        <td className="px-4 py-2.5 font-semibold text-gray-900">{guestName}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Phone</td>
+                        <td className="px-4 py-2.5 text-gray-900">{form.phone}</td>
+                      </tr>
+                      {form.email && (
+                        <tr>
+                          <td className="px-4 py-2.5 text-gray-500 font-medium">Email</td>
+                          <td className="px-4 py-2.5 text-gray-900">{form.email}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Booking</div>
+                  <table className="w-full text-sm">
+                    <tbody className="divide-y divide-gray-100">
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium w-32">Room</td>
+                        <td className="px-4 py-2.5 font-semibold text-gray-900">{selRoom?.name || '—'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Date</td>
+                        <td className="px-4 py-2.5 text-gray-900">{dateLabel}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Check-in</td>
+                        <td className="px-4 py-2.5 text-gray-900">{checkInLabel}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Check-out</td>
+                        <td className="px-4 py-2.5 text-gray-900">{checkOutLabel}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Guests</td>
+                        <td className="px-4 py-2.5 text-gray-900">{previewGuests} {previewGuests === 1 ? 'person' : 'persons'}</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Payment</td>
+                        <td className="px-4 py-2.5 text-gray-900">{form.payMethod}</td>
+                      </tr>
+                      {form.notes && (
+                        <tr>
+                          <td className="px-4 py-2.5 text-gray-500 font-medium align-top">Notes</td>
+                          <td className="px-4 py-2.5 text-gray-700 italic">"{form.notes}"</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  {(form.pillow > 0 || form.karaoke) && (
+                    <>
+                      <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Add-ons</div>
+                      <table className="w-full text-sm">
+                        <tbody className="divide-y divide-gray-100">
+                          {form.pillow > 0 && (
+                            <tr>
+                              <td className="px-4 py-2.5 text-gray-500 font-medium w-32">Pillow</td>
+                              <td className="px-4 py-2.5 text-gray-900">× {form.pillow} — {fmtMoney(form.pillow * 50)}</td>
+                            </tr>
+                          )}
+                          {form.karaoke && (
+                            <tr>
+                              <td className="px-4 py-2.5 text-gray-500 font-medium">Karaoke</td>
+                              <td className="px-4 py-2.5 text-gray-900">₱800.00</td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </>
                   )}
                 </div>
-                <button onClick={() => setViewWalkin(null)}
-                  className="px-4 py-2 border rounded text-sm text-gray-700 hover:bg-gray-50">
-                  Close
+
+                {/* Pricing Breakdown */}
+                <div className={`rounded-xl border p-4 space-y-2 text-sm ${isOvernight ? 'bg-indigo-50 border-indigo-200' : 'bg-blue-50 border-blue-200'}`}>
+                  <p className={`font-semibold mb-1 ${isOvernight ? 'text-indigo-900' : 'text-blue-900'}`}>Payment Breakdown</p>
+                  <div className="flex justify-between text-gray-700">
+                    <span>{isOvernight ? 'Overnight rate' : 'Day visit rate'}</span>
+                    <span>{fmtMoney(baseRate)}</span>
+                  </div>
+                  {previewExtraFee > 0 && (
+                    <div className="flex justify-between text-orange-700">
+                      <span>Extra guests ({previewGuests - pricing.free_guest_limit} × {fmtMoney(pricing.extra_guest_fee)})</span>
+                      <span>+ {fmtMoney(previewExtraFee)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-gray-700">
+                    <span>Entrance fee ({previewGuests} × {fmtMoney(pricing.entrance_fee)})</span>
+                    <span>{fmtMoney(previewEntrance)}</span>
+                  </div>
+                  {(form.pillow > 0 || form.karaoke) && (
+                    <div className="flex justify-between text-gray-700">
+                      <span>Add-ons</span>
+                      <span>{fmtMoney(amenityTotal)}</span>
+                    </div>
+                  )}
+                  {promoDiscount > 0 ? (
+                    <>
+                      <div className="flex justify-between text-gray-400 border-t border-gray-200 pt-2">
+                        <span>Subtotal</span>
+                        <span className="line-through">{fmtMoney(previewSubtotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-green-700 font-medium">
+                        <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput.toUpperCase()})</span>
+                        <span>− {fmtMoney(promoDiscount)}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="border-t border-gray-200 pt-1"></div>
+                  )}
+                  <div className={`flex justify-between font-bold text-base border-t pt-2 ${isOvernight ? 'text-indigo-900 border-indigo-200' : 'text-blue-900 border-blue-200'}`}>
+                    <span>Total Due</span>
+                    <span>{fmtMoney(previewTotal)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+                <button onClick={() => setConfirmOpen(false)}
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  <i className="fas fa-arrow-left mr-2"></i>Back
+                </button>
+                <button onClick={handleConfirmCreate} disabled={submitting}
+                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                  {submitting
+                    ? <><i className="fas fa-spinner fa-spin"></i> Creating...</>
+                    : <><i className="fas fa-check"></i> Confirm Booking</>}
                 </button>
               </div>
             </div>
           </div>
-        </div>
+        );
+      })()}
+
+      {/* ── View Booking Modal ── */}
+      {viewWalkin && (
+        <BookingDetailModal
+          booking={viewWalkin}
+          onClose={() => setViewWalkin(null)}
+          onUpdated={updated => {
+            setViewWalkin(updated);
+            setBookings(prev => prev.map(b => b.booking_id === updated.booking_id ? { ...b, ...updated } : b));
+          }}
+          showToast={showToast}
+        />
       )}
 
       {/* ── New Walk-in Modal ── */}
@@ -355,14 +574,43 @@ export default function WalkIn() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Room *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Room *{availChecking && <span className="ml-1 text-gray-400 font-normal">Checking availability...</span>}
+                    </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
                       className="border rounded px-3 py-2 w-full text-sm" required>
                       <option value="">Select room</option>
-                      {rooms.map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
+                      {rooms.map(r => {
+                        const avail = availability?.[r.name];
+                        const label = availability === null
+                          ? r.name
+                          : avail === false
+                          ? `${r.name} — Not Available`
+                          : `${r.name} — Available`;
+                        return (
+                          <option key={r.id} value={r.id} disabled={avail === false}>
+                            {label}
+                          </option>
+                        );
+                      })}
                     </select>
+                    {(() => {
+                      const sel = rooms.find(r => String(r.id) === String(form.roomId));
+                      const avail = sel ? availability?.[sel.name] : undefined;
+                      if (avail === false) return (
+                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                          <i className="fas fa-times-circle"></i>
+                          This room is already booked for the selected date and time.
+                        </p>
+                      );
+                      if (avail === true) return (
+                        <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                          <i className="fas fa-check-circle"></i>
+                          Room is available.
+                        </p>
+                      );
+                      return null;
+                    })()}
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -385,15 +633,19 @@ export default function WalkIn() {
                   {!isOvernight ? (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Check-in Time *</label>
-                      <select value={form.time} onChange={e => setField('time', e.target.value)}
-                        className="border rounded px-3 py-2 w-full text-sm">
-                        {DAY_TIME_SLOTS.map(t => {
-                          const co = computeCheckOut(form.date, t.value, 'day');
-                          return (
-                            <option key={t.value} value={t.value}>{t.label} → {fmtTime12(co)}</option>
-                          );
-                        })}
-                      </select>
+                      {availableSlots.length === 0 ? (
+                        <p className="text-sm text-red-500 py-2">No available slots for today. Please select a future date.</p>
+                      ) : (
+                        <select value={form.time} onChange={e => setField('time', e.target.value)}
+                          className="border rounded px-3 py-2 w-full text-sm">
+                          {availableSlots.map(t => {
+                            const co = computeCheckOut(form.date, t.value, 'day');
+                            return (
+                              <option key={t.value} value={t.value}>{t.label} → {fmtTime12(co)}</option>
+                            );
+                          })}
+                        </select>
+                      )}
                     </div>
                   ) : (
                     <div>
@@ -472,6 +724,36 @@ export default function WalkIn() {
                   </button>
                 </div>
 
+                {/* Promo code */}
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <i className="fas fa-tag mr-1 text-blue-500"></i>Promo Code <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                  </label>
+                  {promoResult ? (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-md">
+                      <i className="fas fa-check-circle text-green-600"></i>
+                      <span className="text-sm text-green-800 font-medium flex-1">{promoResult.message}</span>
+                      <button type="button" onClick={removePromo} className="text-xs text-gray-500 hover:text-red-600 underline">Remove</button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                        onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), applyPromo())}
+                        placeholder="Enter promo code"
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-500"
+                      />
+                      <button type="button" onClick={applyPromo} disabled={!promoInput.trim() || promoLoading}
+                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
+                        {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
+                      </button>
+                    </div>
+                  )}
+                  {promoError && <p className="mt-1 text-xs text-red-600"><i className="fas fa-times-circle mr-1"></i>{promoError}</p>}
+                </div>
+
                 {/* Pricing preview */}
                 <div className={`p-3 rounded text-sm mb-4 border ${isOvernight ? 'bg-indigo-50 border-indigo-200' : 'bg-blue-50 border-blue-200'}`}>
                   <p className={`font-semibold mb-2 ${isOvernight ? 'text-indigo-800' : 'text-blue-800'}`}>
@@ -520,6 +802,18 @@ export default function WalkIn() {
                         <span>₱800.00</span>
                       </div>
                     )}
+                    {promoDiscount > 0 && (
+                      <>
+                        <div className="flex justify-between text-gray-400 line-through">
+                          <span>Subtotal</span>
+                          <span>{fmtMoney(previewSubtotal)}</span>
+                        </div>
+                        <div className="flex justify-between text-green-700 font-medium">
+                          <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput})</span>
+                          <span>− {fmtMoney(promoDiscount)}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                   <div className={`flex justify-between font-bold border-t pt-2 ${isOvernight ? 'text-indigo-800 border-indigo-200' : 'text-blue-800 border-blue-200'}`}>
                     <span>Total Due</span>
@@ -533,9 +827,9 @@ export default function WalkIn() {
                     Cancel
                   </button>
                   <button type="submit" disabled={submitting}
-                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-60">
-                    <i className="fas fa-plus mr-1"></i>
-                    {submitting ? 'Creating...' : 'Create Walk-in Booking'}
+                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2">
+                    <i className="fas fa-eye"></i>
+                    {submitting ? 'Creating...' : 'Review & Confirm'}
                   </button>
                 </div>
               </form>

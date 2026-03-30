@@ -132,7 +132,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
             >
               <i className="fas fa-sync-alt mr-1"></i>Refresh
             </button>
-            <span className="text-[11px] text-gray-400">Updates every 30s</span>
+            <span className="text-[11px] text-gray-400">Updates every 10s</span>
           </div>
         </div>
       )}

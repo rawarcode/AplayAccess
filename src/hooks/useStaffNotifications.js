@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { getAdminMessages } from '../lib/adminApi';
 import { getFdBookings, getFdRooms } from '../lib/frontdeskApi';
 
-const POLL_MS = 30_000; // 30 seconds
+const POLL_MS = 10_000; // 10 seconds
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
@@ -13,7 +13,15 @@ function todayStr() {
  * Designed to be called once per portal shell (AdminShell / frontdesk Sidebar) and shared
  * downward via NotificationContext — not called in leaf components.
  */
-export function useStaffNotifications() {
+const DEFAULT_PATHS = {
+  pendingBookings: '/admin/transactions',
+  messages:        '/admin/messages',
+  arrivals:        '/frontdesk/reservation',
+  rooms:           '/frontdesk/rooms',
+};
+
+export function useStaffNotifications(paths = {}) {
+  const p = { ...DEFAULT_PATHS, ...paths };
   const [counts, setCounts] = useState({
     unreadMessages:  0,
     pendingBookings: 0,
@@ -51,25 +59,25 @@ export function useStaffNotifications() {
       next.push({
         id: 'pending', icon: 'fa-clock', color: 'yellow',
         label: `${pendingBookings} pending booking${pendingBookings !== 1 ? 's' : ''} need approval`,
-        path: '/admin/transactions',
+        path: p.pendingBookings,
       });
     if (unreadMessages > 0)
       next.push({
         id: 'msgs', icon: 'fa-envelope', color: 'blue',
         label: `${unreadMessages} unread message${unreadMessages !== 1 ? 's' : ''}`,
-        path: '/admin/messages',
+        path: p.messages,
       });
     if (todayArrivals > 0)
       next.push({
         id: 'arrivals', icon: 'fa-plane-arrival', color: 'green',
         label: `${todayArrivals} guest arrival${todayArrivals !== 1 ? 's' : ''} today`,
-        path: '/frontdesk/reservation',
+        path: p.arrivals,
       });
     if (dirtyRooms > 0)
       next.push({
         id: 'rooms', icon: 'fa-broom', color: 'orange',
         label: `${dirtyRooms} room${dirtyRooms !== 1 ? 's' : ''} need housekeeping`,
-        path: '/frontdesk/rooms',
+        path: p.rooms,
       });
 
     setItems(next);

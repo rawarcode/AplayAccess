@@ -6,11 +6,13 @@ import { api } from "./api";
  * Returns { checkout_url, link_id, reference_number }
  * Guest selects GCash, Maya, or card on PayMongo's hosted checkout page.
  *
- * @param {number} bookingId  - the booking's database ID
+ * @param {number}  bookingId  - the booking's database ID
+ * @param {boolean} payFull    - true = charge full amount, false = reservation fee only
  */
-export async function createPaymentLink(bookingId) {
+export async function createPaymentLink(bookingId, payFull = false) {
   const res = await api.post("/api/payments/link", {
     booking_id: bookingId,
+    pay_full:   payFull,
   });
   return res.data;
 }

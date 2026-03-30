@@ -44,6 +44,7 @@ import OwnerDashboard from "./pages/owner/Dashboard.jsx";
 import OwnerFinancials from "./pages/owner/Financials.jsx";
 import OwnerTransactions from "./pages/owner/Transactions.jsx";
 import OwnerReports from "./pages/owner/Reports.jsx";
+import OwnerPromoCodes from "./pages/owner/PromoCodes.jsx";
 
 // Frontdesk portal
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
@@ -127,6 +128,7 @@ export default function App() {
         <Route path="financials"   element={<OwnerFinancials />} />
         <Route path="transactions" element={<OwnerTransactions />} />
         <Route path="reports"      element={<OwnerReports />} />
+        <Route path="promo-codes"  element={<OwnerPromoCodes />} />
       </Route>
 
       {/* ── Frontdesk portal (outside guest Layout) ── */}

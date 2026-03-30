@@ -72,7 +72,7 @@ export default function Messages() {
 
   // Scroll to bottom when thread is switched or after we send
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [currentId, scrollTick]);
 
   const totalUnread = useMemo(() => threads.reduce((t, c) => t + (c.unread || 0), 0), [threads]);

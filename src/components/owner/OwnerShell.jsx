@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import PortalTransition from "../PortalTransition.jsx";
+import { useStaffNotifications } from "../../hooks/useStaffNotifications.js";
+import NotificationContext from "../../context/NotificationContext.jsx";
+import NotificationBell from "../ui/NotificationBell.jsx";
 
 const OWNER_PROFILE_KEY = "owner_profile_v1";
 
@@ -10,6 +13,7 @@ const PAGE_TITLES = {
   "/owner/financials":   "Financial Reports",
   "/owner/transactions": "Transaction Records",
   "/owner/reports":      "Reports",
+  "/owner/promo-codes":  "Promo Codes",
 };
 
 const MENU = [
@@ -17,6 +21,7 @@ const MENU = [
   { path: "/owner/financials",   icon: "fa-chart-line",           label: "Financials"          },
   { path: "/owner/transactions", icon: "fa-file-invoice-dollar",  label: "Transaction Records" },
   { path: "/owner/reports",      icon: "fa-file-alt",             label: "Reports"             },
+  { path: "/owner/promo-codes",  icon: "fa-tag",                  label: "Promo Codes"         },
 ];
 
 function readLocalJson(key, fallback) {
@@ -37,6 +42,13 @@ export default function OwnerShell() {
   const navigate  = useNavigate();
   const { user, logout } = useAuth();
   const profileRef = useRef(null);
+
+  const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
+    pendingBookings: '/owner/transactions',
+    messages:        '/admin/messages',
+    arrivals:        '/frontdesk/reservation',
+    rooms:           '/frontdesk/rooms',
+  });
 
   const userName  = user?.name  || "Owner";
   const userEmail = user?.email || "owner@aplayaccess.com";
@@ -92,7 +104,10 @@ export default function OwnerShell() {
 
   if (switching) return <PortalTransition label={switching} />;
 
+  const notifCtx = { counts, items: notifItems, total: notifTotal, refresh: notifRefresh };
+
   return (
+    <NotificationContext.Provider value={notifCtx}>
     <div className="flex h-screen overflow-hidden">
 
       {/* Sidebar */}
@@ -173,9 +188,7 @@ export default function OwnerShell() {
           <div className="flex items-center justify-between p-4">
             <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
             <div className="flex items-center space-x-4">
-              <button className="relative p-2 text-gray-600 hover:text-gray-800 focus:outline-none">
-                <i className="fas fa-bell text-xl"></i>
-              </button>
+              <NotificationBell />
               <div className="relative" ref={profileRef}>
                 <button onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none">
@@ -307,5 +320,6 @@ export default function OwnerShell() {
         </div>
       )}
     </div>
+    </NotificationContext.Provider>
   );
 }

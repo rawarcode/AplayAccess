@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../../lib/notificationApi.js";
+import { getMessages } from "../../lib/messageApi.js";
 
-function NavItem({ to, children }) {
+function NavItem({ to, badge, children }) {
   return (
     <NavLink
       to={to}
@@ -16,7 +17,12 @@ function NavItem({ to, children }) {
         ].join(" ")
       }
     >
-      {children}
+      <span className="flex-1 flex items-center gap-3">{children}</span>
+      {badge > 0 && (
+        <span className="ml-auto bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+          {badge > 9 ? "9+" : badge}
+        </span>
+      )}
     </NavLink>
   );
 }
@@ -135,6 +141,22 @@ function NotificationBell() {
 export default function DashboardShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [msgUnread, setMsgUnread] = useState(0);
+
+  // Poll message unread count every 15s for sidebar badge
+  useEffect(() => {
+    function loadMsgs() {
+      getMessages()
+        .then((threads) => {
+          const count = threads.reduce((sum, t) => sum + (t.unread || 0), 0);
+          setMsgUnread(count);
+        })
+        .catch(() => {});
+    }
+    loadMsgs();
+    const id = setInterval(loadMsgs, 15_000);
+    return () => clearInterval(id);
+  }, []);
 
   function handleLogout() {
     logout?.();
@@ -173,7 +195,7 @@ export default function DashboardShell() {
               <li><NavItem to="/dashboard">🏠 Dashboard</NavItem></li>
               <li><NavItem to="/dashboard/bookings">📋 My Bookings</NavItem></li>
               <li><NavItem to="/dashboard/profile">👤 Edit Profile</NavItem></li>
-              <li><NavItem to="/dashboard/messages">✉️ Messages</NavItem></li>
+              <li><NavItem to="/dashboard/messages" badge={msgUnread}>✉️ Messages</NavItem></li>
             </ul>
           </nav>
         </aside>

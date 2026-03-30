@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Line, Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -10,57 +10,24 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import {
+  getAnalyticsOverview,
+  getAnalyticsBookings,
+  getAnalyticsRooms,
+} from "../../lib/adminApi.js";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 0 })}`;
 
-// Seeded LCG
-function makeRng(seed) {
-  let s = seed >>> 0;
-  return () => { s = (Math.imul(1664525, s) + 1013904223) >>> 0; return s / 4294967296; };
-}
-
-function genDailyData(days, seed) {
-  const rng = makeRng(seed);
-  const rows = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(2026, 2, 28 - i);
-    const bookings = Math.floor(rng() * 4);
-    const revenue  = bookings * Math.round(4000 + rng() * 6000);
-    rows.push({
-      date:     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`,
-      bookings,
-      revenue,
-    });
-  }
-  return rows;
-}
-
-// Pre-generate stable data for each period (this year + last year)
-const DATA = {
-  7:   { current: genDailyData(7,   42),  prev: genDailyData(7,   99)  },
-  30:  { current: genDailyData(30,  42),  prev: genDailyData(30,  99)  },
-  90:  { current: genDailyData(90,  42),  prev: genDailyData(90,  99)  },
-  365: { current: genDailyData(365, 42),  prev: genDailyData(365, 99)  },
-};
-
-const OVERVIEW = {
-  revenue_this_month: 186500,
-  revenue_last_month: 166200,
-  bookings_this_month: 31,
-  bookings_last_month: 26,
-  confirmed_bookings: 24,
-  pending_bookings: 3,
-  total_guests: 89,
-  total_bookings: 142,
-};
-
-const ROOM_TYPE_DATA = {
-  labels: ["Beachfront Suite", "Deluxe Room", "Family Cottage", "Standard Room"],
-  revenue:   [72000, 54000, 39200, 27000],
-  bookings:  [6, 9, 4, 12],
-};
+const BAR_COLORS = [
+  "rgba(59, 130, 246, 0.7)",
+  "rgba(16, 185, 129, 0.7)",
+  "rgba(251, 191, 36, 0.7)",
+  "rgba(139, 92, 246, 0.7)",
+  "rgba(236, 72, 153, 0.7)",
+];
+const DOT_COLORS = ["#3b82f6", "#10b981", "#fbbf24", "#8b5cf6", "#ec4899"];
 
 const lineOptions = {
   responsive: true,
@@ -74,9 +41,6 @@ const barOptions = {
   plugins: { legend: { position: "top" } },
   scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` } } },
 };
-
-const revenuePct  = Math.round(((OVERVIEW.revenue_this_month - OVERVIEW.revenue_last_month) / OVERVIEW.revenue_last_month) * 100);
-const bookingsDiff = OVERVIEW.bookings_this_month - OVERVIEW.bookings_last_month;
 
 function exportCSV(rows) {
   const headers = ["Date", "Bookings", "Revenue (PHP)"];
@@ -95,69 +59,77 @@ function exportCSV(rows) {
 
 export default function OwnerFinancials() {
   const [chartDays, setChartDays] = useState(30);
-  const [showYoY,   setShowYoY]   = useState(false);
 
-  const { current: chartData, prev: prevData } = DATA[chartDays];
+  const [overview,   setOverview]   = useState(null);
+  const [dailyData,  setDailyData]  = useState([]);
+  const [roomsData,  setRoomsData]  = useState([]);
+  const [loadingOv,  setLoadingOv]  = useState(true);
+  const [loadingChart, setLoadingChart] = useState(true);
 
-  const shortLabel = (date) => date.slice(5); // MM-DD
+  // Overview: load once
+  useEffect(() => {
+    getAnalyticsOverview()
+      .then((res) => setOverview(res.data.data))
+      .catch(() => {})
+      .finally(() => setLoadingOv(false));
+  }, []);
+
+  // Daily + rooms: reload when period changes
+  useEffect(() => {
+    setLoadingChart(true);
+    Promise.all([
+      getAnalyticsBookings(chartDays),
+      getAnalyticsRooms(chartDays),
+    ])
+      .then(([dailyRes, roomsRes]) => {
+        setDailyData(dailyRes.data.data ?? []);
+        setRoomsData(roomsRes.data.data ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingChart(false));
+  }, [chartDays]);
+
+  // Derived overview values
+  const revThisMonth  = overview?.revenue_this_month  ?? 0;
+  const revLastMonth  = overview?.revenue_last_month  ?? 0;
+  const revPct = revLastMonth > 0
+    ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100)
+    : 0;
+  const bookingsDiff = (overview?.bookings_this_month ?? 0) - (overview?.bookings_last_month ?? 0);
+
+  // Chart datasets
+  const shortLabel = (date) => (date ?? "").slice(5);
 
   const revenueLineData = {
-    labels: chartData.map((d) => shortLabel(d.date)),
-    datasets: [
-      {
-        label: "This Period",
-        data: chartData.map((d) => d.revenue),
-        borderColor: "rgba(59, 130, 246, 0.8)",
-        backgroundColor: "rgba(59, 130, 246, 0.1)",
-        tension: 0.3,
-        fill: true,
-      },
-      ...(showYoY ? [{
-        label: "Last Year",
-        data: prevData.map((d) => d.revenue),
-        borderColor: "rgba(156, 163, 175, 0.8)",
-        backgroundColor: "rgba(156, 163, 175, 0.05)",
-        tension: 0.3,
-        fill: false,
-        borderDash: [4, 4],
-      }] : []),
-    ],
+    labels: dailyData.map((d) => shortLabel(d.date)),
+    datasets: [{
+      label: "This Period",
+      data: dailyData.map((d) => Number(d.revenue ?? 0)),
+      borderColor: "rgba(59, 130, 246, 0.8)",
+      backgroundColor: "rgba(59, 130, 246, 0.1)",
+      tension: 0.3,
+      fill: true,
+    }],
   };
 
   const bookingsLineData = {
-    labels: chartData.map((d) => shortLabel(d.date)),
-    datasets: [
-      {
-        label: "This Period",
-        data: chartData.map((d) => d.bookings),
-        borderColor: "rgba(16, 185, 129, 0.8)",
-        backgroundColor: "rgba(16, 185, 129, 0.1)",
-        tension: 0.3,
-        fill: true,
-      },
-      ...(showYoY ? [{
-        label: "Last Year",
-        data: prevData.map((d) => d.bookings),
-        borderColor: "rgba(156, 163, 175, 0.8)",
-        backgroundColor: "rgba(156, 163, 175, 0.05)",
-        tension: 0.3,
-        fill: false,
-        borderDash: [4, 4],
-      }] : []),
-    ],
+    labels: dailyData.map((d) => shortLabel(d.date)),
+    datasets: [{
+      label: "This Period",
+      data: dailyData.map((d) => Number(d.bookings ?? 0)),
+      borderColor: "rgba(16, 185, 129, 0.8)",
+      backgroundColor: "rgba(16, 185, 129, 0.1)",
+      tension: 0.3,
+      fill: true,
+    }],
   };
 
   const roomBarData = {
-    labels: ROOM_TYPE_DATA.labels,
+    labels: roomsData.map((r) => r.label),
     datasets: [{
       label: "Revenue (₱)",
-      data: ROOM_TYPE_DATA.revenue,
-      backgroundColor: [
-        "rgba(59, 130, 246, 0.7)",
-        "rgba(16, 185, 129, 0.7)",
-        "rgba(251, 191, 36, 0.7)",
-        "rgba(139, 92, 246, 0.7)",
-      ],
+      data: roomsData.map((r) => Number(r.revenue ?? 0)),
+      backgroundColor: roomsData.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]),
       borderRadius: 6,
     }],
   };
@@ -173,12 +145,18 @@ export default function OwnerFinancials() {
             <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">This Month</span>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-600">This Month</span><span className="font-medium">{fmt(OVERVIEW.revenue_this_month)}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Last Month</span><span className="font-medium">{fmt(OVERVIEW.revenue_last_month)}</span></div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">This Month</span>
+              <span className="font-medium">{loadingOv ? "—" : fmt(revThisMonth)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Last Month</span>
+              <span className="font-medium">{loadingOv ? "—" : fmt(revLastMonth)}</span>
+            </div>
             <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
               <span className="font-medium text-gray-700">Change</span>
-              <span className={`font-bold ${revenuePct >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {revenuePct >= 0 ? "+" : ""}{revenuePct}%
+              <span className={`font-bold ${revPct >= 0 ? "text-green-600" : "text-red-600"}`}>
+                {loadingOv ? "—" : `${revPct >= 0 ? "+" : ""}${revPct}%`}
               </span>
             </div>
           </div>
@@ -190,13 +168,22 @@ export default function OwnerFinancials() {
             <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">This Month</span>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-600">This Month</span><span className="font-medium">{OVERVIEW.bookings_this_month}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Last Month</span><span className="font-medium">{OVERVIEW.bookings_last_month}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Confirmed</span><span className="font-medium">{OVERVIEW.confirmed_bookings}</span></div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">This Month</span>
+              <span className="font-medium">{loadingOv ? "—" : (overview?.bookings_this_month ?? 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Last Month</span>
+              <span className="font-medium">{loadingOv ? "—" : (overview?.bookings_last_month ?? 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Confirmed</span>
+              <span className="font-medium">{loadingOv ? "—" : (overview?.confirmed_bookings ?? 0)}</span>
+            </div>
             <div className="flex justify-between border-t border-green-200 pt-2 mt-2">
               <span className="font-medium text-gray-700">Change</span>
               <span className={`font-bold ${bookingsDiff >= 0 ? "text-green-600" : "text-red-600"}`}>
-                {bookingsDiff >= 0 ? "+" : ""}{bookingsDiff}
+                {loadingOv ? "—" : `${bookingsDiff >= 0 ? "+" : ""}${bookingsDiff}`}
               </span>
             </div>
           </div>
@@ -208,27 +195,24 @@ export default function OwnerFinancials() {
             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">All Time</span>
           </div>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between"><span className="text-gray-600">Total Guests</span><span className="font-medium">{OVERVIEW.total_guests}</span></div>
-            <div className="flex justify-between"><span className="text-gray-600">Pending Bookings</span><span className="font-medium">{OVERVIEW.pending_bookings}</span></div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Total Guests</span>
+              <span className="font-medium">{loadingOv ? "—" : (overview?.total_guests ?? 0)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Pending Bookings</span>
+              <span className="font-medium">{loadingOv ? "—" : (overview?.pending_bookings ?? 0)}</span>
+            </div>
             <div className="flex justify-between border-t border-purple-200 pt-2 mt-2">
               <span className="font-medium text-gray-700">Total Bookings</span>
-              <span className="font-bold text-purple-700">{OVERVIEW.total_bookings}</span>
+              <span className="font-bold text-purple-700">{loadingOv ? "—" : (overview?.total_bookings ?? 0)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Chart controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={showYoY}
-            onChange={(e) => setShowYoY(e.target.checked)}
-            className="rounded"
-          />
-          Compare with last year
-        </label>
+      {/* Period selector */}
+      <div className="flex justify-end">
         <select
           value={chartDays}
           onChange={(e) => setChartDays(Number(e.target.value))}
@@ -246,13 +230,25 @@ export default function OwnerFinancials() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Daily Revenue</h2>
           <div className="h-64">
-            <Line data={revenueLineData} options={lineOptions} />
+            {loadingChart ? (
+              <p className="text-sm text-gray-400">Loading...</p>
+            ) : dailyData.length > 0 ? (
+              <Line data={revenueLineData} options={lineOptions} />
+            ) : (
+              <p className="text-sm text-gray-400">No data for this period</p>
+            )}
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Daily Bookings</h2>
           <div className="h-64">
-            <Line data={bookingsLineData} options={lineOptions} />
+            {loadingChart ? (
+              <p className="text-sm text-gray-400">Loading...</p>
+            ) : dailyData.length > 0 ? (
+              <Line data={bookingsLineData} options={lineOptions} />
+            ) : (
+              <p className="text-sm text-gray-400">No data for this period</p>
+            )}
           </div>
         </div>
       </div>
@@ -260,27 +256,36 @@ export default function OwnerFinancials() {
       {/* Revenue by Room Type */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-lg font-semibold mb-4">Revenue by Room Type</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-          <div className="h-56">
-            <Bar data={roomBarData} options={barOptions} />
-          </div>
-          <div className="divide-y divide-slate-100">
-            {ROOM_TYPE_DATA.labels.map((label, i) => (
-              <div key={label} className="flex items-center justify-between py-2.5">
-                <div className="flex items-center gap-3">
-                  <span className="w-3 h-3 rounded-full shrink-0" style={{
-                    background: ["#3b82f6","#10b981","#fbbf24","#8b5cf6"][i]
-                  }} />
-                  <span className="text-sm text-gray-700">{label}</span>
+        {loadingChart ? (
+          <p className="text-sm text-gray-400">Loading...</p>
+        ) : roomsData.length === 0 ? (
+          <p className="text-sm text-gray-400">No room data for this period</p>
+        ) : (
+          <>
+            {/* Chart height scales with room count; min 224px, +28px per room above 4 */}
+            <div style={{ height: Math.max(224, 224 + (roomsData.length - 4) * 28) }}>
+              <Bar data={roomBarData} options={barOptions} />
+            </div>
+            {/* Legend list: 2-col grid when ≥5 rooms, single col otherwise */}
+            <div className={`mt-4 divide-y divide-slate-100 ${roomsData.length >= 5 ? "grid grid-cols-2 gap-x-6 divide-y-0" : ""}`}>
+              {roomsData.map((r, i) => (
+                <div key={r.label} className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ background: DOT_COLORS[i % DOT_COLORS.length] }}
+                    />
+                    <span className="text-sm text-gray-700 truncate">{r.label}</span>
+                  </div>
+                  <div className="text-right shrink-0 ml-3">
+                    <p className="text-sm font-semibold text-gray-900">{fmt(r.revenue)}</p>
+                    <p className="text-xs text-gray-400">{r.bookings} bookings</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-gray-900">{fmt(ROOM_TYPE_DATA.revenue[i])}</p>
-                  <p className="text-xs text-gray-400">{ROOM_TYPE_DATA.bookings[i]} bookings</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Daily Breakdown Table */}
@@ -288,7 +293,7 @@ export default function OwnerFinancials() {
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
           <button
-            onClick={() => exportCSV([...chartData].reverse())}
+            onClick={() => exportCSV([...dailyData].reverse())}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition"
           >
             <i className="fas fa-download text-xs"></i>
@@ -305,7 +310,11 @@ export default function OwnerFinancials() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {[...chartData].reverse().map((row, i) => (
+              {loadingChart ? (
+                <tr>
+                  <td colSpan={3} className="px-6 py-6 text-center text-slate-400">Loading...</td>
+                </tr>
+              ) : [...dailyData].reverse().map((row, i) => (
                 <tr key={i} className="hover:bg-slate-50">
                   <td className="px-6 py-3 text-slate-500">{row.date}</td>
                   <td className="px-6 py-3">{row.bookings}</td>
@@ -313,13 +322,19 @@ export default function OwnerFinancials() {
                 </tr>
               ))}
             </tbody>
-            <tfoot className="bg-slate-50 border-t-2 border-slate-300 text-sm font-semibold">
-              <tr>
-                <td className="px-6 py-3 text-slate-700">Total</td>
-                <td className="px-6 py-3 text-slate-900">{chartData.reduce((s, r) => s + r.bookings, 0)}</td>
-                <td className="px-6 py-3 text-slate-900">{fmt(chartData.reduce((s, r) => s + r.revenue, 0))}</td>
-              </tr>
-            </tfoot>
+            {!loadingChart && dailyData.length > 0 && (
+              <tfoot className="bg-slate-50 border-t-2 border-slate-300 text-sm font-semibold">
+                <tr>
+                  <td className="px-6 py-3 text-slate-700">Total</td>
+                  <td className="px-6 py-3 text-slate-900">
+                    {dailyData.reduce((s, r) => s + Number(r.bookings ?? 0), 0)}
+                  </td>
+                  <td className="px-6 py-3 text-slate-900">
+                    {fmt(dailyData.reduce((s, r) => s + Number(r.revenue ?? 0), 0))}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       </div>

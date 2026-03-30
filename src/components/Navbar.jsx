@@ -99,7 +99,7 @@ export default function Navbar() {
 
           {/* Book Now */}
           <Link
-            to="/resort?book=1"
+            to={user ? "/dashboard?book=1" : "/resort?book=1"}
             className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
             Book Now

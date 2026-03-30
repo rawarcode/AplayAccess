@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { getAdminBookings, getAnalyticsOverview } from "../../lib/adminApi.js";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -20,31 +22,16 @@ const pieOptions = {
   plugins: { legend: { position: "bottom" } },
 };
 
-const SAMPLE_BOOKINGS = [
-  { booking_id: 1,  checkIn: "2026-03-28", guest: "Maria Santos",    roomType: "Beachfront Suite", paymentMethod: "GCash",   total: 12000, status: "Confirmed" },
-  { booking_id: 2,  checkIn: "2026-03-27", guest: "John dela Cruz",  roomType: "Standard Room",    paymentMethod: "Cash",    total: 4500,  status: "Completed" },
-  { booking_id: 3,  checkIn: "2026-03-26", guest: "Ana Reyes",       roomType: "Family Cottage",   paymentMethod: "PayMaya", total: 9800,  status: "Confirmed" },
-  { booking_id: 4,  checkIn: "2026-03-25", guest: "Carlo Lim",       roomType: "Deluxe Room",      paymentMethod: "GCash",   total: 7200,  status: "Completed" },
-  { booking_id: 5,  checkIn: "2026-03-24", guest: "Rosa Mendoza",    roomType: "Beachfront Suite", paymentMethod: "Cash",    total: 12000, status: "Pending"   },
-  { booking_id: 6,  checkIn: "2026-03-23", guest: "Luis Garcia",     roomType: "Standard Room",    paymentMethod: "GCash",   total: 4500,  status: "Completed" },
-  { booking_id: 7,  checkIn: "2026-03-22", guest: "Celia Torres",    roomType: "Deluxe Room",      paymentMethod: "PayMaya", total: 7200,  status: "Cancelled" },
-  { booking_id: 8,  checkIn: "2026-03-21", guest: "Ramon Cruz",      roomType: "Family Cottage",   paymentMethod: "Cash",    total: 9800,  status: "Completed" },
-  { booking_id: 9,  checkIn: "2026-03-20", guest: "Lucia Bautista",  roomType: "Standard Room",    paymentMethod: "GCash",   total: 4500,  status: "Confirmed" },
-  { booking_id: 10, checkIn: "2026-03-19", guest: "Pedro Castillo",  roomType: "Beachfront Suite", paymentMethod: "PayMaya", total: 12000, status: "Completed" },
-  { booking_id: 11, checkIn: "2026-03-18", guest: "Gloria Navarro",  roomType: "Deluxe Room",      paymentMethod: "Cash",    total: 7200,  status: "Completed" },
-  { booking_id: 12, checkIn: "2026-03-17", guest: "Felix Domingo",   roomType: "Standard Room",    paymentMethod: "GCash",   total: 4500,  status: "Cancelled" },
-  { booking_id: 13, checkIn: "2026-03-16", guest: "Nora Villanueva", roomType: "Family Cottage",   paymentMethod: "PayMaya", total: 9800,  status: "Completed" },
-  { booking_id: 14, checkIn: "2026-03-15", guest: "Sergio Ramos",    roomType: "Standard Room",    paymentMethod: "Cash",    total: 4500,  status: "Confirmed" },
-  { booking_id: 15, checkIn: "2026-03-14", guest: "Elena Aquino",    roomType: "Beachfront Suite", paymentMethod: "GCash",   total: 12000, status: "Completed" },
-];
-
 const ITEMS_PER_PAGE = 5;
 
+const STATUS_PRIORITY = { Pending: 0, "Checked In": 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
+
 const STATUS_CLASSES = {
-  Confirmed: "bg-emerald-100 text-emerald-800",
-  Completed: "bg-blue-100 text-blue-800",
-  Pending:   "bg-yellow-100 text-yellow-800",
-  Cancelled: "bg-red-100 text-red-800",
+  Confirmed:   "bg-emerald-100 text-emerald-800",
+  Completed:   "bg-blue-100 text-blue-800",
+  Pending:     "bg-yellow-100 text-yellow-800",
+  Cancelled:   "bg-red-100 text-red-800",
+  "Checked In":"bg-teal-100 text-teal-800",
 };
 
 function buildPieData(bookings, key) {
@@ -65,8 +52,8 @@ function exportCSV(rows) {
   const lines = [
     headers.join(","),
     ...rows.map((b) => [
-      `RES-${String(b.booking_id).padStart(6, "0")}`,
-      b.checkIn,
+      b.id,
+      (b.checkIn ?? "").slice(0, 10),
       `"${b.guest}"`,
       `"${b.roomType}"`,
       b.paymentMethod || "",
@@ -84,49 +71,71 @@ function exportCSV(rows) {
 }
 
 export default function OwnerTransactions() {
+  const navigate = useNavigate();
+  const [allBookings, setAllBookings] = useState([]);
+  const [overview,    setOverview]    = useState(null);
+  const [loading,     setLoading]     = useState(true);
+
   const [search,      setSearch]      = useState("");
   const [searchField, setSearchField] = useState("guest");
   const [dateFrom,    setDateFrom]    = useState("");
   const [dateTo,      setDateTo]      = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
+  useEffect(() => {
+    Promise.all([getAdminBookings(), getAnalyticsOverview()])
+      .then(([bRes, ovRes]) => {
+        setAllBookings(bRes.data.data ?? []);
+        setOverview(ovRes.data.data);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
   const hasFilters = search || dateFrom || dateTo;
 
-  const filtered = SAMPLE_BOOKINGS.filter((b) => {
-    const val = search.toLowerCase();
-    let matchesSearch = true;
-    if (val) {
-      if (searchField === "guest")   matchesSearch = b.guest?.toLowerCase().includes(val);
-      if (searchField === "id")      matchesSearch = `res-${String(b.booking_id).padStart(6, "0")}`.includes(val);
-      if (searchField === "room")    matchesSearch = b.roomType?.toLowerCase().includes(val);
-      if (searchField === "payment") matchesSearch = b.paymentMethod?.toLowerCase().includes(val);
-    }
-    let matchesDate = true;
-    if (dateFrom) matchesDate = matchesDate && new Date(b.checkIn) >= new Date(dateFrom);
-    if (dateTo)   matchesDate = matchesDate && new Date(b.checkIn) <= new Date(dateTo + "T23:59:59");
-    return matchesSearch && matchesDate;
-  });
+  const filtered = useMemo(() => {
+    const list = allBookings.filter((b) => {
+      const val = search.toLowerCase();
+      let matchesSearch = true;
+      if (val) {
+        if (searchField === "guest")   matchesSearch = (b.guest ?? "").toLowerCase().includes(val);
+        if (searchField === "id")      matchesSearch = (b.id ?? "").toLowerCase().includes(val);
+        if (searchField === "room")    matchesSearch = (b.roomType ?? "").toLowerCase().includes(val);
+        if (searchField === "payment") matchesSearch = (b.paymentMethod ?? "").toLowerCase().includes(val);
+      }
+      let matchesDate = true;
+      const checkIn = (b.checkIn ?? "").slice(0, 10);
+      if (dateFrom) matchesDate = matchesDate && checkIn >= dateFrom;
+      if (dateTo)   matchesDate = matchesDate && checkIn <= dateTo;
+      return matchesSearch && matchesDate;
+    });
+    return list.sort(
+      (a, b) => (STATUS_PRIORITY[a.status] ?? 5) - (STATUS_PRIORITY[b.status] ?? 5)
+    );
+  }, [allBookings, search, searchField, dateFrom, dateTo]);
 
   const totalPages   = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const indexOfFirst = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentRows  = filtered.slice(indexOfFirst, indexOfFirst + ITEMS_PER_PAGE);
 
-  const filteredRevenue = filtered
-    .filter((b) => b.status !== "Cancelled")
-    .reduce((s, b) => s + Number(b.total || 0), 0);
+  const filteredRevenue = useMemo(() =>
+    filtered.filter((b) => b.status !== "Cancelled").reduce((s, b) => s + Number(b.total || 0), 0),
+    [filtered]
+  );
 
-  const nonCancelled = SAMPLE_BOOKINGS.filter((b) => b.status !== "Cancelled");
+  const nonCancelled = useMemo(() => allBookings.filter((b) => b.status !== "Cancelled"), [allBookings]);
   const totalRevenue = nonCancelled.reduce((s, b) => s + Number(b.total || 0), 0);
-  const avgTx        = nonCancelled.length ? totalRevenue / nonCancelled.length : 0;
+  const avgTx = nonCancelled.length ? totalRevenue / nonCancelled.length : 0;
 
-  const statusPieData  = buildPieData(SAMPLE_BOOKINGS, "status");
-  const paymentPieData = buildPieData(SAMPLE_BOOKINGS, "paymentMethod");
+  const statusPieData  = useMemo(() => buildPieData(allBookings, "status"),        [allBookings]);
+  const paymentPieData = useMemo(() => buildPieData(allBookings, "paymentMethod"), [allBookings]);
 
   const clearFilters = () => { setSearch(""); setDateFrom(""); setDateTo(""); setCurrentPage(1); };
-  const handleSearch = (v) => { setSearch(v); setCurrentPage(1); };
+  const handleSearch = (v) => { setSearch(v);      setCurrentPage(1); };
   const handleField  = (v) => { setSearchField(v); setCurrentPage(1); };
-  const handleFrom   = (v) => { setDateFrom(v); setCurrentPage(1); };
-  const handleTo     = (v) => { setDateTo(v); setCurrentPage(1); };
+  const handleFrom   = (v) => { setDateFrom(v);    setCurrentPage(1); };
+  const handleTo     = (v) => { setDateTo(v);      setCurrentPage(1); };
 
   return (
     <div className="p-6 space-y-6">
@@ -137,8 +146,11 @@ export default function OwnerTransactions() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total Bookings</p>
-              <h3 className="text-2xl font-bold mt-1">{SAMPLE_BOOKINGS.length}</h3>
-              <p className="text-xs text-green-500 mt-1"><i className="fas fa-arrow-up mr-1"></i>31 this month</p>
+              <h3 className="text-2xl font-bold mt-1">{loading ? "—" : allBookings.length}</h3>
+              <p className="text-xs text-green-500 mt-1">
+                <i className="fas fa-arrow-up mr-1"></i>
+                {loading ? "" : `${overview?.bookings_this_month ?? 0} this month`}
+              </p>
             </div>
             <div className="p-3 rounded-full bg-blue-100 text-blue-600">
               <i className="fas fa-exchange-alt text-xl"></i>
@@ -150,8 +162,11 @@ export default function OwnerTransactions() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total Revenue</p>
-              <h3 className="text-2xl font-bold mt-1">{fmt(totalRevenue)}</h3>
-              <p className="text-xs text-green-500 mt-1"><i className="fas fa-arrow-up mr-1"></i>₱186,500 this month</p>
+              <h3 className="text-2xl font-bold mt-1">{loading ? "—" : fmt(totalRevenue)}</h3>
+              <p className="text-xs text-green-500 mt-1">
+                <i className="fas fa-arrow-up mr-1"></i>
+                {loading ? "" : `${fmt(overview?.revenue_this_month ?? 0)} this month`}
+              </p>
             </div>
             <div className="p-3 rounded-full bg-green-100 text-green-600">
               <i className="fas fa-money-bill-wave text-xl"></i>
@@ -163,7 +178,7 @@ export default function OwnerTransactions() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Avg. Transaction</p>
-              <h3 className="text-2xl font-bold mt-1">{fmt(Math.round(avgTx))}</h3>
+              <h3 className="text-2xl font-bold mt-1">{loading ? "—" : fmt(Math.round(avgTx))}</h3>
             </div>
             <div className="p-3 rounded-full bg-purple-100 text-purple-600">
               <i className="fas fa-calculator text-xl"></i>
@@ -219,12 +234,11 @@ export default function OwnerTransactions() {
           )}
         </div>
 
-        {/* Filter feedback */}
         {hasFilters && (
           <p className="mt-3 text-xs text-slate-500">
             Showing <span className="font-semibold text-slate-700">{filtered.length}</span> of{" "}
-            <span className="font-semibold">{SAMPLE_BOOKINGS.length}</span> transactions
-            {filtered.length !== SAMPLE_BOOKINGS.length && filtered.filter(b => b.status !== "Cancelled").length > 0 && (
+            <span className="font-semibold">{allBookings.length}</span> transactions
+            {filtered.length !== allBookings.length && filtered.filter(b => b.status !== "Cancelled").length > 0 && (
               <> &mdash; filtered revenue: <span className="font-semibold text-slate-700">{fmt(filteredRevenue)}</span></>
             )}
           </p>
@@ -260,14 +274,18 @@ export default function OwnerTransactions() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {currentRows.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">Loading...</td>
+                </tr>
+              ) : currentRows.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-10 text-center text-slate-400">No transactions found.</td>
                 </tr>
               ) : currentRows.map((b) => (
-                <tr key={b.booking_id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 font-medium text-slate-900">RES-{String(b.booking_id).padStart(6, "0")}</td>
-                  <td className="px-6 py-4 text-slate-500">{b.checkIn}</td>
+                <tr key={b.booking_id} onClick={() => navigate("/admin/transactions")} className="hover:bg-slate-50 cursor-pointer">
+                  <td className="px-6 py-4 font-medium text-slate-900">{b.id}</td>
+                  <td className="px-6 py-4 text-slate-500">{(b.checkIn ?? "").slice(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-slate-900">{b.guest}</td>
                   <td className="px-6 py-4 text-slate-500">{b.roomType}</td>
                   <td className="px-6 py-4 text-slate-500">{b.paymentMethod || "—"}</td>
@@ -280,7 +298,7 @@ export default function OwnerTransactions() {
                 </tr>
               ))}
             </tbody>
-            {currentRows.length > 0 && (
+            {!loading && currentRows.length > 0 && (
               <tfoot className="bg-slate-50 border-t-2 border-slate-300 text-sm font-semibold">
                 <tr>
                   <td colSpan={5} className="px-6 py-3 text-slate-700">
@@ -326,11 +344,19 @@ export default function OwnerTransactions() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Bookings by Status</h2>
-          <div className="h-64"><Pie data={statusPieData} options={pieOptions} /></div>
+          <div className="h-64">
+            {!loading && allBookings.length > 0
+              ? <Pie data={statusPieData} options={pieOptions} />
+              : <p className="text-sm text-gray-400">{loading ? "Loading..." : "No data"}</p>}
+          </div>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
-          <div className="h-64"><Pie data={paymentPieData} options={pieOptions} /></div>
+          <div className="h-64">
+            {!loading && allBookings.length > 0
+              ? <Pie data={paymentPieData} options={pieOptions} />
+              : <p className="text-sm text-gray-400">{loading ? "Loading..." : "No data"}</p>}
+          </div>
         </div>
       </div>
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { getAdminBookings } from "../../lib/adminApi";
 
+const STATUS_PRIORITY = { Pending: 0, "Checked In": 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
+
 const STATUS_COLORS = {
   Completed:    "bg-emerald-100 text-emerald-800",
   Pending:      "bg-amber-100 text-amber-800",
@@ -32,13 +34,15 @@ export default function AdminTransactions() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = bookings.filter(b => {
-    const matchSearch = b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        b.guest.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchStatus = !filterStatus || b.status === filterStatus;
-    const matchMethod = !filterMethod || b.paymentMethod === filterMethod;
-    return matchSearch && matchStatus && matchMethod;
-  });
+  const filtered = bookings
+    .filter(b => {
+      const matchSearch = b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          b.guest.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchStatus = !filterStatus || b.status === filterStatus;
+      const matchMethod = !filterMethod || b.paymentMethod === filterMethod;
+      return matchSearch && matchStatus && matchMethod;
+    })
+    .sort((a, b) => (STATUS_PRIORITY[a.status] ?? 5) - (STATUS_PRIORITY[b.status] ?? 5));
 
   // Revenue per row: Completed = full total, Cancelled = forfeited reservation_fee,
   // Pending / Confirmed / Checked In = reservation_fee paid online (balance not yet collected)

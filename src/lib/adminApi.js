@@ -50,3 +50,18 @@ export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
 export const getAdminMessages       = ()           => api.get('/api/admin/messages');
 export const replyAdminMessage      = (id, body)   => api.post(`/api/admin/messages/${id}/reply`, { body });
 export const markAdminMessageRead   = (id)         => api.patch(`/api/admin/messages/${id}/read`);
+
+// ── Analytics (owner only) ────────────────────────────────────────────────────
+export const getAnalyticsOverview  = ()              => api.get('/api/admin/analytics/overview');
+export const getAnalyticsBookings  = (days = 30)     => api.get(`/api/admin/analytics/bookings?days=${days}`);
+export const getAnalyticsRevenue   = (days = 30)     => api.get(`/api/admin/analytics/revenue?days=${days}`);
+export const getAnalyticsOccupancy = ()              => api.get('/api/admin/analytics/occupancy');
+export const getAnalyticsRooms     = (days = 30)     => api.get(`/api/admin/analytics/rooms?days=${days}`);
+export const getAnalyticsReport    = (month, year)   => api.get(`/api/admin/analytics/report?month=${month}&year=${year}`);
+
+// ── Promo Codes ──────────────────────────────────────────────────────────────
+export const getPromoCodes         = ()         => api.get('/api/admin/promo-codes');
+export const createPromoCode       = (data)     => api.post('/api/admin/promo-codes', data);
+export const updatePromoCode       = (id, data) => api.patch(`/api/admin/promo-codes/${id}`, data);
+export const deletePromoCode       = (id)       => api.delete(`/api/admin/promo-codes/${id}`);
+export const validatePromo         = (code, subtotal) => api.post('/api/validate-promo', { code, subtotal });

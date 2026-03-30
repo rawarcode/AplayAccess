@@ -1,7 +1,10 @@
 // src/pages/dashboard/GuestDashboard.jsx
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getBookings } from "../../lib/bookingApi.js";
+import { getResortRooms } from "../../lib/resortApi.js";
+import BookingModal from "../../components/modals/BookingModal.jsx";
+import SuccessModal from "../../components/modals/SuccessModal.jsx";
 
 /** Converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
 function fmtDateTime(str) {
@@ -20,14 +23,39 @@ function fmtDateTime(str) {
 
 export default function GuestDashboard() {
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]   = useState(true);
+  const [rooms, setRooms]       = useState([]);
+  const [bookingOpen, setBookingOpen] = useState(false);
+  const [lastBooking, setLastBooking] = useState(null);
+  const [successOpen, setSuccessOpen] = useState(false);
+
+  const [searchParams] = useSearchParams();
+  const navigate       = useNavigate();
 
   useEffect(() => {
     getBookings()
       .then(setBookings)
       .catch(() => {})
       .finally(() => setLoading(false));
+    getResortRooms(1)
+      .then(data => setRooms(
+        (data ?? []).map(r => ({
+          id:             r?.id             ?? null,
+          name:           r?.name           ?? "Room",
+          day_rate:       Number(r?.day_rate       ?? 0),
+          overnight_rate: Number(r?.overnight_rate ?? 0),
+        }))
+      ))
+      .catch(() => {});
   }, []);
+
+  // Open booking modal when ?book=1 is in the URL
+  useEffect(() => {
+    if (searchParams.get("book") === "1") {
+      setBookingOpen(true);
+      navigate("/dashboard", { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const { upcoming, past, pendingCount } = useMemo(() => {
     const now = new Date();
@@ -47,9 +75,34 @@ export default function GuestDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Guest Dashboard</h1>
-        <p className="text-gray-600">Manage your bookings, profile, and messages.</p>
+      <BookingModal
+        open={bookingOpen}
+        onClose={() => setBookingOpen(false)}
+        selectedRoom=""
+        rooms={rooms}
+        onBooked={(details) => {
+          setLastBooking(details);
+          setBookingOpen(false);
+          setSuccessOpen(true);
+        }}
+      />
+      <SuccessModal
+        open={successOpen}
+        onClose={() => { setSuccessOpen(false); setLastBooking(null); }}
+        booking={lastBooking}
+      />
+
+      <div className="bg-white rounded-xl shadow-md p-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Guest Dashboard</h1>
+          <p className="text-gray-600">Manage your bookings, profile, and messages.</p>
+        </div>
+        <button
+          onClick={() => setBookingOpen(true)}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium"
+        >
+          Book a Stay
+        </button>
       </div>
 
       {/* Summary cards */}
@@ -66,34 +119,6 @@ export default function GuestDashboard() {
           <p className="text-sm font-medium text-gray-700">Pending Actions</p>
           <p className="text-2xl font-bold text-yellow-700">{loading ? "—" : pendingCount}</p>
         </div>
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Link
-          to="/resort?book=1"
-          className="bg-blue-100 text-blue-700 py-3 px-4 rounded-md text-center hover:bg-blue-200 flex flex-col items-center justify-center"
-        >
-          <span className="font-medium">Book a Stay</span>
-        </Link>
-        <Link
-          to="/dashboard/bookings"
-          className="bg-green-100 text-green-700 py-3 px-4 rounded-md text-center hover:bg-green-200 flex flex-col items-center justify-center"
-        >
-          <span className="font-medium">My Bookings</span>
-        </Link>
-        <Link
-          to="/dashboard/profile"
-          className="bg-purple-100 text-purple-700 py-3 px-4 rounded-md text-center hover:bg-purple-200 flex flex-col items-center justify-center"
-        >
-          <span className="font-medium">Edit Profile</span>
-        </Link>
-        <Link
-          to="/dashboard/messages"
-          className="bg-yellow-100 text-yellow-700 py-3 px-4 rounded-md text-center hover:bg-yellow-200 flex flex-col items-center justify-center"
-        >
-          <span className="font-medium">Messages</span>
-        </Link>
       </div>
 
       {/* Upcoming + Past preview */}
