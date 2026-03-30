@@ -16,7 +16,6 @@ const PAGE_TITLES = {
   "/admin/transactions": "Transactions",
   "/admin/history":      "History",
   "/admin/reviews":      "Reviews",
-  "/admin/foods":        "Manage Foods",
   "/admin/inventory":    "Add-ons & Amenities",
   "/admin/content":      "Manage Website",
   "/admin/settings":     "Pricing & Settings",
