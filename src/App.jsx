@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
 import Home from "./pages/Home.jsx";
@@ -92,6 +92,7 @@ export default function App() {
 
       {/* ── Shared staff login ── */}
       <Route path="/admin/login" element={<StaffLogin />} />
+      <Route path="/admin/login/" element={<Navigate to="/admin/login" replace />} />
 
       {/* ── Admin portal (outside guest Layout, nested routes) ── */}
       <Route
