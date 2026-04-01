@@ -44,7 +44,7 @@ export default function Sidebar({ children }) {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/admin/login');
+    navigate('/staff-login');
   };
 
   const switchPortal = (path, label) => {

@@ -10,7 +10,7 @@ export default function RequireAdmin({ children }) {
   if (booting) return null;
 
   if (!user || !ALLOWED_ROLES.includes(user.role)) {
-    return <Navigate to="/admin/login" replace state={{ from: location }} />;
+    return <Navigate to="/staff-login" replace state={{ from: location }} />;
   }
 
   return children;

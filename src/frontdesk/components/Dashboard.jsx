@@ -82,7 +82,7 @@ export default function Dashboard() {
   };
 
   // ── handlers ────────────────────────────────────────────────────────────────
-  const handleLogout = async () => { await logout(); navigate('/admin/login'); };
+  const handleLogout = async () => { await logout(); navigate('/staff-login'); };
 
   // ─── render ──────────────────────────────────────────────────────────────────
   return (

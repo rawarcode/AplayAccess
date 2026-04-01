@@ -130,7 +130,7 @@ export default function AdminShell() {
   const handleLogout = async () => {
     setProfileOpen(false);
     await logout();
-    navigate("/admin/login");
+    navigate("/staff-login");
   };
 
   if (switching) return <PortalTransition label={switching} />;

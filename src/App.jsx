@@ -91,8 +91,9 @@ export default function App() {
       </Route>
 
       {/* ── Shared staff login ── */}
-      <Route path="/admin/login" element={<StaffLogin />} />
-      <Route path="/admin/login/" element={<Navigate to="/admin/login" replace />} />
+      <Route path="/staff-login" element={<StaffLogin />} />
+      <Route path="/admin/login" element={<Navigate to="/staff-login" replace />} />
+      <Route path="/admin/login/" element={<Navigate to="/staff-login" replace />} />
 
       {/* ── Admin portal (outside guest Layout, nested routes) ── */}
       <Route

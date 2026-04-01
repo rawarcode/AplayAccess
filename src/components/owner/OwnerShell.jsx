@@ -75,7 +75,7 @@ export default function OwnerShell() {
   const handleLogout = async () => {
     setProfileOpen(false);
     await logout();
-    navigate("/admin/login");
+    navigate("/staff-login");
   };
 
   const openSettings = () => {

@@ -10,7 +10,7 @@ export default function RequireFrontdesk({ children }) {
   if (booting) return null;
 
   if (!isLoggedIn) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/staff-login" state={{ from: location }} replace />;
   }
 
   if (!ALLOWED_ROLES.includes(user?.role)) {
