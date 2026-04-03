@@ -167,14 +167,14 @@ export default function AdminTransactions() {
                     </td>
                     <td className="px-6 py-4 text-slate-600">{b.roomType}</td>
                     <td className="px-6 py-4 font-semibold text-slate-900">₱{Number(b.total).toLocaleString()}</td>
-                    <td className="px-6 py-4 text-slate-600">{b.paymentMethod}</td>
+                    <td className="px-6 py-4 text-xs text-slate-400">{b.createdAt?.split(" ")[0]}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[b.status] || "bg-slate-100 text-slate-700"}`}>
                         <span className={`h-2 w-2 rounded-full ${STATUS_DOT[b.status] || "bg-slate-400"}`} />
                         {b.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-400">{b.createdAt?.split(" ")[0]}</td>
+                    <td className="px-6 py-4 text-slate-600">{b.paymentMethod}</td>
                   </tr>
                 ))}
               </tbody>
