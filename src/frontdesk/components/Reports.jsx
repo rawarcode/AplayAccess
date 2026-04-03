@@ -106,7 +106,7 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
   };
   const statusCount = (s) => dateBookings.filter(b => b.status === s).length;
   const grossTotal = dateBookings.reduce((s,b) => {
-    if (b.status === 'Cancelled') return s + Number(b.paid_amount ?? b.reservation_fee ?? 0);
+    if (b.status === 'Cancelled') return s + (b.fully_paid ? Number(b.total||0) : Number(b.reservation_fee||0));
     return s + Number(b.total||0);
   }, 0);
   const totalGuests = dateBookings.reduce((s,b) => s + (b.guests||0), 0);
@@ -132,18 +132,23 @@ export default function Reports() {
   const [usingDemo, setUsingDemo]     = useState(false);
 
   useEffect(() => {
-    getFdBookings()
-      .then(data => {
-        if (data.length === 0) { setBookings(SAMPLE_BOOKINGS); setUsingDemo(true); }
-        else { setBookings(data); setUsingDemo(false); }
-        setError('');
-      })
-      .catch(() => {
-        setBookings(SAMPLE_BOOKINGS);
-        setUsingDemo(true);
-        setError('');
-      })
-      .finally(() => setLoading(false));
+    function load() {
+      getFdBookings()
+        .then(data => {
+          if (data.length === 0) { setBookings(SAMPLE_BOOKINGS); setUsingDemo(true); }
+          else { setBookings(data); setUsingDemo(false); }
+          setError('');
+        })
+        .catch(() => {
+          setBookings(SAMPLE_BOOKINGS);
+          setUsingDemo(true);
+          setError('');
+        })
+        .finally(() => setLoading(false));
+    }
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
   }, []);
 
   // Include check-ins for the selected date PLUS any cancellations on that date
@@ -152,8 +157,8 @@ export default function Reports() {
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
   );
 
-  // Cancelled: use paid_amount (actual amount charged via PayMongo), fallback to reservation_fee
-  const cancelledAmt = (b) => Number(b.paid_amount ?? b.reservation_fee ?? 0);
+  // Cancelled: fully_paid = paid full amount online → count total, else → reservation_fee
+  const cancelledAmt = (b) => b.fully_paid ? Number(b.total ?? 0) : Number(b.reservation_fee ?? 0);
   const totalRevenue =
     dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total ?? 0), 0) +
     dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledAmt(b), 0);
