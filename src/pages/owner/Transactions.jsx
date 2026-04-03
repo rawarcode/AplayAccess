@@ -8,6 +8,32 @@ ChartJS.register(ArcElement, Tooltip, Legend);
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH")}`;
 
+function printTransactions(rows) {
+  const now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+  const fmtN = v => Number(v||0).toLocaleString('en-PH');
+  const statusBadge = (s) => {
+    const map = { Completed:'#1e40af:#dbeafe', Confirmed:'#065f46:#d1fae5', Pending:'#92400e:#fef3c7', Cancelled:'#991b1b:#fee2e2', 'Checked In':'#0f766e:#ccfbf1' };
+    const [fg, bg] = (map[s] || '#374151:#f3f4f6').split(':');
+    return `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:8pt;font-weight:bold;color:${fg};background:${bg}">${s}</span>`;
+  };
+  const active = rows.filter(b => b.status !== 'Cancelled');
+  const total = active.reduce((s, b) => s + Number(b.total||0), 0);
+  const discTotal = active.reduce((s, b) => s + Number(b.discount||0), 0);
+  const statusCount = (s) => rows.filter(b => b.status === s).length;
+  const tableRows = rows.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt">${b.id}</td><td>${(b.checkIn||'').slice(0,10)}</td><td>${b.guest}</td><td>${b.roomType}</td><td style="text-align:right">${Number(b.discount)>0?`₱${fmtN(b.discount)}`:'—'}</td><td style="text-align:right">₱${fmtN(b.total)}</td><td>${statusBadge(b.status)}</td><td>${b.paymentMethod||'—'}</td></tr>`).join('');
+  const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:32px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px}.co{font-size:18pt;font-weight:bold;color:#1e3a8a}.cosub{font-size:9pt;color:#64748b;margin-top:3px}.rt{text-align:right}.rt h2{font-size:13pt;font-weight:bold;color:#1e3a8a}.rt small{font-size:8pt;color:#94a3b8;margin-top:4px;display:block}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}.card{border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px}.lbl{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.val{font-size:16pt;font-weight:bold;color:#0f172a;margin-top:4px}.srow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px}.sbox{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}.sbox .n{font-size:18pt;font-weight:bold;color:#0f172a}.sbox .s{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.sech{font-size:9pt;font-weight:bold;color:#1e3a8a;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:9.5pt}th{background:#1e3a8a;color:#fff;padding:8px 10px;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em}td{padding:6px 10px;border-bottom:1px solid #f1f5f9}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#1e3a8a!important;color:#fff!important;font-weight:bold;padding:8px 10px}.ftr{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}@page{margin:1.5cm}`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Transaction Records</title><style>${css}</style></head><body>
+<div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Booking Management System</div></div><div class="rt"><h2>Transaction Records</h2><small>Generated: ${now}</small></div></div>
+<div class="cards"><div class="card"><div class="lbl">Total Records</div><div class="val">${rows.length}</div></div><div class="card"><div class="lbl">Active Bookings</div><div class="val">${active.length}</div></div><div class="card"><div class="lbl">Total Discounts</div><div class="val">₱${fmtN(discTotal)}</div></div><div class="card"><div class="lbl">Total Revenue</div><div class="val">₱${fmtN(total)}</div></div></div>
+<div class="sech">Status Breakdown</div><div class="srow">${['Confirmed','Checked In','Completed','Pending','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div>
+<div class="sech">All Transactions</div>
+<table><thead><tr><th>Booking ID</th><th>Check-in</th><th>Guest</th><th>Room</th><th style="text-align:right">Discount</th><th style="text-align:right">Amount</th><th>Status</th><th>Payment</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(discTotal)}</td><td style="text-align:right">₱${fmtN(total)}</td><td colspan="2"></td></tr></tfoot></table>
+<div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
+<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+
 const PIE_COLORS = [
   "rgba(59, 130, 246, 0.8)",
   "rgba(16, 185, 129, 0.8)",
@@ -242,7 +268,7 @@ export default function OwnerTransactions() {
             {filtered.length} result{filtered.length !== 1 ? "s" : ""}
           </p>
           <button
-            onClick={() => window.print()}
+            onClick={() => printTransactions(filtered)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition"
           >
             <i className="fas fa-print text-xs"></i>

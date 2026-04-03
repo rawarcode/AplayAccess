@@ -20,6 +20,31 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarEleme
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 0 })}`;
 
+function printFinancials(dailyData, roomsData, overview, chartDays) {
+  const now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
+  const period = `Last ${chartDays} Day${chartDays !== 1 ? 's' : ''}`;
+  const fmtN = v => `₱${Number(v||0).toLocaleString('en-PH')}`;
+  const totalRev = dailyData.reduce((s, r) => s + Number(r.revenue||0), 0);
+  const totalBk  = dailyData.reduce((s, r) => s + Number(r.bookings||0), 0);
+  const roomTotal = roomsData.reduce((s, r) => s + Number(r.revenue||0), 0);
+  const roomBkTotal = roomsData.reduce((s, r) => s + Number(r.bookings||0), 0);
+  const dailyRows = [...dailyData].reverse().map(r => `<tr><td>${r.date}</td><td style="text-align:center">${r.bookings}</td><td style="text-align:right">${fmtN(r.revenue)}</td><td style="text-align:right">${r.bookings>0?fmtN(Math.round(r.revenue/r.bookings)):'—'}</td></tr>`).join('');
+  const roomRows = roomsData.map(r => `<tr><td>${r.label}</td><td style="text-align:center">${r.bookings}</td><td style="text-align:right">${fmtN(r.revenue)}</td><td style="text-align:right">${r.bookings>0?fmtN(Math.round(r.revenue/r.bookings)):'—'}</td></tr>`).join('');
+  const revThisMonth = overview?.revenue_this_month ?? 0;
+  const revLastMonth = overview?.revenue_last_month ?? 0;
+  const revPct = revLastMonth > 0 ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
+  const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:32px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px}.co{font-size:18pt;font-weight:bold;color:#1e3a8a}.cosub{font-size:9pt;color:#64748b;margin-top:3px}.rt{text-align:right}.rt h2{font-size:13pt;font-weight:bold;color:#1e3a8a}.rt p{font-size:10pt;color:#334155;margin-top:2px}.rt small{font-size:8pt;color:#94a3b8}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}.card{border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px}.lbl{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.val{font-size:16pt;font-weight:bold;color:#0f172a;margin-top:4px}.hint{font-size:8pt;color:#94a3b8;margin-top:2px}.sec{margin-bottom:22px}.sech{font-size:9pt;font-weight:bold;color:#1e3a8a;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:10pt}th{background:#1e3a8a;color:#fff;padding:8px 10px;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em}td{padding:6px 10px;border-bottom:1px solid #f1f5f9}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#1e3a8a!important;color:#fff!important;font-weight:bold;padding:8px 10px}.ftr{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}@page{margin:1.5cm}`;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Financial Report</title><style>${css}</style></head><body>
+<div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Booking Management System</div></div><div class="rt"><h2>Financial Report</h2><p>${period}</p><small>Generated: ${now}</small></div></div>
+<div class="cards"><div class="card"><div class="lbl">Revenue (${period})</div><div class="val">${fmtN(totalRev)}</div><div class="hint">${totalBk} bookings</div></div><div class="card"><div class="lbl">This Month Revenue</div><div class="val">${fmtN(revThisMonth)}</div><div class="hint">vs ${fmtN(revLastMonth)} last month</div></div><div class="card"><div class="lbl">Month-on-Month</div><div class="val" style="color:${revPct>=0?'#16a34a':'#dc2626'}">${revPct>=0?'+':''}${revPct}%</div><div class="hint">vs previous month</div></div><div class="card"><div class="lbl">Avg / Booking</div><div class="val">${totalBk>0?fmtN(Math.round(totalRev/totalBk)):'—'}</div><div class="hint">${period}</div></div></div>
+<div class="sec"><div class="sech">Revenue by Room Type</div><table><thead><tr><th>Room Type</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${roomBkTotal}</td><td style="text-align:right">${fmtN(roomTotal)}</td><td></td></tr></tfoot></table></div>
+<div class="sec"><div class="sech">Daily Breakdown</div><table><thead><tr><th>Date</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${dailyRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${totalBk}</td><td style="text-align:right">${fmtN(totalRev)}</td><td style="text-align:right">${totalBk>0?fmtN(Math.round(totalRev/totalBk)):'—'}</td></tr></tfoot></table></div>
+<div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
+<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
+  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+}
+
+
 const BAR_COLORS = [
   "rgba(59, 130, 246, 0.7)",
   "rgba(16, 185, 129, 0.7)",
@@ -279,8 +304,9 @@ export default function OwnerFinancials() {
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
           <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition"
+            onClick={() => printFinancials(dailyData, roomsData, overview, chartDays)}
+            disabled={loadingChart}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 disabled:opacity-40 transition"
           >
             <i className="fas fa-print text-xs"></i>
             Print Report
