@@ -94,14 +94,6 @@ function buildWeekChart(bookings) {
   return { labels, confirmed, completed, cancelled };
 }
 
-function exportCSV(rows, filename) {
-  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
-}
 
 // ─── component ────────────────────────────────────────────────────────────────
 export default function Reports() {
@@ -147,17 +139,6 @@ export default function Reports() {
     ],
   };
 
-  function handleExport() {
-    const rows = [
-      ['Booking ID', 'Guest', 'Room', 'Check-in', 'Check-out', 'Duration', 'Guests', 'Total', 'Status', 'Payment'],
-      ...dateBookings.map(b => [
-        b.id, b.guest, b.roomType,
-        b.checkIn, b.checkOut, '8 hrs',
-        b.guests, b.total, b.status, b.paymentMethod || '',
-      ]),
-    ];
-    exportCSV(rows, `frontdesk-report-${reportDate}.csv`);
-  }
 
   const reportDateLabel = new Date(reportDate + 'T00:00:00').toLocaleDateString('en-PH', {
     month: 'long', day: 'numeric', year: 'numeric',
@@ -238,11 +219,11 @@ export default function Reports() {
               ))}
             </div>
             <button
-              onClick={handleExport}
+              onClick={() => window.print()}
               disabled={loading || dateBookings.length === 0}
               className="mt-4 w-full px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50"
             >
-              <i className="fas fa-download mr-2"></i>Export CSV
+              <i className="fas fa-print mr-2"></i>Print Report
             </button>
           </div>
         </div>

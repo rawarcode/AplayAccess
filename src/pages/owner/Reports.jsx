@@ -28,23 +28,6 @@ const STATUS_CLASSES = {
   Cancelled:   "bg-red-100 text-red-800",
 };
 
-function exportCSV(bookings, period) {
-  const headers = ["Guest", "Room Type", "Payment Method", "Amount (PHP)", "Status", "Nights"];
-  const lines = [
-    `# Report — ${period}`,
-    headers.join(","),
-    ...bookings.map((b) => [
-      `"${b.guest}"`, `"${b.room}"`, b.payment, b.total, b.status, b.nights,
-    ].join(",")),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href = url;
-  a.download = `report_${period.replace(/\s/g, "_").toLowerCase()}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function OwnerReports() {
   const now = new Date();
@@ -128,23 +111,13 @@ export default function OwnerReports() {
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => exportCSV(bookings, period)}
-            disabled={loading || bookings.length === 0}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 disabled:opacity-40 transition"
-          >
-            <i className="fas fa-download text-xs"></i>
-            Export CSV
-          </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] transition"
-          >
-            <i className="fas fa-print text-xs"></i>
-            Print Report
-          </button>
-        </div>
+        <button
+          onClick={() => window.print()}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] transition"
+        >
+          <i className="fas fa-print text-xs"></i>
+          Print Report
+        </button>
       </div>
 
       {/* Printable area */}

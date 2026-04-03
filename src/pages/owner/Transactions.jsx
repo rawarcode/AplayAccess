@@ -47,29 +47,6 @@ function buildPieData(bookings, key) {
   };
 }
 
-function exportCSV(rows) {
-  const headers = ["Booking ID", "Check-in", "Guest", "Room Type", "Payment Method", "Discount (PHP)", "Amount (PHP)", "Status"];
-  const lines = [
-    headers.join(","),
-    ...rows.map((b) => [
-      b.id,
-      (b.checkIn ?? "").slice(0, 10),
-      `"${b.guest}"`,
-      `"${b.roomType}"`,
-      b.paymentMethod || "",
-      b.discount || 0,
-      b.total,
-      b.status,
-    ].join(",")),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "transactions.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function OwnerTransactions() {
   const navigate = useNavigate();
@@ -265,11 +242,11 @@ export default function OwnerTransactions() {
             {filtered.length} result{filtered.length !== 1 ? "s" : ""}
           </p>
           <button
-            onClick={() => exportCSV(filtered)}
+            onClick={() => window.print()}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition"
           >
-            <i className="fas fa-download text-xs"></i>
-            Export CSV
+            <i className="fas fa-print text-xs"></i>
+            Print Report
           </button>
         </div>
 

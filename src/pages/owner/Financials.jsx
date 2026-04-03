@@ -42,20 +42,6 @@ const barOptions = {
   scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` } } },
 };
 
-function exportCSV(rows) {
-  const headers = ["Date", "Bookings", "Revenue (PHP)"];
-  const lines = [
-    headers.join(","),
-    ...rows.map((r) => [r.date, r.bookings, r.revenue].join(",")),
-  ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv" });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement("a");
-  a.href     = url;
-  a.download = "financials_daily_breakdown.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 export default function OwnerFinancials() {
   const [chartDays, setChartDays] = useState(30);
@@ -293,11 +279,11 @@ export default function OwnerFinancials() {
         <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
           <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
           <button
-            onClick={() => exportCSV([...dailyData].reverse())}
+            onClick={() => window.print()}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition"
           >
-            <i className="fas fa-download text-xs"></i>
-            Export CSV
+            <i className="fas fa-print text-xs"></i>
+            Print Report
           </button>
         </div>
         <div className="overflow-x-auto">
