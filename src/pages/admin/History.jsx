@@ -1,66 +1,249 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { getAdminHistory } from "../../lib/adminApi";
+
+// ── Category config ───────────────────────────────────────────────────────────
+const CATEGORIES = [
+  { value: "",         label: "All Categories" },
+  { value: "booking",  label: "Booking" },
+  { value: "room",     label: "Rooms" },
+  { value: "user",     label: "Users" },
+  { value: "promo",    label: "Promo Codes" },
+  { value: "settings", label: "Settings" },
+  { value: "content",  label: "Content" },
+  { value: "review",   label: "Reviews" },
+  { value: "system",   label: "System" },
+];
+
+const CATEGORY_STYLES = {
+  booking:  { bg: "bg-blue-100",   text: "text-blue-800",   icon: "fa-calendar-check" },
+  room:     { bg: "bg-purple-100", text: "text-purple-800", icon: "fa-bed"            },
+  user:     { bg: "bg-amber-100",  text: "text-amber-800",  icon: "fa-user"           },
+  promo:    { bg: "bg-green-100",  text: "text-green-800",  icon: "fa-tag"            },
+  settings: { bg: "bg-orange-100", text: "text-orange-800", icon: "fa-sliders-h"      },
+  content:  { bg: "bg-pink-100",   text: "text-pink-800",   icon: "fa-globe"          },
+  review:   { bg: "bg-yellow-100", text: "text-yellow-800", icon: "fa-star"           },
+  system:   { bg: "bg-gray-100",   text: "text-gray-700",   icon: "fa-cog"            },
+};
+
+const ROLE_STYLES = {
+  owner:      { bg: "bg-emerald-100", text: "text-emerald-800" },
+  admin:      { bg: "bg-blue-100",    text: "text-blue-800"    },
+  front_desk: { bg: "bg-sky-100",     text: "text-sky-800"     },
+  system:     { bg: "bg-gray-100",    text: "text-gray-600"    },
+};
+
+function CategoryBadge({ category }) {
+  const s = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.system;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${s.bg} ${s.text}`}>
+      <i className={`fas ${s.icon} text-[10px]`}></i>
+      {category}
+    </span>
+  );
+}
+
+function RoleBadge({ role }) {
+  const s = ROLE_STYLES[role] ?? ROLE_STYLES.system;
+  const label = role === "front_desk" ? "Front Desk" : (role?.charAt(0).toUpperCase() + role?.slice(1));
+  return (
+    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${s.bg} ${s.text}`}>
+      {label}
+    </span>
+  );
+}
+
+function fmtDateTime(str) {
+  if (!str) return "—";
+  return new Date(str.replace(" ", "T")).toLocaleString("en-PH", {
+    month: "short", day: "numeric", year: "numeric",
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
 
 export default function AdminHistory() {
-  const [logs] = useState([
-    { id: 1, date: "2024-01-18", user: "Admin", action: "Added new room #102" },
-    { id: 2, date: "2024-01-17", user: "Admin", action: "Updated guest profile for John Doe" },
-    { id: 3, date: "2024-01-16", user: "Staff", action: "Processed transaction TRX002" },
-    { id: 4, date: "2024-01-15", user: "Admin", action: "Approved review by Emma Johnson" },
-  ]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [logs,     setLogs]     = useState([]);
+  const [meta,     setMeta]     = useState({ current_page: 1, last_page: 1, total: 0 });
+  const [loading,  setLoading]  = useState(true);
+  const [error,    setError]    = useState("");
 
-  const filteredLogs = logs.filter(
-    (log) =>
-      log.date.includes(searchTerm) ||
-      log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.action.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filters
+  const [search,   setSearch]   = useState("");
+  const [category, setCategory] = useState("");
+  const [from,     setFrom]     = useState("");
+  const [to,       setTo]       = useState("");
+  const [page,     setPage]     = useState(1);
+
+  const load = useCallback(async (params) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await getAdminHistory(params);
+      setLogs(res.data.data);
+      setMeta(res.data.meta);
+    } catch {
+      setError("Failed to load activity history.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const params = { page };
+    if (search)   params.search   = search;
+    if (category) params.category = category;
+    if (from)     params.from     = from;
+    if (to)       params.to       = to;
+    load(params);
+  }, [page, search, category, from, to, load]);
+
+  // Reset to page 1 whenever any filter changes
+  function applyFilter(setter) {
+    return (val) => { setter(val); setPage(1); };
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+      {/* Header */}
+      <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Activity History</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Review recent actions taken by admins and staff.
+            Real-time audit log of all staff and system actions.
           </p>
         </div>
+        {meta.total > 0 && (
+          <div className="text-sm text-slate-500">
+            <span className="font-semibold text-slate-800">{meta.total.toLocaleString()}</span> total entries
+          </div>
+        )}
       </div>
 
-      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-slate-50 border-b border-slate-200">
-          <div className="relative w-full md:w-64">
-            <input
-              type="text"
-              placeholder="Search history..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400"
-            />
-            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-          </div>
+      {/* Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 px-5 py-4 flex flex-wrap gap-3">
+        {/* Search */}
+        <div className="relative flex-1 min-w-[180px]">
+          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input
+            type="text"
+            placeholder="Search action, description, user..."
+            value={search}
+            onChange={e => applyFilter(setSearch)(e.target.value)}
+            className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+          />
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-slate-700">
-            <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-              <tr>
-                <th className="px-6 py-3 text-left">Date</th>
-                <th className="px-6 py-3 text-left">User</th>
-                <th className="px-6 py-3 text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-slate-200">
-              {filteredLogs.map((log) => (
-                <tr key={log.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-4 text-sm text-slate-600">{log.date}</td>
-                  <td className="px-6 py-4 text-sm text-slate-900">{log.user}</td>
-                  <td className="px-6 py-4 text-sm text-slate-700">{log.action}</td>
+        {/* Category */}
+        <select
+          value={category}
+          onChange={e => applyFilter(setCategory)(e.target.value)}
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+        >
+          {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+        </select>
+
+        {/* Date range */}
+        <input
+          type="date"
+          value={from}
+          onChange={e => applyFilter(setFrom)(e.target.value)}
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+          title="From date"
+        />
+        <input
+          type="date"
+          value={to}
+          onChange={e => applyFilter(setTo)(e.target.value)}
+          className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+          title="To date"
+        />
+
+        {/* Clear */}
+        {(search || category || from || to) && (
+          <button
+            onClick={() => { setSearch(""); setCategory(""); setFrom(""); setTo(""); setPage(1); }}
+            className="px-3 py-2 text-sm text-slate-500 hover:text-slate-800 border border-slate-200 rounded-lg hover:bg-slate-50"
+          >
+            <i className="fas fa-times mr-1"></i>Clear
+          </button>
+        )}
+      </div>
+
+      {/* Table */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-slate-400">
+            <i className="fas fa-spinner fa-spin text-2xl mb-3 block"></i>
+            Loading activity history...
+          </div>
+        ) : error ? (
+          <div className="p-12 text-center text-red-500">{error}</div>
+        ) : logs.length === 0 ? (
+          <div className="p-12 text-center text-slate-400">
+            <i className="fas fa-history text-3xl mb-3 block text-slate-300"></i>
+            {search || category || from || to
+              ? "No entries match your filters."
+              : "No activity logged yet. Actions will appear here as staff use the system."}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-slate-700">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                <tr>
+                  <th className="px-5 py-3 text-left">Timestamp</th>
+                  <th className="px-5 py-3 text-left">User</th>
+                  <th className="px-5 py-3 text-left">Category</th>
+                  <th className="px-5 py-3 text-left">Action</th>
+                  <th className="px-5 py-3 text-left">Description</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {logs.map(log => (
+                  <tr key={log.id} className="hover:bg-slate-50">
+                    <td className="px-5 py-3 whitespace-nowrap text-xs text-slate-500">
+                      {fmtDateTime(log.created_at)}
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <div className="font-medium text-slate-800 text-sm">{log.user_name}</div>
+                      <RoleBadge role={log.user_role} />
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap">
+                      <CategoryBadge category={log.category} />
+                    </td>
+                    <td className="px-5 py-3 whitespace-nowrap font-medium text-slate-800">
+                      {log.action}
+                    </td>
+                    <td className="px-5 py-3 text-slate-600 max-w-sm">
+                      {log.description}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {meta.last_page > 1 && (
+          <div className="px-5 py-4 border-t border-slate-200 flex items-center justify-between text-sm text-slate-600">
+            <span>Page {meta.current_page} of {meta.last_page}</span>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={meta.current_page === 1}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <i className="fas fa-chevron-left text-xs"></i>
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(meta.last_page, p + 1))}
+                disabled={meta.current_page === meta.last_page}
+                className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <i className="fas fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

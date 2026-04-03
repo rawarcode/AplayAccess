@@ -66,9 +66,8 @@ export default function AdminInventory() {
     <div className="p-6 space-y-6">
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Inventory</h1>
           <p className="text-sm text-slate-500 mt-1">Manage add-on items available to guests.</p>
         </div>
       </div>

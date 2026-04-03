@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import AlertModal from "../../components/modals/AlertModal.jsx";
 import { getAdminSettings, updateAdminSettings } from "../../lib/adminApi";
 
-// Keys we expose in the UI, in display order
 const PRICING_FIELDS = [
   {
     key:         "entrance_fee",
@@ -36,9 +35,9 @@ const PRICING_FIELDS = [
   },
 ];
 
-export default function AdminSettings() {
-  const [settings, setSettings] = useState({});   // { key: value }
-  const [draft,    setDraft]    = useState({});    // editable copy
+export default function OwnerSettings() {
+  const [settings, setSettings] = useState({});
+  const [draft,    setDraft]    = useState({});
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [dirty,    setDirty]    = useState(false);
@@ -52,7 +51,6 @@ export default function AdminSettings() {
     setLoading(true);
     getAdminSettings()
       .then(r => {
-        // API returns array of { key, value, label, … }; convert to map
         const map = {};
         (r.data.data || []).forEach(s => { map[s.key] = s.value; });
         setSettings(map);
@@ -72,7 +70,6 @@ export default function AdminSettings() {
 
   async function handleSave(e) {
     e.preventDefault();
-    // Validate — all pricing fields must be non-negative numbers
     for (const f of PRICING_FIELDS) {
       const v = Number(draft[f.key]);
       if (isNaN(v) || v < 0) {
@@ -105,7 +102,6 @@ export default function AdminSettings() {
   return (
     <div className="p-6 space-y-6 max-w-3xl mx-auto">
 
-      {/* Header */}
       <div>
         <p className="text-sm text-slate-500 mt-1">
           Configure resort-wide pricing that applies to all guest bookings made through the website.
@@ -120,7 +116,6 @@ export default function AdminSettings() {
       ) : (
         <form onSubmit={handleSave} className="space-y-5">
 
-          {/* Pricing cards */}
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
               <i className="fas fa-tags text-sky-500"></i>
@@ -161,7 +156,6 @@ export default function AdminSettings() {
             </div>
           </div>
 
-          {/* Booking note card */}
           <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 flex gap-3 text-sm text-amber-800">
             <i className="fas fa-info-circle mt-0.5 text-amber-500 shrink-0"></i>
             <div>
@@ -173,7 +167,6 @@ export default function AdminSettings() {
             </div>
           </div>
 
-          {/* Summary preview */}
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
               <h2 className="font-semibold text-slate-800 text-sm">Booking Summary Preview</h2>
@@ -199,7 +192,6 @@ export default function AdminSettings() {
             </div>
           </div>
 
-          {/* Action bar */}
           <div className="flex justify-end gap-3 pt-1">
             {dirty && (
               <button

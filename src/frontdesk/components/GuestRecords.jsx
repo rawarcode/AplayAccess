@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
-import NotificationBell from '../../components/ui/NotificationBell';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(dt) {
@@ -167,14 +166,6 @@ export default function GuestRecords() {
           </div>
         </div>
       )}
-
-      {/* ── Header ── */}
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Guest Records</h1>
-          <NotificationBell />
-        </div>
-      </header>
 
       {/* ── Main ── */}
       <main className="p-6">

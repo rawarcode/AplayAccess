@@ -95,7 +95,6 @@ export default function AdminReviews() {
       )}
 
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Guest Reviews</h1>
         <p className="text-sm text-slate-500 mt-1">Monitor guest feedback and keep your service quality high.</p>
       </div>
 

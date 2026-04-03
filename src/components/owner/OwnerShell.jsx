@@ -14,6 +14,8 @@ const PAGE_TITLES = {
   "/owner/transactions": "Transaction Records",
   "/owner/reports":      "Reports",
   "/owner/promo-codes":  "Promo Codes",
+  "/owner/users":        "User Management",
+  "/owner/settings":     "Pricing & Settings",
 };
 
 const MENU = [
@@ -22,6 +24,8 @@ const MENU = [
   { path: "/owner/transactions", icon: "fa-file-invoice-dollar",  label: "Transaction Records" },
   { path: "/owner/reports",      icon: "fa-file-alt",             label: "Reports"             },
   { path: "/owner/promo-codes",  icon: "fa-tag",                  label: "Promo Codes"         },
+  { path: "/owner/users",        icon: "fa-users-cog",            label: "Users"               },
+  { path: "/owner/settings",     icon: "fa-sliders-h",            label: "Pricing & Settings"  },
 ];
 
 function readLocalJson(key, fallback) {
@@ -38,6 +42,12 @@ export default function OwnerShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isEditing,    setIsEditing]    = useState(false);
   const [switching,    setSwitching]    = useState(null);
+  const [toast,        setToast]        = useState(null); // { msg, type: 'success'|'error' }
+
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout } = useAuth();
@@ -48,6 +58,7 @@ export default function OwnerShell() {
     messages:        '/admin/messages',
     arrivals:        '/frontdesk/reservation',
     rooms:           '/frontdesk/rooms',
+    reviews:         '/admin/reviews',
   });
 
   const userName  = user?.name  || "Owner";
@@ -88,13 +99,14 @@ export default function OwnerShell() {
 
   const saveSettings = () => {
     if (passwordData.new && passwordData.new !== passwordData.confirm) {
-      alert("New passwords do not match.");
+      showToast("New passwords do not match.", "error");
       return;
     }
     setProfile(editProfile);
     localStorage.setItem(OWNER_PROFILE_KEY, JSON.stringify(editProfile));
     setIsEditing(false);
-    alert("Profile updated successfully.");
+    setSettingsOpen(false);
+    showToast("Profile updated successfully.");
   };
 
   const switchPortal = (path, label) => {
@@ -181,10 +193,10 @@ export default function OwnerShell() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div className="flex-1 overflow-auto flex flex-col bg-slate-50">
 
         {/* Header */}
-        <header className="bg-white shadow-sm sticky top-0 z-20">
+        <header className="bg-white shadow-sm border-b-2 border-emerald-500 sticky top-0 z-20">
           <div className="flex items-center justify-between p-4">
             <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
             <div className="flex items-center space-x-4">
@@ -317,6 +329,15 @@ export default function OwnerShell() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white transition-all
+          ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
+          <i className={`fas ${toast.type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}`}></i>
+          {toast.msg}
         </div>
       )}
     </div>

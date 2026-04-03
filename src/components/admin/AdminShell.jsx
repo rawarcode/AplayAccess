@@ -10,7 +10,6 @@ const ADMIN_PROFILE_KEY = "admin_profile_v1";
 
 const PAGE_TITLES = {
   "/admin":              "Dashboard",
-  "/admin/users":        "Manage Users",
   "/admin/rooms":        "Manage Rooms",
   "/admin/guests":       "Guests",
   "/admin/transactions": "Transactions",
@@ -25,18 +24,17 @@ const PAGE_TITLES = {
 const MENU = {
   main: [
     { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard",    ownerOnly: false },
-    { path: "/admin/users",        icon: "fa-users",           label: "Manage Users", ownerOnly: true  },
-    { path: "/admin/rooms",        icon: "fa-bed",             label: "Manage Rooms", ownerOnly: false },
     { path: "/admin/guests",       icon: "fa-user-check",      label: "Guests",       ownerOnly: false },
     { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions", ownerOnly: false, badgeKey: "pendingBookings" },
-    { path: "/admin/history",      icon: "fa-history",         label: "History",      ownerOnly: false },
-    { path: "/admin/reviews",      icon: "fa-star",            label: "Reviews",      ownerOnly: false },
     { path: "/admin/messages",     icon: "fa-envelope",        label: "Messages",     ownerOnly: false, badgeKey: "unreadMessages"  },
   ],
   manage: [
+    { path: "/admin/rooms",     icon: "fa-bed",             label: "Manage Rooms"       },
     { path: "/admin/inventory", icon: "fa-concierge-bell",  label: "Add-ons"            },
     { path: "/admin/settings",  icon: "fa-sliders-h",       label: "Pricing & Settings" },
     { path: "/admin/content",   icon: "fa-globe",           label: "Manage Website"     },
+    { path: "/admin/reviews",   icon: "fa-star",            label: "Reviews"            },
+    { path: "/admin/history",   icon: "fa-history",         label: "History"            },
   ],
 };
 
@@ -56,6 +54,12 @@ export default function AdminShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isEditing,    setIsEditing]    = useState(false);
   const [switching,    setSwitching]    = useState(null); // label string while transitioning
+  const [toast,        setToast]        = useState(null); // { msg, type: 'success'|'error' }
+
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }
   const location   = useLocation();
   const navigate   = useNavigate();
   const { user, logout } = useAuth();
@@ -84,6 +88,7 @@ export default function AdminShell() {
     messages:        '/admin/messages',
     arrivals:        '/admin/transactions',
     rooms:           '/admin/rooms',
+    reviews:         '/admin/reviews',
   });
 
   // Close profile dropdown on outside click
@@ -112,14 +117,15 @@ export default function AdminShell() {
 
   const saveSettings = () => {
     if (passwordData.new && passwordData.new !== passwordData.confirm) {
-      alert("New passwords do not match.");
+      showToast("New passwords do not match.", "error");
       return;
     }
     const updated = { ...editProfile };
     setProfile(updated);
     localStorage.setItem(ADMIN_PROFILE_KEY, JSON.stringify(updated));
     setIsEditing(false);
-    alert("Profile updated successfully.");
+    setSettingsOpen(false);
+    showToast("Profile updated successfully.");
   };
 
   const isActive = (path) =>
@@ -182,7 +188,7 @@ export default function AdminShell() {
                           <>
                             <span className="text-sm flex-1">{item.label}</span>
                             {badge > 0 && (
-                              <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white
+                              <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-white
                                 text-[10px] font-bold flex items-center justify-center px-1 leading-none shrink-0">
                                 {badge > 99 ? "99+" : badge}
                               </span>
@@ -190,7 +196,7 @@ export default function AdminShell() {
                           </>
                         )}
                         {collapsed && badge > 0 && (
-                          <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-red-500 pointer-events-none"></span>
+                          <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 pointer-events-none"></span>
                         )}
                       </Link>
                     </li>
@@ -263,7 +269,7 @@ export default function AdminShell() {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto flex flex-col">
+      <div className="flex-1 overflow-auto flex flex-col bg-slate-100">
 
         {/* Header */}
         <header className="bg-white shadow-sm sticky top-0 z-20">
@@ -271,7 +277,6 @@ export default function AdminShell() {
             <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
             <div className="flex items-center space-x-4">
 
-              {/* Bell */}
               <NotificationBell />
 
               {/* Profile dropdown */}
@@ -489,6 +494,15 @@ export default function AdminShell() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white transition-all
+          ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
+          <i className={`fas ${toast.type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}`}></i>
+          {toast.msg}
         </div>
       )}
     </div>

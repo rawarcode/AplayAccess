@@ -28,10 +28,15 @@ export default function AdminTransactions() {
   const [viewBooking,   setViewBooking]   = useState(null);
 
   useEffect(() => {
-    getAdminBookings()
-      .then(r => setBookings(r.data.data))
-      .catch(() => setError("Failed to load transactions."))
-      .finally(() => setLoading(false));
+    function load() {
+      getAdminBookings()
+        .then(r => setBookings(r.data.data))
+        .catch(() => setError("Failed to load transactions."))
+        .finally(() => setLoading(false));
+    }
+    load();
+    const id = setInterval(load, 10000);
+    return () => clearInterval(id);
   }, []);
 
   const filtered = bookings
@@ -57,8 +62,7 @@ export default function AdminTransactions() {
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Transactions</h1>
+      <div className="bg-white rounded-xl shadow-sm p-5">
         <p className="text-sm text-slate-500 mt-1">Track payments and booking settlement status.</p>
       </div>
 

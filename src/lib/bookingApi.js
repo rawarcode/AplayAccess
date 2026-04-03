@@ -18,3 +18,9 @@ export async function cancelBooking(bookingId) {
   const res = await api.patch(`/api/bookings/${bookingId}/cancel`);
   return res.data;
 }
+
+// GET /api/bookings/{id}/receipt — download PDF receipt as a blob
+export async function downloadReceipt(bookingId) {
+  const res = await api.get(`/api/bookings/${bookingId}/receipt`, { responseType: 'blob' });
+  return res.data;
+}

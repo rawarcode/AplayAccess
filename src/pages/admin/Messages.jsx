@@ -225,7 +225,6 @@ export default function AdminMessages() {
 
       {/* ── Header ── */}
       <div>
-        <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">Messages</h1>
         <p className="text-sm text-slate-500 mt-1">Read and respond to guest inquiries.</p>
       </div>
 

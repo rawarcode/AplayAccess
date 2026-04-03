@@ -5,7 +5,6 @@ import {
 } from 'chart.js';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
-import NotificationBell from '../../components/ui/NotificationBell';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -167,20 +166,6 @@ export default function Reports() {
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-800">Reports</h1>
-            {usingDemo && (
-              <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
-                Sample Data
-              </span>
-            )}
-          </div>
-          <NotificationBell />
-        </div>
-      </header>
-
       <main className="p-6">
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">

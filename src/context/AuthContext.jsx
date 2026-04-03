@@ -39,12 +39,15 @@ export function AuthProvider({ children }) {
         setUser(u || null);
         if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
         else localStorage.removeItem(STORAGE_KEY);
-      } catch {
+      } catch (err) {
         if (!alive) return;
-        // If not authenticated, backend will throw 401 → clear user and token
-        setUser(null);
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(TOKEN_KEY);
+        // Only clear session on explicit 401 — network errors / aborted requests
+        // (e.g. popup windows closing mid-flight) must NOT log the user out
+        if (err?.response?.status === 401) {
+          setUser(null);
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(TOKEN_KEY);
+        }
       } finally {
         if (!alive) return;
         setBooting(false);

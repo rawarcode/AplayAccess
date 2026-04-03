@@ -45,7 +45,8 @@ function todayStr() {
 }
 
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked }) {
-  const modalRef = useRef(null);
+  const modalRef        = useRef(null);
+  const bookingResultRef = useRef(null); // stores API response after booking created
   const [bookingType, setBookingType] = useState("day"); // "day" | "overnight"
   const [visitDate, setVisitDate]     = useState("");
   const [visitTime, setVisitTime]     = useState("09:00");
@@ -138,11 +139,17 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
     function handleMessage(event) {
       if (event.data?.type === "paymongo_paid") {
+        const bId = paymentPopup?.bookingId;
         try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
         setPaymentPopup(null);
         setTimeLeft(null);
-        onBooked?.();
-        onClose();
+        // Directly confirm via backend — PayMongo only redirects here on real payment
+        const finish = () => { onBooked?.(bookingResultRef.current); onClose(); };
+        if (bId) {
+          api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: paymentOption === "full" }).then(finish).catch(finish);
+        } else {
+          finish();
+        }
       }
       if (event.data?.type === "paymongo_cancelled") {
         try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
@@ -175,13 +182,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           try { popup?.close(); } catch { /* ignore */ }
           setPaymentPopup(null);
           setTimeLeft(null);
-          onBooked?.();
+          onBooked?.(bookingResultRef.current);
           onClose();
         }
       } catch {
         // ignore transient polling errors; keep trying
       }
-    }, 3000);
+    }, 1500);
 
     return () => clearInterval(interval);
   }, [paymentPopup, onBooked, onClose]);
@@ -220,6 +227,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setConfirmOpen(false);
     }
   }, [open, selectedRoom]);
+
+  // ── Max guests: use selected room's capacity, fall back to MAX_GUESTS ──────
+  const maxGuests = useMemo(() => {
+    const r = rooms.find(r => r.name === roomType);
+    return r?.capacity || MAX_GUESTS;
+  }, [rooms, roomType]);
 
   // ── Available time slots (hide past slots when date is today) ─────────────
   const availableSlots = useMemo(() => {
@@ -313,7 +326,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         discount:         discount,
       });
 
-      const bookingId = result.data?.id;
+      bookingResultRef.current = result.data?.data ?? result.data;
+      const bookingId = result.data?.data?.id ?? result.data?.id;
       const { checkout_url } = await createPaymentLink(bookingId, paymentOption === "full");
 
       // Open PayMongo in a small centered popup so the main page stays visible
@@ -462,19 +476,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Select Room Type</option>
-                {rooms.map((r) => {
-                  const avail = availability?.[r.name];
-                  const label = availability === null
-                    ? r.name
-                    : avail === false
-                    ? `${r.name} — Not Available`
-                    : `${r.name} — Available`;
-                  return (
-                    <option key={r.name} value={r.name} disabled={avail === false}>
-                      {label}
-                    </option>
-                  );
-                })}
+                {rooms
+                  .filter(r => availability === null || availability?.[r.name] !== false)
+                  .map((r) => (
+                    <option key={r.name} value={r.name}>{r.name}</option>
+                  ))}
               </select>
               {/* Availability badge for selected room */}
               {availability !== null && roomType && (
@@ -496,7 +502,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Number of Guests <span className="text-red-500">*</span>
-                <span className="text-gray-400 font-normal ml-1">(max {MAX_GUESTS})</span>
+                <span className="text-gray-400 font-normal ml-1">(max {maxGuests})</span>
               </label>
               <div className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
                 <button
@@ -508,18 +514,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <input
                   type="number"
                   min={MIN_GUESTS}
-                  max={MAX_GUESTS}
+                  max={maxGuests}
                   value={guests}
                   onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val)) setGuests(Math.min(MAX_GUESTS, Math.max(MIN_GUESTS, val)));
+                    if (!isNaN(val)) setGuests(Math.min(maxGuests, Math.max(MIN_GUESTS, val)));
                   }}
                   className="flex-1 text-center py-2 text-gray-900 font-medium focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <button
                   type="button"
-                  onClick={() => setGuests((g) => Math.min(MAX_GUESTS, g + 1))}
-                  disabled={guests >= MAX_GUESTS}
+                  onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
+                  disabled={guests >= maxGuests}
                   className="px-4 py-2 text-xl font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed select-none"
                 >+</button>
               </div>

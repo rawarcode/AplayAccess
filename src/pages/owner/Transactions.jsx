@@ -48,7 +48,7 @@ function buildPieData(bookings, key) {
 }
 
 function exportCSV(rows) {
-  const headers = ["Booking ID", "Check-in", "Guest", "Room Type", "Payment Method", "Amount (PHP)", "Status"];
+  const headers = ["Booking ID", "Check-in", "Guest", "Room Type", "Payment Method", "Discount (PHP)", "Amount (PHP)", "Status"];
   const lines = [
     headers.join(","),
     ...rows.map((b) => [
@@ -57,6 +57,7 @@ function exportCSV(rows) {
       `"${b.guest}"`,
       `"${b.roomType}"`,
       b.paymentMethod || "",
+      b.discount || 0,
       b.total,
       b.status,
     ].join(",")),
@@ -269,6 +270,7 @@ export default function OwnerTransactions() {
                 <th className="px-6 py-3 text-left">Guest</th>
                 <th className="px-6 py-3 text-left">Room</th>
                 <th className="px-6 py-3 text-left">Payment</th>
+                <th className="px-6 py-3 text-left">Discount</th>
                 <th className="px-6 py-3 text-left">Amount</th>
                 <th className="px-6 py-3 text-left">Status</th>
               </tr>
@@ -276,11 +278,11 @@ export default function OwnerTransactions() {
             <tbody className="divide-y divide-slate-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">Loading...</td>
+                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400">Loading...</td>
                 </tr>
               ) : currentRows.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-10 text-center text-slate-400">No transactions found.</td>
+                  <td colSpan={8} className="px-6 py-10 text-center text-slate-400">No transactions found.</td>
                 </tr>
               ) : currentRows.map((b) => (
                 <tr key={b.booking_id} onClick={() => navigate("/admin/transactions")} className="hover:bg-slate-50 cursor-pointer">
@@ -289,6 +291,16 @@ export default function OwnerTransactions() {
                   <td className="px-6 py-4 font-medium text-slate-900">{b.guest}</td>
                   <td className="px-6 py-4 text-slate-500">{b.roomType}</td>
                   <td className="px-6 py-4 text-slate-500">{b.paymentMethod || "—"}</td>
+                  <td className="px-6 py-4">
+                    {Number(b.discount) > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                        <i className="fas fa-tag text-xs"></i>
+                        {fmt(b.discount)}
+                      </span>
+                    ) : (
+                      <span className="text-slate-400">—</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 font-medium">{fmt(b.total)}</td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLASSES[b.status] || "bg-gray-100 text-gray-800"}`}>
@@ -303,6 +315,9 @@ export default function OwnerTransactions() {
                 <tr>
                   <td colSpan={5} className="px-6 py-3 text-slate-700">
                     Page total ({currentRows.length} rows)
+                  </td>
+                  <td className="px-6 py-3 text-emerald-700 font-semibold">
+                    {fmt(currentRows.filter(b => b.status !== "Cancelled").reduce((s, b) => s + Number(b.discount || 0), 0))}
                   </td>
                   <td className="px-6 py-3 text-slate-900">
                     {fmt(currentRows.filter(b => b.status !== "Cancelled").reduce((s, b) => s + b.total, 0))}

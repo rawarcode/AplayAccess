@@ -1,19 +1,41 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import PortalTransition from '../../../components/PortalTransition.jsx';
 import { useStaffNotifications } from '../../../hooks/useStaffNotifications.js';
 import NotificationContext from '../../../context/NotificationContext.jsx';
+import NotificationBell from '../../../components/ui/NotificationBell.jsx';
 
-export default function Sidebar({ children }) {
-  const [collapsed,  setCollapsed]  = useState(false);
-  const [switching,  setSwitching]  = useState(null);
+const PAGE_TITLES = {
+  '/frontdesk':             'Dashboard',
+  '/frontdesk/reservation': 'Reservations',
+  '/frontdesk/billing':     'Billing',
+  '/frontdesk/walkin':      'Walk-ins',
+  '/frontdesk/records':     'Guest Records',
+  '/frontdesk/rooms':       'Rooms',
+  '/frontdesk/messages':    'Messages',
+};
+
+export default function Sidebar({ children, showTopBar = true }) {
+  const [collapsed,    setCollapsed]    = useState(false);
+  const [switching,    setSwitching]    = useState(null);
+  const [profileOpen,  setProfileOpen]  = useState(false);
+  const profileRef = useRef(null);
   const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout } = useAuth();
 
   const userName  = user?.name  || 'Staff Member';
   const userEmail = user?.email || 'staff@aplayaccess.com';
+  const initials  = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
     pendingBookings: '/frontdesk/reservation',
@@ -31,9 +53,6 @@ export default function Sidebar({ children }) {
       { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
       { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms',         badgeKey: 'dirtyRooms'      },
       { path: '/frontdesk/messages',    icon: 'fa-envelope',         label: 'Messages',      badgeKey: 'unreadMessages'  },
-    ],
-    management: [
-      { path: '/frontdesk/reports', icon: 'fa-chart-bar', label: 'Reports' },
     ],
   };
 
@@ -98,7 +117,7 @@ export default function Sidebar({ children }) {
                         <>
                           <span className="text-sm flex-1">{item.label}</span>
                           {badge > 0 && (
-                            <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-red-500 text-white
+                            <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-white
                               text-[10px] font-bold flex items-center justify-center px-1 leading-none shrink-0">
                               {badge > 99 ? '99+' : badge}
                             </span>
@@ -106,7 +125,7 @@ export default function Sidebar({ children }) {
                         </>
                       )}
                       {collapsed && badge > 0 && (
-                        <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-red-500 pointer-events-none"></span>
+                        <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 pointer-events-none"></span>
                       )}
                     </Link>
                   </li>
@@ -115,27 +134,6 @@ export default function Sidebar({ children }) {
             </ul>
           </div>
 
-          {/* Management */}
-          <div className="mb-6">
-            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Management</h3>}
-            <ul>
-              {menuItems.management.map((item) => (
-                <li key={item.path} className="mb-2">
-                  <Link
-                    to={item.path}
-                    className={`flex items-center p-2 rounded transition ${
-                      isActive(item.path)
-                        ? 'bg-[#2e4a9a] text-white'
-                        : 'text-blue-100 hover:bg-[#2e4a9a] hover:text-white'
-                    }`}
-                  >
-                    <i className={`fas ${item.icon} mr-3 w-5 text-center`}></i>
-                    {!collapsed && <span className="text-sm">{item.label}</span>}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
         </nav>
 
         {/* Inline alerts strip */}
@@ -203,8 +201,46 @@ export default function Sidebar({ children }) {
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
-        {children}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {showTopBar && (
+          <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
+            <h1 className="text-xl font-bold text-gray-800">
+              {PAGE_TITLES[location.pathname] ?? 'Front Desk'}
+            </h1>
+            <div className="flex items-center space-x-4">
+              <NotificationBell />
+              <div className="relative" ref={profileRef}>
+                <button
+                  onClick={() => setProfileOpen(o => !o)}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                >
+                  <div className="h-8 w-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold">
+                    {initials}
+                  </div>
+                  <span className="hidden md:inline text-sm font-medium">{userName}</span>
+                  <i className="fas fa-chevron-down text-xs text-gray-400"></i>
+                </button>
+                {profileOpen && (
+                  <div className="absolute right-0 top-11 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-3 border-b border-gray-100">
+                      <p className="font-medium text-gray-900 text-sm">{userName}</p>
+                      <p className="text-xs text-gray-500">{userEmail}</p>
+                    </div>
+                    <button
+                      onClick={() => { setProfileOpen(false); handleLogout(); }}
+                      className="p-3 flex items-center w-full text-left hover:bg-gray-50 text-red-500 text-sm"
+                    >
+                      <i className="fas fa-sign-out-alt mr-3"></i>Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+        )}
+        <div className="flex-1 overflow-auto bg-sky-50">
+          {children}
+        </div>
       </div>
     </div>
     </NotificationContext.Provider>

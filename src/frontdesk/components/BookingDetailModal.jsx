@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
-  addAmenity, removeAmenity,
+  addAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
 } from '../../lib/frontdeskApi';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -106,11 +106,15 @@ const COLOR = {
  */
 export default function BookingDetailModal({ booking: initialBooking, onClose, onUpdated, showToast }) {
   const [booking,       setBooking]       = useState(initialBooking);
-  const [actionLoading, setActionLoading] = useState(false);
-  const [addingAmenity, setAddingAmenity] = useState(null);
-  const [amenityLoading, setAmenityLoading] = useState(false);
+  const [actionLoading,    setActionLoading]    = useState(false);
+  const [addingAmenity,    setAddingAmenity]    = useState(null);
+  const [amenityLoading,   setAmenityLoading]   = useState(false);
+  const [receiptLoading,   setReceiptLoading]   = useState(false);
+  const [guestEdit,        setGuestEdit]        = useState(false);
+  const [guestCount,       setGuestCount]       = useState(initialBooking.guests ?? 1);
+  const [guestLoading,     setGuestLoading]     = useState(false);
   // pendingAction: { type, amenityId?, amenityName?, amenityTotal? } | null
-  const [pendingAction, setPendingAction] = useState(null);
+  const [pendingAction,    setPendingAction]    = useState(null);
 
   function applyUpdate(updates) {
     const updated = { ...booking, ...updates };
@@ -151,6 +155,21 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     }
   }
 
+  async function handleUpdateGuests() {
+    if (guestCount === booking.guests) { setGuestEdit(false); return; }
+    setGuestLoading(true);
+    try {
+      const res = await updateBookingGuests(booking.booking_id, guestCount);
+      applyUpdate({ guests: res.guests, total: res.total });
+      setGuestEdit(false);
+      showToast?.(`Guest count updated to ${res.guests}. New total: ${fmtMoney(res.total)}`);
+    } catch {
+      showToast?.('Failed to update guest count.');
+    } finally {
+      setGuestLoading(false);
+    }
+  }
+
   async function handleAddAmenity() {
     if (!addingAmenity?.name) return;
     setAmenityLoading(true);
@@ -164,6 +183,23 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     } catch (err) {
       showToast?.(err?.response?.data?.message || 'Failed to add amenity.');
     } finally { setAmenityLoading(false); }
+  }
+
+  async function handleDownloadReceipt() {
+    setReceiptLoading(true);
+    try {
+      const blob = await downloadStaffReceipt(booking.booking_id);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${booking.id}-receipt.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast?.('Failed to download receipt.');
+    } finally {
+      setReceiptLoading(false);
+    }
   }
 
   const wi         = parseWalkIn(booking);
@@ -256,7 +292,34 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             <div><p className="text-xs text-gray-500">Email</p><p>{guestEmail}</p></div>
             <div><p className="text-xs text-gray-500">Phone</p><p>{guestPhone}</p></div>
             <div><p className="text-xs text-gray-500">Room Type</p><p className="font-medium">{booking.roomType}</p></div>
-            <div><p className="text-xs text-gray-500">Guests</p><p>{booking.guests} pax</p></div>
+            <div>
+              <p className="text-xs text-gray-500">Guests</p>
+              {guestEdit ? (
+                <div className="flex items-center gap-1 mt-0.5">
+                  <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
+                    className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-sm font-bold">−</button>
+                  <span className="w-6 text-center font-medium">{guestCount}</span>
+                  <button onClick={() => setGuestCount(g => g + 1)}
+                    className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-sm font-bold">+</button>
+                  <button onClick={handleUpdateGuests} disabled={guestLoading}
+                    className="ml-1 px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50">
+                    {guestLoading ? '…' : 'Save'}
+                  </button>
+                  <button onClick={() => { setGuestEdit(false); setGuestCount(booking.guests); }}
+                    className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">✕</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p>{booking.guests} pax</p>
+                  {['Confirmed', 'Checked In'].includes(booking.status) && (
+                    <button onClick={() => { setGuestEdit(true); setGuestCount(booking.guests); }}
+                      className="text-xs text-blue-600 hover:underline">
+                      <i className="fas fa-user-plus mr-0.5"></i>Edit
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div><p className="text-xs text-gray-500">Check-in</p><p>{fmtDateTime(booking.checkIn)}</p></div>
             <div><p className="text-xs text-gray-500">Check-out</p><p>{fmtDateTime(booking.checkOut)}</p></div>
             {booking.checkedInAt && (
@@ -385,14 +448,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           {/* Actions — hidden while confirmation is pending */}
           {!pendingAction && (
             <div className="flex justify-end gap-2 pt-4 border-t">
-              {booking.status === 'Pending' && (
-                <button onClick={() => setPendingAction({ type: 'confirm-booking' })}
-                  disabled={actionLoading}
-                  className="px-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-50">
-                  <i className="fas fa-check mr-1"></i>Confirm
-                </button>
-              )}
-              {booking.status === 'Confirmed' && (
+              {['Pending', 'Confirmed'].includes(booking.status) && (
                 <button onClick={() => setPendingAction({ type: 'checkin' })}
                   disabled={actionLoading}
                   className="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50">
@@ -411,6 +467,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   disabled={actionLoading}
                   className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50">
                   <i className="fas fa-times mr-1"></i>Cancel
+                </button>
+              )}
+              {booking.status === 'Completed' && (
+                <button onClick={handleDownloadReceipt} disabled={receiptLoading}
+                  className="px-3 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50">
+                  {receiptLoading
+                    ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
+                    : <><i className="fas fa-file-pdf mr-1"></i>Receipt</>}
                 </button>
               )}
               <button onClick={onClose}

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
-import NotificationBell from '../../components/ui/NotificationBell';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
 import { getFdBookings, updateBookingStatus, checkInBooking, checkOutBooking } from '../../lib/frontdeskApi';
@@ -65,8 +64,8 @@ export default function Reservation() {
   const [error, setError]                 = useState('');
   const [actionLoading, setActionLoading] = useState(null);
 
-  const [sortBy, setSortBy]               = useState('Guest Name');
-  const [sortDir, setSortDir]             = useState('asc');
+  const [sortBy, setSortBy]               = useState('ID');
+  const [sortDir, setSortDir]             = useState('desc');
   const [searchTerm, setSearchTerm]       = useState('');
   const [filterStatus, setFilterStatus]   = useState('All');
 
@@ -81,7 +80,11 @@ export default function Reservation() {
       .catch(() => setError('Failed to load bookings.'))
       .finally(() => setLoading(false));
   }
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 10000);
+    return () => clearInterval(id);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSort(field) {
     if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -102,23 +105,32 @@ export default function Reservation() {
         );
       });
     }
-    const STATUS_PRIORITY = { Pending: 0, 'Checked In': 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
     return [...list].sort((a, b) => {
-      // Status priority always applied first
-      const pa = STATUS_PRIORITY[a.status] ?? 5;
-      const pb = STATUS_PRIORITY[b.status] ?? 5;
-      if (pa !== pb) return pa - pb;
-      // Then secondary sort by selected column
-      let valA = '', valB = '';
-      if (sortBy === 'Guest Name') {
+      let valA, valB;
+      if (sortBy === 'ID') {
+        valA = a.id ?? ''; valB = b.id ?? '';
+        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      } else if (sortBy === 'Guest') {
         const wiA = parseWalkIn(a), wiB = parseWalkIn(b);
         valA = ((wiA ? wiA.name : a.guest) ?? '').toLowerCase();
         valB = ((wiB ? wiB.name : b.guest) ?? '').toLowerCase();
-      } else if (sortBy === 'Reservation ID') {
-        valA = a.id ?? ''; valB = b.id ?? '';
-      } else if (sortBy === 'Room Type') {
+      } else if (sortBy === 'Room') {
         valA = (a.roomType ?? '').toLowerCase();
         valB = (b.roomType ?? '').toLowerCase();
+      } else if (sortBy === 'Visit Time') {
+        valA = a.checkIn ?? ''; valB = b.checkIn ?? '';
+      } else if (sortBy === 'Guests') {
+        valA = Number(a.guests ?? 0); valB = Number(b.guests ?? 0);
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      } else if (sortBy === 'Total') {
+        valA = Number(a.total ?? 0); valB = Number(b.total ?? 0);
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      } else if (sortBy === 'Status') {
+        const ORDER = { Pending: 0, 'Checked In': 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
+        valA = ORDER[a.status] ?? 5; valB = ORDER[b.status] ?? 5;
+        return sortDir === 'asc' ? valA - valB : valB - valA;
+      } else {
+        valA = ''; valB = '';
       }
       if (valA < valB) return sortDir === 'asc' ? -1 : 1;
       if (valA > valB) return sortDir === 'asc' ?  1 : -1;
@@ -223,33 +235,11 @@ export default function Reservation() {
         />
       )}
 
-      {/* ── Header ── */}
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Reservations</h1>
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <button onClick={load} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm">
-              <i className="fas fa-sync-alt"></i> Refresh
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* ── Main ── */}
       <main className="p-6">
         <div className="bg-white rounded-lg shadow p-6">
           {/* Search + Filter */}
           <div className="flex flex-wrap gap-3 mb-6 items-center">
-            {['Guest Name', 'Reservation ID', 'Room Type'].map(field => (
-              <button key={field} onClick={() => handleSort(field)}
-                className={`flex items-center gap-1 px-3 py-2 rounded border text-sm font-medium transition ${
-                  sortBy === field ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-600 border-gray-300 hover:border-blue-400'
-                }`}>
-                {field}
-                {sortBy === field && <i className={`fas fa-arrow-${sortDir === 'asc' ? 'up' : 'down'} text-xs`}></i>}
-              </button>
-            ))}
             <input type="text" placeholder="Search name, ID, room…"
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="border rounded px-3 py-2 text-sm flex-1 min-w-[160px]" />
@@ -265,6 +255,9 @@ export default function Reservation() {
             <span className="text-sm text-gray-500 whitespace-nowrap">
               {filtered.length} result{filtered.length !== 1 ? 's' : ''}
             </span>
+            <button onClick={load} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm ml-auto">
+              <i className="fas fa-sync-alt"></i> Refresh
+            </button>
           </div>
 
           {error && (
@@ -282,9 +275,20 @@ export default function Reservation() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Total', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{h}</th>
+                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Total', 'Status'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        <button onClick={() => handleSort(h)}
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                          {h}
+                          <span className="text-gray-400 group-hover:text-blue-400">
+                            {sortBy === h
+                              ? <i className={`fas fa-arrow-${sortDir === 'asc' ? 'up' : 'down'} text-blue-500`}></i>
+                              : <i className="fas fa-sort opacity-40"></i>}
+                          </span>
+                        </button>
+                      </th>
                     ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -335,7 +339,7 @@ export default function Reservation() {
                                 <i className="fas fa-sign-out-alt"></i>
                               </button>
                             )}
-                            {['Pending', 'Confirmed'].includes(b.status) && (
+                            {b.status === 'Pending' && (
                               <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'cancel', booking: b })}
                                 disabled={actionLoading === b.booking_id}
                                 title="Cancel" className="text-red-600 hover:text-red-800 disabled:opacity-40">

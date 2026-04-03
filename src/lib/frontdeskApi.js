@@ -19,6 +19,12 @@ export async function checkInBooking(bookingId) {
   return res.data;
 }
 
+// PATCH /api/admin/bookings/{id}/guests
+export async function updateBookingGuests(bookingId, guests) {
+  const res = await api.patch(`/api/admin/bookings/${bookingId}/guests`, { guests });
+  return res.data;
+}
+
 // POST /api/admin/bookings/{id}/checkout
 export async function checkOutBooking(bookingId) {
   const res = await api.post(`/api/admin/bookings/${bookingId}/checkout`);
@@ -52,5 +58,11 @@ export async function removeAmenity(bookingId, amenityId) {
 // PATCH /api/admin/rooms/{id}/housekeeping
 export async function updateHousekeeping(roomId, status) {
   const res = await api.patch(`/api/admin/rooms/${roomId}/housekeeping`, { status });
+  return res.data;
+}
+
+// GET /api/admin/bookings/{id}/receipt — staff downloads PDF receipt as a blob
+export async function downloadStaffReceipt(bookingId) {
+  const res = await api.get(`/api/admin/bookings/${bookingId}/receipt`, { responseType: 'blob' });
   return res.data;
 }

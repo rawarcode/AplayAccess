@@ -13,7 +13,7 @@ const ROLE_COLORS = {
   owner:      "bg-amber-100 text-amber-800",
 };
 
-export default function AdminUsers() {
+export default function OwnerUsers() {
   const { user: currentUser } = useAuth();
 
   const [users,      setUsers]      = useState([]);
@@ -91,13 +91,9 @@ export default function AdminUsers() {
     }
   }
 
-  // A user can be deactivated only if: not owner AND not the current logged-in user
+  // Owner can toggle anyone except themselves
   function canToggleActive(u) {
-    return u.role !== "owner" && u.id !== currentUser?.id;
-  }
-  // A user can be edited if: not owner
-  function canEdit(u) {
-    return u.role !== "owner";
+    return u.id !== currentUser?.id;
   }
 
   const filtered = users.filter(u =>
@@ -177,11 +173,9 @@ export default function AdminUsers() {
                     </td>
                     <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-3">
-                        {canEdit(u) && (
-                          <button onClick={() => openEdit(u)} className="text-sky-600 hover:text-sky-800 font-medium">
-                            Edit
-                          </button>
-                        )}
+                        <button onClick={() => openEdit(u)} className="text-sky-600 hover:text-sky-800 font-medium">
+                          Edit
+                        </button>
                         {canToggleActive(u) && (
                           <button
                             onClick={() => toggleActive(u)}
@@ -241,12 +235,10 @@ export default function AdminUsers() {
                 className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50">
                 Close
               </button>
-              {canEdit(viewUser) && (
-                <button onClick={() => openEdit(viewUser)}
-                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm">
-                  Edit
-                </button>
-              )}
+              <button onClick={() => openEdit(viewUser)}
+                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm">
+                Edit
+              </button>
             </div>
           </div>
         </div>
@@ -285,6 +277,7 @@ export default function AdminUsers() {
               <label className="block text-sm font-medium text-slate-700 mb-1">Role *</label>
               <select value={editing?.role || "front_desk"} onChange={e => setField("role", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm">
+                <option value="owner">Owner</option>
                 <option value="admin">Admin</option>
                 <option value="front_desk">Front Desk</option>
               </select>

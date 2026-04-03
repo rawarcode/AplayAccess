@@ -9,7 +9,6 @@ import { api } from "../lib/api.js";
 import { rooms as roomsFallback } from "../data/rooms.js";
 import { amenities as amenitiesFallback } from "../data/amenities.js";
 import { gallery as galleryFallback } from "../data/gallery.js";
-import { testimonials } from "../data/testimonials.js";
 
 import LoginModal from "../components/modals/LoginModal.jsx";
 import BookingModal from "../components/modals/BookingModal.jsx";
@@ -130,12 +129,15 @@ export default function Resort() {
 
   const bookingRooms = useMemo(() => {
     const base = roomsApi.length ? roomsApi : roomsFallback;
-    return base.map((r) => ({
-      id:            r?.id            ?? null,
-      name:          r?.name          ?? "Room",
-      day_rate:      Number(r?.day_rate      ?? 0),
-      overnight_rate: Number(r?.overnight_rate ?? 0),
-    }));
+    return base
+      .filter(r => !r?.availability_status || r?.availability_status === "available")
+      .map((r) => ({
+        id:             r?.id             ?? null,
+        name:           r?.name           ?? "Room",
+        day_rate:       Number(r?.day_rate       ?? 0),
+        overnight_rate: Number(r?.overnight_rate  ?? 0),
+        capacity:       Number(r?.capacity        ?? 20),
+      }));
   }, [roomsApi]);
 
   const amenityCards = useMemo(() => {
@@ -170,19 +172,14 @@ export default function Resort() {
     }));
   }, [galleryApi]);
 
-  // Normalize reviews / fallback testimonials to { name, img, stars, quote }
+  // Map API reviews to display format — no static fallback
   const testimonialsDisplay = useMemo(() => {
-    if (reviewsApi.length) {
-      return reviewsApi.slice(0, 3).map((r) => ({
-        name: r.user_name ?? "Guest",
-        img:
-          r.user_avatar ??
-          `https://ui-avatars.com/api/?name=${encodeURIComponent(r.user_name ?? "Guest")}&background=3b82f6&color=fff`,
-        stars: "★".repeat(Math.min(5, Math.max(1, Number(r.rating || 5)))),
-        quote: r.comment ?? "",
-      }));
-    }
-    return testimonials;
+    return reviewsApi.map((r) => ({
+      name:  r.user_name ?? "Guest",
+      img:   r.user_avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(r.user_name ?? "Guest")}&background=3b82f6&color=fff`,
+      stars: "★".repeat(Math.min(5, Math.max(1, Number(r.rating || 5)))),
+      quote: r.comment ?? "",
+    }));
   }, [reviewsApi]);
 
   function requestBooking(roomName = "") {
@@ -522,7 +519,7 @@ export default function Resort() {
         </section>
 
         {/* TESTIMONIALS */}
-        {pc.reviews.visible !== false && (
+        {pc.reviews.visible !== false && testimonialsDisplay.length > 0 && (
         <section className="py-20 bg-blue-600 text-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">

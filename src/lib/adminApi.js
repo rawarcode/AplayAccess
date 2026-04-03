@@ -3,6 +3,9 @@ import { api } from './api';
 // ── Dashboard ────────────────────────────────────────────────────────────────
 export const getAdminStats     = ()         => api.get('/api/admin/stats');
 
+// ── Activity History ─────────────────────────────────────────────────────────
+export const getAdminHistory   = (params)   => api.get('/api/admin/history', { params });
+
 // ── Rooms ────────────────────────────────────────────────────────────────────
 export const getAdminRooms     = ()         => api.get('/api/admin/rooms');
 export const createAdminRoom   = (data)     => api.post('/api/admin/rooms', data);
@@ -29,6 +32,9 @@ export const deleteAdminReview = (id)       => api.delete(`/api/admin/reviews/${
 // ── Settings ─────────────────────────────────────────────────────────────────
 export const getAdminSettings    = ()           => api.get('/api/admin/settings');
 export const updateAdminSettings = (settings)   => api.patch('/api/admin/settings', { settings });
+
+// ── Page Content (site builder) ───────────────────────────────────────────────
+export const updateAdminContent  = (content)    => api.patch('/api/admin/content', { content });
 
 // ── Add-ons ──────────────────────────────────────────────────────────────────
 export const getAdminAddons    = ()         => api.get('/api/admin/addons');

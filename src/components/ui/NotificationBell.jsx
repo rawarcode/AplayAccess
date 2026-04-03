@@ -69,7 +69,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
         <i className="fas fa-bell text-xl"></i>
         {total > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full
-            bg-red-500 text-white text-[10px] font-bold flex items-center justify-center
+            bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center
             px-1 leading-none pointer-events-none">
             {total > 99 ? '99+' : total}
           </span>
@@ -90,7 +90,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
               Notifications
             </h3>
             {total > 0 && (
-              <span className="text-[11px] font-semibold text-white bg-red-500 rounded-full px-2 py-0.5">
+              <span className="text-[11px] font-semibold text-white bg-amber-500 rounded-full px-2 py-0.5">
                 {total}
               </span>
             )}

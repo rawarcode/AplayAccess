@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
-import NotificationBell from '../../components/ui/NotificationBell';
-import { getFdBookings, updateBookingStatus } from '../../lib/frontdeskApi';
+import { getFdBookings, updateBookingStatus, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 
 
@@ -15,6 +14,12 @@ function fmtDateTime(dt) {
   if (!dt) return '—';
   return new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
     month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
+  });
+}
+function fmtDate(dt) {
+  if (!dt) return '—';
+  return new Date(dt.replace(' ', 'T')).toLocaleDateString('en-PH', {
+    month: 'short', day: 'numeric', year: 'numeric',
   });
 }
 
@@ -31,15 +36,154 @@ function PayIcon({ method }) {
 
 function StatusBadge({ status }) {
   const cls = {
-    Confirmed: 'bg-blue-100 text-blue-800',
-    Completed: 'bg-green-100 text-green-800',
-    Cancelled: 'bg-red-100 text-red-800',
-    Pending:   'bg-yellow-100 text-yellow-800',
+    Confirmed:   'bg-blue-100 text-blue-800',
+    Completed:   'bg-green-100 text-green-800',
+    Cancelled:   'bg-red-100 text-red-800',
+    Pending:     'bg-yellow-100 text-yellow-800',
+    'Checked In':'bg-purple-100 text-purple-800',
   };
   return (
     <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
       {status}
     </span>
+  );
+}
+
+// ─── detail drawer ────────────────────────────────────────────────────────────
+function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading }) {
+  if (!b) return null;
+
+  const balanceDue = Math.max(0, Number(b.total ?? 0) - Number(b.reservation_fee ?? 0));
+
+  return (
+    <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto z-40 border-l border-gray-200">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800">Billing Detail</h3>
+            <p className="text-xs text-gray-400">{b.id}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div className="flex-1 p-6 space-y-5">
+
+          {/* Status */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-gray-500">Status</span>
+            <StatusBadge status={b.status} />
+          </div>
+
+          {/* Guest info */}
+          <div className="bg-gray-50 rounded-lg p-4 space-y-1 text-sm">
+            <p className="font-semibold text-gray-800 text-base">{b.guest}</p>
+            <p className="text-gray-500">{b.roomType} · {b.guests} pax</p>
+            <p className="text-gray-400 text-xs mt-1">
+              {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
+            </p>
+          </div>
+
+          {/* Payment method */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-500">Payment Method</span>
+            <PayIcon method={b.payment_method} />
+          </div>
+
+          {/* Bill breakdown */}
+          <div className="border rounded-lg overflow-hidden text-sm">
+            <div className="flex justify-between px-4 py-3 border-b bg-gray-50">
+              <span className="text-gray-500">Visit Rate</span>
+              <span className="font-medium">{fmtMoney(b.total)}</span>
+            </div>
+            {Number(b.reservation_fee ?? 0) > 0 && (
+              <div className="flex justify-between px-4 py-3 border-b text-green-700">
+                <span>Reservation Fee Paid</span>
+                <span>− {fmtMoney(b.reservation_fee)}</span>
+              </div>
+            )}
+            {b.status === 'Cancelled' ? (
+              <div className="flex justify-between px-4 py-3 bg-red-50 text-red-700 font-semibold">
+                <span>Forfeited (Non-refundable)</span>
+                <span>{fmtMoney(b.reservation_fee ?? 0)}</span>
+              </div>
+            ) : b.status === 'Completed' ? (
+              <div className="flex justify-between px-4 py-3 bg-green-50 text-green-700 font-semibold">
+                <span>Total Collected</span>
+                <span>{fmtMoney(b.total)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between px-4 py-3 bg-blue-50 text-blue-800 font-bold text-base">
+                <span>Balance Due</span>
+                <span>{fmtMoney(balanceDue)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Amenities if any */}
+          {b.amenities?.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add-ons</p>
+              <div className="space-y-1">
+                {b.amenities.map((a, i) => (
+                  <div key={i} className="flex justify-between text-sm text-gray-600">
+                    <span>{a.name} × {a.qty}</span>
+                    <span>{fmtMoney(a.total ?? (a.unit_price * a.qty))}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Special requests */}
+          {b.special_requests && (
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Special Requests</p>
+              <p className="text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded p-3">
+                {b.special_requests}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Action footer */}
+        <div className="px-6 py-4 border-t bg-gray-50 flex gap-3">
+          {b.status === 'Confirmed' && (
+            <button
+              onClick={() => onCollect(b)}
+              className="flex-1 py-2.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition"
+            >
+              <i className="fas fa-hand-holding-usd mr-2"></i>Collect Payment
+            </button>
+          )}
+          {b.status === 'Completed' && (
+            <button
+              onClick={() => onDownloadReceipt(b.booking_id)}
+              disabled={downloading === b.booking_id}
+              className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition"
+            >
+              <i className={`fas ${downloading === b.booking_id ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i>
+              {downloading === b.booking_id ? 'Preparing...' : 'Download Receipt'}
+            </button>
+          )}
+          {b.status === 'Cancelled' && (
+            <p className="flex-1 text-center text-sm text-rose-600 py-2">
+              <i className="fas fa-ban mr-1"></i>Booking cancelled — reservation fee forfeited
+            </p>
+          )}
+          {b.status === 'Pending' && (
+            <p className="flex-1 text-center text-sm text-yellow-700 py-2">
+              <i className="fas fa-clock mr-1"></i>Awaiting guest payment confirmation
+            </p>
+          )}
+          <button onClick={onClose}
+            className="px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-600 hover:bg-gray-100 transition">
+            Close
+          </button>
+        </div>
+    </div>
   );
 }
 
@@ -49,9 +193,12 @@ export default function Billing() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
 
-  const [billing, setBilling]     = useState(null); // booking being billed
+  const [selected, setSelected] = useState(null);   // booking shown in detail drawer
+  const [billing, setBilling]   = useState(null);   // booking in collect-payment modal
   const [payMethod, setPayMethod] = useState('Cash');
-  const [paying, setPaying]       = useState(false);
+  const [paying, setPaying]     = useState(false);
+  const [downloading, setDownloading] = useState(null); // bookingId being downloaded
+
   const [toast, showToast, clearToast, toastType] = useToast();
 
   useEffect(() => {
@@ -63,9 +210,6 @@ export default function Billing() {
 
   const today = todayStr();
 
-  // Today's billing = check-ins scheduled for today PLUS any cancellations
-  // that happened today (their forfeited reservation_fee is earned today).
-  // We use updatedAt as the cancellation date since we have no cancelled_at column.
   const todayAll = bookings.filter(b =>
     b.checkIn?.slice(0, 10) === today ||
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === today)
@@ -75,7 +219,6 @@ export default function Billing() {
   const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
   const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
 
-  // Revenue = completed totals + forfeited reservation fees from cancellations
   const revenueToday =
     todayCompleted.reduce((s, b) => s + Number(b.total ?? 0), 0) +
     todayCancelled.reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0);
@@ -89,11 +232,38 @@ export default function Billing() {
         prev.map(b => b.booking_id === billing.booking_id ? { ...b, status: 'Completed' } : b)
       );
       setBilling(null);
+      setSelected(null);
+      showToast('Payment collected successfully!', 'success');
     } catch {
-      showToast('Failed to update booking. Please try again.');
+      showToast('Failed to update booking. Please try again.', 'error');
     } finally {
       setPaying(false);
     }
+  }
+
+  async function handleDownloadReceipt(bookingId) {
+    setDownloading(bookingId);
+    try {
+      const blob = await downloadStaffReceipt(bookingId);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `receipt-${bookingId}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast('Failed to download receipt. Please try again.', 'error');
+    } finally {
+      setDownloading(null);
+    }
+  }
+
+  function openCollect(b) {
+    setSelected(null);
+    setBilling(b);
+    setPayMethod('Cash');
   }
 
   const balanceDue = billing ? Math.max(0, Number(billing.total) - Number(billing.reservation_fee ?? 0)) : 0;
@@ -102,6 +272,16 @@ export default function Billing() {
   return (
     <Sidebar>
       <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* ── Detail Drawer ── */}
+      <BillingDetailDrawer
+        booking={selected}
+        onClose={() => setSelected(null)}
+        onCollect={openCollect}
+        onDownloadReceipt={handleDownloadReceipt}
+        downloading={downloading}
+      />
+
       {/* ── Payment Collection Modal ── */}
       {billing && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -179,21 +359,6 @@ export default function Billing() {
         </div>
       )}
 
-      {/* ── Header ── */}
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Billing</h1>
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <p className="text-sm text-gray-500">
-              {new Date().toLocaleDateString('en-PH', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-              })}
-            </p>
-          </div>
-        </div>
-      </header>
-
       {/* ── Main ── */}
       <main className="p-6">
         {/* Summary cards */}
@@ -245,7 +410,8 @@ export default function Billing() {
             <div className="space-y-3">
               {todayConfirmed.map(b => (
                 <div key={b.booking_id}
-                  className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+                  onClick={() => setSelected(b)}
+                  className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 cursor-pointer hover:bg-blue-100 transition">
                   <div>
                     <p className="font-medium">{b.guest}</p>
                     <p className="text-sm text-gray-600">{b.roomType} · {b.guests} pax</p>
@@ -259,7 +425,7 @@ export default function Billing() {
                       {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservation_fee ?? 0)))}
                     </p>
                     <button
-                      onClick={() => { setBilling(b); setPayMethod('Cash'); }}
+                      onClick={e => { e.stopPropagation(); openCollect(b); }}
                       className="mt-2 px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
                     >
                       <i className="fas fa-hand-holding-usd mr-1"></i>Collect
@@ -294,8 +460,8 @@ export default function Billing() {
                 <tbody className="divide-y divide-gray-200">
                   {todayAll.map(b => (
                     <tr key={b.booking_id}
-                      className={`hover:bg-gray-50 ${b.status === 'Confirmed' ? 'cursor-pointer' : ''}`}
-                      onClick={b.status === 'Confirmed' ? () => { setBilling(b); setPayMethod('Cash'); } : undefined}
+                      className="hover:bg-gray-50 cursor-pointer"
+                      onClick={() => setSelected(b)}
                     >
                       <td className="px-4 py-3 text-xs text-gray-500">{b.id}</td>
                       <td className="px-4 py-3 text-sm font-medium">{b.guest}</td>
@@ -317,15 +483,25 @@ export default function Billing() {
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         {b.status === 'Confirmed' && (
                           <button
-                            onClick={() => { setBilling(b); setPayMethod('Cash'); }}
+                            onClick={() => openCollect(b)}
                             className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
                           >
                             Collect
                           </button>
                         )}
                         {b.status === 'Completed' && (
-                          <span className="text-xs text-green-600">
-                            <i className="fas fa-check-circle mr-1"></i>Paid
+                          <button
+                            onClick={() => handleDownloadReceipt(b.booking_id)}
+                            disabled={downloading === b.booking_id}
+                            className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-60 flex items-center gap-1"
+                          >
+                            <i className={`fas ${downloading === b.booking_id ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
+                            Receipt
+                          </button>
+                        )}
+                        {b.status === 'Cancelled' && (
+                          <span className="text-xs text-rose-500">
+                            <i className="fas fa-ban mr-1"></i>Cancelled
                           </span>
                         )}
                       </td>

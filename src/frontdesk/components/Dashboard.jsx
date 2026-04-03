@@ -53,10 +53,15 @@ export default function Dashboard() {
 
   // ── load bookings ───────────────────────────────────────────────────────────
   useEffect(() => {
-    getFdBookings()
-      .then(data => { setBookings(data); setError(''); })
-      .catch(() => setError('Failed to load bookings.'))
-      .finally(() => setLoading(false));
+    function load() {
+      getFdBookings()
+        .then(data => { setBookings(data); setError(''); })
+        .catch(() => setError('Failed to load bookings.'))
+        .finally(() => setLoading(false));
+    }
+    load();
+    const id = setInterval(load, 10000);
+    return () => clearInterval(id);
   }, []);
 
   // ── click-outside ───────────────────────────────────────────────────────────
@@ -86,7 +91,7 @@ export default function Dashboard() {
 
   // ─── render ──────────────────────────────────────────────────────────────────
   return (
-    <Sidebar>
+    <Sidebar showTopBar={false}>
       {/* ── Account Settings Modal ── */}
       {settingsOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

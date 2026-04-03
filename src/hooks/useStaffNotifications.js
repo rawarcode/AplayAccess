@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getAdminMessages } from '../lib/adminApi';
+import { getAdminMessages, getAdminReviews } from '../lib/adminApi';
 import { getFdBookings, getFdRooms } from '../lib/frontdeskApi';
 
 const POLL_MS = 10_000; // 10 seconds
@@ -27,21 +27,24 @@ export function useStaffNotifications(paths = {}) {
     pendingBookings: 0,
     todayArrivals:   0,
     dirtyRooms:      0,
+    pendingReviews:  0,
   });
   const [items, setItems] = useState([]);
 
   const poll = useCallback(async () => {
     const today = todayStr();
 
-    const [msgRes, bkRes, rmRes] = await Promise.allSettled([
+    const [msgRes, bkRes, rmRes, rvRes] = await Promise.allSettled([
       getAdminMessages(),
       getFdBookings(),
       getFdRooms(),
+      getAdminReviews(),
     ]);
 
     const threads  = msgRes.status === 'fulfilled' ? (msgRes.value?.data?.data  ?? []) : [];
     const bookings = bkRes.status  === 'fulfilled' ? (bkRes.value  ?? [])             : [];
     const rooms    = rmRes.status  === 'fulfilled' ? (rmRes.value  ?? [])             : [];
+    const reviews  = rvRes.status  === 'fulfilled' ? (rvRes.value?.data?.data ?? rvRes.value?.data ?? []) : [];
 
     const unreadMessages  = threads.filter(t => !t.is_read).length;
     const pendingBookings = bookings.filter(b => b.status === 'Pending').length;
@@ -51,8 +54,11 @@ export function useStaffNotifications(paths = {}) {
     const dirtyRooms = rooms.filter(
       r => r.housekeeping_status === 'dirty' || r.housekeeping_status === 'cleaning'
     ).length;
+    const pendingReviews = Array.isArray(reviews)
+      ? reviews.filter(r => r.status === 'pending').length
+      : 0;
 
-    setCounts({ unreadMessages, pendingBookings, todayArrivals, dirtyRooms });
+    setCounts({ unreadMessages, pendingBookings, todayArrivals, dirtyRooms, pendingReviews });
 
     const next = [];
     if (pendingBookings > 0)
@@ -79,6 +85,12 @@ export function useStaffNotifications(paths = {}) {
         label: `${dirtyRooms} room${dirtyRooms !== 1 ? 's' : ''} need housekeeping`,
         path: p.rooms,
       });
+    if (pendingReviews > 0 && p.reviews)
+      next.push({
+        id: 'reviews', icon: 'fa-star', color: 'yellow',
+        label: `${pendingReviews} review${pendingReviews !== 1 ? 's' : ''} pending approval`,
+        path: p.reviews,
+      });
 
     setItems(next);
   }, []);
@@ -89,7 +101,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.dirtyRooms;
+  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.dirtyRooms + counts.pendingReviews;
 
   return { counts, items, total, refresh: poll };
 }

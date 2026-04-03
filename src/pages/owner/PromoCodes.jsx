@@ -27,6 +27,8 @@ export default function PromoCodes() {
   const [codes,      setCodes]      = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState("");
+  const [search,     setSearch]     = useState("");
+  const [toast,      setToast]      = useState(null); // { msg, type }
 
   const [createOpen,  setCreateOpen]  = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);  // confirmation step
@@ -36,6 +38,11 @@ export default function PromoCodes() {
   const [form,      setForm]      = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [saving,    setSaving]    = useState(false);
+
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  }
 
   useEffect(() => { load(); }, []);
 
@@ -129,8 +136,9 @@ export default function PromoCodes() {
     try {
       await updatePromoCode(code.id, { is_active: !code.is_active });
       setCodes(prev => prev.map(c => c.id === code.id ? { ...c, is_active: !c.is_active } : c));
+      showToast(code.is_active ? "Promo code deactivated." : "Promo code activated.");
     } catch {
-      alert("Failed to update status.");
+      showToast("Failed to update status.", "error");
     }
   }
 
@@ -139,8 +147,9 @@ export default function PromoCodes() {
       await deletePromoCode(deleteTarget.id);
       setDeleteTarget(null);
       load();
+      showToast("Promo code deleted.");
     } catch {
-      alert("Failed to delete promo code.");
+      showToast("Failed to delete promo code.", "error");
     }
   }
 
@@ -151,20 +160,35 @@ export default function PromoCodes() {
 
   const isExpired = (code) => code.expires_at && new Date(code.expires_at) < new Date();
 
+  const filtered = codes.filter(c =>
+    c.code.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="p-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Promo Codes</h1>
           <p className="text-sm text-gray-500 mt-1">Create and manage discount codes for guests</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2"
-        >
-          <i className="fas fa-plus"></i> New Promo Code
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+            <input
+              type="text"
+              placeholder="Search code..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="pl-9 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] w-44"
+            />
+          </div>
+          <button
+            onClick={openCreate}
+            className="bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 whitespace-nowrap"
+          >
+            <i className="fas fa-plus"></i> New Promo Code
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -194,7 +218,13 @@ export default function PromoCodes() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {codes.map(code => (
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-10 text-center text-gray-400 text-sm">
+                      No promo codes match your search.
+                    </td>
+                  </tr>
+                ) : filtered.map(code => (
                   <tr key={code.id} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
                       <span className="font-mono font-semibold text-gray-900 bg-gray-100 px-2 py-0.5 rounded">
@@ -489,6 +519,15 @@ export default function PromoCodes() {
             </button>
           </div>
         </Modal>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white
+          ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
+          <i className={`fas ${toast.type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}`}></i>
+          {toast.msg}
+        </div>
       )}
     </div>
   );

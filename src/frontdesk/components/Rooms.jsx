@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
-import NotificationBell from '../../components/ui/NotificationBell';
 import BookingDetailModal from './BookingDetailModal';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -324,7 +323,7 @@ export default function FDRooms() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    const id = setInterval(load, 60000);
+    const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, [load]);
 
@@ -381,26 +380,18 @@ export default function FDRooms() {
           />
         )
       )}
-      {/* ── Header ── */}
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800">Room Status</h1>
-            <p className="text-xs text-gray-400 mt-0.5">
-              Last updated: {lastRefresh.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true })}
-              <span className="ml-2 text-gray-300">· Auto-refreshes every 60s</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-              <i className="fas fa-sync-alt"></i> Refresh
-            </button>
-          </div>
-        </div>
-      </header>
-
       <main className="p-6">
+        {/* ── Toolbar ── */}
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs text-gray-400">
+            Last updated: {lastRefresh.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true })}
+            <span className="ml-2 text-gray-300">· Auto-refreshes every 10s</span>
+          </p>
+          <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            <i className="fas fa-sync-alt"></i> Refresh
+          </button>
+        </div>
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
             <i className="fas fa-exclamation-circle mr-2"></i>{error}

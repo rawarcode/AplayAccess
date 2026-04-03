@@ -5,7 +5,6 @@ import { api } from '../../lib/api';
 import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus } from '../../lib/frontdeskApi';
 import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
-import NotificationBell from '../../components/ui/NotificationBell';
 import BookingDetailModal from './BookingDetailModal';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -849,22 +848,6 @@ export default function WalkIn() {
         </div>
       )}
 
-      {/* ── Header ── */}
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-gray-800">Walk-in Bookings</h1>
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <button
-              onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
-            >
-              <i className="fas fa-plus mr-2"></i>New Walk-in
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* ── Main ── */}
       <main className="p-6">
         {error && (
@@ -876,11 +859,12 @@ export default function WalkIn() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Today's Bookings</h2>
-            <span className="text-sm text-gray-500">
-              {new Date().toLocaleDateString('en-PH', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-              })}
-            </span>
+            <button
+              onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
+              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+            >
+              <i className="fas fa-plus mr-2"></i>New Walk-in
+            </button>
           </div>
 
           {loading ? (

@@ -28,32 +28,11 @@ export default function PaymentReturn({ outcome }) {
         try { window.opener.postMessage({ type: "paymongo_cancelled", bookingId }, "*"); } catch { /* ignore */ }
         window.close();
       } else {
-        // Poll a couple of times so the parent gets a definitive "paid" signal
-        let tries = 0;
-        async function pollAndClose() {
-          try {
-            if (bookingId) {
-              const data = await getPaymentStatus(bookingId);
-              if (data.paid || data.status === "Confirmed") {
-                try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
-                window.close();
-                return;
-              }
-            }
-          } catch { /* ignore */ }
-          tries++;
-          if (tries < 5) {
-            setTimeout(pollAndClose, 1500);
-          } else {
-            // Payment confirmed on PayMongo side (we got redirected here) but
-            // backend hasn't caught up yet — tell parent anyway and close.
-            try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
-            window.close();
-          }
-        }
-        pollAndClose();
+        // PayMongo only redirects to success_url after payment — trust the redirect.
+        // Notify parent immediately; parent will sync the DB status via polling.
+        try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
+        window.close();
       }
-      // Show a brief closing message while the above runs
       setStatus(outcome === "failed" ? "closing_failed" : "closing_success");
       return;
     }
