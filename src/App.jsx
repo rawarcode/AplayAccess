@@ -55,6 +55,7 @@ import FDWalkIn from "./frontdesk/components/WalkIn.jsx";
 import FDGuestRecords from "./frontdesk/components/GuestRecords.jsx";
 import FDRooms from "./frontdesk/components/Rooms.jsx";
 import FDMessages from "./frontdesk/components/Messages.jsx";
+import FDReports from "./frontdesk/components/Reports.jsx";
 
 export default function App() {
   return (
@@ -186,6 +187,14 @@ export default function App() {
         element={
           <RequireFrontdesk>
             <FDMessages />
+          </RequireFrontdesk>
+        }
+      />
+      <Route
+        path="/frontdesk/reports"
+        element={
+          <RequireFrontdesk>
+            <FDReports />
           </RequireFrontdesk>
         }
       />

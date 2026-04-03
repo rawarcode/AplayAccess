@@ -14,6 +14,7 @@ const PAGE_TITLES = {
   '/frontdesk/records':     'Guest Records',
   '/frontdesk/rooms':       'Rooms',
   '/frontdesk/messages':    'Messages',
+  '/frontdesk/reports':     'Reports',
 };
 
 export default function Sidebar({ children, showTopBar = true }) {
@@ -53,6 +54,7 @@ export default function Sidebar({ children, showTopBar = true }) {
       { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
       { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms',         badgeKey: 'dirtyRooms'      },
       { path: '/frontdesk/messages',    icon: 'fa-envelope',         label: 'Messages',      badgeKey: 'unreadMessages'  },
+      { path: '/frontdesk/reports',     icon: 'fa-chart-bar',        label: 'Reports'       },
     ],
   };
 
