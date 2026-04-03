@@ -306,7 +306,6 @@ export default function OwnerTransactions() {
                   <td className="px-6 py-4 text-slate-500">{(b.checkIn ?? "").slice(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-slate-900">{b.guest}</td>
                   <td className="px-6 py-4 text-slate-500">{b.roomType}</td>
-                  <td className="px-6 py-4 text-slate-500">{b.paymentMethod || "—"}</td>
                   <td className="px-6 py-4">
                     {Number(b.discount) > 0 ? (
                       <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
@@ -323,6 +322,7 @@ export default function OwnerTransactions() {
                       {b.status}
                     </span>
                   </td>
+                  <td className="px-6 py-4 text-slate-500">{b.paymentMethod || "—"}</td>
                 </tr>
               ))}
             </tbody>
