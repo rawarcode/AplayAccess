@@ -100,10 +100,24 @@ export default function AdminUsers() {
     return u.role !== "owner";
   }
 
-  const filtered = users.filter(u =>
-    u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const [sortBy,  setSortBy]  = useState('Name');
+  const [sortDir, setSortDir] = useState('asc');
+
+  const filtered = users
+    .filter(u =>
+      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      let aVal, bVal;
+      if (sortBy === 'Name')   { aVal = a.name.toLowerCase();  bVal = b.name.toLowerCase(); }
+      else if (sortBy === 'Email')  { aVal = a.email.toLowerCase(); bVal = b.email.toLowerCase(); }
+      else if (sortBy === 'Role')   { aVal = a.role;  bVal = b.role; }
+      else { aVal = a.is_active ? 0 : 1; bVal = b.is_active ? 0 : 1; }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+      return 0;
+    });
 
   return (
     <div className="p-6 space-y-6">
@@ -142,10 +156,17 @@ export default function AdminUsers() {
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
                 <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Email</th>
-                  <th className="px-6 py-3 text-left">Role</th>
-                  <th className="px-6 py-3 text-left">Status</th>
+                  {[['Name','Name'],['Email','Email'],['Role','Role'],['Status','Status']].map(([label,key]) => (
+                    <th key={key} className="px-6 py-3 text-left">
+                      <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                        className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                        {label}
+                        <span className="text-slate-400 group-hover:text-blue-400">
+                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                   <th className="px-6 py-3 text-left">Actions</th>
                 </tr>
               </thead>

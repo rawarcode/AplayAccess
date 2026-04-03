@@ -99,6 +99,8 @@ export default function WalkIn() {
   const location = useLocation();
   const preselectedRoom = location.state?.preselectedRoom ?? null;
 
+  const [sortBy,  setSortBy]  = useState('ID');
+  const [sortDir, setSortDir] = useState('desc');
   const [bookings, setBookings]           = useState([]);
   const [rooms, setRooms]                 = useState([]);
   const [pricing, setPricing]             = useState(PRICING_DEFAULTS);
@@ -190,7 +192,18 @@ export default function WalkIn() {
 
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
-  const todayBookings = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
+  const todayBookings = [...bookings.filter(b => b.checkIn?.slice(0, 10) === today)].sort((a, b) => {
+    let aVal, bVal;
+    if (sortBy === 'Guest')  { aVal = walkInName(a).toLowerCase(); bVal = walkInName(b).toLowerCase(); }
+    else if (sortBy === 'Room')   { aVal = (a.roomType ?? '').toLowerCase(); bVal = (b.roomType ?? '').toLowerCase(); }
+    else if (sortBy === 'Guests') { aVal = Number(a.guests ?? 0);            bVal = Number(b.guests ?? 0); }
+    else if (sortBy === 'Total')  { aVal = Number(a.total ?? 0);             bVal = Number(b.total ?? 0); }
+    else if (sortBy === 'Status') { aVal = a.status ?? '';                   bVal = b.status ?? ''; }
+    else { aVal = a.id ?? ''; bVal = b.id ?? ''; }
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
 
   // Pricing preview — uses live rates from /api/pricing + selected room's rates
   const isOvernight     = form.bookingType === 'overnight';
@@ -887,9 +900,19 @@ export default function WalkIn() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['ID', 'Guest', 'Room', 'Time Slot', 'Guests', 'Total', 'Status', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    {[['ID','ID'],['Guest','Guest'],['Room','Room'],['Guests','Guests'],['Total','Total'],['Status','Status']].map(([label,key]) => (
+                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                          {label}
+                          <span className="text-gray-400 group-hover:text-blue-400">
+                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                          </span>
+                        </button>
+                      </th>
                     ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time Slot</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">

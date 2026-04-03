@@ -26,6 +26,8 @@ export default function AdminTransactions() {
   const [filterMethod,  setFilterMethod]  = useState("");
   const [searchTerm,    setSearchTerm]    = useState("");
   const [viewBooking,   setViewBooking]   = useState(null);
+  const [sortBy,  setSortBy]  = useState('Date');
+  const [sortDir, setSortDir] = useState('desc');
 
   useEffect(() => {
     function load() {
@@ -39,6 +41,11 @@ export default function AdminTransactions() {
     return () => clearInterval(id);
   }, []);
 
+  function handleSort(col) {
+    if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+  }
+
   const filtered = bookings
     .filter(b => {
       const matchSearch = b.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -47,7 +54,18 @@ export default function AdminTransactions() {
       const matchMethod = !filterMethod || b.paymentMethod === filterMethod;
       return matchSearch && matchStatus && matchMethod;
     })
-    .sort((a, b) => (STATUS_PRIORITY[a.status] ?? 5) - (STATUS_PRIORITY[b.status] ?? 5));
+    .sort((a, b) => {
+      let aVal, bVal;
+      if (sortBy === 'Booking ID') { aVal = a.id; bVal = b.id; }
+      else if (sortBy === 'Guest') { aVal = a.guest; bVal = b.guest; }
+      else if (sortBy === 'Room')  { aVal = a.roomType; bVal = b.roomType; }
+      else if (sortBy === 'Amount') { aVal = Number(a.total); bVal = Number(b.total); }
+      else if (sortBy === 'Status') { aVal = STATUS_PRIORITY[a.status] ?? 5; bVal = STATUS_PRIORITY[b.status] ?? 5; }
+      else { aVal = a.checkIn ?? ''; bVal = b.checkIn ?? ''; } // Date
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
 
   // Revenue per row: Completed = full total, Cancelled = forfeited reservation_fee,
   // Pending / Confirmed / Checked In = reservation_fee paid online (balance not yet collected)
@@ -121,13 +139,18 @@ export default function AdminTransactions() {
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
-                  <th className="px-6 py-3 text-left">Booking ID</th>
-                  <th className="px-6 py-3 text-left">Guest</th>
-                  <th className="px-6 py-3 text-left">Room</th>
-                  <th className="px-6 py-3 text-left">Amount</th>
+                  {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Amount','Amount'],['Status','Status'],['Date','Date']].map(([label,key]) => (
+                    <th key={key} className="px-6 py-3 text-left">
+                      <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                        className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                        {label}
+                        <span className="text-slate-400 group-hover:text-blue-400">
+                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                   <th className="px-6 py-3 text-left">Method</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-left">Date</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">

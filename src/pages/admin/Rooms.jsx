@@ -139,10 +139,24 @@ export default function AdminRooms() {
     return () => clearInterval(id);
   }, [load]);
 
+  const [sortBy,  setSortBy]  = useState('Name');
+  const [sortDir, setSortDir] = useState('asc');
+
   const filtered = rooms.filter(r => {
     const matchSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchAvail  = !filterAvail || r.availability_status === filterAvail;
     return matchSearch && matchAvail;
+  }).sort((a, b) => {
+    let aVal, bVal;
+    if (sortBy === 'Name')           { aVal = a.name.toLowerCase();           bVal = b.name.toLowerCase(); }
+    else if (sortBy === 'Capacity')       { aVal = Number(a.capacity);              bVal = Number(b.capacity); }
+    else if (sortBy === 'Day Rate')       { aVal = Number(a.day_rate);              bVal = Number(b.day_rate); }
+    else if (sortBy === 'Overnight Rate') { aVal = Number(a.overnight_rate);        bVal = Number(b.overnight_rate); }
+    else if (sortBy === 'Availability')   { aVal = a.availability_status ?? '';     bVal = b.availability_status ?? ''; }
+    else                                  { aVal = a.housekeeping_status ?? '';     bVal = b.housekeeping_status ?? ''; }
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+    return 0;
   });
 
   function openNew() {
@@ -265,12 +279,17 @@ export default function AdminRooms() {
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
                   <th className="px-6 py-3 text-left"></th>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Capacity</th>
-                  <th className="px-6 py-3 text-left">Day Rate</th>
-                  <th className="px-6 py-3 text-left">Overnight Rate</th>
-                  <th className="px-6 py-3 text-left">Availability</th>
-                  <th className="px-6 py-3 text-left">Housekeeping</th>
+                  {[['Name','Name'],['Capacity','Capacity'],['Day Rate','Day Rate'],['Overnight Rate','Overnight Rate'],['Availability','Availability'],['Housekeeping','Housekeeping']].map(([label,key]) => (
+                    <th key={key} className="px-6 py-3 text-left">
+                      <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                        className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                        {label}
+                        <span className="text-slate-400 group-hover:text-blue-400">
+                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                   <th className="px-6 py-3 text-left">Actions</th>
                 </tr>
               </thead>

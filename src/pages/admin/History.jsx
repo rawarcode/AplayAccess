@@ -61,6 +61,8 @@ function fmtDateTime(str) {
 }
 
 export default function AdminHistory() {
+  const [sortBy,  setSortBy]  = useState('Timestamp');
+  const [sortDir, setSortDir] = useState('desc');
   const [logs,     setLogs]     = useState([]);
   const [meta,     setMeta]     = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading,  setLoading]  = useState(true);
@@ -189,15 +191,31 @@ export default function AdminHistory() {
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                 <tr>
-                  <th className="px-5 py-3 text-left">Timestamp</th>
-                  <th className="px-5 py-3 text-left">User</th>
-                  <th className="px-5 py-3 text-left">Category</th>
-                  <th className="px-5 py-3 text-left">Action</th>
+                  {[['Timestamp','Timestamp'],['User','User'],['Category','Category'],['Action','Action']].map(([label,key]) => (
+                    <th key={key} className="px-5 py-3 text-left">
+                      <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                        className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                        {label}
+                        <span className="text-slate-400 group-hover:text-blue-400">
+                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                   <th className="px-5 py-3 text-left">Description</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {logs.map(log => (
+                {[...logs].sort((a, b) => {
+                  let aVal, bVal;
+                  if (sortBy === 'User')     { aVal = (a.user_name ?? a.user?.name ?? '').toLowerCase(); bVal = (b.user_name ?? b.user?.name ?? '').toLowerCase(); }
+                  else if (sortBy === 'Category') { aVal = (a.category ?? '').toLowerCase(); bVal = (b.category ?? '').toLowerCase(); }
+                  else if (sortBy === 'Action')   { aVal = (a.action ?? '').toLowerCase();   bVal = (b.action ?? '').toLowerCase(); }
+                  else { aVal = a.created_at ?? ''; bVal = b.created_at ?? ''; }
+                  if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+                  if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+                  return 0;
+                }).map(log => (
                   <tr key={log.id} className="hover:bg-slate-50">
                     <td className="px-5 py-3 whitespace-nowrap text-xs text-slate-500">
                       {fmtDateTime(log.created_at)}

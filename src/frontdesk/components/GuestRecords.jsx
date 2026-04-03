@@ -27,6 +27,8 @@ function parseWalkIn(b) {
 
 // ─── component ────────────────────────────────────────────────────────────────
 export default function GuestRecords() {
+  const [sortBy,  setSortBy]  = useState('Last Visit');
+  const [sortDir, setSortDir] = useState('desc');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
@@ -75,13 +77,23 @@ export default function GuestRecords() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return guests;
-    return guests.filter(g =>
+    const list = !term ? guests : guests.filter(g =>
       g.name.toLowerCase().includes(term) ||
       g.email.toLowerCase().includes(term) ||
       g.phone.includes(term)
     );
-  }, [guests, search]);
+    return [...list].sort((a, b) => {
+      let aVal, bVal;
+      if (sortBy === 'Guest')         { aVal = a.name.toLowerCase();     bVal = b.name.toLowerCase(); }
+      else if (sortBy === 'Total Visits') { aVal = a.totalVisits;            bVal = b.totalVisits; }
+      else if (sortBy === 'Completed')    { aVal = a.completedVisits;         bVal = b.completedVisits; }
+      else if (sortBy === 'Total Spend')  { aVal = a.totalSpend;              bVal = b.totalSpend; }
+      else { aVal = a.lastVisit ?? ''; bVal = b.lastVisit ?? ''; }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+      return 0;
+    });
+  }, [guests, search, sortBy, sortDir]);
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -202,9 +214,19 @@ export default function GuestRecords() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Guest', 'Contact', 'Total Visits', 'Completed', 'Last Visit', 'Total Spend', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    {[['Guest','Guest'],['Total Visits','Total Visits'],['Completed','Completed'],['Last Visit','Last Visit'],['Total Spend','Total Spend']].map(([label,key]) => (
+                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                          {label}
+                          <span className="text-gray-400 group-hover:text-blue-400">
+                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                          </span>
+                        </button>
+                      </th>
                     ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">

@@ -73,6 +73,8 @@ function exportCSV(rows) {
 
 export default function OwnerTransactions() {
   const navigate = useNavigate();
+  const [sortBy,  setSortBy]  = useState('Check-in');
+  const [sortDir, setSortDir] = useState('desc');
   const [allBookings, setAllBookings] = useState([]);
   const [overview,    setOverview]    = useState(null);
   const [loading,     setLoading]     = useState(true);
@@ -111,10 +113,20 @@ export default function OwnerTransactions() {
       if (dateTo)   matchesDate = matchesDate && checkIn <= dateTo;
       return matchesSearch && matchesDate;
     });
-    return list.sort(
-      (a, b) => (STATUS_PRIORITY[a.status] ?? 5) - (STATUS_PRIORITY[b.status] ?? 5)
-    );
-  }, [allBookings, search, searchField, dateFrom, dateTo]);
+    return list.sort((a, b) => {
+      let aVal, bVal;
+      if (sortBy === 'Booking ID')   { aVal = a.id ?? '';                              bVal = b.id ?? ''; }
+      else if (sortBy === 'Check-in')    { aVal = a.checkIn ?? '';                         bVal = b.checkIn ?? ''; }
+      else if (sortBy === 'Guest')       { aVal = (a.guest ?? '').toLowerCase();            bVal = (b.guest ?? '').toLowerCase(); }
+      else if (sortBy === 'Room')        { aVal = (a.roomType ?? '').toLowerCase();          bVal = (b.roomType ?? '').toLowerCase(); }
+      else if (sortBy === 'Discount')    { aVal = Number(a.discount ?? 0);                  bVal = Number(b.discount ?? 0); }
+      else if (sortBy === 'Amount')      { aVal = Number(a.total ?? 0);                     bVal = Number(b.total ?? 0); }
+      else { aVal = STATUS_PRIORITY[a.status] ?? 5; bVal = STATUS_PRIORITY[b.status] ?? 5; }
+      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+      return 0;
+    });
+  }, [allBookings, search, searchField, dateFrom, dateTo, sortBy, sortDir]);
 
   const totalPages   = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const indexOfFirst = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -265,14 +277,18 @@ export default function OwnerTransactions() {
           <table className="min-w-full text-sm text-slate-700">
             <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
               <tr>
-                <th className="px-6 py-3 text-left">Booking ID</th>
-                <th className="px-6 py-3 text-left">Check-in</th>
-                <th className="px-6 py-3 text-left">Guest</th>
-                <th className="px-6 py-3 text-left">Room</th>
+                {[['Booking ID','Booking ID'],['Check-in','Check-in'],['Guest','Guest'],['Room','Room'],['Discount','Discount'],['Amount','Amount'],['Status','Status']].map(([label,key]) => (
+                  <th key={key} className="px-6 py-3 text-left">
+                    <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                      className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                      {label}
+                      <span className="text-slate-400 group-hover:text-blue-400">
+                        {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                      </span>
+                    </button>
+                  </th>
+                ))}
                 <th className="px-6 py-3 text-left">Payment</th>
-                <th className="px-6 py-3 text-left">Discount</th>
-                <th className="px-6 py-3 text-left">Amount</th>
-                <th className="px-6 py-3 text-left">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">

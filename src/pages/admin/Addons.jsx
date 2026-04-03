@@ -10,6 +10,8 @@ const BLANK = {
 };
 
 export default function AdminAddons() {
+  const [sortBy,  setSortBy]  = useState('Name');
+  const [sortDir, setSortDir] = useState('asc');
   const [addons,    setAddons]    = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [saving,    setSaving]    = useState(false);
@@ -123,16 +125,32 @@ export default function AdminAddons() {
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
-                  <th className="px-6 py-3 text-left">Name</th>
-                  <th className="px-6 py-3 text-left">Price</th>
-                  <th className="px-6 py-3 text-left">Max Qty</th>
-                  <th className="px-6 py-3 text-left">Type</th>
-                  <th className="px-6 py-3 text-left">Status</th>
+                  {[['Name','Name'],['Price','Price'],['Max Qty','Max Qty'],['Type','Type'],['Status','Status']].map(([label,key]) => (
+                    <th key={key} className="px-6 py-3 text-left">
+                      <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                        className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                        {label}
+                        <span className="text-slate-400 group-hover:text-blue-400">
+                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        </span>
+                      </button>
+                    </th>
+                  ))}
                   <th className="px-6 py-3 text-left">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {addons.map(item => (
+                {[...addons].sort((a, b) => {
+                  let aVal, bVal;
+                  if (sortBy === 'Price')    { aVal = Number(a.price);   bVal = Number(b.price); }
+                  else if (sortBy === 'Max Qty') { aVal = Number(a.max_qty); bVal = Number(b.max_qty); }
+                  else if (sortBy === 'Type')    { aVal = a.per_booking ? 'per booking' : 'per item'; bVal = b.per_booking ? 'per booking' : 'per item'; }
+                  else if (sortBy === 'Status')  { aVal = a.is_active ? 0 : 1; bVal = b.is_active ? 0 : 1; }
+                  else { aVal = a.name.toLowerCase(); bVal = b.name.toLowerCase(); }
+                  if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+                  if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+                  return 0;
+                }).map(item => (
                   <tr
                     key={item.id}
                     onClick={() => setViewItem(item)}

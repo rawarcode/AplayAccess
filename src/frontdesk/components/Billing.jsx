@@ -193,6 +193,8 @@ export default function Billing() {
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
 
+  const [sortBy,  setSortBy]  = useState('Time Slot');
+  const [sortDir, setSortDir] = useState('asc');
   const [selected, setSelected] = useState(null);   // booking shown in detail drawer
   const [billing, setBilling]   = useState(null);   // booking in collect-payment modal
   const [payMethod, setPayMethod] = useState('Cash');
@@ -214,6 +216,19 @@ export default function Billing() {
     b.checkIn?.slice(0, 10) === today ||
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === today)
   );
+
+  const sortedTodayAll = [...todayAll].sort((a, b) => {
+    let aVal, bVal;
+    if (sortBy === 'Booking ID') { aVal = a.id ?? '';             bVal = b.id ?? ''; }
+    else if (sortBy === 'Guest')      { aVal = (a.guest ?? '').toLowerCase();      bVal = (b.guest ?? '').toLowerCase(); }
+    else if (sortBy === 'Room')       { aVal = (a.roomType ?? '').toLowerCase();   bVal = (b.roomType ?? '').toLowerCase(); }
+    else if (sortBy === 'Visit Rate') { aVal = Number(a.total ?? 0);               bVal = Number(b.total ?? 0); }
+    else if (sortBy === 'Status')     { aVal = a.status ?? '';                     bVal = b.status ?? ''; }
+    else { aVal = a.checkIn ?? ''; bVal = b.checkIn ?? ''; }
+    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
+    if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
+    return 0;
+  });
 
   const todayConfirmed  = todayAll.filter(b => b.status === 'Confirmed');
   const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
@@ -452,13 +467,23 @@ export default function Billing() {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Booking ID', 'Guest', 'Room', 'Time Slot', 'Visit Rate', 'Balance Due', 'Status', 'Action'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Time Slot','Time Slot'],['Visit Rate','Visit Rate'],['Status','Status']].map(([label,key]) => (
+                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                          className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                          {label}
+                          <span className="text-gray-400 group-hover:text-blue-400">
+                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                          </span>
+                        </button>
+                      </th>
                     ))}
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Balance Due</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {todayAll.map(b => (
+                  {sortedTodayAll.map(b => (
                     <tr key={b.booking_id}
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => setSelected(b)}
