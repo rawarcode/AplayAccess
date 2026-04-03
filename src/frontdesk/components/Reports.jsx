@@ -105,9 +105,8 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
     return `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:8pt;font-weight:bold;color:${fg};background:${bg}">${s}</span>`;
   };
   const statusCount = (s) => dateBookings.filter(b => b.status === s).length;
-  const cancelledAmtP = (b) => b.checkedInAt ? Number(b.total||0) : Number(b.reservation_fee||0);
   const grossTotal = dateBookings.reduce((s,b) => {
-    if (b.status === 'Cancelled') return s + cancelledAmtP(b);
+    if (b.status === 'Cancelled') return s + Number(b.paid_amount ?? b.reservation_fee ?? 0);
     return s + Number(b.total||0);
   }, 0);
   const totalGuests = dateBookings.reduce((s,b) => s + (b.guests||0), 0);
@@ -153,8 +152,8 @@ export default function Reports() {
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
   );
 
-  // Cancelled: if was checked in (full payment collected) → total, else → reservation_fee only
-  const cancelledAmt = (b) => b.checkedInAt ? Number(b.total ?? 0) : Number(b.reservation_fee ?? 0);
+  // Cancelled: use paid_amount (actual amount charged via PayMongo), fallback to reservation_fee
+  const cancelledAmt = (b) => Number(b.paid_amount ?? b.reservation_fee ?? 0);
   const totalRevenue =
     dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total ?? 0), 0) +
     dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledAmt(b), 0);
