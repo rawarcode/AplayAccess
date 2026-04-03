@@ -139,7 +139,7 @@ export default function AdminTransactions() {
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
-                  {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Amount','Amount'],['Status','Status'],['Date','Date']].map(([label,key]) => (
+                  {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Amount','Amount'],['Date','Date'],['Status','Status']].map(([label,key]) => (
                     <th key={key} className="px-6 py-3 text-left">
                       <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
                         className="flex items-center gap-1 hover:text-blue-600 transition-colors group">

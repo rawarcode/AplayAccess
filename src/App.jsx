@@ -27,8 +27,6 @@ import RequireAdmin from "./components/admin/RequireAdmin.jsx";
 import AdminShell from "./components/admin/AdminShell.jsx";
 import AdminDashboard from "./pages/admin/Dashboard.jsx";
 import AdminRooms from "./pages/admin/Rooms.jsx";
-import AdminAddons from "./pages/admin/Addons.jsx";
-import AdminSettings from "./pages/admin/Settings.jsx";
 import AdminTransactions from "./pages/admin/Transactions.jsx";
 import AdminHistory from "./pages/admin/History.jsx";
 import AdminContent from "./pages/admin/Content.jsx";
@@ -44,6 +42,7 @@ import OwnerFinancials from "./pages/owner/Financials.jsx";
 import OwnerTransactions from "./pages/owner/Transactions.jsx";
 import OwnerReports from "./pages/owner/Reports.jsx";
 import OwnerPromoCodes from "./pages/owner/PromoCodes.jsx";
+import OwnerAddons    from "./pages/admin/Addons.jsx";
 import OwnerUsers     from "./pages/owner/Users.jsx";
 import OwnerSettings  from "./pages/owner/Settings.jsx";
 
@@ -106,8 +105,6 @@ export default function App() {
       >
         <Route index element={<AdminDashboard />} />
         <Route path="rooms" element={<AdminRooms />} />
-        <Route path="inventory" element={<AdminAddons />} />
-        <Route path="settings"  element={<AdminSettings />} />
         <Route path="transactions" element={<AdminTransactions />} />
         <Route path="history" element={<AdminHistory />} />
         <Route path="content" element={<AdminContent />} />
@@ -130,6 +127,7 @@ export default function App() {
         <Route path="transactions" element={<OwnerTransactions />} />
         <Route path="reports"      element={<OwnerReports />} />
         <Route path="promo-codes"  element={<OwnerPromoCodes />} />
+        <Route path="addons"       element={<OwnerAddons />} />
         <Route path="users"        element={<OwnerUsers />} />
         <Route path="settings"     element={<OwnerSettings />} />
       </Route>

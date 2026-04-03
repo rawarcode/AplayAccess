@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts } from "../../lib/adminApi";
+import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview } from "../../lib/adminApi";
+import { api } from "../../lib/api";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v1";
@@ -911,18 +912,229 @@ function ContactSubmissionsTab() {
   );
 }
 
+// ─── Reviews Tab ─────────────────────────────────────────────────────────────
+
+const STATUS_COLORS = {
+  Approved: "bg-emerald-100 text-emerald-700",
+  Rejected: "bg-rose-100 text-rose-700",
+  Pending:  "bg-amber-100 text-amber-700",
+};
+
+function ReviewsTab({ content, onSave }) {
+  const [reviews,  setReviews]  = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [apiError, setApiError] = useState("");
+  const [saving,   setSaving]   = useState(null); // id being saved
+
+  // Section settings editing
+  const [editing,  setEditing]  = useState(false);
+  const [form,     setForm]     = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+  const cancelEdit = () => { setForm(content); setEditing(false); };
+  const saveEdit   = () => { onSave(form); setEditing(false); };
+  const toggleVisible = () => onSave({ ...content, visible: !content.visible });
+
+  const load = () => {
+    setLoading(true);
+    getAdminReviews()
+      .then(r => setReviews(r.data.data || []))
+      .catch(() => setApiError("Failed to load reviews."))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  async function patch(id, data) {
+    setSaving(id);
+    try {
+      await updateAdminReview(id, data);
+      setReviews(rs => rs.map(r => r.id === id ? { ...r, ...data } : r));
+    } catch {
+      setApiError("Failed to update review.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function remove(id) {
+    if (!window.confirm("Delete this review? This cannot be undone.")) return;
+    setSaving(id);
+    try {
+      await deleteAdminReview(id);
+      setReviews(rs => rs.filter(r => r.id !== id));
+    } catch {
+      setApiError("Failed to delete review.");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  const featured  = reviews.filter(r => r.featured).length;
+  const pending   = reviews.filter(r => r.status === "Pending").length;
+
+  return (
+    <div className="space-y-5">
+
+      {/* Section settings card */}
+      <SectionCard
+        icon="fa-star" title="Reviews Section" badge="Resort page · /resort"
+        editing={editing} onEdit={() => setEditing(true)} onSave={saveEdit} onCancel={cancelEdit}
+        visible={content.visible} onToggleVisible={toggleVisible}
+      >
+        {!editing ? (
+          <div>
+            <p className="font-semibold text-gray-800 text-sm">{content.sectionTitle}</p>
+            <p className="text-xs text-gray-500 mt-1">{content.sectionSubtitle}</p>
+            <p className="text-xs text-gray-300 mt-2 italic">Only featured reviews appear on the resort page.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Field label="Section Title"    value={form.sectionTitle}    onChange={f("sectionTitle")} />
+            <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={f("sectionSubtitle")} rows={2} />
+          </div>
+        )}
+      </SectionCard>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: "Total Reviews", value: reviews.length, color: "text-slate-700", icon: "fa-comments" },
+          { label: "Featured",      value: featured,       color: "text-emerald-600", icon: "fa-heart" },
+          { label: "Pending",       value: pending,        color: "text-amber-600",   icon: "fa-clock" },
+        ].map(s => (
+          <div key={s.label} className="bg-white rounded-lg shadow border border-gray-100 px-5 py-4 flex items-center gap-3">
+            <div className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center ${s.color}`}>
+              <i className={`fas ${s.icon} text-sm`}></i>
+            </div>
+            <div>
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-gray-400">{s.label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {apiError && (
+        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
+        </div>
+      )}
+
+      {/* Reviews list */}
+      <div className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
+          <i className="fas fa-star text-sm text-[#1e3a8a]"></i>
+          <h3 className="font-semibold text-gray-800 text-sm">All Reviews</h3>
+        </div>
+
+        {loading ? (
+          <div className="p-12 text-center text-gray-400">
+            <i className="fas fa-spinner fa-spin text-2xl mb-3"></i><p>Loading reviews…</p>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="p-12 text-center text-gray-400">
+            <i className="fas fa-star text-4xl mb-3"></i><p>No reviews yet.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100">
+            {reviews.map(r => (
+              <div key={r.id} className={`px-5 py-4 flex flex-col md:flex-row md:items-start gap-4 ${saving === r.id ? "opacity-50 pointer-events-none" : ""}`}>
+
+                {/* Left: guest info + review */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <span className="font-semibold text-gray-900 text-sm">{r.guestName}</span>
+                    <span className="text-yellow-400 text-xs">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600"}`}>
+                      {r.status}
+                    </span>
+                    {r.featured && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium flex items-center gap-1">
+                        <i className="fas fa-heart text-[10px]"></i> Featured
+                      </span>
+                    )}
+                    {r.room && <span className="text-xs text-gray-400">{r.room}</span>}
+                    <span className="text-xs text-gray-300 ml-auto">{r.date}</span>
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">&ldquo;{r.comment}&rdquo;</p>
+                  )}
+                </div>
+
+                {/* Right: actions */}
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  {r.status === "Pending" && (
+                    <>
+                      <button onClick={() => patch(r.id, { status: "Approved" })}
+                        className="text-xs px-3 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-lg font-medium">
+                        Approve
+                      </button>
+                      <button onClick={() => patch(r.id, { status: "Rejected" })}
+                        className="text-xs px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg font-medium">
+                        Reject
+                      </button>
+                    </>
+                  )}
+                  {r.status === "Approved" && (
+                    <button onClick={() => patch(r.id, { featured: !r.featured })}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
+                        r.featured
+                          ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      }`}>
+                      {r.featured ? "Unfeature" : "Feature"}
+                    </button>
+                  )}
+                  <button onClick={() => remove(r.id)}
+                    className="text-xs px-3 py-1.5 bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const TABS = ["Page Editor", "Gallery", "Contact Submissions"];
+const TABS = ["Page Editor", "Gallery", "Contact Submissions", "Reviews"];
 
 export default function AdminContent() {
   const [activeTab, setActiveTab] = useState(0);
   const [content,   setContent]   = useState(loadContent);
+  const [saving,    setSaving]    = useState(false);
+  const [saveMsg,   setSaveMsg]   = useState('');
+
+  // On mount: pull the real values from the backend (overrides localStorage defaults)
+  useEffect(() => {
+    api.get('/api/content')
+      .then(r => {
+        const d = r.data?.data ?? {};
+        if (Object.keys(d).length === 0) return;
+        const mapped = {};
+        Object.keys(DEFAULT_CONTENT).forEach(k => {
+          if (d[`page_${k}`] !== undefined) mapped[k] = d[`page_${k}`];
+        });
+        if (Object.keys(mapped).length > 0) {
+          setContent(prev => ({ ...prev, ...mapped }));
+        }
+      })
+      .catch(() => {}); // silently fall back to localStorage
+  }, []);
 
   const update = (key) => (val) => {
     const next = { ...content, [key]: val };
     setContent(next);
-    saveContent(next);
+    saveContent(next); // local cache
+    // Push to backend with page_ prefix so public pages can read it
+    setSaving(true);
+    updateAdminContent({ [`page_${key}`]: val })
+      .then(() => { setSaveMsg('Published!'); setTimeout(() => setSaveMsg(''), 3000); })
+      .catch(() => { setSaveMsg('Failed to publish'); setTimeout(() => setSaveMsg(''), 3000); })
+      .finally(() => setSaving(false));
   };
 
   return (
@@ -968,20 +1180,26 @@ export default function AdminContent() {
               <ResortAboutEditor         content={content.resort_about}      onSave={update("resort_about")} />
               <ResortRoomsSectionEditor  content={content.resort_rooms}      onSave={update("resort_rooms")} />
               <ResortContactEditor       content={content.resort_contact}    onSave={update("resort_contact")} />
-              <ResortReviewsEditor       content={content.resort_reviews}    onSave={update("resort_reviews")} />
               <ResortNewsletterEditor    content={content.resort_newsletter} onSave={update("resort_newsletter")} />
             </div>
           </div>
 
-          <p className="text-xs text-gray-400 italic">
-            <i className="fas fa-info-circle mr-1"></i>
-            Changes are saved to your browser for now. Backend endpoint needed to persist across devices.
-          </p>
+          {(saving || saveMsg) && (
+            <div className={`flex items-center gap-2 text-sm font-medium ${
+              saveMsg === 'Failed to publish' ? 'text-red-500' : 'text-emerald-600'
+            }`}>
+              {saving
+                ? <><i className="fas fa-spinner fa-spin text-xs"></i> Publishing to website…</>
+                : <><i className="fas fa-check-circle"></i> {saveMsg} Changes are now live.</>
+              }
+            </div>
+          )}
         </div>
       )}
 
       {activeTab === 1 && <GalleryTab />}
       {activeTab === 2 && <ContactSubmissionsTab />}
+      {activeTab === 3 && <ReviewsTab content={content.resort_reviews} onSave={update("resort_reviews")} />}
     </div>
   );
 }

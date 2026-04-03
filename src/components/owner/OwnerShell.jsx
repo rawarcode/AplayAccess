@@ -14,6 +14,7 @@ const PAGE_TITLES = {
   "/owner/transactions": "Transaction Records",
   "/owner/reports":      "Reports",
   "/owner/promo-codes":  "Promo Codes",
+  "/owner/addons":       "Add-ons & Amenities",
   "/owner/users":        "User Management",
   "/owner/settings":     "Pricing & Settings",
 };
@@ -24,6 +25,7 @@ const MENU = [
   { path: "/owner/transactions", icon: "fa-file-invoice-dollar",  label: "Transaction Records" },
   { path: "/owner/reports",      icon: "fa-file-alt",             label: "Reports"             },
   { path: "/owner/promo-codes",  icon: "fa-tag",                  label: "Promo Codes"         },
+  { path: "/owner/addons",       icon: "fa-concierge-bell",       label: "Add-ons"             },
   { path: "/owner/users",        icon: "fa-users-cog",            label: "Users"               },
   { path: "/owner/settings",     icon: "fa-sliders-h",            label: "Pricing & Settings"  },
 ];

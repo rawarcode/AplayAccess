@@ -64,8 +64,8 @@ export default function Reservation() {
   const [error, setError]                 = useState('');
   const [actionLoading, setActionLoading] = useState(null);
 
-  const [sortBy, setSortBy]               = useState('ID');
-  const [sortDir, setSortDir]             = useState('desc');
+  const [sortBy, setSortBy]               = useState('Visit Time');
+  const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
   const [filterStatus, setFilterStatus]   = useState('All');
 
