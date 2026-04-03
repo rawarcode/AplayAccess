@@ -105,8 +105,10 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
     return `<span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:8pt;font-weight:bold;color:${fg};background:${bg}">${s}</span>`;
   };
   const statusCount = (s) => dateBookings.filter(b => b.status === s).length;
+  const cancelledAmt = (b) =>
+    b.paymentMethod === 'Online' ? Number(b.reservation_fee||0) : Number(b.total||0);
   const grossTotal = dateBookings.reduce((s,b) => {
-    if (b.status === 'Cancelled') return s + Number(b.reservation_fee||0);
+    if (b.status === 'Cancelled') return s + cancelledAmt(b);
     return s + Number(b.total||0);
   }, 0);
   const totalGuests = dateBookings.reduce((s,b) => s + (b.guests||0), 0);
@@ -152,10 +154,13 @@ export default function Reports() {
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
   );
 
-  // Revenue = completed totals + forfeited reservation fees from cancellations
+  // Revenue = completed totals + forfeited amounts from cancellations
+  // Online cancelled: only reservation_fee forfeited; Cash/other: full total collected
+  const cancelledCollected = (b) =>
+    b.paymentMethod === 'Online' ? Number(b.reservation_fee ?? 0) : Number(b.total ?? 0);
   const totalRevenue =
     dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total ?? 0), 0) +
-    dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0);
+    dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledCollected(b), 0);
 
   const { labels, confirmed, completed, cancelled } = buildWeekChart(bookings);
   const chartData = {
