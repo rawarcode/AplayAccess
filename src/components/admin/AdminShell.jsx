@@ -9,22 +9,20 @@ import NotificationBell from "../ui/NotificationBell.jsx";
 const ADMIN_PROFILE_KEY = "admin_profile_v1";
 
 const PAGE_TITLES = {
-  "/admin":              "Dashboard",
-  "/admin/rooms":        "Manage Rooms",
-  "/admin/guests":       "Guests",
-  "/admin/transactions": "Transactions",
-  "/admin/history":      "History",
-  "/admin/reviews":      "Reviews",
-  "/admin/content":      "Manage Website",
-  "/admin/messages":     "Messages",
+  "/admin":          "Dashboard",
+  "/admin/rooms":    "Manage Rooms",
+  "/admin/guests":   "Guests",
+  "/admin/history":  "History",
+  "/admin/reviews":  "Reviews",
+  "/admin/content":  "Manage Website",
+  "/admin/messages": "Messages",
 };
 
 const MENU = {
   main: [
     { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard",    ownerOnly: false },
-    { path: "/admin/guests",       icon: "fa-user-check",      label: "Guests",       ownerOnly: false },
-    { path: "/admin/transactions", icon: "fa-money-bill-wave", label: "Transactions", ownerOnly: false, badgeKey: "pendingBookings" },
-    { path: "/admin/messages",     icon: "fa-envelope",        label: "Messages",     ownerOnly: false, badgeKey: "unreadMessages"  },
+    { path: "/admin/guests",   icon: "fa-user-check", label: "Guests",   ownerOnly: false },
+    { path: "/admin/messages", icon: "fa-envelope",   label: "Messages", ownerOnly: false, badgeKey: "unreadMessages" },
   ],
   manage: [
     { path: "/admin/rooms",    icon: "fa-bed",           label: "Manage Rooms"   },

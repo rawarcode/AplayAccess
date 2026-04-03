@@ -10,9 +10,8 @@ const OWNER_PROFILE_KEY = "owner_profile_v1";
 
 const PAGE_TITLES = {
   "/owner":              "Overview",
-  "/owner/financials":   "Financial Reports",
+  "/owner/reports":      "Reports & Analytics",
   "/owner/transactions": "Transaction Records",
-  "/owner/reports":      "Reports",
   "/owner/promo-codes":  "Promo Codes",
   "/owner/addons":       "Add-ons & Amenities",
   "/owner/users":        "User Management",
@@ -21,9 +20,8 @@ const PAGE_TITLES = {
 
 const MENU = [
   { path: "/owner",              icon: "fa-tachometer-alt",       label: "Overview"            },
-  { path: "/owner/financials",   icon: "fa-chart-line",           label: "Financials"          },
+  { path: "/owner/reports",      icon: "fa-chart-line",           label: "Reports & Analytics" },
   { path: "/owner/transactions", icon: "fa-file-invoice-dollar",  label: "Transaction Records" },
-  { path: "/owner/reports",      icon: "fa-file-alt",             label: "Reports"             },
   { path: "/owner/promo-codes",  icon: "fa-tag",                  label: "Promo Codes"         },
   { path: "/owner/addons",       icon: "fa-concierge-bell",       label: "Add-ons"             },
   { path: "/owner/users",        icon: "fa-users-cog",            label: "Users"               },

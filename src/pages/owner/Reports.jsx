@@ -1,17 +1,19 @@
 import { useEffect, useState, useMemo } from "react";
-import { Bar, Pie } from "react-chartjs-2";
+import { Bar, Pie, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
   ArcElement,
+  PointElement,
+  LineElement,
   Tooltip,
   Legend,
 } from "chart.js";
-import { getAnalyticsReport } from "../../lib/adminApi.js";
+import { getAnalyticsReport, getAnalyticsBookings, getAnalyticsRooms, getAnalyticsOverview } from "../../lib/adminApi.js";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend);
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 0 })}`;
 
@@ -52,12 +54,18 @@ const STATUS_CLASSES = {
 };
 
 
+const BAR_COLORS = ["rgba(59,130,246,0.7)","rgba(16,185,129,0.7)","rgba(251,191,36,0.7)","rgba(139,92,246,0.7)","rgba(236,72,153,0.7)"];
+
 export default function OwnerReports() {
   const now = new Date();
-  const [month,   setMonth]   = useState(now.getMonth() + 1);
-  const [year,    setYear]    = useState(now.getFullYear());
+  const [tab, setTab] = useState("monthly"); // "monthly" | "analytics"
+
+  // ── Monthly Report state ──────────────────────────────────────────────────
+  const [month,    setMonth]    = useState(now.getMonth() + 1);
+  const [year,     setYear]     = useState(now.getFullYear());
   const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading,  setLoading]  = useState(true);
+
   useEffect(() => {
     setLoading(true);
     getAnalyticsReport(month, year)
@@ -65,6 +73,29 @@ export default function OwnerReports() {
       .catch(() => setBookings([]))
       .finally(() => setLoading(false));
   }, [month, year]);
+
+  // ── Analytics state ───────────────────────────────────────────────────────
+  const [chartDays,    setChartDays]    = useState(30);
+  const [overview,     setOverview]     = useState(null);
+  const [dailyData,    setDailyData]    = useState([]);
+  const [roomsData,    setRoomsData]    = useState([]);
+  const [loadingOv,    setLoadingOv]    = useState(true);
+  const [loadingChart, setLoadingChart] = useState(true);
+
+  useEffect(() => {
+    getAnalyticsOverview()
+      .then((res) => setOverview(res.data.data))
+      .catch(() => {})
+      .finally(() => setLoadingOv(false));
+  }, []);
+
+  useEffect(() => {
+    setLoadingChart(true);
+    Promise.all([getAnalyticsBookings(chartDays), getAnalyticsRooms(chartDays)])
+      .then(([dRes, rRes]) => { setDailyData(dRes.data.data ?? []); setRoomsData(rRes.data.data ?? []); })
+      .catch(() => {})
+      .finally(() => setLoadingChart(false));
+  }, [chartDays]);
 
   const active  = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
   const revenue = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0), 0), [active]);
@@ -111,8 +142,128 @@ export default function OwnerReports() {
   const currentYear = now.getFullYear();
   const years = [currentYear - 2, currentYear - 1, currentYear];
 
+  // ── Analytics chart data ─────────────────────────────────────────────────
+  const shortLabel = (d) => (d ?? "").slice(5);
+  const revThisMonth  = overview?.revenue_this_month ?? 0;
+  const revLastMonth  = overview?.revenue_last_month ?? 0;
+  const revPct = revLastMonth > 0 ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
+  const totalRev = dailyData.reduce((s, r) => s + Number(r.revenue ?? 0), 0);
+  const totalBk  = dailyData.reduce((s, r) => s + Number(r.bookings ?? 0), 0);
+
+  const revenueLineData = {
+    labels: dailyData.map((d) => shortLabel(d.date)),
+    datasets: [{ label: "Revenue", data: dailyData.map((d) => Number(d.revenue ?? 0)), borderColor: "rgba(59,130,246,0.8)", backgroundColor: "rgba(59,130,246,0.1)", tension: 0.3, fill: true }],
+  };
+  const bookingsLineData = {
+    labels: dailyData.map((d) => shortLabel(d.date)),
+    datasets: [{ label: "Bookings", data: dailyData.map((d) => Number(d.bookings ?? 0)), borderColor: "rgba(16,185,129,0.8)", backgroundColor: "rgba(16,185,129,0.1)", tension: 0.3, fill: true }],
+  };
+  const analyticsRoomBarData = {
+    labels: roomsData.map((r) => r.label),
+    datasets: [{ label: "Revenue (₱)", data: roomsData.map((r) => Number(r.revenue ?? 0)), backgroundColor: roomsData.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]), borderRadius: 6 }],
+  };
+  const lineOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } };
+  const analyticsBarOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } }, scales: { y: { ticks: { callback: (v) => `₱${(v/1000).toFixed(0)}k` } } } };
+
   return (
     <div className="p-6 space-y-6">
+
+      {/* Tab switcher */}
+      <div className="flex gap-2 border-b border-slate-200 pb-0">
+        {[["monthly","fa-file-alt","Monthly Report"],["analytics","fa-chart-line","Analytics"]].map(([key,icon,label]) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab===key ? "border-[#1e3a8a] text-[#1e3a8a]" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+            <i className={`fas ${icon} text-xs`}></i>{label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Analytics Tab ───────────────────────────────────────────────── */}
+      {tab === "analytics" && (
+        <div className="space-y-6">
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[
+              { label: "Revenue This Month", value: loadingOv ? "—" : fmt(revThisMonth), sub: `vs ${fmt(revLastMonth)} last month`, color: "bg-blue-50 text-blue-800" },
+              { label: "Month-on-Month", value: loadingOv ? "—" : `${revPct >= 0 ? "+" : ""}${revPct}%`, sub: "vs previous month", color: revPct >= 0 ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800" },
+              { label: `Revenue (${chartDays}d)`, value: loadingChart ? "—" : fmt(totalRev), sub: `${totalBk} bookings`, color: "bg-purple-50 text-purple-800" },
+              { label: "Avg / Booking", value: loadingChart ? "—" : fmt(totalBk > 0 ? Math.round(totalRev / totalBk) : 0), sub: `last ${chartDays} days`, color: "bg-yellow-50 text-yellow-800" },
+            ].map(c => (
+              <div key={c.label} className={`rounded-lg p-5 ${c.color}`}>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-70">{c.label}</p>
+                <p className="text-2xl font-bold mt-1">{c.value}</p>
+                <p className="text-xs opacity-60 mt-1">{c.sub}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Period selector */}
+          <div className="flex justify-end">
+            <select value={chartDays} onChange={(e) => setChartDays(Number(e.target.value))}
+              className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+              <option value={7}>Last 7 days</option>
+              <option value={30}>Last 30 days</option>
+              <option value={90}>Last 90 days</option>
+              <option value={365}>Last 365 days</option>
+            </select>
+          </div>
+
+          {/* Line charts */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow p-6"><h2 className="text-lg font-semibold mb-4">Daily Revenue</h2><div className="h-64">{loadingChart ? <p className="text-sm text-gray-400">Loading...</p> : <Line data={revenueLineData} options={lineOptions} />}</div></div>
+            <div className="bg-white rounded-lg shadow p-6"><h2 className="text-lg font-semibold mb-4">Daily Bookings</h2><div className="h-64">{loadingChart ? <p className="text-sm text-gray-400">Loading...</p> : <Line data={bookingsLineData} options={lineOptions} />}</div></div>
+          </div>
+
+          {/* Revenue by room type */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-lg font-semibold mb-4">Revenue by Room Type</h2>
+            {loadingChart ? <p className="text-sm text-gray-400">Loading...</p> : roomsData.length === 0 ? <p className="text-sm text-gray-400">No data for this period</p> : (
+              <>
+                <div style={{ height: Math.max(224, 224 + (roomsData.length - 4) * 28) }}><Bar data={analyticsRoomBarData} options={analyticsBarOptions} /></div>
+                <div className={`mt-4 divide-y divide-slate-100 ${roomsData.length >= 5 ? "grid grid-cols-2 gap-x-6 divide-y-0" : ""}`}>
+                  {roomsData.map((r, i) => (
+                    <div key={r.label} className="flex items-center justify-between py-2 border-b border-slate-100">
+                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full shrink-0" style={{ background: DOT_COLORS[i % DOT_COLORS.length] }} /><span className="text-sm text-gray-700 truncate">{r.label}</span></div>
+                      <div className="text-right shrink-0 ml-3"><p className="text-sm font-semibold text-gray-900">{fmt(r.revenue)}</p><p className="text-xs text-gray-400">{r.bookings} bookings</p></div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Daily breakdown table */}
+          <div className="rounded-2xl bg-white shadow-lg border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
+              <button onClick={() => { /* print financials */ }} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition">
+                <i className="fas fa-print text-xs"></i>Print
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm text-slate-700">
+                <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
+                  <tr><th className="px-6 py-3 text-left">Date</th><th className="px-6 py-3 text-left">Bookings</th><th className="px-6 py-3 text-left">Revenue</th></tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {loadingChart ? <tr><td colSpan={3} className="px-6 py-6 text-center text-slate-400">Loading...</td></tr>
+                    : [...dailyData].reverse().map((row, i) => (
+                      <tr key={i} className="hover:bg-slate-50"><td className="px-6 py-3 text-slate-500">{row.date}</td><td className="px-6 py-3">{row.bookings}</td><td className="px-6 py-3 font-medium text-slate-900">{fmt(row.revenue)}</td></tr>
+                    ))}
+                </tbody>
+                {!loadingChart && dailyData.length > 0 && (
+                  <tfoot className="bg-slate-50 border-t-2 border-slate-300 text-sm font-semibold">
+                    <tr><td className="px-6 py-3 text-slate-700">Total</td><td className="px-6 py-3 text-slate-900">{totalBk}</td><td className="px-6 py-3 text-slate-900">{fmt(totalRev)}</td></tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Monthly Report Tab ───────────────────────────────────────────── */}
+      {tab === "monthly" && (<>
 
       {/* Header controls */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-wrap items-center justify-between gap-4">
@@ -289,6 +440,8 @@ export default function OwnerReports() {
         </div>
 
       </div>
+
+      </>)}
     </div>
   );
 }
