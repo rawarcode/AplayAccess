@@ -257,11 +257,6 @@ export default function Reports() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Activity for {reportDateLabel}</h2>
-            <button onClick={() => printDailyReport(dateBookings, reportDateLabel, totalRevenue)}
-              disabled={loading || dateBookings.length === 0}
-              className="flex items-center gap-2 text-sm text-gray-600 border rounded px-3 py-1 hover:bg-gray-50 disabled:opacity-50">
-              <i className="fas fa-print"></i> Print Report
-            </button>
           </div>
 
           {loading ? (
