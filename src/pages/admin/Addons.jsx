@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
-import AlertModal from "../../components/modals/AlertModal.jsx";
+import Toast, { useToast } from "../../components/ui/Toast";
 import { getAdminAddons, createAdminAddon, updateAdminAddon } from "../../lib/adminApi";
 
 const ICONS = { Pillow: "fa-bed", Karaoke: "fa-microphone" };
@@ -10,6 +10,8 @@ const BLANK = {
 };
 
 export default function AdminAddons() {
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [sortBy,  setSortBy]  = useState('Name');
   const [sortDir, setSortDir] = useState('asc');
   const [addons,    setAddons]    = useState([]);
@@ -18,21 +20,16 @@ export default function AdminAddons() {
   const [editing,   setEditing]   = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [viewItem,  setViewItem]  = useState(null);
-  const [alert,     setAlert]     = useState({ open: false, type: "info", title: "", message: "" });
 
   const load = useCallback(() => {
     setLoading(true);
     getAdminAddons()
       .then(r => setAddons(r.data.data))
-      .catch(() => showAlert("error", "Error", "Failed to load add-ons."))
+      .catch(() => showToast("Failed to load add-ons.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  function showAlert(type, title, message) {
-    setAlert({ open: true, type, title, message });
-  }
 
   function openNew() {
     setEditing({ ...BLANK });
@@ -53,7 +50,7 @@ export default function AdminAddons() {
   async function saveAddon(e) {
     e.preventDefault();
     if (!editing.name?.trim()) {
-      showAlert("error", "Error", "Name is required.");
+      showToast("Name is required.", "error");
       return;
     }
     setSaving(true);
@@ -74,7 +71,7 @@ export default function AdminAddons() {
       setModalOpen(false);
       load();
     } catch (err) {
-      showAlert("error", "Error", err?.response?.data?.message || "Failed to save.");
+      showToast(err?.response?.data?.message || "Failed to save.", "error");
     } finally {
       setSaving(false);
     }
@@ -86,7 +83,7 @@ export default function AdminAddons() {
       setAddons(list => list.map(a => a.id === item.id ? { ...a, is_active: !a.is_active } : a));
       if (viewItem?.id === item.id) setViewItem(v => ({ ...v, is_active: !v.is_active }));
     } catch {
-      showAlert("error", "Error", "Failed to update status.");
+      showToast("Failed to update status.", "error");
     }
   }
 
@@ -364,10 +361,7 @@ export default function AdminAddons() {
         </form>
       </Modal>
 
-      <AlertModal
-        open={alert.open} onClose={() => setAlert(a => ({ ...a, open: false }))}
-        type={alert.type} title={alert.title} message={alert.message}
-      />
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

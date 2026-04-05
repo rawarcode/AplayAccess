@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Toast, { useToast } from "../../components/ui/Toast";
 import { getPromoCodes, createPromoCode, updatePromoCode, deletePromoCode } from "../../lib/adminApi.js";
 
 const EMPTY_FORM = {
@@ -24,11 +25,12 @@ function Badge({ active }) {
 }
 
 export default function PromoCodes() {
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [codes,      setCodes]      = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState("");
   const [search,     setSearch]     = useState("");
-  const [toast,      setToast]      = useState(null); // { msg, type }
 
   const [createOpen,  setCreateOpen]  = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);  // confirmation step
@@ -38,11 +40,6 @@ export default function PromoCodes() {
   const [form,      setForm]      = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [saving,    setSaving]    = useState(false);
-
-  function showToast(msg, type = 'success') {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
-  }
 
   useEffect(() => { load(); }, []);
 
@@ -521,14 +518,7 @@ export default function PromoCodes() {
         </Modal>
       )}
 
-      {/* Toast notification */}
-      {toast && (
-        <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white
-          ${toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'}`}>
-          <i className={`fas ${toast.type === 'error' ? 'fa-circle-xmark' : 'fa-circle-check'}`}></i>
-          {toast.msg}
-        </div>
-      )}
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

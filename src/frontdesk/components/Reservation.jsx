@@ -42,13 +42,28 @@ function PayIcon({ method }) {
   return <span className="capitalize">{method || '—'}</span>;
 }
 
-function StatusBadge({ status }) {
+// A Pending booking with no payment older than 5 minutes is effectively expired
+function isExpiredPending(b) {
+  if (b.status !== 'Pending') return false;
+  if (b.fully_paid) return false;
+  const created = new Date(b.createdAt ?? b.created_at);
+  return Date.now() - created.getTime() > 5 * 60 * 1000;
+}
+
+function StatusBadge({ status, booking }) {
+  if (status === 'Pending' && booking && isExpiredPending(booking)) {
+    return (
+      <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+        <i className="fas fa-times-circle text-[10px]"></i>Expired
+      </span>
+    );
+  }
   const cls = {
-    Confirmed:   'bg-blue-100 text-blue-800',
-    'Checked In':'bg-purple-100 text-purple-800',
-    Completed:   'bg-green-100 text-green-800',
-    Cancelled:   'bg-red-100 text-red-800',
-    Pending:     'bg-yellow-100 text-yellow-800',
+    Confirmed:    'bg-blue-100 text-blue-800',
+    'Checked In': 'bg-purple-100 text-purple-800',
+    Completed:    'bg-green-100 text-green-800',
+    Cancelled:    'bg-red-100 text-red-800',
+    Pending:      'bg-yellow-100 text-yellow-800',
   };
   return (
     <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
@@ -311,7 +326,7 @@ export default function Reservation() {
                         </td>
                         <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
                         <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{fmtMoney(b.total)}</td>
-                        <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                        <td className="px-4 py-3"><StatusBadge status={b.status} booking={b} /></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
                             <button onClick={() => setViewBooking(b)} title="View details"

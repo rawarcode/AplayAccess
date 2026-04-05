@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
+import Toast, { useToast } from '../../components/ui/Toast';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDate(dt) {
@@ -31,14 +32,14 @@ export default function GuestRecords() {
   const [sortDir, setSortDir] = useState('desc');
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
+  const [toast, showToast, clearToast, toastType] = useToast();
   const [search, setSearch]     = useState('');
   const [viewGuest, setViewGuest] = useState(null);
 
   useEffect(() => {
     getFdBookings()
-      .then(data => { setBookings(data); setError(''); })
-      .catch(() => setError('Failed to load guest records.'))
+      .then(data => { setBookings(data); })
+      .catch(() => showToast('Failed to load guest records.', 'error'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -199,12 +200,6 @@ export default function GuestRecords() {
             </p>
           </div>
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
-              <i className="fas fa-exclamation-circle mr-2"></i>{error}
-            </div>
-          )}
-
           {loading ? (
             <div className="py-12 text-center text-gray-400">
               <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading records...
@@ -269,6 +264,7 @@ export default function GuestRecords() {
           )}
         </div>
       </main>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </Sidebar>
   );
 }

@@ -4,6 +4,7 @@ import { getBookings, cancelBooking, downloadReceipt } from "../../lib/bookingAp
 import { submitReview } from "../../lib/reviewApi.js";
 import { api } from "../../lib/api.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
+import Toast, { useToast } from "../../components/ui/Toast";
 
 // ─── Datetime formatter ───────────────────────────────────────────────────────
 /** Converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
@@ -21,14 +22,31 @@ function fmtDateTime(str) {
   });
 }
 
+// ─── Expired pending detection ────────────────────────────────────────────────
+function isExpiredPending(b) {
+  if (b.status !== "Pending") return false;
+  if (b.fully_paid) return false;
+  const created = new Date(b.createdAt ?? b.created_at);
+  return Date.now() - created.getTime() > 5 * 60 * 1000;
+}
+
 // ─── Status pill ─────────────────────────────────────────────────────────────
-function statusPill(status) {
-  const base = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
+function statusPill(status, booking) {
+  const base = "inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium";
+  if (status === "Pending" && booking && isExpiredPending(booking))
+    return `${base} text-red-700 bg-red-100`;
   if (status === "Confirmed") return `${base} text-blue-700 bg-blue-100`;
   if (status === "Completed") return `${base} text-green-700 bg-green-100`;
   if (status === "Cancelled") return `${base} text-red-700 bg-red-100`;
   if (status === "Pending")   return `${base} text-yellow-800 bg-yellow-100`;
   return `${base} text-gray-700 bg-gray-100`;
+}
+
+function StatusLabel({ booking }) {
+  if (isExpiredPending(booking)) {
+    return <span className={statusPill("Pending", booking)}><i className="fas fa-times-circle text-[10px]"></i>Expired</span>;
+  }
+  return <span className={statusPill(booking.status)}>{booking.status}</span>;
 }
 
 // ─── Star rating picker ───────────────────────────────────────────────────────
@@ -249,6 +267,8 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function MyBookings() {
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [items, setItems]           = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState("");
@@ -300,6 +320,7 @@ export default function MyBookings() {
     setItems((prev) =>
       prev.map((b) => (b.booking_id === bookingId ? { ...b, status: "Cancelled" } : b))
     );
+    showToast("Booking cancelled successfully.", "success");
   }
 
   async function handleDownloadReceipt(b) {
@@ -313,7 +334,7 @@ export default function MyBookings() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('Failed to download receipt. Please try again.');
+      showToast('Failed to download receipt. Please try again.', 'error');
     } finally {
       setDownloadingId(null);
     }
@@ -325,6 +346,7 @@ export default function MyBookings() {
         b.booking_id === bookingId ? { ...b, has_review: true, review } : b
       )
     );
+    showToast("Review submitted! Thank you.", "success");
   }
 
   if (loading) {
@@ -382,12 +404,12 @@ export default function MyBookings() {
                   )}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={statusPill(b.status)}>{b.status}</span>
+                  <StatusLabel booking={b} />
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={e => e.stopPropagation()}>
                   <div className="flex flex-wrap gap-2">
-                    {/* Cancel — only for active bookings */}
-                    {b.status !== "Cancelled" && b.status !== "Completed" && b.status !== "Checked In" && (
+                    {/* Cancel — only while still Pending (not yet confirmed) */}
+                    {b.status === "Pending" && (
                       <button
                         className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200"
                         onClick={() => setCancelling(b)}
@@ -463,6 +485,8 @@ export default function MyBookings() {
         />
       )}
 
+      <Toast message={toast} type={toastType} onClose={clearToast} />
+
       {/* Booking detail drawer */}
       {selected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -483,7 +507,7 @@ export default function MyBookings() {
                 ["Total",        `₱${Number(selected.total).toLocaleString()}`],
                 ["Reservation Fee", `₱${Number(selected.reservation_fee).toLocaleString()}`],
                 ["Payment",      selected.paymentMethod],
-                ["Status",       selected.status],
+                ["Status",       isExpiredPending(selected) ? "Expired" : selected.status],
               ].map(([label, val]) => (
                 <div key={label} className="flex justify-between gap-4">
                   <span className="text-gray-500">{label}</span>
@@ -510,7 +534,7 @@ export default function MyBookings() {
                   {checkingIn ? <><i className="fas fa-spinner fa-spin mr-1"></i>Checking in…</> : <><i className="fas fa-door-open mr-1"></i>Check In</>}
                 </button>
               )}
-              {selected.status !== "Cancelled" && selected.status !== "Completed" && selected.status !== "Checked In" && (
+              {selected.status === "Pending" && (
                 <button onClick={() => { setSelected(null); setCancelling(selected); }}
                   className="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm hover:bg-red-200">
                   Cancel Booking

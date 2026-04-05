@@ -8,6 +8,7 @@ import Sidebar from './Layout/Sidebar';
 import { useAuth } from '../../context/AuthContext';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import NotificationBell from '../../components/ui/NotificationBell';
+import Toast, { useToast } from '../../components/ui/Toast';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -38,9 +39,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user: session, logout } = useAuth();
 
-  const [bookings, setBookings]         = useState([]);
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState('');
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   const [profileOpen, setProfileOpen]   = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -55,8 +56,8 @@ export default function Dashboard() {
   useEffect(() => {
     function load() {
       getFdBookings()
-        .then(data => { setBookings(data); setError(''); })
-        .catch(() => setError('Failed to load bookings.'))
+        .then(data => { setBookings(data); })
+        .catch(() => showToast('Failed to load bookings.', 'error'))
         .finally(() => setLoading(false));
     }
     load();
@@ -171,12 +172,6 @@ export default function Dashboard() {
 
       {/* ── Main Content ── */}
       <main className="p-6">
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded border border-red-200 text-sm">
-            <i className="fas fa-exclamation-circle mr-2"></i>{error}
-          </div>
-        )}
-
         {/* Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {[
@@ -251,6 +246,7 @@ export default function Dashboard() {
           </div>
         </div>
       </main>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </Sidebar>
   );
 }

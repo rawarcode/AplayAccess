@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
-import { createBooking, cancelBooking } from "../../lib/bookingApi.js";
+import { createBooking, createGuestBooking, cancelBooking, cancelGuestBooking, createGuestPaymentLink, getGuestPaymentStatus, guestConfirmPayment } from "../../lib/bookingApi.js";
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
 import { validatePromo } from "../../lib/adminApi.js";
@@ -44,7 +44,7 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked }) {
+export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false }) {
   const modalRef        = useRef(null);
   const bookingResultRef = useRef(null); // stores API response after booking created
   const [bookingType, setBookingType] = useState("day"); // "day" | "overnight"
@@ -56,6 +56,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
   const [confirmOpen,  setConfirmOpen]  = useState(false);
+
+  // Guest mode — contact info collected when booking without an account
+  const [guestName,  setGuestName]  = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   // Payment popup state: { bookingId, checkoutUrl, popup } while waiting for payment
   // popup can be null when the user closed the window (we keep bookingId/checkoutUrl for reopen)
   const [paymentPopup, setPaymentPopup] = useState(null);
@@ -146,16 +151,20 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         // Directly confirm via backend — PayMongo only redirects here on real payment
         const finish = () => { onBooked?.(bookingResultRef.current); onClose(); };
         if (bId) {
-          api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: paymentOption === "full" }).then(finish).catch(finish);
+          const fullyPaid = paymentOption === "full";
+          const confirmCall = guestMode
+            ? guestConfirmPayment(bId, fullyPaid)
+            : api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: fullyPaid });
+          confirmCall.then(finish).catch(finish);
         } else {
           finish();
         }
       }
       if (event.data?.type === "paymongo_cancelled") {
+        // Don't destroy state — keep bookingId + checkoutUrl so the user can retry.
+        // Just null out the popup reference so the "Reopen" UI appears.
         try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
-        setPaymentPopup(null);
-        setTimeLeft(null);
-        setError("Payment was cancelled. Your booking has been released.");
+        setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
       }
     }
 
@@ -176,7 +185,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       }
       // Check if payment went through on PayMongo
       try {
-        const status = await getPaymentStatus(bookingId);
+        const status = guestMode
+          ? await getGuestPaymentStatus(bookingId)
+          : await getPaymentStatus(bookingId);
         if (status.paid) {
           clearInterval(interval);
           try { popup?.close(); } catch { /* ignore */ }
@@ -202,7 +213,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
       setPaymentPopup(null);
       setTimeLeft(null);
-      if (bId) cancelBooking(bId).catch(() => {});
+      if (bId) {
+        (guestMode ? cancelGuestBooking(bId) : cancelBooking(bId)).catch(() => {});
+      }
       setError("Payment timed out (5 minutes). Your booking was automatically cancelled.");
       return;
     }
@@ -225,6 +238,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setPromoError("");
       setPaymentOption("reservation");
       setConfirmOpen(false);
+      setGuestName("");
+      setGuestEmail("");
+      setGuestPhone("");
     }
   }, [open, selectedRoom]);
 
@@ -295,6 +311,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   function submit(e) {
     e.preventDefault();
     setError("");
+    // Guest mode: require contact info
+    if (guestMode) {
+      if (!guestName.trim())  { setError("Please enter your full name."); return; }
+      if (!guestEmail.trim()) { setError("Please enter your email address."); return; }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
+    }
     if (!visitDate) { setError("Please select a visit date."); return; }
     if (!roomType)  { setError("Please select a room type."); return; }
     const room = rooms.find((r) => r.name === roomType);
@@ -315,7 +338,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     setConfirmOpen(false);
     setSubmitting(true);
     try {
-      const result = await createBooking({
+      const bookingPayload = {
         room_id:          room.id,
         check_in:         checkIn,
         guests:           guests,
@@ -324,11 +347,24 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         overnight:        isOvernight,
         promo_code:       promoResult ? promoInput.trim().toUpperCase() : null,
         discount:         discount,
-      });
+      };
+
+      // Guest mode: add contact info + use public endpoint
+      if (guestMode) {
+        bookingPayload.guest_name  = guestName.trim();
+        bookingPayload.guest_email = guestEmail.trim();
+        bookingPayload.guest_phone = guestPhone.trim() || null;
+      }
+
+      const result = guestMode
+        ? await createGuestBooking(bookingPayload)
+        : await createBooking(bookingPayload);
 
       bookingResultRef.current = result.data?.data ?? result.data;
       const bookingId = result.data?.data?.id ?? result.data?.id;
-      const { checkout_url } = await createPaymentLink(bookingId, paymentOption === "full");
+      const { checkout_url } = guestMode
+        ? await createGuestPaymentLink(bookingId, paymentOption === "full")
+        : await createPaymentLink(bookingId, paymentOption === "full");
 
       // Open PayMongo in a small centered popup so the main page stays visible
       const pw = 600, ph = 700;
@@ -363,7 +399,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     <Modal open={open} onClose={onClose} maxWidth="max-w-2xl">
       <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-2xl font-bold text-gray-900">Book Your Visit at Aplaya</h3>
+          <h3 className="text-2xl font-bold text-gray-900">
+            Book Your Visit at Aplaya
+            {guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
+          </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">✕</button>
         </div>
 
@@ -375,6 +414,60 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
         <form onSubmit={submit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* Guest info — shown only in guest (no-account) mode */}
+            {guestMode && (
+              <div className="md:col-span-2">
+                <div className="mb-4 rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 flex items-start gap-3">
+                  <i className="fas fa-user-secret text-amber-500 mt-0.5 shrink-0"></i>
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Booking as Guest</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      We need your contact details to send your booking confirmation. You won't be able to manage this booking online.
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={guestName}
+                      onChange={e => setGuestName(e.target.value)}
+                      placeholder="Your full name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={guestEmail}
+                      onChange={e => setGuestEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                    </label>
+                    <input
+                      type="tel"
+                      value={guestPhone}
+                      onChange={e => setGuestPhone(e.target.value)}
+                      placeholder="+63 9xx xxx xxxx"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+                <hr className="my-5 border-gray-200" />
+              </div>
+            )}
 
             {/* Booking type */}
             <div className="md:col-span-2">
@@ -738,7 +831,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       try { paymentPopup.popup?.close(); } catch { /* ignore */ }
                       setPaymentPopup(null);
                       setTimeLeft(null);
-                      if (bId) cancelBooking(bId).catch(() => {});
+                      if (bId) {
+                        (guestMode ? cancelGuestBooking(bId) : cancelBooking(bId)).catch(() => {});
+                      }
                       setError("Booking cancelled.");
                     }}
                     className="px-4 py-1.5 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"
@@ -787,7 +882,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       const bId = paymentPopup.bookingId;
                       setPaymentPopup(null);
                       setTimeLeft(null);
-                      if (bId) cancelBooking(bId).catch(() => {});
+                      if (bId) {
+                        (guestMode ? cancelGuestBooking(bId) : cancelBooking(bId)).catch(() => {});
+                      }
                       setError("Booking cancelled.");
                     }}
                     className="px-4 py-1.5 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"

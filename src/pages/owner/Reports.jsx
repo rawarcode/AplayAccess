@@ -12,6 +12,7 @@ import {
   Legend,
 } from "chart.js";
 import { getAnalyticsReport, getAnalyticsBookings, getAnalyticsRooms, getAnalyticsOverview } from "../../lib/adminApi.js";
+import Toast, { useToast } from "../../components/ui/Toast";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend);
 
@@ -58,6 +59,7 @@ const BAR_COLORS = ["rgba(59,130,246,0.7)","rgba(16,185,129,0.7)","rgba(251,191,
 
 export default function OwnerReports() {
   const now = new Date();
+  const [toast, showToast, clearToast, toastType] = useToast();
   const [tab, setTab] = useState("monthly"); // "monthly" | "analytics"
 
   // ── Monthly Report state ──────────────────────────────────────────────────
@@ -70,7 +72,7 @@ export default function OwnerReports() {
     setLoading(true);
     getAnalyticsReport(month, year)
       .then((res) => setBookings(res.data.data ?? []))
-      .catch(() => setBookings([]))
+      .catch(() => { setBookings([]); showToast("Failed to load report data.", "error"); })
       .finally(() => setLoading(false));
   }, [month, year]);
 
@@ -85,7 +87,7 @@ export default function OwnerReports() {
   useEffect(() => {
     getAnalyticsOverview()
       .then((res) => setOverview(res.data.data))
-      .catch(() => {})
+      .catch(() => showToast("Failed to load report data.", "error"))
       .finally(() => setLoadingOv(false));
   }, []);
 
@@ -93,7 +95,7 @@ export default function OwnerReports() {
     setLoadingChart(true);
     Promise.all([getAnalyticsBookings(chartDays), getAnalyticsRooms(chartDays)])
       .then(([dRes, rRes]) => { setDailyData(dRes.data.data ?? []); setRoomsData(rRes.data.data ?? []); })
-      .catch(() => {})
+      .catch(() => showToast("Failed to load report data.", "error"))
       .finally(() => setLoadingChart(false));
   }, [chartDays]);
 
@@ -442,6 +444,8 @@ export default function OwnerReports() {
       </div>
 
       </>)}
+
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
-import AlertModal from "../../components/modals/AlertModal.jsx";
+import Toast, { useToast } from "../../components/ui/Toast";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getAdminUsers, createAdminUser, updateAdminUser } from "../../lib/adminApi";
 
@@ -16,6 +16,8 @@ const ROLE_COLORS = {
 export default function OwnerUsers() {
   const { user: currentUser } = useAuth();
 
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [users,      setUsers]      = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [saving,     setSaving]     = useState(false);
@@ -23,21 +25,16 @@ export default function OwnerUsers() {
   const [modalOpen,  setModalOpen]  = useState(false);
   const [viewUser,   setViewUser]   = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [alert,      setAlert]      = useState({ open: false, type: "info", title: "", message: "" });
 
   const load = useCallback(() => {
     setLoading(true);
     getAdminUsers()
       .then(r => setUsers(r.data.data))
-      .catch(() => showAlert("error", "Error", "Failed to load users."))
+      .catch(() => showToast("Failed to load users.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { load(); }, [load]);
-
-  function showAlert(type, title, message) {
-    setAlert({ open: true, type, title, message });
-  }
 
   function openNew()   { setEditing({ ...BLANK }); setModalOpen(true); }
   function openEdit(u) { setEditing({ ...u, password: "" }); setViewUser(null); setModalOpen(true); }
@@ -46,11 +43,11 @@ export default function OwnerUsers() {
   async function saveUser(e) {
     e.preventDefault();
     if (!editing.name || !editing.email) {
-      showAlert("error", "Error", "Name and email are required.");
+      showToast("Name and email are required.", "error");
       return;
     }
     if (!editing.id && !editing.password) {
-      showAlert("error", "Error", "Password is required for new users.");
+      showToast("Password is required for new users.", "error");
       return;
     }
     setSaving(true);
@@ -71,7 +68,7 @@ export default function OwnerUsers() {
       setModalOpen(false);
       load();
     } catch (err) {
-      showAlert("error", "Error", err?.response?.data?.message || "Failed to save user.");
+      showToast(err?.response?.data?.message || "Failed to save user.", "error");
     } finally {
       setSaving(false);
     }
@@ -87,7 +84,7 @@ export default function OwnerUsers() {
       setUsers(list => list.map(x => x.id === u.id ? { ...x, is_active: !x.is_active } : x));
       if (viewUser?.id === u.id) setViewUser(v => ({ ...v, is_active: !v.is_active }));
     } catch (err) {
-      showAlert("error", "Error", err?.response?.data?.message || "Failed to update user status.");
+      showToast(err?.response?.data?.message || "Failed to update user status.", "error");
     }
   }
 
@@ -303,8 +300,7 @@ export default function OwnerUsers() {
         </form>
       </Modal>
 
-      <AlertModal open={alert.open} onClose={() => setAlert(a => ({ ...a, open: false }))}
-        type={alert.type} title={alert.title} message={alert.message} />
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

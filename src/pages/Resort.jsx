@@ -12,6 +12,7 @@ import { gallery as galleryFallback } from "../data/gallery.js";
 
 import LoginModal from "../components/modals/LoginModal.jsx";
 import BookingModal from "../components/modals/BookingModal.jsx";
+import GuestWarningModal from "../components/modals/GuestWarningModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import AlertModal from "../components/modals/AlertModal.jsx";
 
@@ -81,8 +82,11 @@ export default function Resort() {
 
   const [bookingOpen, setBookingOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [guestWarningOpen, setGuestWarningOpen] = useState(false);
+  const [guestMode, setGuestMode] = useState(false); // true = booking without account
   const [successOpen, setSuccessOpen] = useState(false);
   const [lastBooking, setLastBooking] = useState(null); // details passed to SuccessModal
+  const [successIsGuest, setSuccessIsGuest] = useState(false); // was the completed booking a guest booking?
 
   const [selectedRoom, setSelectedRoom] = useState("");
   const [pendingBookingRoom, setPendingBookingRoom] = useState(null); // string|null
@@ -118,7 +122,7 @@ export default function Resort() {
   const [reviewsApi, setReviewsApi] = useState([]);
 
   const anyOverlayOpen =
-    bookingOpen || loginOpen || successOpen || contactAlert.open;
+    bookingOpen || loginOpen || guestWarningOpen || successOpen || contactAlert.open;
   useLockBodyScroll(anyOverlayOpen);
 
   // UI cards
@@ -185,9 +189,10 @@ export default function Resort() {
   function requestBooking(roomName = "") {
     if (!isLoggedIn) {
       setPendingBookingRoom(roomName || "");
-      setLoginOpen(true);
+      setGuestWarningOpen(true); // show choice: log in, sign up, or continue as guest
       return;
     }
+    setGuestMode(false);
     setSelectedRoom(roomName || "");
     setBookingOpen(true);
   }
@@ -753,22 +758,42 @@ export default function Resort() {
         onLoginSuccess={handleLoginSuccess}
       />
 
+      <GuestWarningModal
+        open={guestWarningOpen}
+        onClose={() => { setGuestWarningOpen(false); setPendingBookingRoom(null); }}
+        onLoginSignup={() => {
+          setGuestWarningOpen(false);
+          setLoginOpen(true);
+        }}
+        onContinueAsGuest={() => {
+          setGuestWarningOpen(false);
+          setGuestMode(true);
+          setSelectedRoom(pendingBookingRoom || "");
+          setPendingBookingRoom(null);
+          setBookingOpen(true);
+        }}
+      />
+
       <BookingModal
         open={bookingOpen}
-        onClose={() => setBookingOpen(false)}
+        onClose={() => { setBookingOpen(false); setGuestMode(false); }}
         selectedRoom={selectedRoom}
         rooms={bookingRooms}
+        guestMode={guestMode}
         onBooked={(details) => {
           setLastBooking(details);
+          setSuccessIsGuest(guestMode);
           setBookingOpen(false);
+          setGuestMode(false);
           setSuccessOpen(true);
         }}
       />
 
       <SuccessModal
         open={successOpen}
-        onClose={() => { setSuccessOpen(false); setLastBooking(null); }}
+        onClose={() => { setSuccessOpen(false); setLastBooking(null); setSuccessIsGuest(false); }}
         booking={lastBooking}
+        guestMode={successIsGuest}
       />
 
       <AlertModal

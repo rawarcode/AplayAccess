@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Pie } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 import { getAdminBookings, getAnalyticsOverview } from "../../lib/adminApi.js";
+import Toast, { useToast } from "../../components/ui/Toast";
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -76,6 +77,8 @@ function buildPieData(bookings, key) {
 
 export default function OwnerTransactions() {
   const navigate = useNavigate();
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [sortBy,  setSortBy]  = useState('Check-in');
   const [sortDir, setSortDir] = useState('desc');
   const [allBookings, setAllBookings] = useState([]);
@@ -94,7 +97,7 @@ export default function OwnerTransactions() {
         setAllBookings(bRes.data.data ?? []);
         setOverview(ovRes.data.data);
       })
-      .catch(() => {})
+      .catch(() => showToast("Failed to load transactions.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -394,6 +397,7 @@ export default function OwnerTransactions() {
         </div>
       </div>
 
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

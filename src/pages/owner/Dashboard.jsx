@@ -15,6 +15,7 @@ import {
   getAnalyticsBookings,
   getAnalyticsOccupancy,
 } from "../../lib/adminApi.js";
+import Toast, { useToast } from "../../components/ui/Toast";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -51,6 +52,8 @@ function OccupancyBar({ pct, color = "bg-[#1e3a8a]" }) {
 }
 
 export default function OwnerDashboard() {
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [overview,       setOverview]       = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
   const [dailyData,      setDailyData]      = useState([]);
@@ -70,7 +73,7 @@ export default function OwnerDashboard() {
         setDailyData(dailyRes.data.data ?? []);
         setOccupancy(occRes.data.data);
       })
-      .catch(() => {})
+      .catch(() => showToast("Failed to load dashboard data.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -259,6 +262,7 @@ export default function OwnerDashboard() {
         </div>
       </div>
 
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

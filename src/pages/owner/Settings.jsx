@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import AlertModal from "../../components/modals/AlertModal.jsx";
+import Toast, { useToast } from "../../components/ui/Toast";
 import { getAdminSettings, updateAdminSettings } from "../../lib/adminApi";
 
 const PRICING_FIELDS = [
@@ -36,16 +36,13 @@ const PRICING_FIELDS = [
 ];
 
 export default function OwnerSettings() {
+  const [toast, showToast, clearToast, toastType] = useToast();
+
   const [settings, setSettings] = useState({});
   const [draft,    setDraft]    = useState({});
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [dirty,    setDirty]    = useState(false);
-  const [alert,    setAlert]    = useState({ open: false, type: "info", title: "", message: "" });
-
-  function showAlert(type, title, message) {
-    setAlert({ open: true, type, title, message });
-  }
 
   const load = useCallback(() => {
     setLoading(true);
@@ -57,7 +54,7 @@ export default function OwnerSettings() {
         setDraft({ ...map });
         setDirty(false);
       })
-      .catch(() => showAlert("error", "Error", "Failed to load settings."))
+      .catch(() => showToast("Failed to load settings.", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -73,7 +70,7 @@ export default function OwnerSettings() {
     for (const f of PRICING_FIELDS) {
       const v = Number(draft[f.key]);
       if (isNaN(v) || v < 0) {
-        showAlert("error", "Validation Error", `"${f.label}" must be a non-negative number.`);
+        showToast(`"${f.label}" must be a non-negative number.`, "error");
         return;
       }
     }
@@ -86,9 +83,9 @@ export default function OwnerSettings() {
       setSettings(map);
       setDraft({ ...map });
       setDirty(false);
-      showAlert("success", "Saved", "Pricing settings have been updated.");
+      showToast("Pricing settings have been updated.", "success");
     } catch (err) {
-      showAlert("error", "Error", err?.response?.data?.message || "Failed to save settings.");
+      showToast(err?.response?.data?.message || "Failed to save settings.", "error");
     } finally {
       setSaving(false);
     }
@@ -217,13 +214,7 @@ export default function OwnerSettings() {
         </form>
       )}
 
-      <AlertModal
-        open={alert.open}
-        onClose={() => setAlert(a => ({ ...a, open: false }))}
-        type={alert.type}
-        title={alert.title}
-        message={alert.message}
-      />
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

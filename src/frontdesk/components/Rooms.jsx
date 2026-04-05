@@ -188,7 +188,18 @@ function HousekeepingModal({ room, onClose, onHousekeepingChange, onWalkIn }) {
 function guestName(booking) {
   if (!booking) return null;
   const match = booking.specialRequests?.match(/^Walk-in:\s*([^,]+)/);
-  return match?.[1]?.trim() || booking.guest || null;
+  return match?.[1]?.trim() || booking.guest || booking.guest_name || null;
+}
+
+function fmtDateLabel(dt) {
+  if (!dt) return '—';
+  const d    = new Date(dt.replace(' ', 'T'));
+  const now  = new Date();
+  const tom  = new Date(now); tom.setDate(now.getDate() + 1);
+  const time = d.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
+  if (d.toDateString() === now.toDateString())  return `Today · ${time}`;
+  if (d.toDateString() === tom.toDateString())  return `Tomorrow · ${time}`;
+  return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) + ' · ' + time;
 }
 
 // ─── RoomCard ─────────────────────────────────────────────────────────────────
@@ -295,7 +306,6 @@ export default function FDRooms() {
   const [rooms, setRooms]       = useState([]);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading]   = useState(true);
-  const [error, setError]       = useState('');
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [filter, setFilter]     = useState('all');
   const [selectedSlot, setSelectedSlot] = useState(null); // { room, info }
@@ -304,8 +314,8 @@ export default function FDRooms() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([getFdRooms(), getFdBookings()])
-      .then(([rm, bk]) => { setRooms(rm); setBookings(bk); setError(''); setLastRefresh(new Date()); })
-      .catch(() => setError('Failed to load room data.'))
+      .then(([rm, bk]) => { setRooms(rm); setBookings(bk); setLastRefresh(new Date()); })
+      .catch(() => showToast('Failed to load room data.', 'error'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -326,6 +336,17 @@ export default function FDRooms() {
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, [load]);
+
+  // Upcoming bookings: Pending or Confirmed, check-in from now onward, sorted soonest first
+  const upcomingBookings = useMemo(() => {
+    const now = new Date();
+    return bookings
+      .filter(b => {
+        if (['Cancelled', 'Completed', 'Checked In'].includes(b.status)) return false;
+        return new Date(b.checkIn.replace(' ', 'T')) >= now;
+      })
+      .sort((a, b) => new Date(a.checkIn.replace(' ', 'T')) - new Date(b.checkIn.replace(' ', 'T')));
+  }, [bookings]);
 
   // Compute day and overnight info for every room
   const roomInfos = useMemo(() => rooms.map(r => ({
@@ -380,133 +401,229 @@ export default function FDRooms() {
           />
         )
       )}
-      <main className="p-6">
-        {/* ── Toolbar ── */}
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-xs text-gray-400">
-            Last updated: {lastRefresh.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true })}
-            <span className="ml-2 text-gray-300">· Auto-refreshes every 10s</span>
-          </p>
-          <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-            <i className="fas fa-sync-alt"></i> Refresh
-          </button>
-        </div>
+      <main className="p-6 flex gap-6 min-h-0">
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
-            <i className="fas fa-exclamation-circle mr-2"></i>{error}
-          </div>
-        )}
-
-        {/* ── Summary bar ── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {[
-            { label: 'Vacant',   count: counts.vacant,   bg: 'bg-green-500',             icon: 'fa-check-circle'   },
-            { label: 'Occupied', count: counts.occupied,  bg: 'bg-red-500',               icon: 'fa-door-closed'    },
-            { label: 'Arriving', count: counts.incoming,  bg: 'bg-blue-500',              icon: 'fa-person-walking' },
-            { label: 'Pending',  count: counts.pending,   bg: 'bg-yellow-400 text-gray-900', icon: 'fa-clock'       },
-          ].map(s => (
-            <div key={s.label} className={`${s.bg} rounded-xl p-4 flex items-center gap-3 text-white shadow`}>
-              <i className={`fas ${s.icon} text-2xl opacity-80`}></i>
-              <div>
-                <p className="text-3xl font-extrabold leading-none">{loading ? '—' : s.count}</p>
-                <p className="text-xs font-medium opacity-90 mt-0.5">{s.label}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* ── Filter tabs ── */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {FILTERS.map(f => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border-2 ${
-                filter === f.key
-                  ? `${f.color} border-transparent shadow`
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-              }`}
-            >
-              {f.label}
+        {/* ── LEFT: Room grid ─────────────────────────────────────────────────── */}
+        <div className="flex-1 min-w-0">
+          {/* Toolbar */}
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-xs text-gray-400">
+              Last updated: {lastRefresh.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true })}
+              <span className="ml-2 text-gray-300">· Auto-refreshes every 10s</span>
+            </p>
+            <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+              <i className="fas fa-sync-alt"></i> Refresh
             </button>
-          ))}
-        </div>
+          </div>
 
-        {loading ? (
-          <div className="py-16 text-center text-gray-400">
-            <i className="fas fa-spinner fa-spin text-3xl mb-3 block"></i>Loading room status...
-          </div>
-        ) : filteredInfos.length === 0 ? (
-          <div className="py-16 text-center text-gray-400">
-            <i className="fas fa-door-open text-3xl mb-3 block"></i>No rooms match this filter.
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {/* ── Day Section ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-                  <i className="fas fa-sun text-amber-500"></i>
-                  <span className="font-semibold text-amber-800 text-sm">Day Visit</span>
-                  <span className="text-xs text-amber-600">7:00 AM – 5:00 PM · ₱1,500</span>
+          {/* Summary bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            {[
+              { label: 'Vacant',   count: counts.vacant,   bg: 'bg-green-500',                icon: 'fa-check-circle'   },
+              { label: 'Occupied', count: counts.occupied,  bg: 'bg-red-500',                  icon: 'fa-door-closed'    },
+              { label: 'Arriving', count: counts.incoming,  bg: 'bg-blue-500',                 icon: 'fa-person-walking' },
+              { label: 'Pending',  count: counts.pending,   bg: 'bg-yellow-400 text-gray-900', icon: 'fa-clock'          },
+            ].map(s => (
+              <div key={s.label} className={`${s.bg} rounded-xl p-4 flex items-center gap-3 text-white shadow`}>
+                <i className={`fas ${s.icon} text-2xl opacity-80`}></i>
+                <div>
+                  <p className="text-3xl font-extrabold leading-none">{loading ? '—' : s.count}</p>
+                  <p className="text-xs font-medium opacity-90 mt-0.5">{s.label}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredInfos
-                  .filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter)
-                  .map(({ room, dayInfo }) => (
-                    <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
-                      onClick={() => setSelectedSlot({ room, info: dayInfo })} />
-                  ))
-                }
-              </div>
-              {filteredInfos.filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter).length === 0 && (
-                <p className="text-gray-400 text-sm py-4">No day rooms match this filter.</p>
-              )}
-            </div>
+            ))}
+          </div>
 
-            {/* ── Overnight Section ── */}
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
-                  <i className="fas fa-moon text-indigo-500"></i>
-                  <span className="font-semibold text-indigo-800 text-sm">Overnight Stay</span>
-                  <span className="text-xs text-indigo-600">6:00 PM – 6:00 AM · ₱2,000</span>
+          {/* Filter tabs */}
+          <div className="flex flex-wrap gap-2 mb-6">
+            {FILTERS.map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border-2 ${
+                  filter === f.key
+                    ? `${f.color} border-transparent shadow`
+                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {loading ? (
+            <div className="py-16 text-center text-gray-400">
+              <i className="fas fa-spinner fa-spin text-3xl mb-3 block"></i>Loading room status...
+            </div>
+          ) : filteredInfos.length === 0 ? (
+            <div className="py-16 text-center text-gray-400">
+              <i className="fas fa-door-open text-3xl mb-3 block"></i>No rooms match this filter.
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Day Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
+                    <i className="fas fa-sun text-amber-500"></i>
+                    <span className="font-semibold text-amber-800 text-sm">Day Visit</span>
+                    <span className="text-xs text-amber-600">7:00 AM – 5:00 PM · ₱1,500</span>
+                  </div>
                 </div>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredInfos
+                    .filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter)
+                    .map(({ room, dayInfo }) => (
+                      <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
+                        onClick={() => setSelectedSlot({ room, info: dayInfo })} />
+                    ))
+                  }
+                </div>
+                {filteredInfos.filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter).length === 0 && (
+                  <p className="text-gray-400 text-sm py-4">No day rooms match this filter.</p>
+                )}
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4">
-                {filteredInfos
-                  .filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter)
-                  .map(({ room, nightInfo }) => (
-                    <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
-                      onClick={() => setSelectedSlot({ room, info: nightInfo })} />
-                  ))
-                }
-              </div>
-              {filteredInfos.filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter).length === 0 && (
-                <p className="text-gray-400 text-sm py-4">No overnight rooms match this filter.</p>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* ── Legend ── */}
-        <div className="mt-8 space-y-2">
-          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Vacant — ready for guests</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Occupied — shows time until vacant</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Arriving — confirmed, not yet checked in</span>
-            <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Pending — booking not yet confirmed</span>
-            <span className="flex items-center gap-1.5"><span className="text-base">⚡</span> Soon — vacating within 30 minutes</span>
-          </div>
-          <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-            <span className="font-medium text-gray-400">Housekeeping badge (tap to update):</span>
-            <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs">Clean</span></span>
-            <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs">Dirty</span></span>
-            <span className="flex items-center gap-1"><span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs">Cleaning</span></span>
+              {/* Overnight Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
+                    <i className="fas fa-moon text-indigo-500"></i>
+                    <span className="font-semibold text-indigo-800 text-sm">Overnight Stay</span>
+                    <span className="text-xs text-indigo-600">6:00 PM – 6:00 AM · ₱2,000</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredInfos
+                    .filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter)
+                    .map(({ room, nightInfo }) => (
+                      <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
+                        onClick={() => setSelectedSlot({ room, info: nightInfo })} />
+                    ))
+                  }
+                </div>
+                {filteredInfos.filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter).length === 0 && (
+                  <p className="text-gray-400 text-sm py-4">No overnight rooms match this filter.</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Legend */}
+          <div className="mt-8 space-y-2">
+            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Vacant — ready for guests</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Occupied — shows time until vacant</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Arriving — confirmed, not yet checked in</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Pending — booking not yet confirmed</span>
+              <span className="flex items-center gap-1.5"><span className="text-base">⚡</span> Soon — vacating within 30 minutes</span>
+            </div>
+            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+              <span className="font-medium text-gray-400">Housekeeping badge (tap to update):</span>
+              <span><span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs">Clean</span></span>
+              <span><span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs">Dirty</span></span>
+              <span><span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs">Cleaning</span></span>
+            </div>
           </div>
         </div>
+
+        {/* ── RIGHT: Upcoming Bookings panel ──────────────────────────────────── */}
+        <div className="w-80 xl:w-96 shrink-0 flex flex-col">
+          {/* Panel header */}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+              <i className="fas fa-calendar-alt text-blue-500"></i>
+              Upcoming Bookings
+            </h2>
+            {!loading && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                upcomingBookings.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {upcomingBookings.length}
+              </span>
+            )}
+          </div>
+
+          {/* Scrollable list */}
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+            {loading ? (
+              <div className="py-12 text-center text-gray-400 text-sm">
+                <i className="fas fa-spinner fa-spin block text-2xl mb-2"></i>Loading…
+              </div>
+            ) : upcomingBookings.length === 0 ? (
+              <div className="py-12 text-center text-gray-400">
+                <i className="fas fa-calendar-check block text-3xl mb-3 text-gray-300"></i>
+                <p className="text-sm font-medium">No upcoming bookings</p>
+                <p className="text-xs mt-1">All clear for now</p>
+              </div>
+            ) : upcomingBookings.map(b => {
+              const isToday   = b.checkIn?.slice(0, 10) === todayStr();
+              const overnight = isOvernightBooking(b);
+              const name      = b.guest || b.guest_name || 'Guest';
+              const isPending = b.status === 'Pending';
+
+              return (
+                <button
+                  key={b.booking_id}
+                  onClick={() => setSelectedSlot({ room: { name: b.roomType, id: b.room_id }, info: { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' } })}
+                  className={`w-full text-left rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.99] ${
+                    isToday
+                      ? 'border-blue-200 bg-blue-50 hover:bg-blue-100'
+                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                  }`}
+                >
+                  {/* Top row: status badge + booking type */}
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+                      isPending
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      <i className={`fas ${isPending ? 'fa-clock' : 'fa-check-circle'} text-[9px]`}></i>
+                      {b.status}
+                    </span>
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                      overnight
+                        ? 'bg-indigo-50 text-indigo-600'
+                        : 'bg-amber-50 text-amber-600'
+                    }`}>
+                      <i className={`fas ${overnight ? 'fa-moon' : 'fa-sun'} text-[9px]`}></i>
+                      {overnight ? 'Overnight' : 'Day Visit'}
+                    </span>
+                  </div>
+
+                  {/* Guest name */}
+                  <p className="font-semibold text-gray-900 text-sm truncate leading-tight">
+                    <i className="fas fa-user text-gray-400 text-xs mr-1"></i>
+                    {name}
+                  </p>
+
+                  {/* Room */}
+                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                    <i className="fas fa-door-open text-gray-300 mr-1"></i>
+                    {b.roomType}
+                  </p>
+
+                  {/* Check-in time */}
+                  <p className={`text-xs font-semibold mt-1.5 ${isToday ? 'text-blue-600' : 'text-gray-600'}`}>
+                    <i className="fas fa-clock mr-1 opacity-60"></i>
+                    {fmtDateLabel(b.checkIn)}
+                  </p>
+
+                  {/* Bottom row: guests + ref */}
+                  <div className="flex items-center justify-between mt-1.5">
+                    <span className="text-xs text-gray-400">
+                      <i className="fas fa-users mr-1"></i>
+                      {b.guests} guest{b.guests !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-mono">{b.id}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
       </main>
     </Sidebar>
   );

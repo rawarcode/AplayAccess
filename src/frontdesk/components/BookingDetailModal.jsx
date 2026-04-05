@@ -462,7 +462,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <i className="fas fa-sign-out-alt mr-1"></i>Check Out
                 </button>
               )}
-              {['Pending', 'Confirmed'].includes(booking.status) && (
+              {booking.status === 'Pending' && (
                 <button onClick={() => setPendingAction({ type: 'cancel' })}
                   disabled={actionLoading}
                   className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50">

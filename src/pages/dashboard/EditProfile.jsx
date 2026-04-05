@@ -2,31 +2,12 @@
 import { useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { updateProfile } from "../../lib/profileApi.js";
-import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
-
-function Modal({ open, title, children, onClose }) {
-  useLockBodyScroll(open);
-
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}>
-      <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="absolute inset-0 bg-gray-500/75" />
-        <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl">
-          <div className="p-5 flex items-center justify-between border-b">
-            <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
-          </div>
-          <div className="p-5">{children}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import Toast, { useToast } from "../../components/ui/Toast";
 
 export default function EditProfile() {
   const { user, login } = useAuth();
   const fileRef = useRef(null);
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   const initial = useMemo(() => {
     const name = user?.name || "";
@@ -43,7 +24,6 @@ export default function EditProfile() {
 
   const [form, setForm]         = useState(initial);
   const [saving, setSaving]     = useState(false);
-  const [savedOpen, setSavedOpen] = useState(false);
   const [saveError, setSaveError] = useState("");
 
   function setField(name, value) {
@@ -77,13 +57,14 @@ export default function EditProfile() {
 
       const data = await updateProfile(payload);
       login(data.user || { ...(user || {}), ...payload });
-      setSavedOpen(true);
+      showToast("Profile updated successfully!", "success");
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
-        "Failed to save profile. Please try again.";
+        "Failed to save profile.";
       setSaveError(msg);
+      showToast(msg, "error");
     } finally {
       setSaving(false);
     }
@@ -189,17 +170,7 @@ export default function EditProfile() {
         </div>
       </form>
 
-      <Modal open={savedOpen} title="Success" onClose={() => setSavedOpen(false)}>
-        <p className="text-gray-700">Profile updated successfully!</p>
-        <div className="mt-4 flex justify-end">
-          <button
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-            onClick={() => setSavedOpen(false)}
-          >
-            OK
-          </button>
-        </div>
-      </Modal>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

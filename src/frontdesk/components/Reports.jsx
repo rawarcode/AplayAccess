@@ -5,6 +5,7 @@ import {
 } from 'chart.js';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
+import Toast, { useToast } from '../../components/ui/Toast';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -123,10 +124,10 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
 
 // ─── component ────────────────────────────────────────────────────────────────
 export default function Reports() {
-  const [bookings, setBookings]       = useState([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState('');
-  const [reportDate, setReportDate]   = useState(todayStr());
+  const [bookings, setBookings]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [reportDate, setReportDate] = useState(todayStr());
+  const [toast, showToast, clearToast, toastType] = useToast();
   const [usingDemo, setUsingDemo]     = useState(false);
 
   useEffect(() => {
@@ -135,12 +136,11 @@ export default function Reports() {
         .then(data => {
           if (data.length === 0) { setBookings(SAMPLE_BOOKINGS); setUsingDemo(true); }
           else { setBookings(data); setUsingDemo(false); }
-          setError('');
         })
         .catch(() => {
           setBookings(SAMPLE_BOOKINGS);
           setUsingDemo(true);
-          setError('');
+          showToast('Failed to load report data. Showing demo data.', 'error');
         })
         .finally(() => setLoading(false));
     }
@@ -180,12 +180,6 @@ export default function Reports() {
   return (
     <Sidebar>
       <main className="p-6">
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
-            <i className="fas fa-exclamation-circle mr-2"></i>{error}
-          </div>
-        )}
-
         {/* Summary Cards for selected date */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
@@ -323,6 +317,7 @@ export default function Reports() {
           )}
         </div>
       </main>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </Sidebar>
   );
 }
