@@ -360,8 +360,26 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         ? await createGuestBooking(bookingPayload)
         : await createBooking(bookingPayload);
 
-      bookingResultRef.current = result.data?.data ?? result.data;
-      const bookingId = result.data?.data?.id ?? result.data?.id;
+      const raw = result.data?.data ?? result.data;
+      const fmtDT = (dt) => dt
+        ? new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
+            month: 'short', day: 'numeric', year: 'numeric',
+            hour: 'numeric', minute: '2-digit', hour12: true,
+          })
+        : '—';
+      bookingResultRef.current = {
+        roomType:      raw.room?.name ?? '',
+        checkIn:       fmtDT(raw.check_in),
+        checkOut:      fmtDT(raw.check_out),
+        guests:        raw.guests,
+        paymentMethod: raw.payment_method,
+        totals: {
+          reservationFee: raw.reservation_fee ?? 0,
+          balanceDue:     Math.max(0, (raw.total ?? 0) - (raw.reservation_fee ?? 0)),
+        },
+        bookingData: raw,
+      };
+      const bookingId = raw.id;
       const { checkout_url } = guestMode
         ? await createGuestPaymentLink(bookingId, paymentOption === "full")
         : await createPaymentLink(bookingId, paymentOption === "full");
