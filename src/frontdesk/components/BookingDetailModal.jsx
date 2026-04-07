@@ -24,7 +24,20 @@ function parseWalkIn(b) {
   return { name, phone, email };
 }
 
-function StatusBadge({ status }) {
+function isExpiredPending(b) {
+  if (!b || b.status !== 'Pending') return false;
+  const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
+  return new Date(b.created_at ?? b.createdAt) < fiveMinAgo;
+}
+
+function StatusBadge({ status, booking }) {
+  if (status === 'Pending' && booking && isExpiredPending(booking)) {
+    return (
+      <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+        <i className="fas fa-times-circle text-[10px]"></i>Expired
+      </span>
+    );
+  }
   const cls = {
     Confirmed:    'bg-blue-100 text-blue-800',
     'Checked In': 'bg-purple-100 text-purple-800',
@@ -288,7 +301,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               <p className="font-medium">{guestName}</p>
               {wi && <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">Walk-in</span>}
             </div>
-            <div><p className="text-xs text-gray-500">Status</p><StatusBadge status={booking.status} /></div>
+            <div><p className="text-xs text-gray-500">Status</p><StatusBadge status={booking.status} booking={booking} /></div>
             <div><p className="text-xs text-gray-500">Email</p><p>{guestEmail}</p></div>
             <div><p className="text-xs text-gray-500">Phone</p><p>{guestPhone}</p></div>
             <div><p className="text-xs text-gray-500">Room Type</p><p className="font-medium">{booking.roomType}</p></div>
@@ -448,7 +461,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           {/* Actions — hidden while confirmation is pending */}
           {!pendingAction && (
             <div className="flex justify-end gap-2 pt-4 border-t">
-              {['Pending', 'Confirmed'].includes(booking.status) && (
+              {['Pending', 'Confirmed'].includes(booking.status) && !isExpiredPending(booking) && (
                 <button onClick={() => setPendingAction({ type: 'checkin' })}
                   disabled={actionLoading}
                   className="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50">
@@ -462,7 +475,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <i className="fas fa-sign-out-alt mr-1"></i>Check Out
                 </button>
               )}
-              {booking.status === 'Pending' && (
+              {booking.status === 'Pending' && !isExpiredPending(booking) && (
                 <button onClick={() => setPendingAction({ type: 'cancel' })}
                   disabled={actionLoading}
                   className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50">

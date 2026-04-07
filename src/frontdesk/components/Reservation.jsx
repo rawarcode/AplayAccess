@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
@@ -79,10 +80,14 @@ export default function Reservation() {
   const [error, setError]                 = useState('');
   const [actionLoading, setActionLoading] = useState(null);
 
+  const [searchParams]                    = useSearchParams();
   const [sortBy, setSortBy]               = useState('Visit Time');
   const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
-  const [filterStatus, setFilterStatus]   = useState('All');
+  const [filterStatus, setFilterStatus]   = useState(() => {
+    const s = searchParams.get('status');
+    return ['Pending','Confirmed','Checked In','Completed','Cancelled'].includes(s) ? s : 'All';
+  });
 
   const [viewBooking, setViewBooking]     = useState(null);
   const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }
