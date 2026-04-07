@@ -84,10 +84,17 @@ export default function Reservation() {
   const [sortBy, setSortBy]               = useState('Visit Time');
   const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
+  const VALID_STATUSES = ['Pending','Confirmed','Checked In','Completed','Cancelled'];
   const [filterStatus, setFilterStatus]   = useState(() => {
     const s = searchParams.get('status');
-    return ['Pending','Confirmed','Checked In','Completed','Cancelled'].includes(s) ? s : 'All';
+    return VALID_STATUSES.includes(s) ? s : 'All';
   });
+
+  // Re-sync filter when URL ?status param changes (e.g. clicking a notification while already on this page)
+  useEffect(() => {
+    const s = searchParams.get('status');
+    setFilterStatus(VALID_STATUSES.includes(s) ? s : 'All');
+  }, [searchParams]);
 
   const [viewBooking, setViewBooking]     = useState(null);
   const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }

@@ -41,7 +41,7 @@ export default function Sidebar({ children, showTopBar = true }) {
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
     pendingBookings: '/frontdesk/reservation?status=Pending',
     messages:        '/frontdesk/messages',
-    arrivals:        '/frontdesk/reservation',
+    arrivals:        '/frontdesk/reservation?status=Confirmed',
     rooms:           '/frontdesk/rooms',
   });
 
