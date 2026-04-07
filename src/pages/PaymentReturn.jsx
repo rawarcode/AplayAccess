@@ -30,7 +30,7 @@ export default function PaymentReturn({ outcome }) {
     setDlError("");
     try {
       const blob = await downloadGuestReceipt(bookingId);
-      const ref  = "RES-" + String(bookingId).padStart(6, "0");
+      const ref  = "APL-" + String(bookingId);
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;

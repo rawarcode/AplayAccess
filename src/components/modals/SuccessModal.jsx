@@ -16,9 +16,8 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
 
   // Build a booking reference from the DB id if available
   const bookingId = booking?.bookingData?.id ?? null;
-  const ref = bookingId
-    ? "RES-" + String(bookingId).padStart(6, "0")
-    : null;
+  const ref = booking?.bookingData?.res_id
+    ?? (bookingId ? "APL-" + String(bookingId) : null);
 
   async function handleDownloadReceipt() {
     if (!bookingId) return;
