@@ -44,7 +44,7 @@ function makeSampleBookings() {
         : statuses[(id - 9001) % statuses.length];
 
       bookings.push({
-        id:              `RES-${String(id).padStart(6, '0')}`,
+        id:              `APL-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(id).padStart(4, '0')}`,
         booking_id:      id,
         guest:           g,
         guest_email:     g.toLowerCase().replace(/\s+/g, '.') + '@example.com',
