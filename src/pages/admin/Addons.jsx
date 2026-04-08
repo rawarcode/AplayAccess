@@ -283,21 +283,52 @@ export default function AdminAddons() {
               )}
             </div>
 
-            {/* Icon */}
+            {/* Icon picker */}
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Icon</label>
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                  <i className={`fas ${editing?.icon || 'fa-tag'} text-slate-500 text-lg`}></i>
-                </div>
-                <input
-                  placeholder="Font Awesome class e.g. fa-bed, fa-microphone, fa-tag"
-                  value={editing?.icon || ""}
-                  onChange={e => setField("icon", e.target.value)}
-                  className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm font-mono"
-                />
+              <label className="block text-sm font-medium text-slate-700 mb-2">Icon</label>
+              <div className="grid grid-cols-8 gap-1.5">
+                {[
+                  { icon: 'fa-tag',            label: 'Tag'         },
+                  { icon: 'fa-bed',            label: 'Bed/Pillow'  },
+                  { icon: 'fa-microphone',     label: 'Karaoke'     },
+                  { icon: 'fa-utensils',       label: 'Food'        },
+                  { icon: 'fa-glass-cheers',   label: 'Drinks'      },
+                  { icon: 'fa-spa',            label: 'Spa'         },
+                  { icon: 'fa-swimmer',        label: 'Pool'        },
+                  { icon: 'fa-umbrella-beach', label: 'Beach'       },
+                  { icon: 'fa-gamepad',        label: 'Games'       },
+                  { icon: 'fa-tv',             label: 'TV'          },
+                  { icon: 'fa-wifi',           label: 'WiFi'        },
+                  { icon: 'fa-car',            label: 'Parking'     },
+                  { icon: 'fa-shuttle-van',    label: 'Transport'   },
+                  { icon: 'fa-snowflake',      label: 'AC'          },
+                  { icon: 'fa-fire',           label: 'BBQ'         },
+                  { icon: 'fa-campfire',       label: 'Bonfire'     },
+                  { icon: 'fa-camera',         label: 'Photo'       },
+                  { icon: 'fa-birthday-cake',  label: 'Event'       },
+                  { icon: 'fa-music',          label: 'Music'       },
+                  { icon: 'fa-first-aid',      label: 'First Aid'   },
+                  { icon: 'fa-broom',          label: 'Cleaning'    },
+                  { icon: 'fa-concierge-bell', label: 'Service'     },
+                  { icon: 'fa-life-ring',      label: 'Safety'      },
+                  { icon: 'fa-anchor',         label: 'Nautical'    },
+                ].map(({ icon, label }) => (
+                  <button
+                    key={icon}
+                    type="button"
+                    title={label}
+                    onClick={() => setField("icon", icon)}
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg border transition-colors ${
+                      editing?.icon === icon
+                        ? 'border-sky-500 bg-sky-50 text-sky-600'
+                        : 'border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <i className={`fas ${icon} text-base`}></i>
+                    <span className="text-[9px] leading-none text-center truncate w-full">{label}</span>
+                  </button>
+                ))}
               </div>
-              <p className="mt-1 text-xs text-slate-400">Use any Font Awesome 5 solid icon class (without the "fas" prefix is fine too).</p>
             </div>
 
             {/* Description */}
