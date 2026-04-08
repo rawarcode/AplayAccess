@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 
 const COLOR_MAP = {
@@ -22,7 +22,6 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
   const [style, setStyle]         = useState({});
   const btnRef                    = useRef(null);
   const dropRef                   = useRef(null);
-  const navigate                  = useNavigate();
 
   // Position dropdown using fixed coords so it's never clipped by overflow:hidden parents
   const openDropdown = useCallback(() => {
@@ -106,11 +105,12 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
               </div>
             ) : (
               items.map(n => (
-                <button
+                <Link
                   key={n.id}
-                  onClick={() => { setOpen(false); navigate(n.path); }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50
-                    transition-colors text-left group"
+                  to={n.path}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50
+                    transition-colors text-left group no-underline"
                 >
                   <div className={`rounded-full p-2 shrink-0 ${COLOR_MAP[n.color] ?? COLOR_MAP.blue}`}>
                     <i className={`fas ${n.icon} text-xs`}></i>
@@ -118,7 +118,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
                   <p className="text-sm text-gray-700 flex-1 leading-snug">{n.label}</p>
                   <i className="fas fa-chevron-right text-[10px] text-gray-300 shrink-0
                     group-hover:text-gray-500 transition-colors"></i>
-                </button>
+                </Link>
               ))
             )}
           </div>
