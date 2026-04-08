@@ -48,6 +48,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
   }
 
   return (
+    <>
     <Modal open={open} onClose={handleClose} maxWidth="max-w-lg">
       <div className="p-6">
         {/* Header */}
@@ -178,5 +179,6 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
       onConfirm={() => { setCloseConfirm(false); onClose(); }}
       onCancel={() => setCloseConfirm(false)}
     />
+    </>
   );
 }
