@@ -1,9 +1,10 @@
 // src/frontdesk/components/BookingDetailModal.jsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
   addAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
 } from '../../lib/frontdeskApi';
+import { api } from '../../lib/api';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDateTime(dt) {
@@ -63,10 +64,7 @@ function PayIcon({ method }) {
   return <span className="capitalize">{method || '—'}</span>;
 }
 
-const AMENITY_CATALOG = [
-  { name: 'Pillow',  icon: 'fa-bed',        unit_price: 50,  type: 'qty'   },
-  { name: 'Karaoke', icon: 'fa-microphone', unit_price: 800, type: 'fixed' },
-];
+// Addons fetched from API — see useEffect below
 
 // ─── action configs ───────────────────────────────────────────────────────────
 const ACTION_CONFIG = {
@@ -119,8 +117,15 @@ const COLOR = {
  */
 export default function BookingDetailModal({ booking: initialBooking, onClose, onUpdated, showToast }) {
   const [booking,       setBooking]       = useState(initialBooking);
+  const [addonCatalog,     setAddonCatalog]     = useState([]);
   const [actionLoading,    setActionLoading]    = useState(false);
   const [addingAmenity,    setAddingAmenity]    = useState(null);
+
+  useEffect(() => {
+    api.get('/api/addons')
+      .then(r => setAddonCatalog(r.data?.data ?? []))
+      .catch(() => {});
+  }, []);
   const [amenityLoading,   setAmenityLoading]   = useState(false);
   const [receiptLoading,   setReceiptLoading]   = useState(false);
   const [guestEdit,        setGuestEdit]        = useState(false);
@@ -406,35 +411,35 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               </div>
             )}
 
-            {['Confirmed', 'Checked In'].includes(booking.status) && (
+            {['Confirmed', 'Checked In'].includes(booking.status) && addonCatalog.length > 0 && (
               addingAmenity ? (
                 <div className="border rounded-lg p-3 bg-blue-50">
                   <p className="text-xs font-medium text-gray-700 mb-2">Add Amenity</p>
-                  <div className="flex gap-2 mb-2">
-                    {AMENITY_CATALOG.map(cat => (
-                      <button key={cat.name} type="button"
-                        onClick={() => setAddingAmenity({ name: cat.name, qty: 1 })}
+                  <div className="flex gap-2 flex-wrap mb-2">
+                    {addonCatalog.map(cat => (
+                      <button key={cat.id} type="button"
+                        onClick={() => setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
                         className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
                           addingAmenity.name === cat.name
                             ? 'border-blue-500 bg-blue-100 text-blue-700'
                             : 'border-gray-300 bg-white text-gray-600'
                         }`}
                       >
-                        <i className={`fas ${cat.icon} mr-1`}></i>{cat.name}
-                        <br /><span className="text-gray-400">₱{cat.unit_price}{cat.type === 'qty' ? '/ea' : ' flat'}</span>
+                        <i className={`fas ${cat.icon || 'fa-tag'} mr-1`}></i>{cat.name}
+                        <br /><span className="text-gray-400">₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</span>
                       </button>
                     ))}
                   </div>
-                  {addingAmenity.name === 'Pillow' && (
+                  {!addingAmenity.per_booking && (
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs text-gray-600">Qty:</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
                         className="w-6 h-6 border rounded text-xs">−</button>
                       <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
-                      <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(10, (a.qty || 1) + 1) }))}
+                      <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
                         className="w-6 h-6 border rounded text-xs">+</button>
                       <span className="ml-auto text-xs font-medium text-blue-700">
-                        ₱{(addingAmenity.qty || 1) * 50}
+                        ₱{((addingAmenity.qty || 1) * addingAmenity.unit_price).toLocaleString()}
                       </span>
                     </div>
                   )}
@@ -449,7 +454,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </div>
               ) : (
                 <button
-                  onClick={() => setAddingAmenity({ name: 'Pillow', qty: 1 })}
+                  onClick={() => {
+                    const first = addonCatalog[0];
+                    setAddingAmenity({ id: first.id, name: first.name, qty: 1, unit_price: first.price, per_booking: first.per_booking, max_qty: first.max_qty, icon: first.icon });
+                  }}
                   className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                 >
                   <i className="fas fa-plus-circle"></i> Add amenity
