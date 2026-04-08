@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview } from "../../lib/adminApi";
 import { api } from "../../lib/api";
+import ImageUpload from "../../components/ui/ImageUpload.jsx";
+import MediaPicker from "../../components/ui/MediaPicker.jsx";
+import { isVideoUrl } from "../../lib/uploadApi.js";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v1";
@@ -89,6 +92,15 @@ function saveContent(content) {
 // ─── Small helpers ─────────────────────────────────────────────────────────────
 function ImagePreview({ url }) {
   if (!url) return null;
+  if (isVideoUrl(url)) {
+    return (
+      <video
+        src={url}
+        muted playsInline
+        className="mt-2 w-full h-32 object-cover rounded-lg border border-gray-200"
+      />
+    );
+  }
   return (
     <img
       src={url}
@@ -190,6 +202,25 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
 
 // ─── Individual section editors ───────────────────────────────────────────────
 
+function HeroPreview({ bg, title, subtitle, extra }) {
+  return (
+    <div className="relative rounded-lg overflow-hidden h-36 bg-gray-200 mt-4 border border-gray-200">
+      {isVideoUrl(bg)
+        ? <video src={bg} autoPlay muted loop playsInline className="w-full h-full object-cover" />
+        : bg
+          ? <img src={bg} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+          : <div className="w-full h-full bg-gradient-to-br from-slate-300 to-slate-400" />
+      }
+      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
+        <p className="font-bold text-sm leading-snug line-clamp-2">{title || <span className="opacity-40 italic">Title</span>}</p>
+        <p className="text-xs text-white/75 mt-1 line-clamp-2">{subtitle || <span className="opacity-40 italic">Subtitle</span>}</p>
+        {extra}
+      </div>
+      <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">Live Preview</span>
+    </div>
+  );
+}
+
 function HomeHeroEditor({ content, onSave }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(content);
@@ -200,12 +231,13 @@ function HomeHeroEditor({ content, onSave }) {
 
   return (
     <SectionCard icon="fa-image" title="Hero Section" badge="Home page · /" editing={editing}
-      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
         <div className="relative rounded-lg overflow-hidden h-28 bg-gray-100">
-          <img src={content.background} alt="hero bg"
-            className="w-full h-full object-cover"
-            onError={e => { e.target.style.display = "none"; }} />
+          {isVideoUrl(content.background)
+            ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+          }
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
             <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
@@ -213,12 +245,22 @@ function HomeHeroEditor({ content, onSave }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <Field label="Background Image URL" value={form.background} onChange={f("background")} />
-          <ImagePreview url={form.background} />
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Background Image / Video</label>
+            <MediaPicker
+              value={form.background}
+              onChange={url => setForm(p => ({ ...p, background: url }))}
+              previousUrl={content.background}
+              folder="hero"
+              accept="image/*,video/*"
+              label="Choose Background"
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Title" value={form.title} onChange={f("title")} />
             <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
           </div>
+          <HeroPreview bg={form.background} title={form.title} subtitle={form.subtitle} />
         </div>
       )}
     </SectionCard>
@@ -282,8 +324,33 @@ function HomeResortsEditor({ content, onSave }) {
                       <Field label="Resort Name" value={card.name} onChange={v => updateCard(i, "name", v)} />
                       <Field label="Description" value={card.desc} onChange={v => updateCard(i, "desc", v)} rows={2} />
                       <Field label="Badge Text (leave empty for none)" value={card.badge} onChange={v => updateCard(i, "badge", v)} />
-                      <Field label="Card Image URL" value={card.image} onChange={v => updateCard(i, "image", v)} />
-                      <ImagePreview url={card.image} />
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Card Image</label>
+                        <MediaPicker
+                          value={card.image}
+                          onChange={url => updateCard(i, "image", url)}
+                          previousUrl={content.cards[i]?.image}
+                          folder="hero"
+                          accept="image/*"
+                          label="Choose Card Image"
+                        />
+                      </div>
+                      {/* Card preview */}
+                      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-white">
+                        <div className="relative h-24 bg-gray-100">
+                          {card.image
+                            ? <img src={card.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+                            : <div className="w-full h-full flex items-center justify-center text-gray-300"><i className="fas fa-image text-2xl"></i></div>
+                          }
+                          {card.badge && (
+                            <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-medium">{card.badge}</span>
+                          )}
+                        </div>
+                        <div className="p-3">
+                          <p className="text-sm font-bold text-gray-900 truncate">{card.name || <span className="text-gray-300 italic">Name</span>}</p>
+                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{card.desc || <span className="text-gray-300 italic">Description</span>}</p>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -306,12 +373,13 @@ function ResortHeroEditor({ content, onSave }) {
 
   return (
     <SectionCard icon="fa-image" title="Hero Section" badge="Resort page · /resort" editing={editing}
-      onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
         <div className="relative rounded-lg overflow-hidden h-28 bg-gray-100">
-          <img src={content.background} alt="hero bg"
-            className="w-full h-full object-cover"
-            onError={e => { e.target.style.display = "none"; }} />
+          {isVideoUrl(content.background)
+            ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+          }
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
             <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
@@ -320,13 +388,28 @@ function ResortHeroEditor({ content, onSave }) {
         </div>
       ) : (
         <div className="space-y-4">
-          <Field label="Background Image URL" value={form.background} onChange={f("background")} />
-          <ImagePreview url={form.background} />
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Background Image / Video</label>
+            <MediaPicker
+              value={form.background}
+              onChange={url => setForm(p => ({ ...p, background: url }))}
+              previousUrl={content.background}
+              folder="hero"
+              accept="image/*,video/*"
+              label="Choose Background"
+            />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Title" value={form.title} onChange={f("title")} />
             <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
             <Field label="CTA Button Text" value={form.ctaText} onChange={f("ctaText")} />
           </div>
+          <HeroPreview
+            bg={form.background}
+            title={form.title}
+            subtitle={form.subtitle}
+            extra={<span className="mt-1.5 text-xs bg-blue-600 px-2 py-0.5 rounded">{form.ctaText}</span>}
+          />
         </div>
       )}
     </SectionCard>
@@ -352,19 +435,42 @@ function ResortAboutEditor({ content, onSave }) {
           <div>
             <p className="font-semibold text-gray-800 text-sm">{content.title}</p>
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.paragraph1}</p>
-            <span className="text-xs text-blue-600 mt-1 inline-block">★ {content.rating} Guest Rating</span>
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Section Title" value={form.title} onChange={f("title")} />
-            <Field label="Guest Rating" value={form.rating} onChange={f("rating")} />
             <Field label="Paragraph 1" value={form.paragraph1} onChange={f("paragraph1")} rows={3} />
             <Field label="Paragraph 2" value={form.paragraph2} onChange={f("paragraph2")} rows={3} />
           </div>
-          <Field label="Section Image URL" value={form.image} onChange={f("image")} />
-          <ImagePreview url={form.image} />
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Section Image</label>
+            <MediaPicker
+              value={form.image}
+              onChange={url => setForm(p => ({ ...p, image: url }))}
+              previousUrl={content.image}
+              folder="hero"
+              accept="image/*,video/*"
+              label="Choose Section Image / Video"
+            />
+          </div>
+          {/* About preview */}
+          <div className="mt-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <div className="flex gap-4">
+              {form.image
+                ? isVideoUrl(form.image)
+                  ? <video src={form.image} muted playsInline className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-200" />
+                  : <img src={form.image} alt="" className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-200" onError={e => { e.target.style.display='none'; }} />
+                : <div className="w-28 h-24 rounded-lg bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-300"><i className="fas fa-image text-2xl"></i></div>
+              }
+              <div className="min-w-0">
+                <p className="font-bold text-gray-900 text-sm">{form.title || <span className="text-gray-300 italic">Title</span>}</p>
+                <p className="text-xs text-gray-500 mt-1 line-clamp-3">{form.paragraph1 || <span className="text-gray-300 italic">Paragraph 1</span>}</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </SectionCard>
@@ -396,6 +502,17 @@ function ResortRoomsSectionEditor({ content, onSave }) {
             <i className="fas fa-info-circle mr-1"></i>
             Individual rooms are managed in <strong>Manage Rooms</strong>.
           </p>
+          {/* Preview */}
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <p className="font-bold text-gray-900 text-base">{form.sectionTitle || <span className="text-gray-300 italic">Section Title</span>}</p>
+            <p className="text-xs text-gray-500 mt-1">{form.sectionSubtitle || <span className="text-gray-300 italic">Subtitle</span>}</p>
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[1,2,3].map(i => (
+                <div key={i} className="h-10 rounded-lg bg-gray-200 animate-pulse" />
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </SectionCard>
@@ -425,6 +542,15 @@ function ResortContactEditor({ content, onSave }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Phone" value={form.phone} onChange={f("phone")} />
             <Field label="Email" type="email" value={form.email} onChange={f("email")} />
+          </div>
+          {/* Preview */}
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <div className="space-y-1.5 text-sm text-gray-700">
+              <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-2"></i>{form.address || <span className="text-gray-300 italic">Address</span>}</p>
+              <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-2"></i>{form.phone || <span className="text-gray-300 italic">Phone</span>}</p>
+              <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-2"></i>{form.email || <span className="text-gray-300 italic">Email</span>}</p>
+            </div>
           </div>
         </div>
       )}
@@ -487,6 +613,16 @@ function ResortNewsletterEditor({ content, onSave }) {
         <div className="space-y-4">
           <Field label="Title" value={form.title} onChange={f("title")} />
           <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+          {/* Preview */}
+          <div className="p-4 bg-blue-600 rounded-xl text-center text-white">
+            <p className="text-[10px] text-white/60 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <p className="font-bold text-base">{form.title || <span className="opacity-40 italic">Title</span>}</p>
+            <p className="text-xs text-white/75 mt-1">{form.subtitle || <span className="opacity-40 italic">Subtitle</span>}</p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <div className="flex-1 h-7 bg-white/20 rounded-lg max-w-[160px]"></div>
+              <div className="h-7 px-3 bg-white text-blue-600 text-xs font-semibold rounded-lg flex items-center">Subscribe</div>
+            </div>
+          </div>
         </div>
       )}
     </SectionCard>
@@ -588,6 +724,7 @@ function GalleryTab() {
 
   const handleAdd = async (e) => {
     e.preventDefault();
+    if (!form.image_url) { setApiError("Please upload an image or video first."); return; }
     setAddSaving(true);
     setApiError("");
     try {
@@ -675,11 +812,17 @@ function GalleryTab() {
           <h3 className="font-semibold text-gray-800 mb-4">Add New Gallery Image</h3>
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Image URL <span className="text-red-500">*</span></label>
-              <input type="url" required placeholder="https://example.com/image.jpg" value={form.image_url}
-                onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
-              <ImagePreview url={form.image_url} />
+              <label className="block text-sm font-medium text-gray-700 mb-1">Image / Video <span className="text-red-500">*</span></label>
+              <ImageUpload
+                value={form.image_url}
+                onChange={url => setForm(f => ({ ...f, image_url: url }))}
+                folder="gallery"
+                accept="image/*,video/*"
+                label="Upload Image or Video"
+              />
+              {!form.image_url && (
+                <p className="text-xs text-red-500 mt-1">Please upload an image or video before adding.</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Caption <span className="text-gray-400 font-normal">(optional)</span></label>
@@ -729,8 +872,12 @@ function GalleryTab() {
                 }`}
               >
                 <div className="relative h-48 bg-gray-100">
-                  <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
-                    onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
+                  {isVideoUrl(img.image_url) ? (
+                    <video src={img.image_url} className="w-full h-full object-cover" muted playsInline />
+                  ) : (
+                    <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
+                      onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
+                  )}
 
                   {/* Checkmark overlay */}
                   <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
@@ -1098,15 +1245,92 @@ function ReviewsTab({ content, onSave }) {
   );
 }
 
+// ─── Full-page site preview modal ────────────────────────────────────────────
+
+function SitePreviewModal({ open, onClose }) {
+  const [page, setPage]       = useState('/');
+  const [iframeKey, setKey]   = useState(0);
+
+  if (!open) return null;
+
+  const pages = [
+    { label: 'Home Page', path: '/' },
+    { label: 'Resort Page', path: '/resort' },
+    { label: 'Rooms Page', path: '/rooms' },
+    { label: 'Gallery Page', path: '/gallery' },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-gray-900">
+      {/* Toolbar */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e3a8a] text-white flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <i className="fas fa-eye text-sm"></i>
+          <span className="font-semibold text-sm">Site Preview</span>
+        </div>
+
+        {/* Page tabs */}
+        <div className="flex items-center gap-1 ml-4 bg-white/10 rounded-lg p-1">
+          {pages.map(p => (
+            <button
+              key={p.path}
+              onClick={() => { setPage(p.path); setKey(k => k + 1); }}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition ${
+                page === p.path ? 'bg-white text-[#1e3a8a]' : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* URL bar */}
+        <div className="flex-1 mx-3">
+          <div className="bg-white/10 text-white/80 text-xs px-3 py-1.5 rounded-lg font-mono truncate">
+            localhost:5173{page}
+          </div>
+        </div>
+
+        {/* Refresh */}
+        <button
+          onClick={() => setKey(k => k + 1)}
+          title="Refresh preview"
+          className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition"
+        >
+          <i className="fas fa-rotate-right text-sm"></i>
+        </button>
+
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition"
+          title="Close preview"
+        >
+          <i className="fas fa-times"></i>
+        </button>
+      </div>
+
+      {/* iframe */}
+      <iframe
+        key={iframeKey}
+        src={page}
+        title="Site preview"
+        className="flex-1 w-full bg-white border-0"
+      />
+    </div>
+  );
+}
+
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 const TABS = ["Page Editor", "Gallery", "Contact Submissions", "Reviews"];
 
 export default function AdminContent() {
-  const [activeTab, setActiveTab] = useState(0);
-  const [content,   setContent]   = useState(loadContent);
-  const [saving,    setSaving]    = useState(false);
-  const [saveMsg,   setSaveMsg]   = useState('');
+  const [activeTab,   setActiveTab]   = useState(0);
+  const [content,     setContent]     = useState(loadContent);
+  const [saving,      setSaving]      = useState(false);
+  const [saveMsg,     setSaveMsg]     = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   // On mount: pull the real values from the backend (overrides localStorage defaults)
   useEffect(() => {
@@ -1139,8 +1363,8 @@ export default function AdminContent() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Tabs */}
-      <div className="border-b border-gray-200">
+      {/* Tabs + Preview button */}
+      <div className="border-b border-gray-200 flex items-end justify-between">
         <nav className="-mb-px flex gap-1">
           {TABS.map((tab, i) => (
             <button key={tab} onClick={() => setActiveTab(i)}
@@ -1153,7 +1377,15 @@ export default function AdminContent() {
             </button>
           ))}
         </nav>
+        <button
+          onClick={() => setPreviewOpen(true)}
+          className="mb-1 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e3a8a] hover:bg-[#152c6e] text-white text-sm font-medium transition"
+        >
+          <i className="fas fa-eye text-xs"></i> Preview Site
+        </button>
       </div>
+
+      <SitePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} />
 
       {/* Page Editor */}
       {activeTab === 0 && (

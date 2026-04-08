@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { getAdminBookings } from "../../lib/adminApi";
+import { useSearchParams } from "react-router-dom";
+import { getAdminBookings, applyPromoToBooking } from "../../lib/adminApi";
 
 const STATUS_PRIORITY = { Pending: 0, "Checked In": 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
 
@@ -18,16 +19,30 @@ const STATUS_DOT = {
   Cancelled:    "bg-rose-500",
 };
 
+const VALID_STATUSES = ["Pending", "Confirmed", "Checked In", "Completed", "Cancelled"];
+
 export default function AdminTransactions() {
+  const [searchParams] = useSearchParams();
   const [bookings,      setBookings]      = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState(null);
-  const [filterStatus,  setFilterStatus]  = useState("");
+  const [filterStatus,  setFilterStatus]  = useState(() => {
+    const s = searchParams.get("status") ?? "";
+    return VALID_STATUSES.includes(s) ? s : "";
+  });
   const [filterMethod,  setFilterMethod]  = useState("");
   const [searchTerm,    setSearchTerm]    = useState("");
   const [viewBooking,   setViewBooking]   = useState(null);
+  const [promoInput,    setPromoInput]    = useState('');
+  const [promoLoading,  setPromoLoading]  = useState(false);
+  const [promoError,    setPromoError]    = useState('');
   const [sortBy,  setSortBy]  = useState('Date');
   const [sortDir, setSortDir] = useState('desc');
+
+  useEffect(() => {
+    const s = searchParams.get("status") ?? "";
+    setFilterStatus(VALID_STATUSES.includes(s) ? s : "");
+  }, [searchParams]);
 
   useEffect(() => {
     function load() {
@@ -44,6 +59,23 @@ export default function AdminTransactions() {
   function handleSort(col) {
     if (sortBy === col) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortBy(col); setSortDir('asc'); }
+  }
+
+  async function handleApplyPromo() {
+    if (!promoInput.trim() || !viewBooking) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const res = await applyPromoToBooking(viewBooking.booking_id, promoInput.trim());
+      const updated = { ...viewBooking, promo_code: res.data.promo_code, discount: res.data.discount, total: res.data.total };
+      setViewBooking(updated);
+      setBookings(list => list.map(b => b.booking_id === viewBooking.booking_id ? updated : b));
+      setPromoInput('');
+    } catch (err) {
+      setPromoError(err?.response?.data?.message || 'Invalid promo code.');
+    } finally {
+      setPromoLoading(false);
+    }
   }
 
   const filtered = bookings
@@ -157,7 +189,7 @@ export default function AdminTransactions() {
                 {filtered.map(b => (
                   <tr
                     key={b.booking_id}
-                    onClick={() => setViewBooking(b)}
+                    onClick={() => { setViewBooking(b); setPromoInput(''); setPromoError(''); }}
                     className="hover:bg-slate-50 cursor-pointer"
                   >
                     <td className="px-6 py-4 font-mono text-xs text-slate-500">{b.id}</td>
@@ -212,6 +244,28 @@ export default function AdminTransactions() {
                     <p className="font-semibold text-slate-900">{val}</p>
                   </div>
                 ))}
+                {!['Completed','Cancelled'].includes(viewBooking.status) && !viewBooking.promo_code && (
+                  <div className="col-span-2">
+                    <p className="text-slate-500 text-xs mb-1">Apply Promo Code</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={promoInput}
+                        onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                        placeholder="Enter promo code"
+                        className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono uppercase"
+                      />
+                      <button
+                        onClick={handleApplyPromo}
+                        disabled={promoLoading || !promoInput.trim()}
+                        className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-sm rounded-lg disabled:opacity-50"
+                      >
+                        {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
+                      </button>
+                    </div>
+                    {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+                  </div>
+                )}
                 {viewBooking.promo_code && Number(viewBooking.discount) > 0 && (
                   <div className="col-span-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">

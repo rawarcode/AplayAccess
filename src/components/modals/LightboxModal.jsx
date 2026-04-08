@@ -1,4 +1,5 @@
 import Modal from "./Modal.jsx";
+import { isVideoUrl } from "../../lib/uploadApi.js";
 
 export default function LightboxModal({
   open,
@@ -59,14 +60,23 @@ export default function LightboxModal({
           ›
         </button>
 
-        {/* Image */}
+        {/* Image / Video */}
         <div className="flex items-center justify-center p-4">
-          <img
-            src={item?.src}
-            alt={item?.caption || item?.alt || ""}
-            className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
-            draggable="false"
-          />
+          {isVideoUrl(item?.src) ? (
+            <video
+              src={item?.src}
+              controls
+              autoPlay
+              className="max-h-[80vh] w-auto h-auto mx-auto"
+            />
+          ) : (
+            <img
+              src={item?.src}
+              alt={item?.caption || item?.alt || ""}
+              className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
+              draggable="false"
+            />
+          )}
         </div>
 
         {/* Caption */}

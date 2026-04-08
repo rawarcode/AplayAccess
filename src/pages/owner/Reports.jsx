@@ -99,10 +99,11 @@ export default function OwnerReports() {
       .finally(() => setLoadingChart(false));
   }, [chartDays]);
 
-  const active  = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
-  const revenue = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0), 0), [active]);
-  const avgVal  = active.length ? revenue / active.length : 0;
-  const nights  = useMemo(() => active.reduce((s, b) => s + Number(b.nights ?? 0), 0), [active]);
+  const active         = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
+  const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0), 0), [active]);
+  const avgVal         = active.length ? revenue / active.length : 0;
+  const nights         = useMemo(() => active.reduce((s, b) => s + Number(b.nights ?? 0), 0), [active]);
+  const totalDiscounts = useMemo(() => active.reduce((s, b) => s + Number(b.discount ?? 0), 0), [active]);
   const period  = `${MONTH_NAMES[month - 1]} ${year}`;
 
   // Room type breakdown
@@ -306,12 +307,13 @@ export default function OwnerReports() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           {[
-            { label: "Total Revenue",   value: loading ? "—" : fmt(revenue),           icon: "fa-money-bill-wave", color: "bg-green-100 text-green-600"  },
-            { label: "Total Bookings",  value: loading ? "—" : bookings.length,          icon: "fa-calendar-check",  color: "bg-blue-100 text-blue-600"    },
-            { label: "Avg. Stay Value", value: loading ? "—" : fmt(Math.round(avgVal)),  icon: "fa-calculator",      color: "bg-purple-100 text-purple-600" },
-            { label: "Total Nights",    value: loading ? "—" : Math.round(nights),                   icon: "fa-moon",            color: "bg-yellow-100 text-yellow-600" },
+            { label: "Total Revenue",    value: loading ? "—" : fmt(revenue),                icon: "fa-money-bill-wave", color: "bg-green-100 text-green-600"  },
+            { label: "Total Bookings",   value: loading ? "—" : bookings.length,              icon: "fa-calendar-check",  color: "bg-blue-100 text-blue-600"    },
+            { label: "Avg. Stay Value",  value: loading ? "—" : fmt(Math.round(avgVal)),      icon: "fa-calculator",      color: "bg-purple-100 text-purple-600" },
+            { label: "Total Nights",     value: loading ? "—" : Math.round(nights),           icon: "fa-moon",            color: "bg-yellow-100 text-yellow-600" },
+            { label: "Total Discounts",  value: loading ? "—" : fmt(totalDiscounts),          icon: "fa-tag",             color: "bg-rose-100 text-rose-600"    },
           ].map((c) => (
             <div key={c.label} className="bg-white rounded-lg shadow p-5">
               <div className="flex items-center justify-between">

@@ -39,7 +39,8 @@ import OwnerShell from "./components/owner/OwnerShell.jsx";
 import OwnerDashboard from "./pages/owner/Dashboard.jsx";
 import OwnerTransactions from "./pages/owner/Transactions.jsx";
 import OwnerReports from "./pages/owner/Reports.jsx";
-import OwnerPromoCodes from "./pages/owner/PromoCodes.jsx";
+import OwnerPromoCodes  from "./pages/owner/PromoCodes.jsx";
+import OwnerNewsletter  from "./pages/owner/Newsletter.jsx";
 import OwnerAddons    from "./pages/admin/Addons.jsx";
 import OwnerUsers     from "./pages/owner/Users.jsx";
 import OwnerSettings  from "./pages/owner/Settings.jsx";
@@ -122,6 +123,7 @@ export default function App() {
         <Route path="transactions" element={<OwnerTransactions />} />
         <Route path="reports"      element={<OwnerReports />} />
         <Route path="promo-codes"  element={<OwnerPromoCodes />} />
+        <Route path="newsletter"   element={<OwnerNewsletter />} />
         <Route path="addons"       element={<OwnerAddons />} />
         <Route path="users"        element={<OwnerUsers />} />
         <Route path="settings"     element={<OwnerSettings />} />

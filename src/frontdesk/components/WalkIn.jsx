@@ -520,60 +520,75 @@ export default function WalkIn() {
 
       {/* ── New Walk-in Modal ── */}
       {formOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold">New Walk-in Booking</h3>
-                <button onClick={() => { setFormOpen(false); setFormError(''); }}
-                  className="text-gray-500 hover:text-gray-700">
-                  <i className="fas fa-times"></i>
-                </button>
-              </div>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
 
+            {/* Header */}
+            <div className="bg-[#1e3a8a] px-6 py-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3 text-white">
+                <i className="fas fa-person-walking-luggage text-xl"></i>
+                <div>
+                  <h3 className="font-bold text-lg">New Walk-in Booking</h3>
+                  <p className="text-blue-200 text-xs">Fill in guest and booking details</p>
+                </div>
+              </div>
+              <button onClick={() => { setFormOpen(false); setFormError(''); }} className="text-white/70 hover:text-white">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 p-6">
               {formError && (
-                <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
-                  <i className="fas fa-exclamation-circle mr-2"></i>{formError}
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
+                  <i className="fas fa-exclamation-circle"></i>{formError}
                 </div>
               )}
 
-              <form onSubmit={handleCreate}>
+              <form onSubmit={handleCreate} id="walkin-form">
                 {/* Guest info */}
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Guest Information</p>
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1 bg-slate-200"></div>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Guest Information</span>
+                  <div className="h-px flex-1 bg-slate-200"></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-5">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">First Name *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">First Name *</label>
                     <input type="text" value={form.firstName}
                       onChange={e => setField('firstName', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm" required />
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Last Name *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Last Name *</label>
                     <input type="text" value={form.lastName}
                       onChange={e => setField('lastName', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm" required />
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Phone *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Phone *</label>
                     <input type="tel" value={form.phone}
                       onChange={e => setField('phone', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm" placeholder="+639XXXXXXXXX" required />
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="+639XXXXXXXXX" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Email</label>
                     <input type="email" value={form.email}
                       onChange={e => setField('email', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm" />
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
                   </div>
                 </div>
 
                 {/* Booking details */}
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Booking Details</p>
-                <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-px flex-1 bg-slate-200"></div>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Booking Details</span>
+                  <div className="h-px flex-1 bg-slate-200"></div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-5">
 
                   {/* Booking type */}
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-2">Booking Type *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
                     <div className="grid grid-cols-2 gap-3">
                       <button
                         type="button"
@@ -605,11 +620,11 @@ export default function WalkIn() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
-                      Room *{availChecking && <span className="ml-1 text-gray-400 font-normal">Checking availability...</span>}
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      Room *{availChecking && <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>}
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm" required>
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required>
                       <option value="">Select room</option>
                       {rooms
                         .filter(r => availability === null || availability?.[r.name] !== false)
@@ -636,31 +651,31 @@ export default function WalkIn() {
                     })()}
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
                       Number of Guests * <span className="text-green-600 font-normal">(children 3 & below are free)</span>
                     </label>
                     <select value={form.guests} onChange={e => setField('guests', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm">
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                       {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
                     </select>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Date *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Date *</label>
                     <input type="date" value={form.date} min={today}
                       onChange={e => setField('date', e.target.value)}
-                      className="border rounded px-3 py-2 w-full text-sm" required />
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
 
                   {/* Day: time picker | Overnight: fixed time display */}
                   {!isOvernight ? (
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Check-in Time *</label>
+                      <label className="block text-xs font-medium text-slate-700 mb-1">Check-in Time *</label>
                       {availableSlots.length === 0 ? (
                         <p className="text-sm text-red-500 py-2">No available slots for today. Please select a future date.</p>
                       ) : (
                         <select value={form.time} onChange={e => setField('time', e.target.value)}
-                          className="border rounded px-3 py-2 w-full text-sm">
+                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                           {availableSlots.map(t => {
                             const co = computeCheckOut(form.date, t.value, 'day');
                             return (
@@ -673,14 +688,14 @@ export default function WalkIn() {
                   ) : (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Check-in Time</label>
-                      <div className="border rounded px-3 py-2 w-full text-sm bg-indigo-50 text-indigo-700 font-medium flex items-center gap-2">
+                      <div className="border border-slate-200 rounded-xl px-3 py-2 w-full text-sm bg-indigo-50 text-indigo-700 font-medium flex items-center gap-2">
                         <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
                       </div>
                     </div>
                   )}
 
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Payment Method *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Payment Method *</label>
                     <div className="flex gap-2">
                       {[
                         { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-green-600' },
@@ -689,10 +704,10 @@ export default function WalkIn() {
                       ].map(opt => (
                         <button key={opt.value} type="button"
                           onClick={() => setField('payMethod', opt.value)}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded text-sm font-medium transition-colors ${
+                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 border-2 rounded-xl text-sm font-medium transition-colors ${
                             form.payMethod === opt.value
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                              ? 'border-sky-500 bg-sky-50 text-sky-700'
+                              : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                           }`}
                         >
                           <i className={`fas ${opt.icon} ${form.payMethod === opt.value ? '' : opt.color}`}></i>
@@ -703,17 +718,21 @@ export default function WalkIn() {
                   </div>
                 </div>
 
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Notes (optional)</label>
+                <div className="mb-5">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Notes (optional)</label>
                   <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)}
-                    className="border rounded px-3 py-2 w-full text-sm"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                     placeholder="Special requests, remarks..." />
                 </div>
 
                 {/* Amenities — fetched from API */}
                 {addons.length > 0 && (
                   <>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add-on Amenities</p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Add-on Amenities</span>
+                      <div className="h-px flex-1 bg-slate-200"></div>
+                    </div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {addons.map(a => {
                         const qty = Number(addonQtys[a.id] || 0);
@@ -858,18 +877,20 @@ export default function WalkIn() {
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3">
-                  <button type="button" onClick={() => { setFormOpen(false); setFormError(''); }}
-                    className="px-4 py-2 border rounded text-sm text-gray-700">
-                    Cancel
-                  </button>
-                  <button type="submit" disabled={submitting}
-                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 disabled:opacity-60 flex items-center gap-2">
-                    <i className="fas fa-eye"></i>
-                    {submitting ? 'Creating...' : 'Review & Confirm'}
-                  </button>
-                </div>
               </form>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0 bg-white">
+              <button type="button" onClick={() => { setFormOpen(false); setFormError(''); }}
+                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Cancel
+              </button>
+              <button type="submit" form="walkin-form" disabled={submitting}
+                className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+                <i className="fas fa-eye"></i>
+                {submitting ? 'Creating...' : 'Review & Confirm'}
+              </button>
             </div>
           </div>
         </div>

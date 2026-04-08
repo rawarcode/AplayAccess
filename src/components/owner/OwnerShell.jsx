@@ -13,6 +13,7 @@ const PAGE_TITLES = {
   "/owner/reports":      "Reports & Analytics",
   "/owner/transactions": "Transaction Records",
   "/owner/promo-codes":  "Promo Codes",
+  "/owner/newsletter":   "Newsletter",
   "/owner/addons":       "Add-ons & Amenities",
   "/owner/users":        "User Management",
   "/owner/settings":     "Pricing & Settings",
@@ -23,6 +24,7 @@ const MENU = [
   { path: "/owner/reports",      icon: "fa-chart-line",           label: "Reports & Analytics" },
   { path: "/owner/transactions", icon: "fa-file-invoice-dollar",  label: "Transaction Records" },
   { path: "/owner/promo-codes",  icon: "fa-tag",                  label: "Promo Codes"         },
+  { path: "/owner/newsletter",   icon: "fa-envelope-open-text",   label: "Newsletter"          },
   { path: "/owner/addons",       icon: "fa-concierge-bell",       label: "Add-ons"             },
   { path: "/owner/users",        icon: "fa-users-cog",            label: "Users"               },
   { path: "/owner/settings",     icon: "fa-sliders-h",            label: "Pricing & Settings"  },
@@ -54,9 +56,9 @@ export default function OwnerShell() {
   const profileRef = useRef(null);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings: '/owner/transactions',
+    pendingBookings: '/admin/transactions?status=Pending',
     messages:        '/admin/messages',
-    arrivals:        '/frontdesk/reservation',
+    arrivals:        '/admin/transactions?status=Confirmed',
     rooms:           '/frontdesk/rooms',
     reviews:         '/admin/reviews',
   });

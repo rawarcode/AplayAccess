@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { api } from "../lib/api.js";
+import { isVideoUrl } from "../lib/uploadApi.js";
 
 // Local data for UI enrichment + offline fallback
 import { rooms as roomsFallback } from "../data/rooms.js";
@@ -62,15 +63,7 @@ function buildRoomCard(room) {
 
   const img = local?.img ?? FALLBACK_ROOM_IMG;
 
-  // Optional badge (reuse local badge if exists, otherwise derive from day rate)
-  let badge = local?.badge ?? null;
-  if (!badge) {
-    if (dayRate >= 6000)      badge = { text: "Premium",    className: "bg-purple-600" };
-    else if (dayRate >= 4500) badge = { text: "Popular",    className: "bg-green-600"  };
-    else if (dayRate > 0)     badge = { text: "Best Value", className: "bg-blue-600"   };
-  }
-
-  return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, img, desc, badge };
+  return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, img, desc };
 }
 
 export default function Resort() {
@@ -357,14 +350,25 @@ export default function Resort() {
         {/* HERO */}
         <section
           id="home"
-          className="min-h-screen flex items-center justify-center text-center relative"
-          style={{
+          className="min-h-screen flex items-center justify-center text-center relative overflow-hidden"
+          style={isVideoUrl(pc.hero.background) ? {} : {
             backgroundImage: `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${pc.hero.background}')`,
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
           }}
         >
+          {/* Video background */}
+          {isVideoUrl(pc.hero.background) && (
+            <>
+              <video
+                src={pc.hero.background}
+                autoPlay muted loop playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/50" />
+            </>
+          )}
           <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">{pc.hero.title}</h1>
             <p className="text-xl md:text-2xl mb-8">{pc.hero.subtitle}</p>
@@ -424,19 +428,20 @@ export default function Resort() {
 
               <div className="lg:w-1/2 relative">
                 <div className="relative rounded-xl overflow-hidden shadow-xl">
-                  <img
-                    src={pc.about.image}
-                    alt="Resort View"
-                    className="w-full h-auto"
-                    loading="lazy"
-                  />
-                  <div className="absolute -bottom-6 -right-6 bg-blue-600 text-white p-6 rounded-xl shadow-lg">
-                    <div className="text-center">
-                      <p className="text-2xl font-bold">{pc.about.rating}</p>
-                      <p className="text-sm">Guest Rating</p>
-                      <p className="text-sm mt-1">★★★★★</p>
-                    </div>
-                  </div>
+                  {isVideoUrl(pc.about.image) ? (
+                    <video
+                      src={pc.about.image}
+                      autoPlay muted loop playsInline
+                      className="w-full h-auto"
+                    />
+                  ) : (
+                    <img
+                      src={pc.about.image}
+                      alt="Resort View"
+                      className="w-full h-auto"
+                      loading="lazy"
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -459,13 +464,6 @@ export default function Resort() {
                 >
                   <div className="relative">
                     <img src={r.img} alt={r.name} className="w-full h-64 object-cover" loading="lazy" />
-                    {r.badge ? (
-                      <div
-                        className={`absolute top-4 right-4 ${r.badge.className} text-white px-3 py-1 rounded-md text-sm font-medium`}
-                      >
-                        {r.badge.text}
-                      </div>
-                    ) : null}
                   </div>
 
                   <div className="p-6">

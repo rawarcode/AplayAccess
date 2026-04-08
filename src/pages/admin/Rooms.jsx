@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
 import { getAdminRooms, createAdminRoom, updateAdminRoom } from "../../lib/adminApi";
 import Toast, { useToast } from "../../components/ui/Toast";
+import ImageUpload from "../../components/ui/ImageUpload.jsx";
 
 // ── Availability status config ─────────────────────────────────────────────
 const AVAIL = {
@@ -60,12 +61,6 @@ function AvailBadge({ status }) {
 
 // ── Live card preview ──────────────────────────────────────────────────────
 function RoomPreview({ room }) {
-  const rate = Number(room.day_rate || 0);
-  let badge = null;
-  if (rate >= 6000)      badge = { text: "Premium",    cls: "bg-purple-600" };
-  else if (rate >= 4500) badge = { text: "Popular",    cls: "bg-green-600"  };
-  else if (rate > 0)     badge = { text: "Best Value", cls: "bg-blue-600"   };
-
   return (
     <div className="rounded-xl overflow-hidden shadow-md border border-slate-200 bg-white text-sm">
       <div className="relative h-40 bg-slate-100">
@@ -76,11 +71,6 @@ function RoomPreview({ room }) {
               <i className="fas fa-image text-4xl"></i>
             </div>
         }
-        {badge && (
-          <div className={`absolute top-2 right-2 ${badge.cls} text-white px-2 py-0.5 rounded text-xs font-medium`}>
-            {badge.text}
-          </div>
-        )}
       </div>
       <div className="p-4">
         <p className="font-bold text-slate-900 text-base mb-1">{room.name || <span className="text-slate-300 italic">Room name</span>}</p>
@@ -484,9 +474,13 @@ export default function AdminRooms() {
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
-              <input type="url" placeholder="https://…" value={editing?.image || ""} onChange={e => setField("image", e.target.value)}
-                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Room Image</label>
+              <ImageUpload
+                value={editing?.image || ""}
+                onChange={url => setField("image", url)}
+                folder="rooms"
+                label="Upload Room Image"
+              />
             </div>
 
             {/* ── Room Features with icon picker ── */}

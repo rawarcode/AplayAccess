@@ -78,9 +78,9 @@ export default function AdminShell() {
 
   // ── Notification polling ────────────────────────────────────────────────────
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings: '/admin/transactions',
+    pendingBookings: '/admin/transactions?status=Pending',
     messages:        '/admin/messages',
-    arrivals:        '/admin/transactions',
+    arrivals:        '/admin/transactions?status=Confirmed',
     rooms:           '/admin/rooms',
     reviews:         '/admin/reviews',
   });

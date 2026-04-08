@@ -22,7 +22,8 @@ export const updateAdminUser   = (id, data) => api.patch(`/api/admin/users/${id}
 export const deleteAdminUser   = (id)       => api.delete(`/api/admin/users/${id}`);
 
 // ── Bookings / Transactions ───────────────────────────────────────────────────
-export const getAdminBookings  = ()         => api.get('/api/admin/bookings');
+export const getAdminBookings       = ()              => api.get('/api/admin/bookings');
+export const applyPromoToBooking    = (id, promoCode) => api.patch(`/api/admin/bookings/${id}/promo`, { promo_code: promoCode });
 
 // ── Reviews ──────────────────────────────────────────────────────────────────
 export const getAdminReviews   = ()         => api.get('/api/admin/reviews');
@@ -71,3 +72,7 @@ export const createPromoCode       = (data)     => api.post('/api/admin/promo-co
 export const updatePromoCode       = (id, data) => api.patch(`/api/admin/promo-codes/${id}`, data);
 export const deletePromoCode       = (id)       => api.delete(`/api/admin/promo-codes/${id}`);
 export const validatePromo         = (code, subtotal) => api.post('/api/validate-promo', { code, subtotal });
+
+// ── Newsletter (owner only) ───────────────────────────────────────────────────
+export const getNewsletterSubscribers  = ()           => api.get('/api/admin/newsletter');
+export const sendNewsletterCampaign    = (subject, body) => api.post('/api/admin/newsletter/send', { subject, body });

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { isVideoUrl } from "../lib/uploadApi.js";
 
 const HOME_DEFAULTS = {
   hero: {
@@ -104,14 +105,24 @@ export default function Home() {
     <div className="font-sans">
       {/* Hero */}
       <section
-        className="min-h-screen flex items-center justify-center text-center relative"
-        style={{
+        className="min-h-screen flex items-center justify-center text-center relative overflow-hidden"
+        style={isVideoUrl(hero.background) ? {} : {
           backgroundImage: `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${hero.background}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
           backgroundRepeat: "no-repeat",
         }}
       >
+        {isVideoUrl(hero.background) && (
+          <>
+            <video
+              src={hero.background}
+              autoPlay muted loop playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-black/50" />
+          </>
+        )}
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">{hero.title}</h1>
           <p className="text-xl md:text-2xl mb-8">{hero.subtitle}</p>

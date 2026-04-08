@@ -2,6 +2,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { updateProfile } from "../../lib/profileApi.js";
+import { uploadFile } from "../../lib/uploadApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 
 export default function EditProfile() {
@@ -22,9 +23,10 @@ export default function EditProfile() {
     };
   }, [user]);
 
-  const [form, setForm]         = useState(initial);
-  const [saving, setSaving]     = useState(false);
+  const [form, setForm]           = useState(initial);
+  const [saving, setSaving]       = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [uploading, setUploading] = useState(false);
 
   function setField(name, value) {
     setForm((p) => ({ ...p, [name]: value }));
@@ -34,12 +36,19 @@ export default function EditProfile() {
     fileRef.current?.click();
   }
 
-  function onImageChange(e) {
+  async function onImageChange(e) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setField("avatar", ev.target.result);
-    reader.readAsDataURL(f);
+    setUploading(true);
+    try {
+      const url = await uploadFile(f, 'avatars');
+      setField("avatar", url);
+    } catch {
+      setSaveError("Failed to upload image. Please try again.");
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   }
 
   async function onSave(e) {
@@ -91,10 +100,11 @@ export default function EditProfile() {
               <button
                 type="button"
                 onClick={onPickImage}
-                className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center border-2 border-white hover:bg-blue-700"
+                disabled={uploading}
+                className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full w-10 h-10 flex items-center justify-center border-2 border-white hover:bg-blue-700 disabled:opacity-60"
                 title="Change photo"
               >
-                📷
+                {uploading ? <i className="fas fa-spinner fa-spin text-sm"></i> : '📷'}
               </button>
               <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onImageChange} />
             </div>

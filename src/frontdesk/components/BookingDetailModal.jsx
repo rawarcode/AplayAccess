@@ -5,6 +5,7 @@ import {
   addAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
+import { applyPromoToBooking } from '../../lib/adminApi';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDateTime(dt) {
@@ -131,6 +132,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const [guestEdit,        setGuestEdit]        = useState(false);
   const [guestCount,       setGuestCount]       = useState(initialBooking.guests ?? 1);
   const [guestLoading,     setGuestLoading]     = useState(false);
+  const [promoInput,       setPromoInput]       = useState('');
+  const [promoLoading,     setPromoLoading]     = useState(false);
+  const [promoError,       setPromoError]       = useState('');
   // pendingAction: { type, amenityId?, amenityName?, amenityTotal? } | null
   const [pendingAction,    setPendingAction]    = useState(null);
 
@@ -185,6 +189,22 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       showToast?.('Failed to update guest count.');
     } finally {
       setGuestLoading(false);
+    }
+  }
+
+  async function handleApplyPromo() {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+    try {
+      const res = await applyPromoToBooking(booking.booking_id, promoInput.trim());
+      applyUpdate({ promo_code: res.data.promo_code, discount: res.data.discount, total: res.data.total });
+      setPromoInput('');
+      showToast?.(`Promo code "${res.data.promo_code}" applied. Discount: ${fmtMoney(res.data.discount)}`);
+    } catch (err) {
+      setPromoError(err?.response?.data?.message || 'Invalid promo code.');
+    } finally {
+      setPromoLoading(false);
     }
   }
 
@@ -368,6 +388,28 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     <p className="text-sm font-bold text-green-800">−{fmtMoney(booking.discount)}</p>
                   </div>
                 </div>
+              </div>
+            )}
+            {!['Completed','Cancelled'].includes(booking.status) && !booking.promo_code && (
+              <div className="col-span-2">
+                <p className="text-xs text-gray-500 mb-1">Apply Promo Code</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={promoInput}
+                    onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                    placeholder="Enter promo code"
+                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono uppercase"
+                  />
+                  <button
+                    onClick={handleApplyPromo}
+                    disabled={promoLoading || !promoInput.trim()}
+                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-sm rounded-lg disabled:opacity-50"
+                  >
+                    {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
+                  </button>
+                </div>
+                {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
               </div>
             )}
             {!wi && booking.specialRequests && (

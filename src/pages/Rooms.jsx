@@ -19,20 +19,12 @@ function formatPHP(n) {
 
 function enrichRoom(room) {
   const local = roomsFallback.find(r => r.name === room.name);
-  const dayRate = Number(room.day_rate ?? 0);
-  let badge = local?.badge ?? null;
-  if (!badge) {
-    if (dayRate >= 6000)      badge = { text: "Premium",    className: "bg-purple-600" };
-    else if (dayRate >= 4500) badge = { text: "Popular",    className: "bg-green-600"  };
-    else if (dayRate > 0)     badge = { text: "Best Value", className: "bg-blue-600"   };
-  }
   const features = (room.features || []).map(f =>
     typeof f === "string" ? { text: f, icon: "fa-check" } : f
   );
   return {
     ...room,
-    img:     local?.img ?? FALLBACK_IMG,
-    badge,
+    img: room.image || local?.img || FALLBACK_IMG,
     features,
   };
 }
@@ -148,11 +140,6 @@ export default function Rooms() {
                     className="bg-white rounded-xl overflow-hidden shadow-md transition hover:-translate-y-2 hover:shadow-xl">
                     <div className="relative">
                       <img src={r.img} alt={r.name} className="w-full h-64 object-cover" loading="lazy" />
-                      {r.badge && (
-                        <div className={`absolute top-4 right-4 ${r.badge.className} text-white px-3 py-1 rounded-md text-sm font-medium`}>
-                          {r.badge.text}
-                        </div>
-                      )}
                     </div>
                     <div className="p-6">
                       <h3 className="text-xl font-bold text-gray-900 mb-2">{r.name}</h3>
@@ -192,12 +179,6 @@ export default function Rooms() {
                 </div>
 
                 <div>
-                  {detailRoom.badge && (
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium mb-2 ${detailRoom.badge.className} text-white`}>
-                      {detailRoom.badge.text}
-                    </span>
-                  )}
-
                   <h2 className="text-3xl font-bold text-gray-900 mb-4">{detailRoom.name}</h2>
                   <p className="text-gray-600 mb-6">{detailRoom.description}</p>
 

@@ -4,6 +4,7 @@ import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { gallery as galleryFallback } from "../data/gallery.js";
 import { getResortGallery } from "../lib/resortApi.js";
 import LightboxModal from "../components/modals/LightboxModal.jsx";
+import { isVideoUrl } from "../lib/uploadApi.js";
 
 const RESORT_ID = 1;
 
@@ -117,15 +118,30 @@ export default function Gallery() {
                 key={`${g.alt}-${i}`}
                 type="button"
                 onClick={() => openAt(i)}
-                className="group overflow-hidden rounded-lg shadow aspect-[4/3] bg-gray-200"
-                aria-label={`Open image: ${g.caption || g.alt}`}
+                className="group overflow-hidden rounded-lg shadow aspect-[4/3] bg-gray-200 relative"
+                aria-label={`Open ${isVideoUrl(g.src) ? "video" : "image"}: ${g.caption || g.alt}`}
               >
-                <img
-                  src={g.src}
-                  alt={g.alt}
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                  loading="lazy"
-                />
+                {isVideoUrl(g.src) ? (
+                  <>
+                    <video
+                      src={g.src}
+                      muted playsInline
+                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-black/50 rounded-full w-12 h-12 flex items-center justify-center text-white">
+                        <i className="fas fa-play text-lg ml-1"></i>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={g.src}
+                    alt={g.alt}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    loading="lazy"
+                  />
+                )}
               </button>
             ))}
           </div>
