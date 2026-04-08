@@ -74,10 +74,7 @@ function fmtTime12(date) {
   return date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-const AMENITY_CATALOG = [
-  { name: 'Pillow',  icon: 'fa-bed',         unit_price: 50,  type: 'qty'   },
-  { name: 'Karaoke', icon: 'fa-microphone',  unit_price: 800, type: 'fixed' },
-];
+// Addons are fetched from API — no hardcoded catalog
 
 // Pricing defaults — overwritten immediately by /api/pricing on mount
 const PRICING_DEFAULTS = {
@@ -91,7 +88,6 @@ const EMPTY_FORM = {
   roomId: '', date: todayStr(), time: '09:00',
   guests: '2', payMethod: 'Cash', notes: '',
   bookingType: 'day', // 'day' | 'overnight'
-  pillow: 0, karaoke: false,
 };
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -116,6 +112,9 @@ export default function WalkIn() {
   const [toast, showToast, clearToast, toastType] = useToast();
 
   // Promo code
+  const [addons,       setAddons]        = useState([]);   // from API
+  const [addonQtys,    setAddonQtys]    = useState({});   // { [id]: qty }
+
   const [promoInput,   setPromoInput]   = useState('');
   const [promoResult,  setPromoResult]  = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
@@ -125,8 +124,8 @@ export default function WalkIn() {
 
   function loadAll() {
     setLoading(true);
-    Promise.all([getFdBookings(), getFdRooms(), api.get('/api/pricing')])
-      .then(([bk, rm, prRes]) => {
+    Promise.all([getFdBookings(), getFdRooms(), api.get('/api/pricing'), api.get('/api/addons')])
+      .then(([bk, rm, prRes, adRes]) => {
         setBookings(bk);
         setRooms(rm);
         const d = prRes.data?.data ?? {};
@@ -135,6 +134,10 @@ export default function WalkIn() {
           extra_guest_fee:  Number(d.extra_guest_fee  ?? PRICING_DEFAULTS.extra_guest_fee),
           free_guest_limit: Number(d.free_guest_limit ?? PRICING_DEFAULTS.free_guest_limit),
         });
+        const fetchedAddons = adRes.data?.data ?? [];
+        setAddons(fetchedAddons);
+        // Init qty map — 0 for all
+        setAddonQtys(Object.fromEntries(fetchedAddons.map(a => [a.id, 0])));
         setError('');
       })
       .catch(() => setError('Failed to load data.'))
@@ -214,7 +217,11 @@ export default function WalkIn() {
   const previewGuests   = Number(form.guests) || 0;
   const previewExtraFee = Math.max(0, previewGuests - pricing.free_guest_limit) * pricing.extra_guest_fee;
   const previewEntrance = previewGuests * pricing.entrance_fee;
-  const amenityTotal    = (Number(form.pillow) || 0) * 50 + (form.karaoke ? 800 : 0);
+  const amenityTotal    = addons.reduce((sum, a) => {
+    const qty = Number(addonQtys[a.id] || 0);
+    if (qty <= 0) return sum;
+    return sum + (a.per_booking ? a.price : a.price * qty);
+  }, 0);
   const previewSubtotal = baseRate + previewExtraFee + previewEntrance + amenityTotal;
   const promoDiscount   = promoResult?.discount_amount ?? 0;
   const previewTotal    = Math.max(previewSubtotal - promoDiscount, 0);
@@ -268,9 +275,9 @@ export default function WalkIn() {
     setConfirmOpen(false);
     const checkIn   = isOvernight ? `${form.date} 18:00:00` : `${form.date} ${form.time}:00`;
     const guestName = `${form.firstName.trim()} ${form.lastName.trim()}`;
-    const amenities = [];
-    if (Number(form.pillow) > 0) amenities.push({ name: 'Pillow',  qty: Number(form.pillow) });
-    if (form.karaoke)            amenities.push({ name: 'Karaoke', qty: 1 });
+    const amenities = addons
+      .filter(a => Number(addonQtys[a.id] || 0) > 0)
+      .map(a => ({ name: a.name, qty: Number(addonQtys[a.id]) }));
 
     setSubmitting(true);
     try {
@@ -290,6 +297,7 @@ export default function WalkIn() {
       });
       setFormOpen(false);
       setForm({ ...EMPTY_FORM, date: today });
+      setAddonQtys(Object.fromEntries(addons.map(a => [a.id, 0])));
       setPromoInput(''); setPromoResult(null); setPromoError('');
       loadAll();
     } catch (err) {
@@ -412,23 +420,23 @@ export default function WalkIn() {
                       )}
                     </tbody>
                   </table>
-                  {(form.pillow > 0 || form.karaoke) && (
+                  {addons.some(a => Number(addonQtys[a.id] || 0) > 0) && (
                     <>
                       <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Add-ons</div>
                       <table className="w-full text-sm">
                         <tbody className="divide-y divide-gray-100">
-                          {form.pillow > 0 && (
-                            <tr>
-                              <td className="px-4 py-2.5 text-gray-500 font-medium w-32">Pillow</td>
-                              <td className="px-4 py-2.5 text-gray-900">× {form.pillow} — {fmtMoney(form.pillow * 50)}</td>
-                            </tr>
-                          )}
-                          {form.karaoke && (
-                            <tr>
-                              <td className="px-4 py-2.5 text-gray-500 font-medium">Karaoke</td>
-                              <td className="px-4 py-2.5 text-gray-900">₱800.00</td>
-                            </tr>
-                          )}
+                          {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
+                            const qty = Number(addonQtys[a.id]);
+                            const subtotal = a.per_booking ? a.price : a.price * qty;
+                            return (
+                              <tr key={a.id}>
+                                <td className="px-4 py-2.5 text-gray-500 font-medium w-32">{a.name}</td>
+                                <td className="px-4 py-2.5 text-gray-900">
+                                  {a.per_booking ? fmtMoney(subtotal) : `× ${qty} — ${fmtMoney(subtotal)}`}
+                                </td>
+                              </tr>
+                            );
+                          })}
                         </tbody>
                       </table>
                     </>
@@ -452,7 +460,7 @@ export default function WalkIn() {
                     <span>Entrance fee ({previewGuests} × {fmtMoney(pricing.entrance_fee)})</span>
                     <span>{fmtMoney(previewEntrance)}</span>
                   </div>
-                  {(form.pillow > 0 || form.karaoke) && (
+                  {amenityTotal > 0 && (
                     <div className="flex justify-between text-gray-700">
                       <span>Add-ons</span>
                       <span>{fmtMoney(amenityTotal)}</span>
@@ -603,19 +611,11 @@ export default function WalkIn() {
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
                       className="border rounded px-3 py-2 w-full text-sm" required>
                       <option value="">Select room</option>
-                      {rooms.map(r => {
-                        const avail = availability?.[r.name];
-                        const label = availability === null
-                          ? r.name
-                          : avail === false
-                          ? `${r.name} — Not Available`
-                          : `${r.name} — Available`;
-                        return (
-                          <option key={r.id} value={r.id} disabled={avail === false}>
-                            {label}
-                          </option>
-                        );
-                      })}
+                      {rooms
+                        .filter(r => availability === null || availability?.[r.name] !== false)
+                        .map(r => (
+                          <option key={r.id} value={r.id}>{r.name}</option>
+                        ))}
                     </select>
                     {(() => {
                       const sel = rooms.find(r => String(r.id) === String(form.roomId));
@@ -710,42 +710,55 @@ export default function WalkIn() {
                     placeholder="Special requests, remarks..." />
                 </div>
 
-                {/* Amenities */}
-                <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add-on Amenities</p>
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {/* Pillow */}
-                  <div className="border rounded-lg p-3">
-                    <div className="flex items-center gap-2 mb-2">
-                      <i className="fas fa-bed text-gray-500"></i>
-                      <p className="text-sm font-medium text-gray-700">Pillow</p>
-                      <span className="ml-auto text-xs text-gray-500">₱50 each</span>
+                {/* Amenities — fetched from API */}
+                {addons.length > 0 && (
+                  <>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add-on Amenities</p>
+                    <div className="grid grid-cols-2 gap-3 mb-4">
+                      {addons.map(a => {
+                        const qty = Number(addonQtys[a.id] || 0);
+                        const isFixed = a.per_booking;
+                        const active = qty > 0;
+                        if (isFixed) {
+                          return (
+                            <button key={a.id} type="button"
+                              onClick={() => setAddonQtys(q => ({ ...q, [a.id]: active ? 0 : 1 }))}
+                              className={`border rounded-lg p-3 text-left transition-colors ${active ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}`}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-gray-400'}`}></i>
+                                <p className={`text-sm font-medium ${active ? 'text-indigo-700' : 'text-gray-700'}`}>{a.name}</p>
+                              </div>
+                              <p className="text-xs text-gray-500">₱{Number(a.price).toLocaleString()} flat</p>
+                              {active && <p className="text-xs font-medium text-indigo-700 mt-1">Added ✓</p>}
+                            </button>
+                          );
+                        }
+                        return (
+                          <div key={a.id} className="border rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-2">
+                              <i className={`fas ${a.icon || 'fa-tag'} text-gray-500`}></i>
+                              <p className="text-sm font-medium text-gray-700">{a.name}</p>
+                              <span className="ml-auto text-xs text-gray-500">₱{Number(a.price).toLocaleString()} each</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button type="button"
+                                onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.max(0, qty - 1) }))}
+                                className="w-7 h-7 rounded border text-gray-600 hover:bg-gray-100 text-sm font-bold">−</button>
+                              <span className="w-8 text-center text-sm font-medium">{qty}</span>
+                              <button type="button"
+                                onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.min(a.max_qty, qty + 1) }))}
+                                className="w-7 h-7 rounded border text-gray-600 hover:bg-gray-100 text-sm font-bold">+</button>
+                              {qty > 0 && (
+                                <span className="ml-auto text-xs font-medium text-blue-700">₱{(qty * a.price).toLocaleString()}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button type="button"
-                        onClick={() => setField('pillow', Math.max(0, (Number(form.pillow) || 0) - 1))}
-                        className="w-7 h-7 rounded border text-gray-600 hover:bg-gray-100 text-sm font-bold">−</button>
-                      <span className="w-8 text-center text-sm font-medium">{form.pillow}</span>
-                      <button type="button"
-                        onClick={() => setField('pillow', Math.min(10, (Number(form.pillow) || 0) + 1))}
-                        className="w-7 h-7 rounded border text-gray-600 hover:bg-gray-100 text-sm font-bold">+</button>
-                      {form.pillow > 0 && (
-                        <span className="ml-auto text-xs font-medium text-blue-700">₱{form.pillow * 50}</span>
-                      )}
-                    </div>
-                  </div>
-                  {/* Karaoke */}
-                  <button type="button"
-                    onClick={() => setField('karaoke', !form.karaoke)}
-                    className={`border rounded-lg p-3 text-left transition-colors ${form.karaoke ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <i className={`fas fa-microphone ${form.karaoke ? 'text-indigo-600' : 'text-gray-400'}`}></i>
-                      <p className={`text-sm font-medium ${form.karaoke ? 'text-indigo-700' : 'text-gray-700'}`}>Karaoke</p>
-                    </div>
-                    <p className="text-xs text-gray-500">₱800 flat</p>
-                    {form.karaoke && <p className="text-xs font-medium text-indigo-700 mt-1">Added ✓</p>}
-                  </button>
-                </div>
+                  </>
+                )}
 
                 {/* Promo code */}
                 <div className="mb-3">
