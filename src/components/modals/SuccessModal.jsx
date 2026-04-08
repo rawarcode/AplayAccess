@@ -3,6 +3,7 @@ import { useState } from "react";
 import Modal from "./Modal.jsx";
 import { Link } from "react-router-dom";
 import { downloadGuestReceipt } from "../../lib/bookingApi.js";
+import ConfirmDialog from "../ui/ConfirmDialog.jsx";
 
 /**
  * @param {{ open, onClose, booking, guestMode }} props
@@ -11,13 +12,12 @@ import { downloadGuestReceipt } from "../../lib/bookingApi.js";
  * guestMode: true = guest booking (no account), show download receipt instead of dashboard link
  */
 export default function SuccessModal({ open, onClose, booking = null, guestMode = false }) {
-  const [downloading, setDownloading] = useState(false);
+  const [downloading, setDownloading]   = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const [closeConfirm, setCloseConfirm] = useState(false);
 
   function handleClose() {
-    if (guestMode && !window.confirm(
-      'Are you sure you want to close?\n\nYou will not be able to retrieve your receipt again once this window is closed. Make sure to download it first.'
-    )) return;
+    if (guestMode) { setCloseConfirm(true); return; }
     onClose();
   }
 
@@ -167,5 +167,16 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
         )}
       </div>
     </Modal>
+
+    <ConfirmDialog
+      open={closeConfirm}
+      variant="warning"
+      title="Close without downloading?"
+      message="Once you close this window, you will not be able to retrieve your receipt again. Make sure to download it before closing."
+      confirmLabel="Close anyway"
+      cancelLabel="Go back"
+      onConfirm={() => { setCloseConfirm(false); onClose(); }}
+      onCancel={() => setCloseConfirm(false)}
+    />
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
+import ConfirmDialog from './ConfirmDialog';
 
 const COLOR_MAP = {
   yellow: 'bg-yellow-100 text-yellow-600',
@@ -20,15 +21,11 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
   const { items, total, refresh } = useNotifications();
   const [open, setOpen]           = useState(false);
   const [style, setStyle]         = useState({});
-  const [clearedIds, setClearedIds] = useState(() => new Set());
+  const [clearedIds, setClearedIds]   = useState(() => new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const visibleItems = items.filter(n => !clearedIds.has(n.id));
   const visibleTotal = visibleItems.length;
-
-  function handleClear() {
-    if (!window.confirm('Clear all notifications? They will reappear if the conditions still apply.')) return;
-    setClearedIds(new Set(items.map(n => n.id)));
-  }
   const btnRef                    = useRef(null);
   const dropRef                   = useRef(null);
 
@@ -144,7 +141,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
               </button>
               {visibleItems.length > 0 && (
                 <button
-                  onClick={handleClear}
+                  onClick={() => setConfirmOpen(true)}
                   className="text-xs text-red-500 hover:underline font-medium"
                 >
                   <i className="fas fa-times mr-1"></i>Clear
@@ -155,6 +152,16 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
           </div>
         </div>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        variant="warning"
+        title="Clear all notifications?"
+        message="Notifications will reappear on the next refresh if the underlying conditions still apply."
+        confirmLabel="Yes, clear"
+        cancelLabel="Cancel"
+        onConfirm={() => { setClearedIds(new Set(items.map(n => n.id))); setConfirmOpen(false); }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </>
   );
 }
