@@ -392,7 +392,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 {booking.amenities.map(a => (
                   <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm">
                     <span>
-                      <i className={`fas ${a.name === 'Karaoke' ? 'fa-microphone' : 'fa-bed'} mr-2 text-gray-500`}></i>
+                      <i className={`fas ${addonCatalog.find(c => c.name === a.name)?.icon || 'fa-tag'} mr-2 text-gray-500`}></i>
                       {a.name}{a.qty > 1 && ` × ${a.qty}`}
                     </span>
                     <div className="flex items-center gap-2">

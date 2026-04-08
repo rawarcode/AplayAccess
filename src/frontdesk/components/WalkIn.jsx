@@ -826,18 +826,19 @@ export default function WalkIn() {
                       </span>
                       <span>{fmtMoney(previewEntrance)}</span>
                     </div>
-                    {form.pillow > 0 && (
-                      <div className="flex justify-between">
-                        <span><i className="fas fa-bed mr-1 text-xs"></i>Pillow × {form.pillow}</span>
-                        <span>{fmtMoney(form.pillow * 50)}</span>
-                      </div>
-                    )}
-                    {form.karaoke && (
-                      <div className="flex justify-between">
-                        <span><i className="fas fa-microphone mr-1 text-xs"></i>Karaoke</span>
-                        <span>₱800.00</span>
-                      </div>
-                    )}
+                    {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
+                      const qty = Number(addonQtys[a.id]);
+                      const subtotal = a.per_booking ? a.price : a.price * qty;
+                      return (
+                        <div key={a.id} className="flex justify-between">
+                          <span>
+                            <i className={`fas ${a.icon || 'fa-tag'} mr-1 text-xs`}></i>
+                            {a.name}{!a.per_booking && ` × ${qty}`}
+                          </span>
+                          <span>{fmtMoney(subtotal)}</span>
+                        </div>
+                      );
+                    })}
                     {promoDiscount > 0 && (
                       <>
                         <div className="flex justify-between text-gray-400 line-through">

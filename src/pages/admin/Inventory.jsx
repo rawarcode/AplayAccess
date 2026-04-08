@@ -3,7 +3,6 @@ import Modal from "../../components/modals/Modal.jsx";
 import AlertModal from "../../components/modals/AlertModal.jsx";
 import { getAdminAddons, updateAdminAddon } from "../../lib/adminApi";
 
-const ICONS = { Pillow: "fa-bed", Karaoke: "fa-microphone" };
 
 export default function AdminInventory() {
   const [addons,     setAddons]     = useState([]);
@@ -107,7 +106,7 @@ export default function AdminInventory() {
                   >
                     <td className="px-6 py-4 font-medium text-slate-900">
                       <span className="flex items-center gap-2">
-                        <i className={`fas ${ICONS[item.name] || "fa-box"} text-slate-400`}></i>
+                        <i className={`fas ${item.icon || "fa-tag"} text-slate-400`}></i>
                         {item.name}
                       </span>
                     </td>
@@ -160,7 +159,7 @@ export default function AdminInventory() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <i className={`fas ${ICONS[viewItem.name] || "fa-box"} text-slate-500`}></i>
+                <i className={`fas ${viewItem.icon || "fa-tag"} text-slate-500`}></i>
                 {viewItem.name}
               </h3>
               <button onClick={() => setViewItem(null)} className="text-slate-400 hover:text-slate-600">
