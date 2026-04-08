@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { getAdminHistory } from "../../lib/adminApi";
 
 // ── Category config ───────────────────────────────────────────────────────────
 const CATEGORIES = [
   { value: "",         label: "All Categories" },
   { value: "booking",  label: "Booking" },
+  { value: "payment",  label: "Payment" },
   { value: "room",     label: "Rooms" },
   { value: "user",     label: "Users" },
   { value: "promo",    label: "Promo Codes" },
@@ -16,6 +18,7 @@ const CATEGORIES = [
 
 const CATEGORY_STYLES = {
   booking:  { bg: "bg-blue-100",   text: "text-blue-800",   icon: "fa-calendar-check" },
+  payment:  { bg: "bg-emerald-100",text: "text-emerald-800",icon: "fa-money-bill-wave" },
   room:     { bg: "bg-purple-100", text: "text-purple-800", icon: "fa-bed"            },
   user:     { bg: "bg-amber-100",  text: "text-amber-800",  icon: "fa-user"           },
   promo:    { bg: "bg-green-100",  text: "text-green-800",  icon: "fa-tag"            },
@@ -60,9 +63,77 @@ function fmtDateTime(str) {
   });
 }
 
+function LogDetailModal({ log, onClose }) {
+  if (!log) return null;
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <div className="flex items-center gap-3">
+            <CategoryBadge category={log.category} />
+            <span className="font-semibold text-slate-800">{log.action}</span>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
+            <i className="fas fa-times text-lg"></i>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 space-y-4">
+          {/* Description */}
+          <div>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Description</p>
+            <p className="text-sm text-slate-700 leading-relaxed bg-slate-50 rounded-lg px-4 py-3 border border-slate-200">
+              {log.description ?? "—"}
+            </p>
+          </div>
+
+          {/* Meta grid */}
+          <div className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Timestamp</p>
+              <p className="text-slate-700">{fmtDateTime(log.created_at)}</p>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">User</p>
+              <p className="text-slate-700 font-medium">{log.user_name ?? "—"}</p>
+              <RoleBadge role={log.user_role} />
+            </div>
+            {log.ip_address && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">IP Address</p>
+                <p className="text-slate-700 font-mono text-xs">{log.ip_address}</p>
+              </div>
+            )}
+            {log.subject_type && (
+              <div>
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Subject</p>
+                <p className="text-slate-700">{log.subject_type} #{log.subject_id}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-6 py-3 border-t border-slate-100 bg-slate-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function AdminHistory() {
-  const [sortBy,  setSortBy]  = useState('Timestamp');
-  const [sortDir, setSortDir] = useState('desc');
+  const [sortBy,      setSortBy]      = useState('Timestamp');
+  const [sortDir,     setSortDir]     = useState('desc');
+  const [selectedLog, setSelectedLog] = useState(null);
   const [logs,     setLogs]     = useState([]);
   const [meta,     setMeta]     = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading,  setLoading]  = useState(true);
@@ -216,7 +287,11 @@ export default function AdminHistory() {
                   if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
                   return 0;
                 }).map(log => (
-                  <tr key={log.id} className="hover:bg-slate-50">
+                  <tr
+                    key={log.id}
+                    onClick={() => setSelectedLog(log)}
+                    className="hover:bg-blue-50 cursor-pointer transition-colors"
+                  >
                     <td className="px-5 py-3 whitespace-nowrap text-xs text-slate-500">
                       {fmtDateTime(log.created_at)}
                     </td>
@@ -230,7 +305,7 @@ export default function AdminHistory() {
                     <td className="px-5 py-3 whitespace-nowrap font-medium text-slate-800">
                       {log.action}
                     </td>
-                    <td className="px-5 py-3 text-slate-600 max-w-sm">
+                    <td className="px-5 py-3 text-slate-600 max-w-sm truncate">
                       {log.description}
                     </td>
                   </tr>
@@ -264,5 +339,7 @@ export default function AdminHistory() {
         )}
       </div>
     </div>
+
+    <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
   );
 }
