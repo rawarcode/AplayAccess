@@ -20,6 +20,15 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
   const { items, total, refresh } = useNotifications();
   const [open, setOpen]           = useState(false);
   const [style, setStyle]         = useState({});
+  const [clearedIds, setClearedIds] = useState(() => new Set());
+
+  const visibleItems = items.filter(n => !clearedIds.has(n.id));
+  const visibleTotal = visibleItems.length;
+
+  function handleClear() {
+    if (!window.confirm('Clear all notifications? They will reappear if the conditions still apply.')) return;
+    setClearedIds(new Set(items.map(n => n.id)));
+  }
   const btnRef                    = useRef(null);
   const dropRef                   = useRef(null);
 
@@ -66,11 +75,11 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
         title="Notifications"
       >
         <i className="fas fa-bell text-xl"></i>
-        {total > 0 && (
+        {visibleTotal > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full
             bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center
             px-1 leading-none pointer-events-none">
-            {total > 99 ? '99+' : total}
+            {visibleTotal > 99 ? '99+' : visibleTotal}
           </span>
         )}
       </button>
@@ -88,23 +97,23 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
               <i className="fas fa-bell text-gray-500"></i>
               Notifications
             </h3>
-            {total > 0 && (
+            {visibleTotal > 0 && (
               <span className="text-[11px] font-semibold text-white bg-amber-500 rounded-full px-2 py-0.5">
-                {total}
+                {visibleTotal}
               </span>
             )}
           </div>
 
           {/* Items */}
           <div className="max-h-72 overflow-y-auto divide-y divide-gray-50">
-            {items.length === 0 ? (
+            {visibleItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8 gap-2">
                 <i className="fas fa-check-circle text-3xl text-green-400"></i>
                 <p className="text-sm font-medium text-gray-600">All caught up!</p>
                 <p className="text-xs text-gray-400">No new alerts right now.</p>
               </div>
             ) : (
-              items.map(n => (
+              visibleItems.map(n => (
                 <Link
                   key={n.id}
                   to={n.path}
@@ -126,12 +135,22 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
           {/* Footer */}
           <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50
             flex items-center justify-between">
-            <button
-              onClick={() => { refresh?.(); }}
-              className="text-xs text-blue-600 hover:underline font-medium"
-            >
-              <i className="fas fa-sync-alt mr-1"></i>Refresh
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { refresh?.(); }}
+                className="text-xs text-blue-600 hover:underline font-medium"
+              >
+                <i className="fas fa-sync-alt mr-1"></i>Refresh
+              </button>
+              {visibleItems.length > 0 && (
+                <button
+                  onClick={handleClear}
+                  className="text-xs text-red-500 hover:underline font-medium"
+                >
+                  <i className="fas fa-times mr-1"></i>Clear
+                </button>
+              )}
+            </div>
             <span className="text-[11px] text-gray-400">Updates every 10s</span>
           </div>
         </div>

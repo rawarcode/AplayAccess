@@ -14,6 +14,13 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
 
+  function handleClose() {
+    if (guestMode && !window.confirm(
+      'Are you sure you want to close?\n\nYou will not be able to retrieve your receipt again once this window is closed. Make sure to download it first.'
+    )) return;
+    onClose();
+  }
+
   // Build a booking reference from the DB id if available
   const bookingId = booking?.bookingData?.id ?? null;
   const ref = booking?.bookingData?.res_id
@@ -41,7 +48,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
   }
 
   return (
-    <Modal open={open} onClose={onClose} maxWidth="max-w-lg">
+    <Modal open={open} onClose={handleClose} maxWidth="max-w-lg">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start gap-4 mb-5">
@@ -129,7 +136,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
                   : <><i className="fas fa-file-pdf"></i> Download Receipt (PDF)</>}
               </button>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-md text-sm"
               >
                 Close
@@ -144,13 +151,13 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
             <div className="flex gap-3">
               <Link
                 to="/dashboard/bookings"
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-md text-sm"
               >
                 View My Bookings
               </Link>
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-md text-sm"
               >
                 Close
