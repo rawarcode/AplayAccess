@@ -175,6 +175,7 @@ export default function AdminHistory() {
   }
 
   return (
+    <>
     <div className="p-6 space-y-6">
 
       {/* Header */}
@@ -341,5 +342,6 @@ export default function AdminHistory() {
     </div>
 
     <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+    </>
   );
 }
