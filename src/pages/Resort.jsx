@@ -103,7 +103,7 @@ export default function Resort() {
     hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Welcome to Paradise", subtitle: "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.", ctaText: "Book Your Stay" },
     about:      { title: "Discover Aplaya Beach Resort", paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.", paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
     rooms:      { sectionTitle: "Our Accommodations", sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation." },
-    contact:    { address: "Brgy. Caylaway, Nasugbu, Batangas, Philippines", phone: "+63 (046) 123-4567", email: "reservations@aplayabeachresort.com", facebook: "", instagram: "", twitter: "", tiktok: "" },
+    contact:    { address: "Brgy. Caylaway, Nasugbu, Batangas, Philippines", phone: "+63 (046) 123-4567", email: "reservations@aplayabeachresort.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://maps.google.com/maps?q=Nasugbu%2C+Batangas%2C+Philippines&output=embed" },
     reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
     newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },
   }));
@@ -648,7 +648,7 @@ export default function Resort() {
               </div>
 
               <div className="lg:w-1/2">
-                <form onSubmit={submitContact} className="bg-white p-6 rounded-lg shadow-md">
+                <form onSubmit={submitContact} className="bg-white p-6 rounded-lg shadow-md" noValidate>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input
@@ -706,6 +706,27 @@ export default function Resort() {
                 </form>
               </div>
             </div>
+
+            {/* Google Map — full width below contact columns */}
+            {pc.contact.map_url && (
+              <div className="mt-12">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <span>📍</span> Find Us
+                </h3>
+                <div className="rounded-2xl overflow-hidden shadow-md border border-gray-200 w-full" style={{ height: "380px" }}>
+                  <iframe
+                    src={pc.contact.map_url}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    allowFullScreen
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                    title="Aplaya Beach Resort location"
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

@@ -528,13 +528,23 @@ function ResortContactEditor({ content, onSave }) {
   const save   = () => { onSave(form); setEditing(false); };
 
   return (
-    <SectionCard icon="fa-address-book" title="Contact Info" badge="Resort page · /resort" editing={editing}
+    <SectionCard icon="fa-address-book" title="Contact Info & Map" badge="Resort page · /resort" editing={editing}
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="space-y-1.5 text-sm text-gray-600">
-          <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-1"></i>{content.address}</p>
-          <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-1"></i>{content.phone}</p>
-          <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-1"></i>{content.email}</p>
+        <div className="space-y-3">
+          <div className="space-y-1.5 text-sm text-gray-600">
+            <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-1"></i>{content.address}</p>
+            <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-1"></i>{content.phone}</p>
+            <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-1"></i>{content.email}</p>
+          </div>
+          {content.map_url && (
+            <div className="rounded-xl overflow-hidden border border-gray-200 mt-2">
+              <iframe src={content.map_url} width="100%" height="160" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Resort location map" />
+            </div>
+          )}
+          {!content.map_url && (
+            <p className="text-xs text-gray-400 italic"><i className="fas fa-map mr-1"></i>No map URL set yet.</p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -543,14 +553,47 @@ function ResortContactEditor({ content, onSave }) {
             <Field label="Phone" value={form.phone} onChange={f("phone")} />
             <Field label="Email" type="email" value={form.email} onChange={f("email")} />
           </div>
+
+          {/* Map URL */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              Google Maps Embed URL
+            </label>
+            <input
+              type="url"
+              value={form.map_url || ""}
+              onChange={e => f("map_url")(e.target.value)}
+              placeholder="https://maps.google.com/maps?q=...&output=embed"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+            <div className="mt-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 space-y-1">
+              <p className="font-semibold"><i className="fas fa-info-circle mr-1"></i>How to get your embed URL:</p>
+              <ol className="list-decimal ml-4 space-y-0.5">
+                <li>Go to <span className="font-medium">Google Maps</span> and search your resort</li>
+                <li>Click <span className="font-medium">Share</span> → <span className="font-medium">Embed a map</span></li>
+                <li>Copy only the <span className="font-medium">src="..."</span> URL from the iframe code</li>
+                <li>Paste it here</li>
+              </ol>
+            </div>
+          </div>
+
           {/* Preview */}
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
+            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Live Preview</p>
             <div className="space-y-1.5 text-sm text-gray-700">
               <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-2"></i>{form.address || <span className="text-gray-300 italic">Address</span>}</p>
               <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-2"></i>{form.phone || <span className="text-gray-300 italic">Phone</span>}</p>
               <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-2"></i>{form.email || <span className="text-gray-300 italic">Email</span>}</p>
             </div>
+            {form.map_url ? (
+              <div className="rounded-xl overflow-hidden border border-gray-200">
+                <iframe src={form.map_url} width="100%" height="200" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map preview" />
+              </div>
+            ) : (
+              <div className="h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-sm">
+                <i className="fas fa-map-marked-alt mr-2"></i>Map preview will appear here
+              </div>
+            )}
           </div>
         </div>
       )}
