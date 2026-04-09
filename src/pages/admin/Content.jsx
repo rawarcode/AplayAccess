@@ -80,9 +80,10 @@ const DEFAULT_CONTENT = {
     sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation.",
   },
   resort_contact: {
-    address: "123 Beachfront Avenue, Coastal City, Paradise Island",
-    phone:   "+1 (555) 123-4567",
-    email:   "reservations@aplayabeachresort.com",
+    address:        "123 Beachfront Avenue, Coastal City, Paradise Island",
+    phone:          "+1 (555) 123-4567",
+    email:          "reservations@aplayabeachresort.com",
+    directions_url: "",
   },
   resort_reviews: {
     visible:         true,
@@ -935,6 +936,23 @@ function ResortContactEditor({ content, onSave }) {
                 <li>Paste it here</li>
               </ol>
             </div>
+          </div>
+
+          {/* Directions URL */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">
+              "Get Directions" Link <span className="text-gray-400 font-normal">(plain Google Maps URL shown on the map)</span>
+            </label>
+            <input
+              type="url"
+              value={form.directions_url || ""}
+              onChange={e => f("directions_url")(e.target.value)}
+              placeholder="https://www.google.com/maps/place/Aplaya+Beach+Resort/@14.33237,120.76971,17z"
+              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              On Google Maps, search your resort → copy the URL from the browser address bar → paste here.
+            </p>
           </div>
 
           {/* Preview */}
