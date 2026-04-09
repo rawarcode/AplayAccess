@@ -64,6 +64,7 @@ export const getAnalyticsBookings  = (days = 30)     => api.get(`/api/admin/anal
 export const getAnalyticsRevenue   = (days = 30)     => api.get(`/api/admin/analytics/revenue?days=${days}`);
 export const getAnalyticsOccupancy = ()              => api.get('/api/admin/analytics/occupancy');
 export const getAnalyticsRooms     = (days = 30)     => api.get(`/api/admin/analytics/rooms?days=${days}`);
+export const getAnalyticsMonthly   = (months = 6)    => api.get(`/api/admin/analytics/monthly?months=${months}`);
 export const getAnalyticsReport    = (month, year)   => api.get(`/api/admin/analytics/report?month=${month}&year=${year}`);
 
 // ── Promo Codes ──────────────────────────────────────────────────────────────

@@ -1,27 +1,26 @@
 import { useEffect, useState, useMemo } from "react";
-import { Bar, Pie, Line } from "react-chartjs-2";
+import { Bar, Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement,
   PointElement,
   LineElement,
   Tooltip,
   Legend,
+  Filler,
 } from "chart.js";
-import { getAnalyticsReport, getAnalyticsBookings, getAnalyticsRooms, getAnalyticsOverview } from "../../lib/adminApi.js";
+import { getAnalyticsReport, getAnalyticsBookings, getAnalyticsRooms, getAnalyticsOverview, getAnalyticsMonthly } from "../../lib/adminApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, PointElement, LineElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend, Filler);
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 0 })}`;
 
 const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const ROOM_COLORS = ["rgba(59,130,246,0.7)","rgba(16,185,129,0.7)","rgba(251,191,36,0.7)","rgba(139,92,246,0.7)","rgba(236,72,153,0.7)"];
 const DOT_COLORS  = ["#3b82f6","#10b981","#fbbf24","#8b5cf6","#ec4899"];
-const PIE_COLORS  = ["rgba(59,130,246,0.8)","rgba(16,185,129,0.8)","rgba(251,191,36,0.8)","rgba(139,92,246,0.8)","rgba(236,72,153,0.8)"];
 
 function printReport({ bookings, active, revenue, avgVal, nights, period, roomTypes, roomRevenue, roomBookings }) {
   const now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
@@ -99,12 +98,38 @@ export default function OwnerReports() {
       .finally(() => setLoadingChart(false));
   }, [chartDays]);
 
+  // Monthly trend state
+  const [monthlyData,    setMonthlyData]    = useState([]);
+  const [loadingMonthly, setLoadingMonthly] = useState(true);
+
+  useEffect(() => {
+    getAnalyticsMonthly(6)
+      .then((res) => setMonthlyData(res.data.data ?? []))
+      .catch(() => {})
+      .finally(() => setLoadingMonthly(false));
+  }, []);
+
   const active         = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
   const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0), 0), [active]);
   const avgVal         = active.length ? revenue / active.length : 0;
   const nights         = useMemo(() => active.reduce((s, b) => s + Number(b.nights ?? 0), 0), [active]);
   const totalDiscounts = useMemo(() => active.reduce((s, b) => s + Number(b.discount ?? 0), 0), [active]);
   const period  = `${MONTH_NAMES[month - 1]} ${year}`;
+
+  // Daily revenue trend — group active bookings by check_in day
+  const dailyRevenueData = useMemo(() => {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const map = {};
+    active.forEach((b) => {
+      if (!b.check_in) return;
+      const day = parseInt(b.check_in.split("-")[2], 10);
+      map[day] = (map[day] ?? 0) + Number(b.total ?? 0);
+    });
+    return Array.from({ length: daysInMonth }, (_, i) => ({
+      day: i + 1,
+      revenue: map[i + 1] ?? 0,
+    }));
+  }, [active, month, year]);
 
   // Room type breakdown
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
@@ -121,17 +146,44 @@ export default function OwnerReports() {
     }],
   };
 
-  // Payment + status pies
-  const paymentTypes  = useMemo(() => [...new Set(bookings.map((b) => b.payment))], [bookings]);
-  const statusTypes   = useMemo(() => [...new Set(bookings.map((b) => b.status))],  [bookings]);
-
-  const paymentPieData = {
-    labels: paymentTypes,
-    datasets: [{ data: paymentTypes.map((p) => bookings.filter((b) => b.payment === p).length), backgroundColor: PIE_COLORS }],
+  // Daily Revenue Trend chart data
+  const dailyLineData = {
+    labels: dailyRevenueData.map((d) => d.day),
+    datasets: [{
+      label: "Revenue (₱)",
+      data: dailyRevenueData.map((d) => d.revenue),
+      borderColor: "rgba(59,130,246,0.9)",
+      backgroundColor: "rgba(59,130,246,0.1)",
+      tension: 0.3,
+      fill: true,
+      pointRadius: 3,
+    }],
   };
-  const statusPieData = {
-    labels: statusTypes,
-    datasets: [{ data: statusTypes.map((s) => bookings.filter((b) => b.status === s).length), backgroundColor: PIE_COLORS }],
+  const dailyLineOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { title: { display: true, text: `Day of ${MONTH_NAMES[month - 1]}`, font: { size: 11 } } },
+      y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true },
+    },
+  };
+
+  // Month-over-Month Revenue chart data
+  const monthlyBarData = {
+    labels: monthlyData.map((m) => m.label),
+    datasets: [{
+      label: "Revenue (₱)",
+      data: monthlyData.map((m) => m.revenue),
+      backgroundColor: monthlyData.map((m, i) =>
+        i === monthlyData.length - 1 ? "rgba(59,130,246,0.85)" : "rgba(148,163,184,0.6)"
+      ),
+      borderRadius: 6,
+    }],
+  };
+  const monthlyBarOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true } },
   };
 
   const barOptions = {
@@ -139,7 +191,6 @@ export default function OwnerReports() {
     plugins: { legend: { display: false } },
     scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` } } },
   };
-  const pieOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "bottom" } } };
 
   // Generate years: 2 years back to current
   const currentYear = now.getFullYear();
@@ -361,31 +412,42 @@ export default function OwnerReports() {
           )}
         </div>
 
-        {/* Status + Payment charts */}
+        {/* Daily Revenue Trend + Month-over-Month */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Daily Revenue Trend */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="font-semibold text-gray-800 mb-4">Booking Status</h3>
+            <h3 className="font-semibold text-gray-800 mb-1">Daily Revenue Trend</h3>
+            <p className="text-xs text-slate-400 mb-4">{period} — by check-in date</p>
             <div className="h-52">
               {loading ? (
                 <p className="text-gray-400 text-sm">Loading...</p>
-              ) : bookings.length > 0 ? (
-                <Pie data={statusPieData} options={pieOptions} />
+              ) : active.length > 0 ? (
+                <Line data={dailyLineData} options={dailyLineOptions} />
               ) : (
                 <p className="text-gray-400 text-sm text-center pt-16">No data for this period.</p>
               )}
             </div>
           </div>
+
+          {/* Month-over-Month Revenue */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="font-semibold text-gray-800 mb-4">Payment Methods</h3>
+            <h3 className="font-semibold text-gray-800 mb-1">Month-over-Month Revenue</h3>
+            <p className="text-xs text-slate-400 mb-4">Last 6 months · current month highlighted</p>
             <div className="h-52">
-              {loading ? (
+              {loadingMonthly ? (
                 <p className="text-gray-400 text-sm">Loading...</p>
-              ) : bookings.length > 0 ? (
-                <Pie data={paymentPieData} options={pieOptions} />
+              ) : monthlyData.length > 0 ? (
+                <Bar data={monthlyBarData} options={monthlyBarOptions} />
               ) : (
-                <p className="text-gray-400 text-sm text-center pt-16">No data for this period.</p>
+                <p className="text-gray-400 text-sm text-center pt-16">No data available.</p>
               )}
             </div>
+            {!loadingMonthly && monthlyData.length > 0 && (
+              <div className="mt-3 flex gap-4 text-xs text-slate-500">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-blue-400 inline-block" /> Current month</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-slate-300 inline-block" /> Previous months</span>
+              </div>
+            )}
           </div>
         </div>
 
