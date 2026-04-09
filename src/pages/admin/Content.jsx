@@ -12,7 +12,7 @@ const CONTENT_KEY = "aplaya_page_content_v1";
 const DEFAULT_CONTENT = {
   // ── Site-wide ──────────────────────────────────────────────────────────────
   navbar: {
-    siteName:  "Aplaya Beach Resort",
+    siteName:  "Aplaya Cottages & Rentals",
     logoImage: "",
   },
   // ── Home page (/home) ──────────────────────────────────────────────────────
