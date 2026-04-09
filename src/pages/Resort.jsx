@@ -751,7 +751,7 @@ export default function Resort() {
                   </h3>
                   {(pc.contact.directions_url || pc.contact.map_url) && (
                     <a
-                      href={pc.contact.directions_url || `https://www.google.com/maps/place/Aplaya+Beach+Resort/@14.33237,120.76971,17z`}
+                      href={pc.contact.directions_url || "https://maps.app.goo.gl/cCa9LepoeaXXh6xm6"}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
