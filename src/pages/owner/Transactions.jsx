@@ -1,11 +1,11 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Pie } from "react-chartjs-2";
-import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from "chart.js";
 import { getAdminBookings, getAnalyticsOverview } from "../../lib/adminApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH")}`;
 
@@ -35,19 +35,13 @@ function printTransactions(rows) {
 }
 
 
-const PIE_COLORS = [
-  "rgba(59, 130, 246, 0.8)",
-  "rgba(16, 185, 129, 0.8)",
-  "rgba(251, 191, 36, 0.8)",
-  "rgba(139, 92, 246, 0.8)",
-  "rgba(236, 72, 153, 0.8)",
+const BAR_COLORS = [
+  "rgba(59,130,246,0.75)",
+  "rgba(16,185,129,0.75)",
+  "rgba(251,191,36,0.75)",
+  "rgba(139,92,246,0.75)",
+  "rgba(236,72,153,0.75)",
 ];
-
-const pieOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: { legend: { position: "bottom" } },
-};
 
 const ITEMS_PER_PAGE = 5;
 
@@ -61,18 +55,6 @@ const STATUS_CLASSES = {
   "Checked In":"bg-teal-100 text-teal-800",
 };
 
-function buildPieData(bookings, key) {
-  const counts = bookings.reduce((acc, b) => {
-    const val = b[key] || "Unknown";
-    acc[val] = (acc[val] || 0) + 1;
-    return acc;
-  }, {});
-  const labels = Object.keys(counts);
-  return {
-    labels,
-    datasets: [{ data: labels.map((l) => counts[l]), backgroundColor: PIE_COLORS }],
-  };
-}
 
 
 export default function OwnerTransactions() {
@@ -147,8 +129,63 @@ export default function OwnerTransactions() {
   const totalRevenue = nonCancelled.reduce((s, b) => s + Number(b.total || 0), 0);
   const avgTx = nonCancelled.length ? totalRevenue / nonCancelled.length : 0;
 
-  const statusPieData  = useMemo(() => buildPieData(allBookings, "status"),        [allBookings]);
-  const paymentPieData = useMemo(() => buildPieData(allBookings, "paymentMethod"), [allBookings]);
+  // Revenue by Room Type (non-cancelled)
+  const roomRevenueData = useMemo(() => {
+    const map = {};
+    nonCancelled.forEach((b) => {
+      const room = b.roomType || "Unknown";
+      map[room] = (map[room] ?? 0) + Number(b.total ?? 0);
+    });
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6);
+  }, [nonCancelled]);
+
+  const roomBarData = {
+    labels: roomRevenueData.map(([r]) => r),
+    datasets: [{
+      label: "Revenue (₱)",
+      data: roomRevenueData.map(([, v]) => v),
+      backgroundColor: roomRevenueData.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]),
+      borderRadius: 6,
+    }],
+  };
+  const roomBarOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true } },
+  };
+
+  // Collected vs Outstanding revenue
+  const collectedRevenue    = useMemo(() => allBookings.filter(b => b.status === "Completed").reduce((s, b) => s + Number(b.total ?? 0), 0), [allBookings]);
+  const reservedRevenue     = useMemo(() => allBookings.filter(b => ["Confirmed", "Checked In"].includes(b.status)).reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0), [allBookings]);
+  const pendingRevenue      = useMemo(() => allBookings.filter(b => b.status === "Pending").reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0), [allBookings]);
+  const outstandingBalance  = useMemo(() => allBookings.filter(b => ["Confirmed", "Checked In"].includes(b.status)).reduce((s, b) => s + Math.max(0, Number(b.total ?? 0) - Number(b.reservation_fee ?? 0)), 0), [allBookings]);
+  const forfeitedFees       = useMemo(() => allBookings.filter(b => b.status === "Cancelled").reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0), [allBookings]);
+
+  const collectedBarData = {
+    labels: ["Fully Collected", "Reservation Fees\n(Confirmed)", "Outstanding\nBalance", "Pending Fees", "Forfeited\n(Cancelled)"],
+    datasets: [{
+      label: "Amount (₱)",
+      data: [collectedRevenue, reservedRevenue, outstandingBalance, pendingRevenue, forfeitedFees],
+      backgroundColor: [
+        "rgba(16,185,129,0.8)",
+        "rgba(59,130,246,0.8)",
+        "rgba(251,191,36,0.8)",
+        "rgba(139,92,246,0.7)",
+        "rgba(239,68,68,0.7)",
+      ],
+      borderRadius: 6,
+    }],
+  };
+  const collectedBarOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { font: { size: 10 } } },
+      y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true },
+    },
+  };
 
   const clearFilters = () => { setSearch(""); setDateFrom(""); setDateTo(""); setCurrentPage(1); };
   const handleSearch = (v) => { setSearch(v);      setCurrentPage(1); };
@@ -377,24 +414,71 @@ export default function OwnerTransactions() {
         </div>
       </div>
 
-      {/* Pie charts */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Revenue by Room Type */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Bookings by Status</h2>
-          <div className="h-64">
-            {!loading && allBookings.length > 0
-              ? <Pie data={statusPieData} options={pieOptions} />
-              : <p className="text-sm text-gray-400">{loading ? "Loading..." : "No data"}</p>}
+          <h2 className="text-lg font-semibold text-slate-800">Revenue by Room Type</h2>
+          <p className="text-xs text-slate-400 mb-4">All time · excluding cancelled</p>
+          <div className="h-56">
+            {loading ? (
+              <p className="text-sm text-gray-400">Loading...</p>
+            ) : roomRevenueData.length > 0 ? (
+              <Bar data={roomBarData} options={roomBarOptions} />
+            ) : (
+              <p className="text-sm text-gray-400 text-center pt-16">No data available.</p>
+            )}
           </div>
+          {!loading && roomRevenueData.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {roomRevenueData.map(([room, rev], i) => (
+                <div key={room} className="flex items-center justify-between text-xs text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: BAR_COLORS[i % BAR_COLORS.length].replace("0.75","1") }} />
+                    <span className="truncate">{room}</span>
+                  </div>
+                  <span className="font-semibold text-slate-800 ml-2">{fmt(rev)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Collected vs Outstanding */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold mb-4">Payment Methods</h2>
-          <div className="h-64">
-            {!loading && allBookings.length > 0
-              ? <Pie data={paymentPieData} options={pieOptions} />
-              : <p className="text-sm text-gray-400">{loading ? "Loading..." : "No data"}</p>}
+          <h2 className="text-lg font-semibold text-slate-800">Revenue Breakdown</h2>
+          <p className="text-xs text-slate-400 mb-4">Collected, pending, and outstanding balances</p>
+          <div className="h-56">
+            {loading ? (
+              <p className="text-sm text-gray-400">Loading...</p>
+            ) : allBookings.length > 0 ? (
+              <Bar data={collectedBarData} options={collectedBarOptions} />
+            ) : (
+              <p className="text-sm text-gray-400 text-center pt-16">No data available.</p>
+            )}
           </div>
+          {!loading && allBookings.length > 0 && (
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
+              {[
+                { label: "Fully Collected",    value: collectedRevenue,   color: "bg-emerald-500" },
+                { label: "Reservation Fees",   value: reservedRevenue,    color: "bg-blue-500" },
+                { label: "Outstanding Balance", value: outstandingBalance, color: "bg-yellow-400" },
+                { label: "Pending",            value: pendingRevenue,     color: "bg-violet-500" },
+                { label: "Forfeited (Cancel)", value: forfeitedFees,      color: "bg-red-400" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="flex items-center justify-between text-xs text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${color}`} />
+                    <span>{label}</span>
+                  </div>
+                  <span className="font-semibold text-slate-800 ml-1">{fmt(value)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
       </div>
 
       <Toast message={toast} type={toastType} onClose={clearToast} />
