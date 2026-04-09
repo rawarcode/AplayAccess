@@ -408,18 +408,26 @@ export default function Resort() {
         </section>
 
         {/* ABOUT */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="lg:flex lg:items-center lg:justify-between gap-10">
+        <section className="py-24 bg-white relative overflow-hidden">
+          <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-10"
+               style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
+          <div className="pointer-events-none absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-10"
+               style={{ background: "radial-gradient(circle, #fbbf24, transparent 70%)" }} />
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="lg:flex lg:items-center lg:justify-between gap-16">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">{pc.about.title}</h2>
-                <p className="text-gray-600 mb-4">{pc.about.paragraph1}</p>
-                <p className="text-gray-600 mb-6">{pc.about.paragraph2}</p>
+                <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 text-sm font-semibold px-4 py-1.5 rounded-full mb-5">
+                  🌊 About the Resort
+                </div>
+                <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">{pc.about.title}</h2>
+                <div className="w-12 h-1.5 rounded-full bg-blue-400 mb-6" />
+                <p className="text-gray-600 mb-4 leading-relaxed">{pc.about.paragraph1}</p>
+                <p className="text-gray-600 mb-8 leading-relaxed">{pc.about.paragraph2}</p>
 
                 {amenityCards.length > 0 && (
-                  <div className="flex flex-wrap gap-4 text-gray-700">
+                  <div className="flex flex-wrap gap-3">
                     {amenityCards.slice(0, 4).map((a) => (
-                      <span key={a.title} className="inline-flex items-center gap-2">
+                      <span key={a.title} className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-full">
                         {a.icon} {a.title}
                       </span>
                     ))}
@@ -428,7 +436,8 @@ export default function Resort() {
               </div>
 
               <div className="lg:w-1/2 relative">
-                <div className="relative rounded-xl overflow-hidden shadow-xl">
+                <div className="absolute -inset-4 bg-blue-100 rounded-3xl rotate-2 opacity-40" />
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                   {isVideoUrl(pc.about.image) ? (
                     <video
                       src={pc.about.image}
@@ -450,34 +459,40 @@ export default function Resort() {
         </section>
 
         {/* ROOMS */}
-        <section id="rooms" className="py-20 bg-gray-50">
+        <section id="rooms" className="py-24 bg-sky-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">{pc.rooms.sectionTitle}</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">{pc.rooms.sectionSubtitle}</p>
+            <div className="text-center mb-14">
+              <span className="text-4xl mb-3 block">🛏️</span>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">{pc.rooms.sectionTitle}</h2>
+              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
+              <p className="text-lg text-gray-500 max-w-2xl mx-auto">{pc.rooms.sectionSubtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {roomCards.slice(0, 3).map((r) => (
                 <div
                   key={r.id ?? r.name}
-                  className="bg-white rounded-xl overflow-hidden shadow-md transition hover:-translate-y-2 hover:shadow-xl"
+                  className="group bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 >
-                  <div className="relative">
-                    <img src={r.img} alt={r.name} className="w-full h-64 object-cover" loading="lazy" />
+                  <div className="relative overflow-hidden">
+                    <img src={r.img} alt={r.name} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                      Day Use
+                    </span>
                   </div>
 
                   <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">{r.name}</h3>
-                    <p className="text-gray-600 mb-4">{r.desc}</p>
-                    <div className="flex justify-between items-center">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">{r.name}</h3>
+                    <p className="text-gray-500 text-sm mb-4 line-clamp-2">{r.desc}</p>
+                    <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                       <div>
                         <span className="text-2xl font-bold text-blue-600">{formatPHP(r.day_rate)}</span>
-                        <span className="text-gray-500 text-sm">/ day visit</span>
+                        <span className="text-gray-400 text-xs ml-1">/ day visit</span>
                       </div>
                       <button
                         onClick={() => requestBooking(r.name)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all"
                       >
                         Book Now
                       </button>
@@ -490,9 +505,9 @@ export default function Resort() {
             <div className="text-center mt-12">
               <Link
                 to="/rooms"
-                className="inline-block bg-white hover:bg-gray-100 text-blue-600 font-medium px-6 py-3 rounded-md border border-blue-600 transition"
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
               >
-                View All Rooms
+                View All Rooms →
               </Link>
             </div>
           </div>
@@ -500,25 +515,51 @@ export default function Resort() {
 
         {/* AMENITIES */}
         {amenityCards.length > 0 && (
-        <section id="amenities" className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Resort Amenities</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                We provide everything you need for a perfect vacation experience.
+        <section id="amenities" className="py-24 relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 45%, #fef9ec 100%)" }}>
+          <div className="pointer-events-none absolute -top-24 -left-24 w-96 h-96 rounded-full opacity-20"
+               style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
+          <div className="pointer-events-none absolute -bottom-24 -right-24 w-96 h-96 rounded-full opacity-20"
+               style={{ background: "radial-gradient(circle, #fbbf24, transparent 70%)" }} />
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-14">
+              <span className="text-4xl mb-3 block">🌴</span>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Resort Amenities</h2>
+              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
+              <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+                Everything you need for a perfect vacation experience.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {amenityCards.map((a) => (
-                <div key={a.title} className="text-center p-6 rounded-xl bg-gray-50 hover:bg-blue-50 transition">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                    {a.icon}
+            <div className="flex flex-wrap justify-center gap-6">
+              {amenityCards.map((a, i) => {
+                const accents = [
+                  "from-blue-400 to-cyan-400",
+                  "from-amber-400 to-orange-400",
+                  "from-emerald-400 to-teal-400",
+                  "from-violet-400 to-purple-400",
+                  "from-pink-400 to-rose-400",
+                  "from-sky-400 to-indigo-400",
+                ];
+                const accent = accents[i % accents.length];
+                return (
+                  <div
+                    key={a.title}
+                    className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col items-center text-center overflow-hidden"
+                    style={{ width: "200px", minHeight: "180px" }}
+                  >
+                    <div className={`w-full h-2 bg-gradient-to-r ${accent}`} />
+                    <div className="flex flex-col items-center px-5 py-6 flex-1">
+                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${accent} flex items-center justify-center mb-4 shadow-md text-3xl group-hover:scale-110 transition-transform duration-300`}>
+                        {a.icon}
+                      </div>
+                      <h3 className="text-base font-bold text-gray-800 leading-tight mb-1">{a.title}</h3>
+                      {a.desc && <p className="text-xs text-gray-500 leading-snug">{a.desc}</p>}
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{a.title}</h3>
-                  <p className="text-gray-600">{a.desc}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </section>
@@ -557,30 +598,34 @@ export default function Resort() {
         )}
 
         {/* GALLERY */}
-        <section id="gallery" className="py-20 bg-white">
+        <section id="gallery" className="py-24 bg-gray-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Gallery</h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">Take a visual journey through our beautiful resort.</p>
+            <div className="text-center mb-14">
+              <span className="text-4xl mb-3 block">📸</span>
+              <h2 className="text-3xl font-bold text-white mb-2">Gallery</h2>
+              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
+              <p className="text-lg text-gray-400 max-w-2xl mx-auto">Take a visual journey through our beautiful resort.</p>
             </div>
 
             {galleryDisplay === null ? (
-              /* Still fetching — show skeleton cards so layout doesn't jump */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="rounded-xl overflow-hidden shadow-lg bg-gray-200 animate-pulse h-64" />
+                  <div key={i} className="rounded-2xl overflow-hidden bg-gray-700 animate-pulse h-64" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {galleryDisplay.map((g, i) => (
-                  <div key={`${g.alt}-${i}`} className="rounded-xl overflow-hidden shadow-lg">
+                  <div key={`${g.alt}-${i}`} className="group relative rounded-2xl overflow-hidden shadow-lg cursor-pointer">
                     <img
                       src={g.src}
                       alt={g.alt}
-                      className="w-full h-64 object-cover hover:scale-105 transition duration-500 cursor-pointer"
+                      className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                       loading="lazy"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                      {g.caption && <p className="text-white text-sm font-medium">{g.caption}</p>}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -589,48 +634,42 @@ export default function Resort() {
             <div className="text-center mt-12">
               <Link
                 to="/gallery"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition"
+                className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
               >
-                View More Photos
+                View More Photos →
               </Link>
             </div>
           </div>
         </section>
 
         {/* CONTACT */}
-        <section id="contact" className="py-20 bg-gray-50">
+        <section id="contact" className="py-24 bg-gradient-to-br from-sky-50 via-white to-blue-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="lg:flex lg:items-center lg:justify-between gap-10">
+            <div className="text-center mb-12">
+              <span className="text-4xl mb-3 block">✉️</span>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">Get In Touch</h2>
+              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
+              <p className="text-lg text-gray-500 max-w-xl mx-auto">Have questions or need help planning your stay? We'd love to hear from you.</p>
+            </div>
+            <div className="lg:flex lg:items-start lg:justify-between gap-10">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
-                <h2 className="text-3xl font-bold text-gray-900 mb-6">Contact Us</h2>
-                <p className="text-gray-600 mb-6">
-                  Have questions or need assistance with your booking? Our team is here to help you plan your perfect getaway.
-                </p>
 
-                <div className="space-y-4 text-sm">
-                  <div className="flex items-start gap-3">
-                    <span className="text-blue-600 mt-0.5">📍</span>
-                    <div>
-                      <p className="font-medium text-gray-900">Address</p>
-                      <p className="text-gray-500">{pc.contact.address}</p>
+                <div className="space-y-4">
+                  {[
+                    { icon: "📍", label: "Address", value: pc.contact.address },
+                    { icon: "📞", label: "Phone",   value: pc.contact.phone   },
+                    { icon: "✉️", label: "Email",   value: pc.contact.email   },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="flex items-start gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">
+                        {icon}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-0.5">{label}</p>
+                        <p className="text-gray-700 text-sm">{value}</p>
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <span className="text-blue-600 mt-0.5">📞</span>
-                    <div>
-                      <p className="font-medium text-gray-900">Phone</p>
-                      <p className="text-gray-500">{pc.contact.phone}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <span className="text-blue-600 mt-0.5">✉️</span>
-                    <div>
-                      <p className="font-medium text-gray-900">Email</p>
-                      <p className="text-gray-500">{pc.contact.email}</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
                 {(pc.contact.facebook || pc.contact.instagram || pc.contact.twitter || pc.contact.tiktok) && (
@@ -647,7 +686,7 @@ export default function Resort() {
               </div>
 
               <div className="lg:w-1/2">
-                <form onSubmit={submitContact} className="bg-white p-6 rounded-lg shadow-md" noValidate>
+                <form onSubmit={submitContact} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-blue-500" noValidate>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                     <input
@@ -698,9 +737,9 @@ export default function Resort() {
 
                   <button
                     disabled={contactSubmitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2 px-4 rounded-md transition"
+                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl shadow hover:shadow-md transition-all"
                   >
-                    {contactSubmitting ? "Sending..." : "Send Message"}
+                    {contactSubmitting ? "Sending..." : "Send Message ✉️"}
                   </button>
                 </form>
               </div>
