@@ -6,6 +6,12 @@ export const getAdminStats     = ()         => api.get('/api/admin/stats');
 // ── Activity History ─────────────────────────────────────────────────────────
 export const getAdminHistory   = (params)   => api.get('/api/admin/history', { params });
 
+// ── Resort Amenities (site builder) ──────────────────────────────────────────
+export const getResortAmenities    = ()              => api.get('/api/admin/resort-amenities');
+export const createResortAmenity   = (data)          => api.post('/api/admin/resort-amenities', data);
+export const updateResortAmenity   = (id, data)      => api.patch(`/api/admin/resort-amenities/${id}`, data);
+export const deleteResortAmenity   = (id)            => api.delete(`/api/admin/resort-amenities/${id}`);
+
 // ── Rooms ────────────────────────────────────────────────────────────────────
 export const getAdminRooms     = ()         => api.get('/api/admin/rooms');
 export const createAdminRoom   = (data)     => api.post('/api/admin/rooms', data);

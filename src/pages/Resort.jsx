@@ -138,14 +138,11 @@ export default function Resort() {
   }, [roomsApi]);
 
   const amenityCards = useMemo(() => {
-    if (amenitiesApi.length) {
-      return amenitiesApi.map((a) => ({
-        title: a?.name ?? "Amenity",
-        desc: a?.description ?? "",
-        icon: amenityIcon(a?.name),
-      }));
-    }
-    return amenitiesFallback;
+    return amenitiesApi.map((a) => ({
+      title: a?.name ?? "Amenity",
+      desc:  a?.description ?? "",
+      icon:  amenityIcon(a?.name),
+    }));
   }, [amenitiesApi]);
 
   // Normalize gallery items to { src, alt, caption }
@@ -502,6 +499,7 @@ export default function Resort() {
         </section>
 
         {/* AMENITIES */}
+        {amenityCards.length > 0 && (
         <section id="amenities" className="py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
@@ -524,6 +522,7 @@ export default function Resort() {
             </div>
           </div>
         </section>
+        )}
 
         {/* TESTIMONIALS */}
         {pc.reviews.visible !== false && testimonialsDisplay.length > 0 && (

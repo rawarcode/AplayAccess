@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview } from "../../lib/adminApi";
+import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
@@ -516,6 +516,158 @@ function ResortRoomsSectionEditor({ content, onSave }) {
         </div>
       )}
     </SectionCard>
+  );
+}
+
+function ResortAmenitiesEditor() {
+  const [amenities, setAmenities] = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [editingId, setEditingId] = useState(null); // id of row being edited
+  const [editForm,  setEditForm]  = useState({ name: "", description: "" });
+  const [addForm,   setAddForm]   = useState({ name: "", description: "" });
+  const [adding,    setAdding]    = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [error,     setError]     = useState("");
+
+  useEffect(() => {
+    getResortAmenities()
+      .then(r => setAmenities(r.data.data ?? []))
+      .catch(() => setError("Failed to load amenities."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const startEdit = (a) => { setEditingId(a.id); setEditForm({ name: a.name, description: a.description ?? "" }); };
+  const cancelEdit = () => { setEditingId(null); setEditForm({ name: "", description: "" }); };
+
+  const saveEdit = async (id) => {
+    if (!editForm.name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await updateResortAmenity(id, editForm);
+      setAmenities(prev => prev.map(a => a.id === id ? res.data.data : a));
+      cancelEdit();
+    } catch { setError("Failed to update amenity."); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Remove this amenity?")) return;
+    try {
+      await deleteResortAmenity(id);
+      setAmenities(prev => prev.filter(a => a.id !== id));
+    } catch { setError("Failed to delete amenity."); }
+  };
+
+  const handleAdd = async () => {
+    if (!addForm.name.trim()) return;
+    setSaving(true);
+    try {
+      const res = await createResortAmenity(addForm);
+      setAmenities(prev => [...prev, res.data.data]);
+      setAddForm({ name: "", description: "" });
+      setAdding(false);
+    } catch { setError("Failed to add amenity."); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+            <i className="fas fa-concierge-bell text-[#1e3a8a] text-sm"></i>
+          </div>
+          <div>
+            <p className="font-semibold text-slate-800 text-sm">Resort Amenities</p>
+            <p className="text-xs text-slate-400">Resort page · /resort</p>
+          </div>
+        </div>
+        <button onClick={() => { setAdding(true); setEditingId(null); }}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] transition">
+          <i className="fas fa-plus text-xs"></i> Add Amenity
+        </button>
+      </div>
+
+      <div className="p-5 space-y-3">
+        {error && <p className="text-xs text-red-500">{error}</p>}
+        {loading && <p className="text-xs text-slate-400">Loading...</p>}
+
+        {!loading && amenities.length === 0 && !adding && (
+          <div className="text-center py-8 text-slate-400">
+            <i className="fas fa-concierge-bell text-3xl mb-2 block opacity-30"></i>
+            <p className="text-sm">No amenities yet — the section is hidden from guests.</p>
+            <p className="text-xs mt-1">Click <span className="font-medium">Add Amenity</span> to get started.</p>
+          </div>
+        )}
+
+        {/* Existing amenities */}
+        {amenities.map(a => (
+          <div key={a.id} className="border border-slate-200 rounded-xl p-3">
+            {editingId === a.id ? (
+              <div className="space-y-2">
+                <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
+                  placeholder="Amenity name" maxLength={100}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                <textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Short description (optional)" rows={2} maxLength={500}
+                  className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => saveEdit(a.id)} disabled={saving}
+                    className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition">
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button onClick={cancelEdit}
+                    className="px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800">{a.name}</p>
+                  {a.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{a.description}</p>}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button onClick={() => startEdit(a)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                    <i className="fas fa-pen text-xs"></i>
+                  </button>
+                  <button onClick={() => handleDelete(a.id)}
+                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                    <i className="fas fa-trash text-xs"></i>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+
+        {/* Add new amenity form */}
+        {adding && (
+          <div className="border-2 border-dashed border-sky-300 rounded-xl p-3 space-y-2 bg-sky-50">
+            <p className="text-xs font-semibold text-sky-700">New Amenity</p>
+            <input value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))}
+              placeholder="e.g. Beach Access" maxLength={100} autoFocus
+              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white" />
+            <textarea value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
+              placeholder="Short description (optional)" rows={2} maxLength={500}
+              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white resize-none" />
+            <div className="flex gap-2">
+              <button onClick={handleAdd} disabled={saving || !addForm.name.trim()}
+                className="px-3 py-1.5 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] disabled:opacity-50 transition">
+                {saving ? "Adding..." : "Add"}
+              </button>
+              <button onClick={() => { setAdding(false); setAddForm({ name: "", description: "" }); }}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1454,6 +1606,7 @@ export default function AdminContent() {
               <ResortHeroEditor          content={content.resort_hero}       onSave={update("resort_hero")} />
               <ResortAboutEditor         content={content.resort_about}      onSave={update("resort_about")} />
               <ResortRoomsSectionEditor  content={content.resort_rooms}      onSave={update("resort_rooms")} />
+              <ResortAmenitiesEditor />
               <ResortContactEditor       content={content.resort_contact}    onSave={update("resort_contact")} />
               <ResortNewsletterEditor    content={content.resort_newsletter} onSave={update("resort_newsletter")} />
             </div>
