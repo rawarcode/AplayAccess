@@ -1094,7 +1094,7 @@ function GalleryTab() {
       .then(r => {
         const imgs = r.data.data || [];
         setImages(imgs);
-        const ids = new Set(imgs.filter(i => i.is_featured).map(i => i.id));
+        const ids = new Set(imgs.reduce((acc, i) => { if (i.is_featured) acc.push(i.id); return acc; }, []));
         setSelectedIds(ids);
         savedIdsRef.current = new Set(ids);
       })
@@ -1240,7 +1240,7 @@ function GalleryTab() {
         </button>
       </div>
 
-      {showForm && (
+      {showForm ? (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
           <h3 className="font-semibold text-gray-800 mb-4">Add New Gallery Image</h3>
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1280,7 +1280,7 @@ function GalleryTab() {
             </div>
           </form>
         </div>
-      )}
+      ) : null}
 
       {loading ? (
         <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">
@@ -1458,7 +1458,7 @@ function ContactSubmissionsTab() {
         </div>
       </div>
 
-      {selected && (
+      {selected ? (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
             <div className="flex items-center justify-between mb-4">
@@ -1487,7 +1487,7 @@ function ContactSubmissionsTab() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

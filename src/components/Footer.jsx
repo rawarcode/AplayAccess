@@ -1,35 +1,10 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { api } from "../lib/api.js";
-
-const DEFAULT_FOOTER = {
-  tagline:   "Your perfect tropical getaway offering luxury accommodations and unforgettable experiences.",
-  address:   "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110",
-  phone:     "+63 908 191 4721",
-  email:     "aplayabeachresortph@gmail.com",
-  hours: [
-    { day: "Monday - Sunday", time: "7:00 AM - 9:00 PM" },
-  ],
-  facebook:  "https://www.facebook.com/aplayabeach",
-  instagram: "",
-  twitter:   "",
-  tiktok:    "",
-  copyright: "© 2026 Aplaya Cottages & Rentals. All rights reserved.",
-};
+import { useContent, DEFAULT_FOOTER, DEFAULT_NAVBAR } from "../context/ContentContext.jsx";
 
 export default function Footer() {
-  const [ft,    setFt]    = useState(DEFAULT_FOOTER);
-  const [brand, setBrand] = useState({ siteName: "Aplaya Cottages & Rentals", logoImage: "/logo.jpg" });
-
-  useEffect(() => {
-    api.get("/api/content")
-      .then(r => {
-        const d = r.data?.data ?? {};
-        if (d.page_footer) setFt(prev => ({ ...prev, ...d.page_footer }));
-        if (d.page_navbar) setBrand(prev => ({ ...prev, ...d.page_navbar }));
-      })
-      .catch(() => {});
-  }, []);
+  const siteContent = useContent();
+  const ft    = siteContent?.page_footer ? { ...DEFAULT_FOOTER, ...siteContent.page_footer } : DEFAULT_FOOTER;
+  const brand = siteContent?.page_navbar ? { ...DEFAULT_NAVBAR, ...siteContent.page_navbar } : DEFAULT_NAVBAR;
 
   const socials = [
     { key: "facebook",  label: "Facebook",  icon: "fa-facebook"  },

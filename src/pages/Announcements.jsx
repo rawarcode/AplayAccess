@@ -152,7 +152,7 @@ export default function Announcements() {
       </main>
 
       {/* Full-detail modal */}
-      {selected && (
+      {selected ? (
         <div
           className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setSelected(null); }}
@@ -202,7 +202,7 @@ export default function Announcements() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

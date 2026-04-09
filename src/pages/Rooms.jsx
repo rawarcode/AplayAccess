@@ -53,7 +53,7 @@ export default function Rooms() {
       .finally(() => setLoading(false));
   }, []);
 
-  const roomCards = useMemo(() => roomsApi, [roomsApi]);
+  const roomCards = roomsApi;
   const bookingRooms = useMemo(() =>
     roomsApi
       .filter(r => !r.availability_status || r.availability_status === "available")
@@ -65,7 +65,10 @@ export default function Rooms() {
         capacity:       Number(r.capacity ?? 20),
       })), [roomsApi]);
 
-  const detailRoom = selectedId != null ? roomCards.find(r => r.id === selectedId) : null;
+  const detailRoom = useMemo(
+    () => selectedId != null ? roomCards.find(r => r.id === selectedId) : null,
+    [selectedId, roomCards]
+  );
 
   function openDetails(id) {
     setSelectedId(id);

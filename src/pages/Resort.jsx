@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
+import { useContent } from "../context/ContentContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
@@ -67,9 +68,19 @@ function buildRoomCard(room) {
   return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, img, desc };
 }
 
+const DEFAULT_PC = {
+  hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Welcome to Paradise", subtitle: "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.", ctaText: "Book Your Stay" },
+  about:      { title: "Discover Aplaya Beach Resort", paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.", paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
+  rooms:      { sectionTitle: "Our Accommodations", sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation." },
+  contact:    { address: "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110", phone: "+63 908 191 4721", email: "aplayabeachresortph@gmail.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus", osm_url: "https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971" },
+  reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
+  newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },
+};
+
 export default function Resort() {
   const { user, login } = useAuth();
   const isLoggedIn = !!user;
+  const siteContent = useContent();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -99,15 +110,8 @@ export default function Resort() {
   // Newsletter inline feedback (no modal needed)
   const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "", submitting: false });
 
-  // Page content — fetched from /api/content, falls back to hardcoded defaults
-  const [pc, setPc] = useState(() => ({
-    hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Welcome to Paradise", subtitle: "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.", ctaText: "Book Your Stay" },
-    about:      { title: "Discover Aplaya Beach Resort", paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.", paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
-    rooms:      { sectionTitle: "Our Accommodations", sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation." },
-    contact:    { address: "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110", phone: "+63 908 191 4721", email: "aplayabeachresortph@gmail.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus", osm_url: "https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971" },
-    reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
-    newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },
-  }));
+  // Page content — synced from shared ContentContext, falls back to hardcoded defaults
+  const [pc, setPc] = useState(DEFAULT_PC);
 
   // API-backed lists (fallback if API is down)
   const [roomsApi, setRoomsApi] = useState([]);
@@ -241,22 +245,19 @@ export default function Resort() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
-  // Fetch page content from API (overrides defaults)
+  // Sync page content from shared ContentContext
   useEffect(() => {
-    api.get("/api/content")
-      .then(r => {
-        const d = r.data?.data ?? {};
-        setPc(prev => ({
-          hero:       { ...prev.hero,       ...(d.page_resort_hero       ?? {}) },
-          about:      { ...prev.about,      ...(d.page_resort_about      ?? {}) },
-          rooms:      { ...prev.rooms,      ...(d.page_resort_rooms      ?? {}) },
-          contact:    { ...prev.contact,    ...(d.page_resort_contact    ?? {}) },
-          reviews:    { ...prev.reviews,    ...(d.page_resort_reviews    ?? {}) },
-          newsletter: { ...prev.newsletter, ...(d.page_resort_newsletter ?? {}) },
-        }));
-      })
-      .catch(() => {}); // keep defaults silently
-  }, []);
+    if (!siteContent) return;
+    const d = siteContent;
+    setPc(prev => ({
+      hero:       { ...prev.hero,       ...(d.page_resort_hero       ?? {}) },
+      about:      { ...prev.about,      ...(d.page_resort_about      ?? {}) },
+      rooms:      { ...prev.rooms,      ...(d.page_resort_rooms      ?? {}) },
+      contact:    { ...prev.contact,    ...(d.page_resort_contact    ?? {}) },
+      reviews:    { ...prev.reviews,    ...(d.page_resort_reviews    ?? {}) },
+      newsletter: { ...prev.newsletter, ...(d.page_resort_newsletter ?? {}) },
+    }));
+  }, [siteContent]);
 
   // Load rooms + amenities (public endpoints now)
   useEffect(() => {

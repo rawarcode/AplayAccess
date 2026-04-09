@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
-import { api } from "../lib/api.js";
+import { useContent, DEFAULT_NAVBAR } from "../context/ContentContext.jsx";
 
 import LoginModal from "./modals/LoginModal.jsx";
 import SignupModal from "./modals/SignupModal.jsx";
@@ -13,17 +13,11 @@ export default function Navbar() {
 
   const [loginOpen,  setLoginOpen]  = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
-  const [brand, setBrand] = useState({ siteName: "Aplaya Cottages & Rentals", logoImage: "/logo.jpg" });
 
-  // Pull site name / logo from content API (same store as site builder)
-  useEffect(() => {
-    api.get("/api/content")
-      .then(r => {
-        const nb = r.data?.data?.page_navbar;
-        if (nb?.siteName || nb?.logoEmoji) setBrand(prev => ({ ...prev, ...nb }));
-      })
-      .catch(() => {});
-  }, []);
+  const siteContent = useContent();
+  const brand = siteContent?.page_navbar
+    ? { ...DEFAULT_NAVBAR, ...siteContent.page_navbar }
+    : DEFAULT_NAVBAR;
 
   useLockBodyScroll(loginOpen || signupOpen);
 

@@ -149,7 +149,7 @@ export default function Gallery() {
           </div>
 
           {/* Category filter tabs */}
-          {visibleCats.length > 1 && (
+          {visibleCats.length > 1 ? (
             <div className="flex flex-wrap justify-center gap-2 mb-10">
               {visibleCats.map((cat) => (
                 <button
@@ -166,7 +166,7 @@ export default function Gallery() {
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
 
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
             {filteredItems.map((g, i) => (
