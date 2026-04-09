@@ -13,7 +13,7 @@ const DEFAULT_CONTENT = {
   // ── Site-wide ──────────────────────────────────────────────────────────────
   navbar: {
     siteName:  "Aplaya Cottages & Rentals",
-    logoImage: "",
+    logoImage: "/logo.jpg",
   },
   // ── Home page (/home) ──────────────────────────────────────────────────────
   home_hero: {

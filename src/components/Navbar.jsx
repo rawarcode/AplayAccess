@@ -13,7 +13,7 @@ export default function Navbar() {
 
   const [loginOpen,  setLoginOpen]  = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
-  const [brand, setBrand] = useState({ siteName: "Aplaya Cottages & Rentals", logoImage: "" });
+  const [brand, setBrand] = useState({ siteName: "Aplaya Cottages & Rentals", logoImage: "/logo.jpg" });
 
   // Pull site name / logo from content API (same store as site builder)
   useEffect(() => {
