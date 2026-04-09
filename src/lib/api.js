@@ -3,7 +3,7 @@ import axios from "axios";
 export const TOKEN_KEY = "aplaya_token";
 
 export const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
   withCredentials: false,
   headers: { Accept: "application/json" },
 });

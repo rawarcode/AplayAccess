@@ -77,7 +77,7 @@ export default function Home() {
   const { hero, resorts: resortContent } = content;
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/content")
+    fetch(`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/api/content`)
       .then(r => r.json())
       .then(json => {
         const d = json?.data ?? {};

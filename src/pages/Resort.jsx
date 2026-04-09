@@ -197,7 +197,11 @@ export default function Resort() {
     const params = new URLSearchParams(location.search);
     const next = params.get("next");
 
-    if (next) {
+    // Allowlist: only navigate to known internal paths (prevent open redirect)
+    const ALLOWED_PREFIXES = ["/dashboard", "/resort", "/rooms", "/gallery", "/owner", "/admin", "/frontdesk"];
+    const isSafeNext = next && next.startsWith("/") && ALLOWED_PREFIXES.some(p => next.startsWith(p));
+
+    if (isSafeNext) {
       params.delete("login");
       params.delete("next");
       navigate(next, { replace: true });
