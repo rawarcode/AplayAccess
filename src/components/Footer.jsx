@@ -1,56 +1,132 @@
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../lib/api.js";
+
+const DEFAULT_FOOTER = {
+  tagline:   "Your perfect tropical getaway offering luxury accommodations and unforgettable experiences.",
+  address:   "Brgy. Ilayang Bukal, Padre Burgos, Quezon Province, Philippines",
+  phone:     "+63 917 123 4567",
+  email:     "reservations@aplaya.com",
+  hours: [
+    { day: "Monday - Friday", time: "9:00 AM - 6:00 PM" },
+    { day: "Saturday",        time: "10:00 AM - 4:00 PM" },
+    { day: "Sunday",          time: "Closed" },
+  ],
+  facebook:  "",
+  instagram: "",
+  twitter:   "",
+  tiktok:    "",
+  copyright: "© 2026 Aplaya Cottages & Rentals. All rights reserved.",
+};
+
 export default function Footer() {
-    return (
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-lg font-bold mb-4">Aplaya Beach Resort</h3>
-              <p className="text-gray-400 text-sm">
-                Your perfect tropical getaway offering luxury accommodations, world-class amenities, and unforgettable experiences.
-              </p>
+  const [ft,    setFt]    = useState(DEFAULT_FOOTER);
+  const [brand, setBrand] = useState({ siteName: "Aplaya Cottages & Rentals", logoImage: "/logo.jpg" });
+
+  useEffect(() => {
+    api.get("/api/content")
+      .then(r => {
+        const d = r.data?.data ?? {};
+        if (d.page_footer) setFt(prev => ({ ...prev, ...d.page_footer }));
+        if (d.page_navbar) setBrand(prev => ({ ...prev, ...d.page_navbar }));
+      })
+      .catch(() => {});
+  }, []);
+
+  const socials = [
+    { key: "facebook",  label: "Facebook",  icon: "fa-facebook"  },
+    { key: "instagram", label: "Instagram", icon: "fa-instagram" },
+    { key: "twitter",   label: "Twitter",   icon: "fa-twitter"   },
+    { key: "tiktok",    label: "TikTok",    icon: "fa-tiktok"    },
+  ].filter(s => ft[s.key]);
+
+  return (
+    <footer className="bg-gray-900 text-white">
+      {/* Main grid */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+
+          {/* Brand */}
+          <div className="md:col-span-1">
+            <div className="flex items-center gap-3 mb-3">
+              {brand.logoImage
+                ? <img src={brand.logoImage} alt={brand.siteName} className="h-12 w-auto object-contain" />
+                : <span className="text-3xl">🏖️</span>
+              }
             </div>
-  
-            <div>
-              <h3 className="text-lg font-bold mb-4">Quick Links</h3>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#home" className="text-gray-400 hover:text-white">Home</a></li>
-                <li><a href="#rooms" className="text-gray-400 hover:text-white">Rooms & Suites</a></li>
-                <li><a href="#amenities" className="text-gray-400 hover:text-white">Amenities</a></li>
-                <li><a href="#gallery" className="text-gray-400 hover:text-white">Gallery</a></li>
-                <li><a href="#contact" className="text-gray-400 hover:text-white">Contact Us</a></li>
-              </ul>
-            </div>
-  
-            <div>
-              <h3 className="text-lg font-bold mb-4">Contact Info</h3>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li className="flex items-start gap-2"><span className="text-blue-500">📍</span>123 Beachfront Avenue, Coastal City</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500">📞</span>+1 (555) 123-4567</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500">✉️</span>reservations@aplayabeachresort.com</li>
-              </ul>
-            </div>
-  
-            <div>
-              <h3 className="text-lg font-bold mb-4">Opening Hours</h3>
-              <ul className="space-y-2 text-gray-400 text-sm">
-                <li className="flex justify-between"><span>Monday - Friday</span><span>9:00 AM - 6:00 PM</span></li>
-                <li className="flex justify-between"><span>Saturday</span><span>10:00 AM - 4:00 PM</span></li>
-                <li className="flex justify-between"><span>Sunday</span><span>Closed</span></li>
-              </ul>
-            </div>
+            <p className="text-sm font-bold text-white mb-2">{brand.siteName}</p>
+            <p className="text-gray-400 text-sm leading-relaxed">{ft.tagline}</p>
+            {socials.length > 0 && (
+              <div className="mt-5 flex gap-3">
+                {socials.map(s => (
+                  <a key={s.key} href={ft[s.key]} target="_blank" rel="noopener noreferrer"
+                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-blue-600 flex items-center justify-center transition-colors"
+                    aria-label={s.label}>
+                    <i className={`fab ${s.icon} text-sm`}></i>
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
-  
-          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 text-sm mb-4 md:mb-0">© 2023 Aplaya Beach Resort. All rights reserved.</p>
-            <div className="flex space-x-6 text-sm text-gray-400">
-              <a href="#" className="hover:text-white">Facebook</a>
-              <a href="#" className="hover:text-white">Twitter</a>
-              <a href="#" className="hover:text-white">Instagram</a>
-              <a href="#" className="hover:text-white">Tripadvisor</a>
-            </div>
+
+          {/* Quick Links */}
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Quick Links</h3>
+            <ul className="space-y-2 text-sm">
+              {[
+                { label: "Resort",   to: "/resort"        },
+                { label: "Rooms",    to: "/rooms"         },
+                { label: "Gallery",  to: "/gallery"       },
+                { label: "Book Now", to: "/resort?book=1" },
+              ].map(l => (
+                <li key={l.label}>
+                  <Link to={l.to} className="text-gray-400 hover:text-white transition-colors">{l.label}</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Contact */}
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Contact</h3>
+            <ul className="space-y-3 text-sm">
+              <li className="flex items-start gap-2 text-gray-400">
+                <span className="text-blue-400 mt-0.5 shrink-0">📍</span>
+                <span>{ft.address}</span>
+              </li>
+              <li className="flex items-center gap-2 text-gray-400">
+                <span className="text-blue-400">📞</span>
+                <span>{ft.phone}</span>
+              </li>
+              <li className="flex items-center gap-2 text-gray-400">
+                <span className="text-blue-400">✉️</span>
+                <span>{ft.email}</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Hours */}
+          <div>
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Opening Hours</h3>
+            <ul className="space-y-2 text-sm">
+              {(ft.hours || []).map((h, i) => (
+                <li key={i} className="flex justify-between text-gray-400">
+                  <span>{h.day}</span>
+                  <span className={h.time === "Closed" ? "text-red-400" : "text-green-400"}>{h.time}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
-      </footer>
-    );
-  }
-  
+      </div>
+
+      {/* Bottom bar */}
+      <div className="border-t border-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
+          <p className="text-gray-500 text-sm">{ft.copyright}</p>
+          <p className="text-gray-600 text-xs">Built with ❤️ for Aplaya</p>
+        </div>
+      </div>
+    </footer>
+  );
+}

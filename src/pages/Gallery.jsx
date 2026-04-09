@@ -65,7 +65,7 @@ export default function Gallery() {
   }, [open, items.length]);
 
   return (
-    <div className="pt-16 bg-gray-50 min-h-screen">
+    <div className="pt-16 bg-gray-900 min-h-screen">
       {/* HERO */}
       <section
         className="relative h-[60vh] flex items-center justify-center text-center"
@@ -110,15 +110,25 @@ export default function Gallery() {
       </section>
 
       {/* GRID */}
-      <main className="flex-grow py-12">
+      <main className="flex-grow py-16 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(250px,1fr))]">
+          {/* Section header */}
+          <div className="text-center mb-12">
+            <span className="text-4xl mb-3 block">📸</span>
+            <h2 className="text-3xl font-bold text-white mb-2">Browse the Gallery</h2>
+            <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
+            <span className="inline-block bg-white/10 text-gray-300 text-sm px-4 py-1 rounded-full">
+              {items.length} photo{items.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+
+          <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
             {items.map((g, i) => (
               <button
                 key={`${g.alt}-${i}`}
                 type="button"
                 onClick={() => openAt(i)}
-                className="group overflow-hidden rounded-lg shadow aspect-[4/3] bg-gray-200 relative"
+                className="group relative overflow-hidden rounded-2xl shadow-lg aspect-[4/3] bg-gray-800"
                 aria-label={`Open ${isVideoUrl(g.src) ? "video" : "image"}: ${g.caption || g.alt}`}
               >
                 {isVideoUrl(g.src) ? (
@@ -126,11 +136,11 @@ export default function Gallery() {
                     <video
                       src={g.src}
                       muted playsInline
-                      className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="bg-black/50 rounded-full w-12 h-12 flex items-center justify-center text-white">
-                        <i className="fas fa-play text-lg ml-1"></i>
+                      <div className="bg-black/50 rounded-full w-14 h-14 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                        <i className="fas fa-play text-xl ml-1"></i>
                       </div>
                     </div>
                   </>
@@ -138,17 +148,27 @@ export default function Gallery() {
                   <img
                     src={g.src}
                     alt={g.alt}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                     loading="lazy"
                   />
                 )}
+                {/* Hover overlay with caption */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                  {g.caption && <p className="text-white text-sm font-medium leading-snug">{g.caption}</p>}
+                  <p className="text-white/60 text-xs mt-1">Click to enlarge</p>
+                </div>
+                {/* Number badge */}
+                <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  {i + 1} / {items.length}
+                </div>
               </button>
             ))}
           </div>
-          <div className="mt-10 text-center">
+
+          <div className="mt-12 text-center">
             <Link
               to="/resort"
-              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
+              className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
             >
               ← Back to Resort
             </Link>

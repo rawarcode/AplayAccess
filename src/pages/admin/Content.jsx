@@ -15,6 +15,22 @@ const DEFAULT_CONTENT = {
     siteName:  "Aplaya Cottages & Rentals",
     logoImage: "/logo.jpg",
   },
+  footer: {
+    tagline:   "Your perfect tropical getaway offering luxury accommodations and unforgettable experiences.",
+    address:   "Brgy. Ilayang Bukal, Padre Burgos, Quezon Province, Philippines",
+    phone:     "+63 917 123 4567",
+    email:     "reservations@aplaya.com",
+    hours: [
+      { day: "Monday - Friday", time: "9:00 AM - 6:00 PM" },
+      { day: "Saturday",        time: "10:00 AM - 4:00 PM" },
+      { day: "Sunday",          time: "Closed" },
+    ],
+    facebook:  "",
+    instagram: "",
+    twitter:   "",
+    tiktok:    "",
+    copyright: "© 2026 Aplaya Cottages & Rentals. All rights reserved.",
+  },
   // ── Home page (/home) ──────────────────────────────────────────────────────
   home_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
@@ -277,6 +293,67 @@ function NavbarEditor({ content, onSave }) {
               </div>
             </div>
             <p className="text-center text-[10px] text-gray-400 py-1 bg-gray-50">Live Preview</p>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+function FooterEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+  const updateHour = (i, key, val) =>
+    setForm(p => ({ ...p, hours: p.hours.map((h, hi) => hi === i ? { ...h, [key]: val } : h) }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-shoe-prints" title="Footer" badge="Site-wide · all pages" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="text-sm text-gray-500 space-y-1 py-1">
+          <p className="line-clamp-1 text-gray-700">{content.tagline}</p>
+          <p>{content.address}</p>
+          <p>{content.phone} · {content.email}</p>
+          <p className="text-gray-400">{content.copyright}</p>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          <Field label="Tagline" value={form.tagline} onChange={f("tagline")} rows={2} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Address"        value={form.address}   onChange={f("address")} />
+            <Field label="Phone"          value={form.phone}     onChange={f("phone")} />
+            <Field label="Email"          value={form.email}     onChange={f("email")} />
+            <Field label="Copyright Line" value={form.copyright} onChange={f("copyright")} />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Opening Hours</label>
+            <div className="space-y-2">
+              {(form.hours || []).map((h, i) => (
+                <div key={i} className="flex gap-3 items-center">
+                  <input value={h.day} onChange={e => updateHour(i, "day", e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+                    placeholder="Day(s)" />
+                  <input value={h.time} onChange={e => updateHour(i, "time", e.target.value)}
+                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+                    placeholder="Hours (or Closed)" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Social Media Links</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="Facebook URL"  value={form.facebook  || ""} onChange={f("facebook")} />
+              <Field label="Instagram URL" value={form.instagram || ""} onChange={f("instagram")} />
+              <Field label="Twitter URL"   value={form.twitter   || ""} onChange={f("twitter")} />
+              <Field label="TikTok URL"    value={form.tiktok    || ""} onChange={f("tiktok")} />
+            </div>
           </div>
         </div>
       )}
@@ -1724,6 +1801,7 @@ export default function AdminContent() {
             </div>
             <div className="space-y-3">
               <NavbarEditor content={content.navbar} onSave={update("navbar")} />
+              <FooterEditor content={content.footer} onSave={update("footer")} />
             </div>
           </div>
 
