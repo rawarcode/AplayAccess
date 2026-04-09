@@ -519,12 +519,96 @@ function ResortRoomsSectionEditor({ content, onSave }) {
   );
 }
 
+const AMENITY_ICONS = [
+  "🏖️","🏊","🌊","⛱️","🚤","🛶",
+  "🍽️","🍹","🥂","☕","🍦","🎂",
+  "📶","🅿️","🚐","✈️","🚗","🛵",
+  "💆","🧖","🛁","💪","🏋️","🧘",
+  "🌿","🌺","🌴","🌅","🌙","⭐",
+  "🎵","🎮","🎯","🎨","📷","🎭",
+  "🔒","🧹","🛎️","🔑","💡","❄️",
+  "👨‍👩‍👧","🐾","♿","🏥","🧺","✨",
+];
+
+const EMPTY_FORM = { name: "", icon: "✨", description: "" };
+
+function AmenityForm({ initial = EMPTY_FORM, onSave, onCancel, saving, label = "Save" }) {
+  const [form, setForm] = useState(initial);
+  const [showPicker, setShowPicker] = useState(false);
+  const f = k => v => setForm(p => ({ ...p, [k]: v }));
+
+  return (
+    <div className="space-y-3">
+      {/* Icon picker */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1.5">Icon</label>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={() => setShowPicker(p => !p)}
+            className="w-12 h-12 rounded-xl border-2 border-slate-200 hover:border-sky-400 flex items-center justify-center text-2xl transition bg-slate-50">
+            {form.icon || "✨"}
+          </button>
+          <span className="text-xs text-slate-400">Click to choose icon</span>
+        </div>
+        {showPicker && (
+          <div className="mt-2 p-3 border border-slate-200 rounded-xl bg-white shadow-lg grid grid-cols-12 gap-1 max-h-40 overflow-y-auto">
+            {AMENITY_ICONS.map(ico => (
+              <button key={ico} type="button" onClick={() => { f("icon")(ico); setShowPicker(false); }}
+                className={`text-xl p-1 rounded-lg hover:bg-blue-50 transition ${form.icon === ico ? "bg-blue-100 ring-2 ring-blue-400" : ""}`}>
+                {ico}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Name */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">Name <span className="text-red-400">*</span></label>
+        <input value={form.name} onChange={e => f("name")(e.target.value)}
+          placeholder="e.g. Beach Access" maxLength={100}
+          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+      </div>
+
+      {/* Description */}
+      <div>
+        <label className="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+        <textarea value={form.description} onChange={e => f("description")(e.target.value)}
+          placeholder="Short description shown to guests (optional)" rows={2} maxLength={500}
+          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
+      </div>
+
+      {/* Preview */}
+      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+        <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mb-2">Preview</p>
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg shrink-0">
+            {form.icon || "✨"}
+          </div>
+          <div>
+            <p className="text-sm font-bold text-gray-900">{form.name || <span className="text-gray-300 italic">Amenity name</span>}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{form.description || <span className="text-gray-300 italic">Description</span>}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={() => onSave(form)} disabled={saving || !form.name.trim()}
+          className="px-4 py-2 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] disabled:opacity-50 transition">
+          {saving ? "Saving..." : label}
+        </button>
+        <button onClick={onCancel}
+          className="px-4 py-2 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ResortAmenitiesEditor() {
   const [amenities, setAmenities] = useState([]);
   const [loading,   setLoading]   = useState(true);
-  const [editingId, setEditingId] = useState(null); // id of row being edited
-  const [editForm,  setEditForm]  = useState({ name: "", description: "" });
-  const [addForm,   setAddForm]   = useState({ name: "", description: "" });
+  const [editingId, setEditingId] = useState(null);
   const [adding,    setAdding]    = useState(false);
   const [saving,    setSaving]    = useState(false);
   const [error,     setError]     = useState("");
@@ -536,17 +620,13 @@ function ResortAmenitiesEditor() {
       .finally(() => setLoading(false));
   }, []);
 
-  const startEdit = (a) => { setEditingId(a.id); setEditForm({ name: a.name, description: a.description ?? "" }); };
-  const cancelEdit = () => { setEditingId(null); setEditForm({ name: "", description: "" }); };
-
-  const saveEdit = async (id) => {
-    if (!editForm.name.trim()) return;
+  const handleSaveEdit = async (id, form) => {
     setSaving(true);
     try {
-      const res = await updateResortAmenity(id, editForm);
+      const res = await updateResortAmenity(id, form);
       setAmenities(prev => prev.map(a => a.id === id ? res.data.data : a));
-      cancelEdit();
-    } catch { setError("Failed to update amenity."); }
+      setEditingId(null);
+    } catch { setError("Failed to update."); }
     finally { setSaving(false); }
   };
 
@@ -555,18 +635,16 @@ function ResortAmenitiesEditor() {
     try {
       await deleteResortAmenity(id);
       setAmenities(prev => prev.filter(a => a.id !== id));
-    } catch { setError("Failed to delete amenity."); }
+    } catch { setError("Failed to delete."); }
   };
 
-  const handleAdd = async () => {
-    if (!addForm.name.trim()) return;
+  const handleAdd = async (form) => {
     setSaving(true);
     try {
-      const res = await createResortAmenity(addForm);
+      const res = await createResortAmenity(form);
       setAmenities(prev => [...prev, res.data.data]);
-      setAddForm({ name: "", description: "" });
       setAdding(false);
-    } catch { setError("Failed to add amenity."); }
+    } catch { setError("Failed to add."); }
     finally { setSaving(false); }
   };
 
@@ -580,90 +658,80 @@ function ResortAmenitiesEditor() {
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Resort Amenities</p>
-            <p className="text-xs text-slate-400">Resort page · /resort</p>
+            <p className="text-xs text-slate-400">Resort page · /resort · hidden when empty</p>
           </div>
         </div>
-        <button onClick={() => { setAdding(true); setEditingId(null); }}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] transition">
-          <i className="fas fa-plus text-xs"></i> Add Amenity
-        </button>
+        {!adding && !editingId && (
+          <button onClick={() => setAdding(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] transition">
+            <i className="fas fa-plus text-xs"></i> Add Amenity
+          </button>
+        )}
       </div>
 
       <div className="p-5 space-y-3">
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && <p className="text-xs text-red-500 mb-1">{error}</p>}
         {loading && <p className="text-xs text-slate-400">Loading...</p>}
 
+        {/* Empty state */}
         {!loading && amenities.length === 0 && !adding && (
-          <div className="text-center py-8 text-slate-400">
-            <i className="fas fa-concierge-bell text-3xl mb-2 block opacity-30"></i>
-            <p className="text-sm">No amenities yet — the section is hidden from guests.</p>
-            <p className="text-xs mt-1">Click <span className="font-medium">Add Amenity</span> to get started.</p>
+          <div className="text-center py-10 text-slate-400">
+            <div className="text-4xl mb-3">🏖️</div>
+            <p className="text-sm font-medium">No amenities yet</p>
+            <p className="text-xs mt-1">The section is hidden from guests until you add some.</p>
           </div>
         )}
 
-        {/* Existing amenities */}
-        {amenities.map(a => (
-          <div key={a.id} className="border border-slate-200 rounded-xl p-3">
-            {editingId === a.id ? (
-              <div className="space-y-2">
-                <input value={editForm.name} onChange={e => setEditForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Amenity name" maxLength={100}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
-                <textarea value={editForm.description} onChange={e => setEditForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Short description (optional)" rows={2} maxLength={500}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none" />
-                <div className="flex gap-2">
-                  <button onClick={() => saveEdit(a.id)} disabled={saving}
-                    className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition">
-                    {saving ? "Saving..." : "Save"}
-                  </button>
-                  <button onClick={cancelEdit}
-                    className="px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
-                    Cancel
-                  </button>
+        {/* Amenity list */}
+        <div className="space-y-2">
+          {amenities.map(a => (
+            <div key={a.id} className="border border-slate-200 rounded-xl overflow-hidden">
+              {editingId === a.id ? (
+                <div className="p-4">
+                  <p className="text-xs font-semibold text-slate-700 mb-3">Edit Amenity</p>
+                  <AmenityForm
+                    initial={{ name: a.name, icon: a.icon || "✨", description: a.description ?? "" }}
+                    onSave={(form) => handleSaveEdit(a.id, form)}
+                    onCancel={() => setEditingId(null)}
+                    saving={saving}
+                    label="Save Changes"
+                  />
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-slate-800">{a.name}</p>
-                  {a.description && <p className="text-xs text-slate-500 mt-0.5 truncate">{a.description}</p>}
+              ) : (
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl shrink-0">
+                    {a.icon || "✨"}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800">{a.name}</p>
+                    {a.description && <p className="text-xs text-slate-400 truncate">{a.description}</p>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => { setEditingId(a.id); setAdding(false); }}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
+                      <i className="fas fa-pen text-xs"></i>
+                    </button>
+                    <button onClick={() => handleDelete(a.id)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
+                      <i className="fas fa-trash text-xs"></i>
+                    </button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button onClick={() => startEdit(a)}
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
-                    <i className="fas fa-pen text-xs"></i>
-                  </button>
-                  <button onClick={() => handleDelete(a.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
-                    <i className="fas fa-trash text-xs"></i>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-
-        {/* Add new amenity form */}
-        {adding && (
-          <div className="border-2 border-dashed border-sky-300 rounded-xl p-3 space-y-2 bg-sky-50">
-            <p className="text-xs font-semibold text-sky-700">New Amenity</p>
-            <input value={addForm.name} onChange={e => setAddForm(p => ({ ...p, name: e.target.value }))}
-              placeholder="e.g. Beach Access" maxLength={100} autoFocus
-              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white" />
-            <textarea value={addForm.description} onChange={e => setAddForm(p => ({ ...p, description: e.target.value }))}
-              placeholder="Short description (optional)" rows={2} maxLength={500}
-              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white resize-none" />
-            <div className="flex gap-2">
-              <button onClick={handleAdd} disabled={saving || !addForm.name.trim()}
-                className="px-3 py-1.5 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] disabled:opacity-50 transition">
-                {saving ? "Adding..." : "Add"}
-              </button>
-              <button onClick={() => { setAdding(false); setAddForm({ name: "", description: "" }); }}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition">
-                Cancel
-              </button>
+              )}
             </div>
+          ))}
+        </div>
+
+        {/* Add form */}
+        {adding && (
+          <div className="border-2 border-dashed border-sky-300 rounded-xl p-4 bg-sky-50">
+            <p className="text-xs font-semibold text-sky-700 mb-3">New Amenity</p>
+            <AmenityForm
+              onSave={handleAdd}
+              onCancel={() => setAdding(false)}
+              saving={saving}
+              label="Add Amenity"
+            />
           </div>
         )}
       </div>

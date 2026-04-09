@@ -141,7 +141,7 @@ export default function Resort() {
     return amenitiesApi.map((a) => ({
       title: a?.name ?? "Amenity",
       desc:  a?.description ?? "",
-      icon:  amenityIcon(a?.name),
+      icon:  a?.icon || amenityIcon(a?.name),
     }));
   }, [amenitiesApi]);
 
