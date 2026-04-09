@@ -38,8 +38,8 @@ function printReport({ bookings, active, revenue, avgVal, nights, period, roomTy
 <div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Booking Management System</div></div><div class="rt"><h2>Monthly Report</h2><p>${period}</p><small>Generated: ${now}</small></div></div>
 <div class="cards"><div class="card"><div class="lbl">Total Revenue</div><div class="val">₱${fmtN(revenue)}</div><div class="hint">Excluding cancelled</div></div><div class="card"><div class="lbl">Total Bookings</div><div class="val">${bookings.length}</div><div class="hint">${active.length} active · ${bookings.length-active.length} cancelled</div></div><div class="card"><div class="lbl">Avg. Stay Value</div><div class="val">₱${fmtN(Math.round(avgVal))}</div><div class="hint">Per active booking</div></div><div class="card"><div class="lbl">Total Nights</div><div class="val">${Math.round(nights)}</div><div class="hint">Active bookings only</div></div></div>
 <div class="sec"><div class="sech">Booking Status Breakdown</div><div class="srow">${['Confirmed','Checked In','Completed','Pending','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div></div>
-<div class="sec"><div class="sech">Revenue by Room Type</div><table><thead><tr><th>Room Type</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${active.length}</td><td style="text-align:right">₱${fmtN(revenue)}</td><td style="text-align:right">₱${active.length?fmtN(Math.round(revenue/active.length)):'—'}</td></tr></tfoot></table></div>
-<div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room Type</th><th>Payment</th><th style="text-align:center">Nights</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(revenue)}</td><td></td></tr></tfoot></table></div>
+<div class="sec"><div class="sech">Revenue by Room</div><table><thead><tr><th>Room</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${active.length}</td><td style="text-align:right">₱${fmtN(revenue)}</td><td style="text-align:right">₱${active.length?fmtN(Math.round(revenue/active.length)):'—'}</td></tr></tfoot></table></div>
+<div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Nights</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(revenue)}</td><td></td></tr></tfoot></table></div>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
@@ -270,7 +270,7 @@ export default function OwnerReports() {
 
           {/* Revenue by room type */}
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold mb-4">Revenue by Room Type</h2>
+            <h2 className="text-lg font-semibold mb-4">Revenue by Room</h2>
             {loadingChart ? <p className="text-sm text-gray-400">Loading...</p> : roomsData.length === 0 ? <p className="text-sm text-gray-400">No data for this period</p> : (
               <>
                 <div style={{ height: Math.max(224, 224 + (roomsData.length - 4) * 28) }}><Bar data={analyticsRoomBarData} options={analyticsBarOptions} /></div>
@@ -380,9 +380,9 @@ export default function OwnerReports() {
           ))}
         </div>
 
-        {/* Revenue by Room Type */}
+        {/* Revenue by Room */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="font-semibold text-gray-800 mb-4">Revenue by Room Type</h3>
+          <h3 className="font-semibold text-gray-800 mb-4">Revenue by Room</h3>
           {loading ? (
             <p className="text-gray-400 text-sm">Loading...</p>
           ) : active.length === 0 ? (
@@ -461,7 +461,7 @@ export default function OwnerReports() {
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
                 <tr>
                   <th className="px-6 py-3 text-left">Guest</th>
-                  <th className="px-6 py-3 text-left">Room Type</th>
+                  <th className="px-6 py-3 text-left">Room</th>
                   <th className="px-6 py-3 text-left">Payment</th>
                   <th className="px-6 py-3 text-left">Nights</th>
                   <th className="px-6 py-3 text-left">Amount</th>

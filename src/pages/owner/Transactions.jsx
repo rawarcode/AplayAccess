@@ -419,7 +419,7 @@ export default function OwnerTransactions() {
 
         {/* Revenue by Room Type */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-slate-800">Revenue by Room Type</h2>
+          <h2 className="text-lg font-semibold text-slate-800">Revenue by Room</h2>
           <p className="text-xs text-slate-400 mb-4">All time · excluding cancelled</p>
           <div className="h-56">
             {loading ? (
