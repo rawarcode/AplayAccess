@@ -13,7 +13,7 @@ export default function Navbar() {
 
   const [loginOpen,  setLoginOpen]  = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
-  const [brand, setBrand] = useState({ siteName: "Aplaya Beach Resort", logoEmoji: "🏖️" });
+  const [brand, setBrand] = useState({ siteName: "Aplaya Beach Resort", logoImage: "" });
 
   // Pull site name / logo from content API (same store as site builder)
   useEffect(() => {
@@ -42,7 +42,10 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl">{brand.logoEmoji}</span>
+          {brand.logoImage
+            ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" />
+            : <span className="text-2xl">🏖️</span>
+          }
           <span className="text-xl font-bold text-blue-600">{brand.siteName}</span>
         </Link>
 

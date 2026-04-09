@@ -13,7 +13,7 @@ const DEFAULT_CONTENT = {
   // ── Site-wide ──────────────────────────────────────────────────────────────
   navbar: {
     siteName:  "Aplaya Beach Resort",
-    logoEmoji: "🏖️",
+    logoImage: "",
   },
   // ── Home page (/home) ──────────────────────────────────────────────────────
   home_hero: {
@@ -234,28 +234,33 @@ function NavbarEditor({ content, onSave }) {
   const cancel = () => { setForm(content); setEditing(false); };
   const save   = () => { onSave(form); setEditing(false); };
 
+  const LogoDisplay = ({ image, name, size = "h-8" }) =>
+    image
+      ? <img src={image} alt={name} className={`${size} w-auto object-contain`} onError={e => { e.target.style.display = "none"; }} />
+      : <span className="text-2xl">🏖️</span>;
+
   return (
     <SectionCard icon="fa-bars" title="Navbar / Brand" badge="Site-wide · all pages" editing={editing}
       onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
         <div className="flex items-center gap-3 py-2">
-          <span className="text-2xl">{content.logoEmoji}</span>
+          <LogoDisplay image={content.logoImage} name={content.siteName} />
           <span className="text-lg font-bold text-blue-600">{content.siteName}</span>
         </div>
       ) : (
         <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Logo Emoji</label>
-              <input
-                type="text"
-                value={form.logoEmoji}
-                onChange={e => setForm(p => ({ ...p, logoEmoji: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-                placeholder="e.g. 🏖️"
-                maxLength={4}
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Logo Image</label>
+              <MediaPicker
+                value={form.logoImage}
+                onChange={url => setForm(p => ({ ...p, logoImage: url }))}
+                previousUrl={content.logoImage}
+                folder="logo"
+                accept="image/*"
+                label="Upload Logo"
               />
-              <p className="text-xs text-gray-400 mt-1">Paste any emoji</p>
+              <p className="text-xs text-gray-400 mt-1">PNG with transparent background recommended. Falls back to 🏖️ if empty.</p>
             </div>
             <Field label="Site Name" value={form.siteName} onChange={f("siteName")} />
           </div>
@@ -263,7 +268,7 @@ function NavbarEditor({ content, onSave }) {
           <div className="border border-gray-200 rounded-xl overflow-hidden">
             <div className="bg-white px-4 h-14 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-2">
-                <span className="text-xl">{form.logoEmoji}</span>
+                <LogoDisplay image={form.logoImage} name={form.siteName} size="h-7" />
                 <span className="text-base font-bold text-blue-600">{form.siteName}</span>
               </div>
               <div className="flex items-center gap-4 text-sm text-gray-500">
