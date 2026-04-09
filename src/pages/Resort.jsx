@@ -416,9 +416,6 @@ export default function Resort() {
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="lg:flex lg:items-center lg:justify-between gap-16">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
-                <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-600 text-sm font-semibold px-4 py-1.5 rounded-full mb-5">
-                  🌊 About the Resort
-                </div>
                 <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">{pc.about.title}</h2>
                 <div className="w-12 h-1.5 rounded-full bg-blue-400 mb-6" />
                 <p className="text-gray-600 mb-4 leading-relaxed">{pc.about.paragraph1}</p>

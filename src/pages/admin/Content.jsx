@@ -10,6 +10,11 @@ const CONTENT_KEY = "aplaya_page_content_v1";
 
 // ─── Default content (mirrors the actual hardcoded values in Home.jsx / Resort.jsx) ─
 const DEFAULT_CONTENT = {
+  // ── Site-wide ──────────────────────────────────────────────────────────────
+  navbar: {
+    siteName:  "Aplaya Beach Resort",
+    logoEmoji: "🏖️",
+  },
   // ── Home page (/home) ──────────────────────────────────────────────────────
   home_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
@@ -218,6 +223,59 @@ function HeroPreview({ bg, title, subtitle, extra }) {
       </div>
       <span className="absolute top-2 left-2 bg-black/50 text-white text-[10px] px-2 py-0.5 rounded-full">Live Preview</span>
     </div>
+  );
+}
+
+function NavbarEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-bars" title="Navbar / Brand" badge="Site-wide · all pages" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="flex items-center gap-3 py-2">
+          <span className="text-2xl">{content.logoEmoji}</span>
+          <span className="text-lg font-bold text-blue-600">{content.siteName}</span>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Logo Emoji</label>
+              <input
+                type="text"
+                value={form.logoEmoji}
+                onChange={e => setForm(p => ({ ...p, logoEmoji: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+                placeholder="e.g. 🏖️"
+                maxLength={4}
+              />
+              <p className="text-xs text-gray-400 mt-1">Paste any emoji</p>
+            </div>
+            <Field label="Site Name" value={form.siteName} onChange={f("siteName")} />
+          </div>
+          {/* Live preview */}
+          <div className="border border-gray-200 rounded-xl overflow-hidden">
+            <div className="bg-white px-4 h-14 flex items-center justify-between shadow-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{form.logoEmoji}</span>
+                <span className="text-base font-bold text-blue-600">{form.siteName}</span>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                <span>Resort</span><span>Rooms</span><span>Gallery</span>
+                <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-md">Book Now</span>
+              </div>
+            </div>
+            <p className="text-center text-[10px] text-gray-400 py-1 bg-gray-50">Live Preview</p>
+          </div>
+        </div>
+      )}
+    </SectionCard>
   );
 }
 
@@ -1653,6 +1711,18 @@ export default function AdminContent() {
       {/* Page Editor */}
       {activeTab === 0 && (
         <div className="space-y-6">
+          {/* Site-wide */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <i className="fas fa-globe text-[#1e3a8a]"></i>
+              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Site-wide</h2>
+            </div>
+            <div className="space-y-3">
+              <NavbarEditor content={content.navbar} onSave={update("navbar")} />
+            </div>
+          </div>
+
+          <div className="border-t border-dashed border-gray-200 pt-6">
           {/* Home page */}
           <div>
             <div className="flex items-center gap-2 mb-3">
@@ -1663,6 +1733,7 @@ export default function AdminContent() {
               <HomeHeroEditor    content={content.home_hero}    onSave={update("home_hero")} />
               <HomeResortsEditor content={content.home_resorts} onSave={update("home_resorts")} />
             </div>
+          </div>
           </div>
 
           <div className="border-t border-dashed border-gray-200 pt-6">

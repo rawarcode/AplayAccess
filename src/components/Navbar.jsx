@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import { api } from "../lib/api.js";
 
 import LoginModal from "./modals/LoginModal.jsx";
 import SignupModal from "./modals/SignupModal.jsx";
@@ -10,8 +11,19 @@ import SignupModal from "./modals/SignupModal.jsx";
 export default function Navbar() {
   const { user, login, logout } = useAuth();
 
-  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginOpen,  setLoginOpen]  = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  const [brand, setBrand] = useState({ siteName: "Aplaya Beach Resort", logoEmoji: "🏖️" });
+
+  // Pull site name / logo from content API (same store as site builder)
+  useEffect(() => {
+    api.get("/api/content")
+      .then(r => {
+        const nb = r.data?.data?.page_navbar;
+        if (nb?.siteName || nb?.logoEmoji) setBrand(prev => ({ ...prev, ...nb }));
+      })
+      .catch(() => {});
+  }, []);
 
   useLockBodyScroll(loginOpen || signupOpen);
 
@@ -30,10 +42,8 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <span className="text-2xl">🏖️</span>
-          <span className="text-xl font-bold text-blue-600">
-            Aplaya Beach Resort
-          </span>
+          <span className="text-2xl">{brand.logoEmoji}</span>
+          <span className="text-xl font-bold text-blue-600">{brand.siteName}</span>
         </Link>
 
         {/* Navigation */}
