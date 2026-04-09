@@ -6,7 +6,7 @@ import MediaPicker from "../../components/ui/MediaPicker.jsx";
 import { isVideoUrl } from "../../lib/uploadApi.js";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
-const CONTENT_KEY = "aplaya_page_content_v1";
+const CONTENT_KEY = "aplaya_page_content_v2"; // bumped to clear stale footer/navbar cache
 
 // ─── Default content (mirrors the actual hardcoded values in Home.jsx / Resort.jsx) ─
 const DEFAULT_CONTENT = {
@@ -17,15 +17,13 @@ const DEFAULT_CONTENT = {
   },
   footer: {
     tagline:   "Your perfect tropical getaway offering luxury accommodations and unforgettable experiences.",
-    address:   "Brgy. Ilayang Bukal, Padre Burgos, Quezon Province, Philippines",
-    phone:     "+63 917 123 4567",
-    email:     "reservations@aplaya.com",
+    address:   "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110",
+    phone:     "+63 908 191 4721",
+    email:     "aplayabeachresortph@gmail.com",
     hours: [
-      { day: "Monday - Friday", time: "9:00 AM - 6:00 PM" },
-      { day: "Saturday",        time: "10:00 AM - 4:00 PM" },
-      { day: "Sunday",          time: "Closed" },
+      { day: "Monday - Sunday", time: "7:00 AM - 9:00 PM" },
     ],
-    facebook:  "",
+    facebook:  "https://www.facebook.com/aplayabeach",
     instagram: "",
     twitter:   "",
     tiktok:    "",
@@ -332,16 +330,30 @@ function FooterEditor({ content, onSave }) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Opening Hours</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Opening Hours</label>
+              <button type="button"
+                onClick={() => setForm(p => ({ ...p, hours: [...(p.hours || []), { day: "", time: "" }] }))}
+                className="text-xs text-[#1e3a8a] hover:underline flex items-center gap-1">
+                <i className="fas fa-plus text-[10px]"></i> Add Row
+              </button>
+            </div>
             <div className="space-y-2">
               {(form.hours || []).map((h, i) => (
-                <div key={i} className="flex gap-3 items-center">
+                <div key={i} className="flex gap-2 items-center">
                   <input value={h.day} onChange={e => updateHour(i, "day", e.target.value)}
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-                    placeholder="Day(s)" />
+                    placeholder="Day(s) e.g. Monday - Sunday" />
                   <input value={h.time} onChange={e => updateHour(i, "time", e.target.value)}
                     className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-                    placeholder="Hours (or Closed)" />
+                    placeholder="Hours e.g. 7:00 AM - 9:00 PM" />
+                  {(form.hours || []).length > 1 && (
+                    <button type="button"
+                      onClick={() => setForm(p => ({ ...p, hours: p.hours.filter((_, hi) => hi !== i) }))}
+                      className="text-red-400 hover:text-red-600 transition-colors p-1 shrink-0">
+                      <i className="fas fa-times text-xs"></i>
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

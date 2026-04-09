@@ -4,15 +4,13 @@ import { api } from "../lib/api.js";
 
 const DEFAULT_FOOTER = {
   tagline:   "Your perfect tropical getaway offering luxury accommodations and unforgettable experiences.",
-  address:   "Brgy. Ilayang Bukal, Padre Burgos, Quezon Province, Philippines",
-  phone:     "+63 917 123 4567",
-  email:     "reservations@aplaya.com",
+  address:   "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110",
+  phone:     "+63 908 191 4721",
+  email:     "aplayabeachresortph@gmail.com",
   hours: [
-    { day: "Monday - Friday", time: "9:00 AM - 6:00 PM" },
-    { day: "Saturday",        time: "10:00 AM - 4:00 PM" },
-    { day: "Sunday",          time: "Closed" },
+    { day: "Monday - Sunday", time: "7:00 AM - 9:00 PM" },
   ],
-  facebook:  "",
+  facebook:  "https://www.facebook.com/aplayabeach",
   instagram: "",
   twitter:   "",
   tiktok:    "",

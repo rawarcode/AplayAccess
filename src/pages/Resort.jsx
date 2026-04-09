@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
+import { getAnnouncements } from "../lib/resortApi.js";
 
 // Local data for UI enrichment + offline fallback
 import { rooms as roomsFallback } from "../data/rooms.js";
@@ -114,8 +115,12 @@ export default function Resort() {
   const [galleryApi, setGalleryApi] = useState(null); // null = not yet loaded
   const [reviewsApi, setReviewsApi] = useState([]);
 
+  // Announcements
+  const [announcements, setAnnouncements] = useState(null); // null = loading
+  const [announcementModal, setAnnouncementModal] = useState(null); // selected item
+
   const anyOverlayOpen =
-    bookingOpen || loginOpen || guestWarningOpen || successOpen || contactAlert.open;
+    bookingOpen || loginOpen || guestWarningOpen || successOpen || contactAlert.open || !!announcementModal;
   useLockBodyScroll(anyOverlayOpen);
 
   // UI cards
@@ -289,6 +294,13 @@ export default function Resort() {
     };
   }, []);
 
+  // Load announcements
+  useEffect(() => {
+    getAnnouncements()
+      .then((data) => setAnnouncements(Array.isArray(data) ? data : []))
+      .catch(() => setAnnouncements([]));
+  }, []);
+
   async function submitContact(e) {
     e.preventDefault();
     setContactSubmitting(true);
@@ -407,6 +419,152 @@ export default function Resort() {
           </div>
         </section>
 
+        {/* WHAT'S NEW — Announcements preview (hidden if no announcements or still loading) */}
+        {announcements !== null && announcements.length > 0 && (
+          <section className="py-16 bg-sky-50 relative overflow-hidden">
+            {/* Decorative blobs */}
+            <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-blue-200 opacity-20 blur-3xl" />
+
+            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              {/* Section header */}
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
+                <div>
+                  <h2 className="text-3xl font-bold text-gray-900 mb-1">
+                    📢 What's New
+                  </h2>
+                  <div className="w-12 h-1.5 rounded-full bg-blue-400 mb-2" />
+                  <p className="text-gray-500 text-sm">Latest updates, events & promos</p>
+                </div>
+                <Link
+                  to="/announcements"
+                  className="text-sm font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap transition"
+                >
+                  See All Announcements →
+                </Link>
+              </div>
+
+              {/* Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {announcements.slice(0, 3).map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-2xl overflow-hidden shadow-md hover:-translate-y-1 transition-transform duration-300 flex flex-col"
+                  >
+                    {/* Media */}
+                    {item.media_url && (
+                      <div className="bg-gray-900 flex items-center justify-center rounded-t-2xl overflow-hidden min-h-52">
+                        {isVideoUrl(item.media_url) ? (
+                          <video
+                            src={item.media_url}
+                            controls
+                            playsInline
+                            className="w-full object-contain"
+                          />
+                        ) : (
+                          <img
+                            src={item.media_url}
+                            alt={item.title}
+                            className="w-full object-contain max-h-[420px]"
+                            loading="lazy"
+                          />
+                        )}
+                      </div>
+                    )}
+
+                    {/* Body */}
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        {item.is_pinned && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                            📌 Pinned
+                          </span>
+                        )}
+                        {item.published_at && (
+                          <span className="text-xs text-gray-400">
+                            {new Date(item.published_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-gray-900 text-base leading-snug mb-2">{item.title}</h3>
+                      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 flex-1">{item.body}</p>
+                      <button
+                        onClick={() => setAnnouncementModal(item)}
+                        className="mt-4 self-start text-sm font-semibold text-blue-600 hover:text-blue-800 transition"
+                      >
+                        Read More →
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Announcement detail modal */}
+        {announcementModal && (
+          <div
+            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+            onClick={(e) => { if (e.target === e.currentTarget) setAnnouncementModal(null); }}
+          >
+            <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              {announcementModal.media_url && (
+                <div className="rounded-t-2xl overflow-hidden bg-gray-900 flex items-center justify-center">
+                  {isVideoUrl(announcementModal.media_url) ? (
+                    <video
+                      src={announcementModal.media_url}
+                      controls
+                      autoPlay
+                      className="w-full object-contain"
+                    />
+                  ) : (
+                    <img
+                      src={announcementModal.media_url}
+                      alt={announcementModal.title}
+                      className="w-full object-contain"
+                    />
+                  )}
+                </div>
+              )}
+              <div className="p-6">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                      {announcementModal.is_pinned && (
+                        <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                          📌 Pinned
+                        </span>
+                      )}
+                      {announcementModal.published_at && (
+                        <span className="text-xs text-gray-400">
+                          {new Date(announcementModal.published_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
+                        </span>
+                      )}
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900">{announcementModal.title}</h2>
+                  </div>
+                  <button
+                    onClick={() => setAnnouncementModal(null)}
+                    className="text-gray-400 hover:text-gray-700 transition flex-shrink-0"
+                  >
+                    <i className="fas fa-times text-xl"></i>
+                  </button>
+                </div>
+                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{announcementModal.body}</p>
+                <div className="mt-5 text-right">
+                  <Link
+                    to="/announcements"
+                    className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition"
+                  >
+                    View all announcements →
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ABOUT */}
         <section className="py-24 bg-white relative overflow-hidden">
           <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-10"
@@ -472,28 +630,46 @@ export default function Resort() {
                   className="group bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
                 >
                   <div className="relative overflow-hidden">
-                    <img src={r.img} alt={r.name} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
-                      Day Use
-                    </span>
+                    <img src={r.img} alt={r.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute top-3 left-3 flex gap-2">
+                      <span className="bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                        Day Use
+                      </span>
+                      {r.overnight_rate > 0 && (
+                        <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                          Overnight
+                        </span>
+                      )}
+                    </div>
+                    {r.capacity > 0 && (
+                      <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <i className="fas fa-users text-[10px]"></i> Up to {r.capacity} guests
+                      </span>
+                    )}
                   </div>
 
-                  <div className="p-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{r.name}</h3>
+                  <div className="p-5">
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">{r.name}</h3>
                     <p className="text-gray-500 text-sm mb-4 line-clamp-2">{r.desc}</p>
-                    <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
-                      <div>
-                        <span className="text-2xl font-bold text-blue-600">{formatPHP(r.day_rate)}</span>
-                        <span className="text-gray-400 text-xs ml-1">/ day visit</span>
+                    <div className="flex gap-3 mb-4">
+                      <div className="flex-1 bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
+                        <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day Use</p>
+                        <p className="text-base font-bold text-sky-700">{formatPHP(r.day_rate)}</p>
                       </div>
-                      <button
-                        onClick={() => requestBooking(r.name)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all"
-                      >
-                        Book Now
-                      </button>
+                      {r.overnight_rate > 0 && (
+                        <div className="flex-1 bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
+                          <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide">Overnight</p>
+                          <p className="text-base font-bold text-indigo-700">{formatPHP(r.overnight_rate)}</p>
+                        </div>
+                      )}
                     </div>
+                    <button
+                      onClick={() => requestBooking(r.name)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all"
+                    >
+                      Book Now
+                    </button>
                   </div>
                 </div>
               ))}

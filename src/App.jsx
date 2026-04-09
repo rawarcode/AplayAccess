@@ -5,6 +5,7 @@ import Home from "./pages/Home.jsx";
 import Resort from "./pages/Resort.jsx";
 import Rooms from "./pages/Rooms.jsx";
 import Gallery from "./pages/Gallery.jsx";
+import Announcements from "./pages/Announcements.jsx";
 import Signup from "./pages/Signup.jsx";
 import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
@@ -32,6 +33,7 @@ import AdminContent from "./pages/admin/Content.jsx";
 import AdminReviews from "./pages/admin/Reviews.jsx";
 import AdminGuests from "./pages/admin/Guests.jsx";
 import AdminMessages from "./pages/admin/Messages.jsx";
+import AdminAnnouncements from "./pages/admin/Announcements.jsx";
 
 // Owner portal
 import RequireOwner from "./components/auth/RequireOwner.jsx";
@@ -64,6 +66,7 @@ export default function App() {
         <Route path="/resort" element={<Resort />} />
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Gallery />} />
+        <Route path="/announcements" element={<Announcements />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -108,6 +111,7 @@ export default function App() {
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="guests" element={<AdminGuests />} />
         <Route path="messages" element={<AdminMessages />} />
+        <Route path="announcements" element={<AdminAnnouncements />} />
       </Route>
 
       {/* ── Owner portal ── */}

@@ -83,3 +83,9 @@ export const validatePromo         = (code, subtotal) => api.post('/api/validate
 // ── Newsletter (owner only) ───────────────────────────────────────────────────
 export const getNewsletterSubscribers  = ()           => api.get('/api/admin/newsletter');
 export const sendNewsletterCampaign    = (subject, body) => api.post('/api/admin/newsletter/send', { subject, body });
+
+// ── Announcements ─────────────────────────────────────────────────────────────
+export const getAdminAnnouncements    = ()           => api.get('/api/admin/announcements');
+export const createAdminAnnouncement  = (data)       => api.post('/api/admin/announcements', data);
+export const updateAdminAnnouncement  = (id, data)   => api.patch(`/api/admin/announcements/${id}`, data);
+export const deleteAdminAnnouncement  = (id)         => api.delete(`/api/admin/announcements/${id}`);

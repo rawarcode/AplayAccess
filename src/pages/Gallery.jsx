@@ -8,10 +8,18 @@ import { isVideoUrl } from "../lib/uploadApi.js";
 
 const RESORT_ID = 1;
 
+const ALL_CATS = ["all", "beach", "rooms", "amenities", "dining", "events", "other"];
+
+function catLabel(cat) {
+  if (cat === "all") return "All";
+  return cat.charAt(0).toUpperCase() + cat.slice(1);
+}
+
 export default function Gallery() {
   const [galleryApi, setGalleryApi] = useState([]);
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const [activeCat, setActiveCat] = useState("all");
 
   // Load gallery from API; fall back to static data silently
   useEffect(() => {
@@ -20,15 +28,28 @@ export default function Gallery() {
       .catch(() => {});
   }, []);
 
-  // Normalize API items ({ image_url, caption }) or static items ({ src, alt, caption })
+  // Normalize API items ({ image_url, caption, category }) or static items ({ src, alt, caption })
   const items = useMemo(() => {
     const base = galleryApi.length ? galleryApi : galleryFallback;
     return base.map((g) => ({
       src: g.image_url ?? g.src,
       alt: g.caption ?? g.alt ?? "Gallery image",
       caption: g.caption ?? g.alt ?? "",
+      category: g.category ?? "other",
     }));
   }, [galleryApi]);
+
+  // Derived filtered items
+  const filteredItems = useMemo(() => {
+    if (activeCat === "all") return items;
+    return items.filter((g) => g.category === activeCat);
+  }, [items, activeCat]);
+
+  // Only show tabs for categories that have at least one item (plus "all")
+  const visibleCats = useMemo(() => {
+    const presentCats = new Set(items.map((g) => g.category));
+    return ALL_CATS.filter((c) => c === "all" || presentCats.has(c));
+  }, [items]);
 
   useLockBodyScroll(open);
 
@@ -46,10 +67,15 @@ export default function Gallery() {
   }
 
   function next() {
-    setIndex((i) => Math.min(items.length - 1, i + 1));
+    setIndex((i) => Math.min(filteredItems.length - 1, i + 1));
   }
 
-  // keyboard navigation like your HTML
+  // Reset index when filter changes
+  useEffect(() => {
+    setIndex(0);
+  }, [activeCat]);
+
+  // keyboard navigation
   useEffect(() => {
     if (!open) return;
 
@@ -62,7 +88,7 @@ export default function Gallery() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, items.length]);
+  }, [open, filteredItems.length]);
 
   return (
     <div className="pt-16 bg-gray-900 min-h-screen">
@@ -94,16 +120,16 @@ export default function Gallery() {
             <path
               d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
               opacity=".25"
-              fill="#FFFFFF"
+              fill="#111827"
             />
             <path
               d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
               opacity=".5"
-              fill="#FFFFFF"
+              fill="#111827"
             />
             <path
               d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
-              fill="#FFFFFF"
+              fill="#111827"
             />
           </svg>
         </div>
@@ -113,17 +139,37 @@ export default function Gallery() {
       <main className="flex-grow py-16 bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Section header */}
-          <div className="text-center mb-12">
+          <div className="text-center mb-8">
             <span className="text-4xl mb-3 block">📸</span>
             <h2 className="text-3xl font-bold text-white mb-2">Browse the Gallery</h2>
             <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
             <span className="inline-block bg-white/10 text-gray-300 text-sm px-4 py-1 rounded-full">
-              {items.length} photo{items.length !== 1 ? "s" : ""}
+              {filteredItems.length} photo{filteredItems.length !== 1 ? "s" : ""}
             </span>
           </div>
 
+          {/* Category filter tabs */}
+          {visibleCats.length > 1 && (
+            <div className="flex flex-wrap justify-center gap-2 mb-10">
+              {visibleCats.map((cat) => (
+                <button
+                  key={cat}
+                  type="button"
+                  onClick={() => setActiveCat(cat)}
+                  className={`px-5 py-2 rounded-full text-sm font-medium transition-all duration-200
+                    ${activeCat === cat
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                      : "bg-white/10 text-gray-300 hover:bg-white/20"
+                    }`}
+                >
+                  {catLabel(cat)}
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-            {items.map((g, i) => (
+            {filteredItems.map((g, i) => (
               <button
                 key={`${g.alt}-${i}`}
                 type="button"
@@ -159,7 +205,7 @@ export default function Gallery() {
                 </div>
                 {/* Number badge */}
                 <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                  {i + 1} / {items.length}
+                  {i + 1} / {filteredItems.length}
                 </div>
               </button>
             ))}
@@ -180,7 +226,7 @@ export default function Gallery() {
       <LightboxModal
         open={open}
         onClose={close}
-        items={items}
+        items={filteredItems}
         index={index}
         onPrev={prev}
         onNext={next}

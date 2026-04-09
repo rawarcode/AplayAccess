@@ -134,7 +134,7 @@ export default function MediaPicker({
                 </div>
                 <h3 className="font-bold text-slate-800 text-base">Choose Media</h3>
               </div>
-              <button onClick={close} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -142,6 +142,7 @@ export default function MediaPicker({
             {/* Tabs */}
             <div className="flex border-b border-slate-100 flex-shrink-0">
               <button
+                type="button"
                 onClick={() => setTab('upload')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                   tab === 'upload'
@@ -152,6 +153,7 @@ export default function MediaPicker({
                 <i className="fas fa-upload mr-2"></i>Upload New
               </button>
               <button
+                type="button"
                 onClick={() => setTab('library')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                   tab === 'library'

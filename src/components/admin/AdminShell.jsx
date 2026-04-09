@@ -9,13 +9,14 @@ import NotificationBell from "../ui/NotificationBell.jsx";
 const ADMIN_PROFILE_KEY = "admin_profile_v1";
 
 const PAGE_TITLES = {
-  "/admin":          "Dashboard",
-  "/admin/rooms":    "Manage Rooms",
-  "/admin/guests":   "Guests",
-  "/admin/history":  "History",
-  "/admin/reviews":  "Reviews",
-  "/admin/content":  "Manage Website",
-  "/admin/messages": "Messages",
+  "/admin":                "Dashboard",
+  "/admin/rooms":          "Manage Rooms",
+  "/admin/guests":         "Guests",
+  "/admin/history":        "History",
+  "/admin/reviews":        "Reviews",
+  "/admin/content":        "Manage Website",
+  "/admin/messages":       "Messages",
+  "/admin/announcements":  "Announcements",
 };
 
 const MENU = {
@@ -25,10 +26,11 @@ const MENU = {
     { path: "/admin/messages", icon: "fa-envelope",   label: "Messages", ownerOnly: false, badgeKey: "unreadMessages" },
   ],
   manage: [
-    { path: "/admin/rooms",    icon: "fa-bed",           label: "Manage Rooms"   },
-    { path: "/admin/content",  icon: "fa-globe",         label: "Manage Website" },
-    { path: "/admin/reviews",  icon: "fa-star",          label: "Reviews"        },
-    { path: "/admin/history",  icon: "fa-history",       label: "History"        },
+    { path: "/admin/rooms",          icon: "fa-bed",        label: "Manage Rooms"   },
+    { path: "/admin/content",        icon: "fa-globe",      label: "Manage Website" },
+    { path: "/admin/announcements",  icon: "fa-bullhorn",   label: "Announcements"  },
+    { path: "/admin/reviews",        icon: "fa-star",       label: "Reviews"        },
+    { path: "/admin/history",        icon: "fa-history",    label: "History"        },
   ],
 };
 

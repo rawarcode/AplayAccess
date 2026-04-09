@@ -34,3 +34,8 @@ export async function getResortReviews(resortId) {
   const res = await api.get(`/api/resorts/${resortId}/reviews`);
   return res.data?.data ?? res.data;
 }
+
+export async function getAnnouncements() {
+  const res = await api.get('/api/announcements');
+  return res.data?.data ?? [];
+}

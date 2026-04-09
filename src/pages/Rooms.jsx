@@ -109,9 +109,21 @@ export default function Rooms() {
           backgroundPosition: "center",
         }}
       >
-        <div className="max-w-4xl mx-auto px-4 text-white">
+        <div className="max-w-4xl mx-auto px-4 text-white z-10">
           <h1 className="text-3xl md:text-5xl font-bold mb-4">Our Luxurious Accommodations</h1>
           <p className="text-lg md:text-xl">Discover the perfect room for your stay at Aplaya Beach Resort.</p>
+        </div>
+        {/* Wave transition to sky-blue bg */}
+        <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
+          <svg viewBox="0 0 1200 120" preserveAspectRatio="none"
+            className="relative block w-[calc(100%+1.3px)] h-[80px]">
+            <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z"
+              opacity=".25" fill="#e0f2fe" />
+            <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z"
+              opacity=".5" fill="#e0f2fe" />
+            <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z"
+              fill="#e0f2fe" />
+          </svg>
         </div>
       </section>
 
@@ -144,25 +156,60 @@ export default function Rooms() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {roomCards.map((r) => (
                   <div key={r.id ?? r.name}
-                    className="group bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
-                    <div className="relative overflow-hidden">
-                      <img src={r.img} alt={r.name} className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                      <span className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
-                        Day Use
-                      </span>
+                    className="group bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col">
+                    {/* Image */}
+                    <div className="relative overflow-hidden shrink-0">
+                      <img src={r.img} alt={r.name}
+                        className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                      {/* Badges */}
+                      <div className="absolute top-3 left-3 flex gap-2">
+                        <span className="bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                          Day Use
+                        </span>
+                        {r.overnight_rate > 0 && (
+                          <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                            Overnight
+                          </span>
+                        )}
+                      </div>
+                      {/* Capacity chip */}
+                      {r.capacity > 0 && (
+                        <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
+                          <i className="fas fa-users text-[10px]"></i> Up to {r.capacity} guests
+                        </span>
+                      )}
                     </div>
-                    <div className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-1">{r.name}</h3>
-                      <p className="text-gray-500 text-sm mb-4 line-clamp-2">{r.description}</p>
-                      <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
-                        <div>
-                          <span className="text-xl font-bold text-blue-600">{formatPHP(r.day_rate)}</span>
-                          <span className="text-gray-400 text-xs ml-1">/ day visit</span>
+
+                    {/* Body */}
+                    <div className="p-5 flex flex-col flex-1">
+                      <h3 className="text-lg font-bold text-gray-900 mb-1">{r.name}</h3>
+                      <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
+
+                      {/* Pricing row */}
+                      <div className="flex gap-3 mb-4">
+                        <div className="flex-1 bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
+                          <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day Use</p>
+                          <p className="text-base font-bold text-sky-700">{formatPHP(r.day_rate)}</p>
                         </div>
+                        {r.overnight_rate > 0 && (
+                          <div className="flex-1 bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
+                            <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide">Overnight</p>
+                            <p className="text-base font-bold text-indigo-700">{formatPHP(r.overnight_rate)}</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
                         <button onClick={() => openDetails(r.id)}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all">
-                          View Details
+                          className="flex-1 border border-blue-200 text-blue-600 hover:border-blue-400 hover:bg-blue-50 px-3 py-2 rounded-xl text-sm font-semibold transition-all">
+                          Details
+                        </button>
+                        <button onClick={() => requestBooking(r.name)}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all">
+                          Book Now
                         </button>
                       </div>
                     </div>
@@ -194,9 +241,29 @@ export default function Rooms() {
                     </div>
                   </div>
 
-                  <div className="p-8">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-2">{detailRoom.name}</h2>
+                  <div className="p-8 overflow-y-auto">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-1">{detailRoom.name}</h2>
                     <div className="w-10 h-1 rounded-full bg-blue-400 mb-4" />
+
+                    {/* Quick stats chips */}
+                    <div className="flex flex-wrap gap-2 mb-5">
+                      {detailRoom.capacity > 0 && (
+                        <span className="inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 text-sm px-3 py-1.5 rounded-full border border-sky-100">
+                          <i className="fas fa-users text-xs"></i> Up to {detailRoom.capacity} guests
+                        </span>
+                      )}
+                      {detailRoom.beds && (
+                        <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-sm px-3 py-1.5 rounded-full border border-indigo-100">
+                          <i className="fas fa-bed text-xs"></i> {detailRoom.beds}
+                        </span>
+                      )}
+                      {detailRoom.size && (
+                        <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-sm px-3 py-1.5 rounded-full border border-emerald-100">
+                          <i className="fas fa-expand-arrows-alt text-xs"></i> {detailRoom.size}
+                        </span>
+                      )}
+                    </div>
+
                     <p className="text-gray-600 mb-6 leading-relaxed">{detailRoom.description}</p>
 
                     {detailRoom.features?.length > 0 && (
@@ -215,14 +282,22 @@ export default function Rooms() {
                       </>
                     )}
 
-                    <div className="border-t border-gray-100 pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                      <div>
-                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Starting from</p>
-                        <span className="text-3xl font-bold text-blue-600">{formatPHP(detailRoom.day_rate)}</span>
-                        <span className="text-gray-400 text-sm ml-1">/ day visit</span>
+                    {/* Pricing */}
+                    <div className="border-t border-gray-100 pt-6">
+                      <div className="flex gap-3 mb-5">
+                        <div className="flex-1 bg-sky-50 rounded-2xl p-4 text-center border border-sky-100">
+                          <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide mb-0.5">Day Use</p>
+                          <p className="text-2xl font-bold text-sky-700">{formatPHP(detailRoom.day_rate)}</p>
+                        </div>
+                        {detailRoom.overnight_rate > 0 && (
+                          <div className="flex-1 bg-indigo-50 rounded-2xl p-4 text-center border border-indigo-100">
+                            <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide mb-0.5">Overnight</p>
+                            <p className="text-2xl font-bold text-indigo-700">{formatPHP(detailRoom.overnight_rate)}</p>
+                          </div>
+                        )}
                       </div>
                       <button onClick={() => requestBooking(detailRoom.name)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all">
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all text-base">
                         Book This Room
                       </button>
                     </div>
