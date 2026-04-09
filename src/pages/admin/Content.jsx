@@ -537,13 +537,13 @@ function ResortContactEditor({ content, onSave }) {
             <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-1"></i>{content.phone}</p>
             <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-1"></i>{content.email}</p>
           </div>
-          {content.map_url && (
+          {(content.osm_url || content.map_url) && (
             <div className="rounded-xl overflow-hidden border border-gray-200 mt-2">
-              <iframe src={content.map_url} width="100%" height="160" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Resort location map" />
+              <iframe src={content.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`} width="100%" height="160" style={{ border: 0 }} loading="lazy" title="Resort location map" />
             </div>
           )}
-          {!content.map_url && (
-            <p className="text-xs text-gray-400 italic"><i className="fas fa-map mr-1"></i>No map URL set yet.</p>
+          {!content.osm_url && !content.map_url && (
+            <p className="text-xs text-gray-400 italic"><i className="fas fa-map mr-1"></i>No map set yet.</p>
           )}
         </div>
       ) : (
@@ -585,9 +585,9 @@ function ResortContactEditor({ content, onSave }) {
               <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-2"></i>{form.phone || <span className="text-gray-300 italic">Phone</span>}</p>
               <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-2"></i>{form.email || <span className="text-gray-300 italic">Email</span>}</p>
             </div>
-            {form.map_url ? (
+            {(form.osm_url || form.map_url) ? (
               <div className="rounded-xl overflow-hidden border border-gray-200">
-                <iframe src={form.map_url} width="100%" height="200" style={{ border: 0 }} allowFullScreen loading="lazy" referrerPolicy="no-referrer-when-downgrade" title="Map preview" />
+                <iframe src={form.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`} width="100%" height="200" style={{ border: 0 }} loading="lazy" title="Map preview" />
               </div>
             ) : (
               <div className="h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-sm">

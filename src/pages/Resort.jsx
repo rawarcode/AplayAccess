@@ -103,7 +103,7 @@ export default function Resort() {
     hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Welcome to Paradise", subtitle: "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.", ctaText: "Book Your Stay" },
     about:      { title: "Discover Aplaya Beach Resort", paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.", paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
     rooms:      { sectionTitle: "Our Accommodations", sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation." },
-    contact:    { address: "Brgy. Caylaway, Nasugbu, Batangas, Philippines", phone: "+63 (046) 123-4567", email: "reservations@aplayabeachresort.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus" },
+    contact:    { address: "Brgy. Caylaway, Nasugbu, Batangas, Philippines", phone: "+63 (046) 123-4567", email: "reservations@aplayabeachresort.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus", osm_url: "https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971" },
     reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
     newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },
   }));
@@ -707,24 +707,39 @@ export default function Resort() {
               </div>
             </div>
 
-            {/* Google Map — full width below contact columns */}
-            {pc.contact.map_url && (
+            {/* Map — full width below contact columns */}
+            {(pc.contact.map_url || pc.contact.osm_url) && (
               <div className="mt-12">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                  <span>📍</span> Find Us
-                </h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <span>📍</span> Find Us
+                  </h3>
+                  {pc.contact.map_url && (
+                    <a
+                      href={pc.contact.map_url.replace('/embed', '').replace('maps/embed?pb=', 'maps/place/?q=')}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      <i className="fas fa-directions text-xs"></i>
+                      Get Directions
+                    </a>
+                  )}
+                </div>
                 <div className="rounded-2xl overflow-hidden shadow-md border border-gray-200 w-full" style={{ height: "380px" }}>
                   <iframe
-                    src={pc.contact.map_url}
+                    src={pc.contact.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
                     title="Aplaya Beach Resort location"
                   />
                 </div>
+                <p className="mt-1.5 text-xs text-gray-400 text-right">
+                  Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">OpenStreetMap</a> contributors
+                </p>
               </div>
             )}
           </div>
