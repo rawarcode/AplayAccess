@@ -48,24 +48,43 @@ export default function PaymentReturn({ outcome }) {
 
   useEffect(() => {
     // ── POPUP MODE ────────────────────────────────────────────────────────────
-    // Notify the parent window and close immediately.
     if (isPopup) {
       if (outcome === "failed") {
+        // Send cancelled — BookingModal will attempt to verify the payment on its side
+        // using guestConfirmPayment (which has an API-unreachable fallback to confirm).
         try { window.opener.postMessage({ type: "paymongo_cancelled", bookingId }, "*"); } catch { /* ignore */ }
+        setStatus("closing_failed");
         window.close();
       } else {
-        // PayMongo only redirects to success_url after payment — trust the redirect.
-        // Notify parent immediately; parent will sync the DB status via polling.
+        // Success URL — PayMongo only redirects here after confirmed payment.
         try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
+        setStatus("closing_success");
         window.close();
       }
-      setStatus(outcome === "failed" ? "closing_failed" : "closing_success");
       return;
     }
 
     // ── FULL-PAGE MODE ────────────────────────────────────────────────────────
-    if (outcome === "failed") { setStatus("failed"); return; }
-    if (!bookingId)           { setStatus("failed"); return; }
+    if (!bookingId) { setStatus("failed"); return; }
+
+    // Cancel URL: don't fail immediately — PayMongo test mode's "Return to Merchant"
+    // lands here even after a successful payment. Poll to see if it went through.
+    if (outcome === "failed") {
+      let tries = 0;
+      async function pollAfterCancel() {
+        try {
+          const data = isGuest
+            ? await getGuestPaymentStatus(bookingId)
+            : await getPaymentStatus(bookingId);
+          if (data.paid || data.status === "Confirmed") { setStatus("confirmed"); return; }
+          tries++;
+          if (tries < 8) setTimeout(pollAfterCancel, 2000);
+          else setStatus("failed");
+        } catch { setStatus("failed"); }
+      }
+      pollAfterCancel();
+      return;
+    }
 
     let tries = 0;
     async function poll() {
@@ -92,6 +111,14 @@ export default function PaymentReturn({ outcome }) {
               <div className="text-5xl mb-4">✅</div>
               <p className="text-lg font-semibold text-gray-800">Payment received!</p>
               <p className="text-sm text-gray-500 mt-1">Closing window…</p>
+            </>
+          ) : status === "verifying" ? (
+            <>
+              <div className="flex justify-center mb-4">
+                <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+              </div>
+              <p className="text-lg font-semibold text-gray-800">Verifying payment…</p>
+              <p className="text-sm text-gray-500 mt-1">Please wait a moment.</p>
             </>
           ) : (
             <>

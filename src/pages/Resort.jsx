@@ -110,8 +110,8 @@ export default function Resort() {
   // Newsletter inline feedback (no modal needed)
   const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "", submitting: false });
 
-  // Page content — synced from shared ContentContext, falls back to hardcoded defaults
-  const [pc, setPc] = useState(DEFAULT_PC);
+  // Page content — derived synchronously so there is never a painted frame
+  // showing hardcoded defaults when the ContentContext cache is already populated.
 
   // API-backed lists (fallback if API is down)
   const [roomsApi, setRoomsApi] = useState([]);
@@ -245,18 +245,16 @@ export default function Resort() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.search]);
 
-  // Sync page content from shared ContentContext
-  useEffect(() => {
-    if (!siteContent) return;
-    const d = siteContent;
-    setPc(prev => ({
-      hero:       { ...prev.hero,       ...(d.page_resort_hero       ?? {}) },
-      about:      { ...prev.about,      ...(d.page_resort_about      ?? {}) },
-      rooms:      { ...prev.rooms,      ...(d.page_resort_rooms      ?? {}) },
-      contact:    { ...prev.contact,    ...(d.page_resort_contact    ?? {}) },
-      reviews:    { ...prev.reviews,    ...(d.page_resort_reviews    ?? {}) },
-      newsletter: { ...prev.newsletter, ...(d.page_resort_newsletter ?? {}) },
-    }));
+  const pc = useMemo(() => {
+    const d = siteContent ?? {};
+    return {
+      hero:       { ...DEFAULT_PC.hero,       ...(d.page_resort_hero       ?? {}) },
+      about:      { ...DEFAULT_PC.about,      ...(d.page_resort_about      ?? {}) },
+      rooms:      { ...DEFAULT_PC.rooms,      ...(d.page_resort_rooms      ?? {}) },
+      contact:    { ...DEFAULT_PC.contact,    ...(d.page_resort_contact    ?? {}) },
+      reviews:    { ...DEFAULT_PC.reviews,    ...(d.page_resort_reviews    ?? {}) },
+      newsletter: { ...DEFAULT_PC.newsletter, ...(d.page_resort_newsletter ?? {}) },
+    };
   }, [siteContent]);
 
   // Load rooms + amenities (public endpoints now)

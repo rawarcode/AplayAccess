@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { isVideoUrl } from "../lib/uploadApi.js";
+import { useContent } from "../context/ContentContext.jsx";
 
 const HOME_DEFAULTS = {
   hero: {
@@ -73,27 +74,24 @@ function ResortCard({ resort }) {
 }
 
 export default function Home() {
-  const [content, setContent] = useState(HOME_DEFAULTS);
-  const { hero, resorts: resortContent } = content;
+  const siteContent = useContent();
 
-  useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL ?? "http://localhost:8000"}/api/content`)
-      .then(r => r.json())
-      .then(json => {
-        const d = json?.data ?? {};
-        setContent(prev => ({
-          hero: { ...prev.hero, ...(d.page_home_hero ?? {}) },
-          resorts: {
-            ...prev.resorts,
-            ...(d.page_home_resorts ?? {}),
-            cards: d.page_home_resorts?.cards?.length
-              ? d.page_home_resorts.cards
-              : prev.resorts.cards,
-          },
-        }));
-      })
-      .catch(() => {});
-  }, []);
+  // Derived synchronously — no useEffect, no painted frame of wrong defaults
+  const { hero, resortContent } = useMemo(() => {
+    const d = siteContent ?? {};
+    const homeHero    = d.page_home_hero    ?? {};
+    const homeResorts = d.page_home_resorts ?? {};
+    return {
+      hero: { ...HOME_DEFAULTS.hero, ...homeHero },
+      resortContent: {
+        ...HOME_DEFAULTS.resorts,
+        ...homeResorts,
+        cards: homeResorts.cards?.length
+          ? homeResorts.cards
+          : HOME_DEFAULTS.resorts.cards,
+      },
+    };
+  }, [siteContent]);
 
   const resorts = resortContent.cards.map((card, i) => ({
     ...card,
