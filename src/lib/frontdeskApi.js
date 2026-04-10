@@ -8,8 +8,8 @@ export async function getFdBookings() {
 }
 
 // PATCH /api/admin/bookings/{id}/status
-export async function updateBookingStatus(bookingId, status) {
-  const res = await api.patch(`/api/admin/bookings/${bookingId}/status`, { status });
+export async function updateBookingStatus(bookingId, status, extra = {}) {
+  const res = await api.patch(`/api/admin/bookings/${bookingId}/status`, { status, ...extra });
   return res.data;
 }
 
@@ -58,6 +58,12 @@ export async function removeAmenity(bookingId, amenityId) {
 // PATCH /api/admin/rooms/{id}/housekeeping
 export async function updateHousekeeping(roomId, status) {
   const res = await api.patch(`/api/admin/rooms/${roomId}/housekeeping`, { status });
+  return res.data;
+}
+
+// PATCH /api/admin/bookings/{id}/transfer-room — move a Checked In booking to another room
+export async function transferRoom(bookingId, roomId) {
+  const res = await api.patch(`/api/admin/bookings/${bookingId}/transfer-room`, { room_id: roomId });
   return res.data;
 }
 

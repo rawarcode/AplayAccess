@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
-import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus } from '../../lib/frontdeskApi';
+import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus, transferRoom } from '../../lib/frontdeskApi';
 import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
@@ -30,10 +30,11 @@ function walkInName(b) {
 
 function StatusBadge({ status }) {
   const cls = {
-    Confirmed: 'bg-blue-100 text-blue-800',
-    Completed: 'bg-green-100 text-green-800',
-    Cancelled: 'bg-red-100 text-red-800',
-    Pending:   'bg-yellow-100 text-yellow-800',
+    'Checked In': 'bg-purple-100 text-purple-800',
+    Confirmed:    'bg-blue-100 text-blue-800',
+    Completed:    'bg-green-100 text-green-800',
+    Cancelled:    'bg-red-100 text-red-800',
+    Pending:      'bg-yellow-100 text-yellow-800',
   };
   return (
     <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
@@ -105,6 +106,12 @@ export default function WalkIn() {
   const [submitting,   setSubmitting]     = useState(false);
   const [confirmOpen,  setConfirmOpen]   = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
+  const [collectBooking, setCollectBooking] = useState(null); // booking being collected
+  const [collectPayMethod, setCollectPayMethod] = useState('Cash');
+  const [collectPaying, setCollectPaying]   = useState(false);
+  const [transferBooking, setTransferBooking] = useState(null); // booking being transferred
+  const [transferRoomId, setTransferRoomId]   = useState('');
+  const [transferring, setTransferring]       = useState(false);
   const [error, setError]                 = useState('');
   const [formError, setFormError]         = useState('');
   const [form, setForm]                   = useState(EMPTY_FORM);
@@ -193,9 +200,25 @@ export default function WalkIn() {
     if (!stillValid) setField('time', availableSlots[0].value);
   }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Overnight is unavailable when: past 6PM today, OR availability loaded with no available rooms
+  const overnightUnavailable = useMemo(() => {
+    if (form.bookingType !== 'overnight') return false;
+    if (form.date === today) {
+      const now = new Date();
+      if (now.getHours() >= 18) return true;
+    }
+    if (availability !== null) {
+      return !Object.values(availability).some(v => v === true);
+    }
+    return false;
+  }, [form.bookingType, form.date, today, availability]);
+
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
-  const todayBookings = [...bookings.filter(b => b.checkIn?.slice(0, 10) === today)].sort((a, b) => {
+  const todayBookings = [...bookings.filter(b =>
+    b.checkIn?.slice(0, 10) === today &&
+    b.specialRequests?.startsWith('Walk-in:')
+  )].sort((a, b) => {
     let aVal, bVal;
     if (sortBy === 'Guest')  { aVal = walkInName(a).toLowerCase(); bVal = walkInName(b).toLowerCase(); }
     else if (sortBy === 'Room')   { aVal = (a.roomType ?? '').toLowerCase(); bVal = (b.roomType ?? '').toLowerCase(); }
@@ -262,9 +285,15 @@ export default function WalkIn() {
       setFormError('Guest name is required.'); return;
     }
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
+    if (!isOvernight && availableSlots.length === 0) {
+      setFormError('No available time slots for today. Please select a future date.'); return;
+    }
+    if (overnightUnavailable) {
+      setFormError('No overnight rooms available for tonight. Please select a future date.'); return;
+    }
     if (!form.roomId)       { setFormError('Please select a room.'); return; }
     const selRoom = rooms.find(r => String(r.id) === String(form.roomId));
-    if (selRoom && availability?.[selRoom.name] === false) {
+    if (availability !== null && (!selRoom || availability[selRoom.name] !== true)) {
       setFormError('This room is not available for the selected date and time.'); return;
     }
     setConfirmOpen(true);
@@ -322,10 +351,167 @@ export default function WalkIn() {
     }
   }
 
+  async function handleCollect() {
+    if (!collectBooking) return;
+    setCollectPaying(true);
+    try {
+      await updateBookingStatus(collectBooking.booking_id, 'Completed', { payment_method: collectPayMethod });
+      setBookings(prev => prev.map(b =>
+        b.booking_id === collectBooking.booking_id
+          ? { ...b, status: 'Completed', fully_paid: true }
+          : b
+      ));
+      setCollectBooking(null);
+      showToast('Payment collected! Booking completed.', 'success');
+    } catch {
+      showToast('Failed to complete booking. Please try again.', 'error');
+    } finally {
+      setCollectPaying(false);
+    }
+  }
+
+  async function handleTransfer() {
+    if (!transferBooking || !transferRoomId) return;
+    setTransferring(true);
+    try {
+      const res = await transferRoom(transferBooking.booking_id, Number(transferRoomId));
+      const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
+      setBookings(prev => prev.map(b =>
+        b.booking_id === transferBooking.booking_id
+          ? { ...b, roomType: newRoomName, room_id: Number(transferRoomId) }
+          : b
+      ));
+      setTransferBooking(null);
+      setTransferRoomId('');
+      showToast(`Guest transferred to ${newRoomName}.`, 'success');
+    } catch (err) {
+      showToast(err?.response?.data?.message ?? 'Failed to transfer. Room may be occupied.', 'error');
+    } finally {
+      setTransferring(false);
+    }
+  }
+
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
       <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* ── Collect Payment Modal ── */}
+      {collectBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Collect Payment — {collectBooking.id}</h3>
+                <button onClick={() => setCollectBooking(null)} className="text-gray-500 hover:text-gray-700">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
+                <p className="font-medium text-gray-800">{walkInName(collectBooking)}</p>
+                <p className="text-gray-600">{collectBooking.roomType} · {collectBooking.guests} pax</p>
+                <p className="text-gray-500 text-xs mt-1">{fmtDateTime(collectBooking.checkIn)} → {fmtDateTime(collectBooking.checkOut)}</p>
+              </div>
+              <div className="border rounded mb-4 text-sm">
+                <div className="flex justify-between px-4 py-3 font-semibold text-blue-800 text-base">
+                  <span>Total to Collect</span>
+                  <span>{fmtMoney(collectBooking.total)}</span>
+                </div>
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-green-600' },
+                    { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-blue-500'  },
+                    { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-green-500' },
+                  ].map(opt => (
+                    <button key={opt.value} type="button"
+                      onClick={() => setCollectPayMethod(opt.value)}
+                      className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded text-sm font-medium transition-colors ${
+                        collectPayMethod === opt.value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                      }`}
+                    >
+                      <i className={`fas ${opt.icon} ${collectPayMethod === opt.value ? '' : opt.color}`}></i>
+                      {opt.value}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setCollectBooking(null)} className="px-4 py-2 border rounded text-sm text-gray-700">Cancel</button>
+                <button onClick={handleCollect} disabled={collectPaying}
+                  className="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60">
+                  <i className="fas fa-check mr-1"></i>
+                  {collectPaying ? 'Processing...' : `Collect ${fmtMoney(collectBooking.total)} & Complete`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Transfer Room Modal ── */}
+      {transferBooking && (() => {
+        // Available rooms: all rooms except the current one, minus rooms that have
+        // conflicting Checked In / Confirmed bookings overlapping this booking's slot.
+        const busyRoomIds = new Set(
+          bookings
+            .filter(b =>
+              b.booking_id !== transferBooking.booking_id &&
+              ['Confirmed', 'Checked In'].includes(b.status) &&
+              new Date(b.checkIn)  < new Date(transferBooking.checkOut) &&
+              new Date(b.checkOut) > new Date(transferBooking.checkIn)
+            )
+            .map(b => b.room_id)
+        );
+        const availableRooms = rooms.filter(r =>
+          String(r.id) !== String(transferBooking.room_id) && !busyRoomIds.has(r.id)
+        );
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-full max-w-md">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
+                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
+                    className="text-gray-500 hover:text-gray-700"><i className="fas fa-times"></i></button>
+                </div>
+                <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
+                  <p className="font-medium text-gray-800">{walkInName(transferBooking)}</p>
+                  <p className="text-gray-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
+                </div>
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Transfer to Room</label>
+                  {availableRooms.length === 0 ? (
+                    <p className="text-sm text-red-600">No other rooms are available for this time slot.</p>
+                  ) : (
+                    <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      <option value="">Select a room...</option>
+                      {availableRooms.map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
+                    className="px-4 py-2 border rounded text-sm text-gray-700">Cancel</button>
+                  <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-60">
+                    <i className="fas fa-exchange-alt mr-1"></i>
+                    {transferring ? 'Transferring...' : 'Transfer'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* ── Walk-in Confirmation Modal ── */}
       {confirmOpen && (() => {
         const selRoom    = rooms.find(r => String(r.id) === String(form.roomId));
@@ -624,10 +810,15 @@ export default function WalkIn() {
                       Room *{availChecking && <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>}
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required>
-                      <option value="">Select room</option>
+                      disabled={(!isOvernight && availableSlots.length === 0) || overnightUnavailable}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-100 disabled:cursor-not-allowed" required>
+                      <option value="">
+                        {(!isOvernight && availableSlots.length === 0) || overnightUnavailable
+                          ? 'No rooms available — select a future date'
+                          : 'Select room'}
+                      </option>
                       {rooms
-                        .filter(r => availability === null || availability?.[r.name] !== false)
+                        .filter(r => availability === null || availability?.[r.name] === true)
                         .map(r => (
                           <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
@@ -688,9 +879,13 @@ export default function WalkIn() {
                   ) : (
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Check-in Time</label>
-                      <div className="border border-slate-200 rounded-xl px-3 py-2 w-full text-sm bg-indigo-50 text-indigo-700 font-medium flex items-center gap-2">
-                        <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
-                      </div>
+                      {overnightUnavailable ? (
+                        <p className="text-sm text-red-500 py-2">No overnight rooms available for tonight. Please select a future date.</p>
+                      ) : (
+                        <div className="border border-slate-200 rounded-xl px-3 py-2 w-full text-sm bg-indigo-50 text-indigo-700 font-medium flex items-center gap-2">
+                          <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -886,8 +1081,9 @@ export default function WalkIn() {
                 className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
                 Cancel
               </button>
-              <button type="submit" form="walkin-form" disabled={submitting}
-                className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60">
+              <button type="submit" form="walkin-form"
+                disabled={submitting || (!isOvernight && availableSlots.length === 0) || overnightUnavailable}
+                className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 <i className="fas fa-eye"></i>
                 {submitting ? 'Creating...' : 'Review & Confirm'}
               </button>
@@ -970,26 +1166,19 @@ export default function WalkIn() {
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <div className="flex gap-2">
-                          {b.status === 'Pending' && (
-                            <button
-                              onClick={() => handleStatus(b.booking_id, 'Confirmed')}
-                              disabled={actionLoading === b.booking_id}
-                              className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-40"
-                            >Confirm</button>
-                          )}
-                          {b.status === 'Confirmed' && (
-                            <button
-                              onClick={() => handleStatus(b.booking_id, 'Completed')}
-                              disabled={actionLoading === b.booking_id}
-                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-40"
-                            >Complete</button>
-                          )}
-                          {['Pending', 'Confirmed'].includes(b.status) && (
-                            <button
-                              onClick={() => handleStatus(b.booking_id, 'Cancelled')}
-                              disabled={actionLoading === b.booking_id}
-                              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-40"
-                            >Cancel</button>
+                          {b.status === 'Checked In' && (
+                            <>
+                              <button
+                                onClick={() => { setCollectBooking(b); setCollectPayMethod(b.payment_method ?? 'Cash'); }}
+                                disabled={actionLoading === b.booking_id}
+                                className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-40"
+                              >Collect</button>
+                              <button
+                                onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
+                                disabled={actionLoading === b.booking_id}
+                                className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-40"
+                              ><i className="fas fa-exchange-alt mr-1"></i>Transfer</button>
+                            </>
                           )}
                         </div>
                       </td>

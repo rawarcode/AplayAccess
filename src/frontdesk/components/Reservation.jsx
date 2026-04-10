@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
-import { getFdBookings, updateBookingStatus, checkInBooking, checkOutBooking } from '../../lib/frontdeskApi';
+import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom } from '../../lib/frontdeskApi';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -43,10 +43,13 @@ function PayIcon({ method }) {
   return <span className="capitalize">{method || '—'}</span>;
 }
 
-// A Pending booking with no payment older than 5 minutes is effectively expired
+// A Pending booking with no payment and no active PayMongo session,
+// older than 5 minutes, is effectively expired.
+// Bookings with a paymongo_link_id are excluded — the guest may still be paying.
 function isExpiredPending(b) {
   if (b.status !== 'Pending') return false;
   if (b.fully_paid) return false;
+  if (b.paymongo_link_id) return false; // payment session in progress
   const created = new Date(b.createdAt ?? b.created_at);
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }
@@ -100,10 +103,15 @@ export default function Reservation() {
   const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }
   const [toast, showToast, clearToast, toastType] = useToast();
 
+  const [rooms, setRooms]                 = useState([]);
+  const [transferBooking, setTransferBooking] = useState(null);
+  const [transferRoomId, setTransferRoomId]   = useState('');
+  const [transferring, setTransferring]       = useState(false);
+
   function load() {
     setLoading(true);
-    getFdBookings()
-      .then(data => { setBookings(data); setError(''); })
+    Promise.all([getFdBookings(), getFdRooms()])
+      .then(([bk, rm]) => { setBookings(bk); setRooms(rm); setError(''); })
       .catch(() => setError('Failed to load bookings.'))
       .finally(() => setLoading(false));
   }
@@ -193,6 +201,23 @@ export default function Reservation() {
     finally { setActionLoading(null); }
   }
 
+  async function handleTransfer() {
+    if (!transferBooking || !transferRoomId) return;
+    setTransferring(true);
+    try {
+      const res = await transferRoom(transferBooking.booking_id, Number(transferRoomId));
+      const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
+      syncBooking(transferBooking.booking_id, { roomType: newRoomName, room_id: Number(transferRoomId) });
+      setTransferBooking(null);
+      setTransferRoomId('');
+      showToast(`Guest transferred to ${newRoomName}.`, 'success');
+    } catch (err) {
+      showToast(err?.response?.data?.message ?? 'Transfer failed. Room may be occupied.', 'error');
+    } finally {
+      setTransferring(false);
+    }
+  }
+
   const CONFIRM_CONFIG = {
     confirm:  { label: 'Confirm Booking', icon: 'fa-check',        color: 'blue',   desc: 'Mark this booking as confirmed?' },
     checkin:  { label: 'Check In Guest',  icon: 'fa-door-open',    color: 'purple', desc: 'Check in the guest for this booking?' },
@@ -243,6 +268,63 @@ export default function Reservation() {
                   className={`px-4 py-2 rounded-xl text-sm text-white font-medium ${COLOR_BTN[cfg.color]}`}>
                   {cfg.label}
                 </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── Transfer Room Modal ── */}
+      {transferBooking && (() => {
+        const busyRoomIds = new Set(
+          bookings
+            .filter(b =>
+              b.booking_id !== transferBooking.booking_id &&
+              ['Confirmed', 'Checked In'].includes(b.status) &&
+              new Date(b.checkIn)  < new Date(transferBooking.checkOut) &&
+              new Date(b.checkOut) > new Date(transferBooking.checkIn)
+            )
+            .map(b => b.room_id)
+        );
+        const availableRooms = rooms.filter(r =>
+          String(r.id) !== String(transferBooking.room_id) && !busyRoomIds.has(r.id)
+        );
+        return (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg w-full max-w-md">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
+                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
+                    className="text-gray-500 hover:text-gray-700"><i className="fas fa-times"></i></button>
+                </div>
+                <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
+                  <p className="font-medium text-gray-800">{parseWalkIn(transferBooking)?.name ?? transferBooking.guest}</p>
+                  <p className="text-gray-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
+                </div>
+                <div className="mb-5">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Transfer to Room</label>
+                  {availableRooms.length === 0 ? (
+                    <p className="text-sm text-red-600">No other rooms are available for this time slot.</p>
+                  ) : (
+                    <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      <option value="">Select a room...</option>
+                      {availableRooms.map(r => (
+                        <option key={r.id} value={r.id}>{r.name}</option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
+                    className="px-4 py-2 border rounded text-sm text-gray-700">Cancel</button>
+                  <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-60">
+                    <i className="fas fa-exchange-alt mr-1"></i>
+                    {transferring ? 'Transferring...' : 'Transfer'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -360,11 +442,18 @@ export default function Reservation() {
                               </button>
                             )}
                             {b.status === 'Checked In' && (
-                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'checkout', booking: b })}
-                                disabled={actionLoading === b.booking_id}
-                                title="Check Out" className="text-green-600 hover:text-green-800 disabled:opacity-40">
-                                <i className="fas fa-sign-out-alt"></i>
-                              </button>
+                              <>
+                                <span title="Go to Billing to collect payment &amp; complete" className="text-green-500 cursor-default opacity-60">
+                                  <i className="fas fa-file-invoice-dollar"></i>
+                                </span>
+                                <button
+                                  onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
+                                  disabled={actionLoading === b.booking_id}
+                                  title="Transfer to another room"
+                                  className="text-indigo-600 hover:text-indigo-800 disabled:opacity-40">
+                                  <i className="fas fa-exchange-alt"></i>
+                                </button>
+                              </>
                             )}
                             {b.status === 'Pending' && (
                               <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'cancel', booking: b })}

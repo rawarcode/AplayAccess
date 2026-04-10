@@ -22,14 +22,14 @@ const PAGE_TITLES = {
 const MENU = {
   main: [
     { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard",    ownerOnly: false },
-    { path: "/admin/guests",   icon: "fa-user-check", label: "Guests",   ownerOnly: false },
-    { path: "/admin/messages", icon: "fa-envelope",   label: "Messages", ownerOnly: false, badgeKey: "unreadMessages" },
   ],
   manage: [
     { path: "/admin/rooms",          icon: "fa-bed",        label: "Manage Rooms"   },
     { path: "/admin/content",        icon: "fa-globe",      label: "Manage Website" },
     { path: "/admin/announcements",  icon: "fa-bullhorn",   label: "Announcements"  },
     { path: "/admin/reviews",        icon: "fa-star",       label: "Reviews"        },
+    { path: "/admin/guests",         icon: "fa-user-check", label: "Guests"         },
+    { path: "/admin/messages",       icon: "fa-envelope",   label: "Messages",       badgeKey: "unreadMessages" },
     { path: "/admin/history",        icon: "fa-history",    label: "History"        },
   ],
 };

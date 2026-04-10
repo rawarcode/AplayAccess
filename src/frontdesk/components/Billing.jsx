@@ -244,7 +244,8 @@ export default function Billing() {
     return 0;
   });
 
-  const todayConfirmed  = todayAll.filter(b => b.status === 'Confirmed');
+  // Bookings awaiting balance collection: Confirmed (walk-ins) + Checked In (online guests at departure)
+  const todayConfirmed  = todayAll.filter(b => b.status === 'Confirmed' || b.status === 'Checked In');
   const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
   const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
 
@@ -256,13 +257,15 @@ export default function Billing() {
     if (!billing) return;
     setPaying(true);
     try {
-      await updateBookingStatus(billing.booking_id, 'Completed');
+      await updateBookingStatus(billing.booking_id, 'Completed', { payment_method: payMethod });
       setBookings(prev =>
-        prev.map(b => b.booking_id === billing.booking_id ? { ...b, status: 'Completed' } : b)
+        prev.map(b => b.booking_id === billing.booking_id
+          ? { ...b, status: 'Completed', fully_paid: true }
+          : b)
       );
       setBilling(null);
       setSelected(null);
-      showToast('Payment collected successfully!', 'success');
+      showToast('Payment collected! Booking completed.', 'success');
     } catch {
       showToast('Failed to update booking. Please try again.', 'error');
     } finally {
@@ -270,14 +273,14 @@ export default function Billing() {
     }
   }
 
-  async function handleDownloadReceipt(bookingId) {
+  async function handleDownloadReceipt(bookingId, resId) {
     setDownloading(bookingId);
     try {
       const blob = await downloadStaffReceipt(bookingId);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `receipt-${bookingId}.pdf`;
+      a.download = `${resId ?? bookingId}-receipt.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -307,7 +310,7 @@ export default function Billing() {
         booking={selected}
         onClose={() => setSelected(null)}
         onCollect={openCollect}
-        onDownloadReceipt={handleDownloadReceipt}
+        onDownloadReceipt={(id) => handleDownloadReceipt(id, selected?.id)}
         downloading={downloading}
       />
 
@@ -530,7 +533,7 @@ export default function Billing() {
                         )}
                         {b.status === 'Completed' && (
                           <button
-                            onClick={() => handleDownloadReceipt(b.booking_id)}
+                            onClick={() => handleDownloadReceipt(b.booking_id, b.id)}
                             disabled={downloading === b.booking_id}
                             className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-60 flex items-center gap-1"
                           >

@@ -144,27 +144,50 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
     function handleMessage(event) {
       if (event.data?.type === "paymongo_paid") {
-        const bId = paymentPopup?.bookingId;
         try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
-        setPaymentPopup(null);
+        const bId = paymentPopup?.bookingId;
         setTimeLeft(null);
-        // Directly confirm via backend — PayMongo only redirects here on real payment
+
         const finish = () => { onBooked?.(bookingResultRef.current); onClose(); };
-        if (bId) {
-          const fullyPaid = paymentOption === "full";
-          const confirmCall = guestMode
-            ? guestConfirmPayment(bId, fullyPaid)
-            : api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: fullyPaid });
-          confirmCall.then(finish).catch(finish);
-        } else {
-          finish();
+
+        if (!bId) { finish(); return; }
+
+        if (!guestMode) {
+          // Logged-in user: backend trusts the redirect and always succeeds
+          setPaymentPopup(prev => prev ? { ...prev, popup: null, redirected: true } : null);
+          api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: paymentOption === "full" })
+            .then(finish).catch(finish);
+          return;
         }
+
+        // Guest: call guestConfirmPayment — backend now always confirms when
+        // paymongo_link_id exists (trusts the success_url redirect).
+        // The 422 check was removed because GCash uses Sources API internally and
+        // payment_status never shows 'paid' on localhost without a webhook tunnel.
+        setPaymentPopup(prev => prev ? { ...prev, popup: null, redirected: true } : null);
+        guestConfirmPayment(bId, paymentOption === "full")
+          .then(finish)
+          .catch(finish); // backend confirmed — close regardless
       }
       if (event.data?.type === "paymongo_cancelled") {
-        // Don't destroy state — keep bookingId + checkoutUrl so the user can retry.
-        // Just null out the popup reference so the "Reopen" UI appears.
         try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
-        setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
+        const bId = paymentPopup?.bookingId;
+        setTimeLeft(null);
+
+        if (bId && guestMode) {
+          // GCash sometimes routes to cancel_url even after successful authorization.
+          // guestConfirmPayment now always confirms (trusts redirect, no PayMongo re-check).
+          setPaymentPopup(prev => prev ? { ...prev, popup: null, redirected: true } : null);
+          const finish = () => { onBooked?.(bookingResultRef.current); onClose(); };
+          guestConfirmPayment(bId, paymentOption === "full")
+            .then(finish)
+            .catch(() => {
+              // Confirm failed (booking already cancelled or error) — show reopen UI
+              setPaymentPopup(prev => prev ? { ...prev, redirected: false } : null);
+            });
+        } else {
+          setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
+        }
       }
     }
 
@@ -172,18 +195,20 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     return () => window.removeEventListener("message", handleMessage);
   }, [paymentPopup, onBooked, onClose]);
 
-  // Poll payment status as fallback (runs whether popup is open or closed)
+  // Poll payment status — runs while waiting for payment (popup open or closed but not yet redirected).
+  // Once redirected (postMessage received), the postMessage handler takes over with retry logic.
   useEffect(() => {
     if (!paymentPopup?.bookingId) return;
+    if (paymentPopup?.redirected) return; // postMessage handler owns confirmation from here
     const { bookingId, popup } = paymentPopup;
 
     const interval = setInterval(async () => {
-      // Popup just closed — keep state but show "Reopen" button
+      // Popup just closed by user — keep state but show "Reopen" button
       if (popup && popup.closed) {
         setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
         return;
       }
-      // Check if payment went through on PayMongo
+      // Check if payment went through (e.g. webhook already confirmed it)
       try {
         const status = guestMode
           ? await getGuestPaymentStatus(bookingId)
@@ -197,7 +222,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           onClose();
         }
       } catch {
-        // ignore transient polling errors; keep trying
+        // ignore transient errors; keep polling
       }
     }, 1500);
 
@@ -268,6 +293,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     if (!stillValid) setVisitTime(availableSlots[0].value);
   }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Overnight unavailable: past 6PM today, or availability loaded with no available rooms
+  const overnightUnavailable = useMemo(() => {
+    if (bookingType !== "overnight") return false;
+    if (visitDate === todayStr()) {
+      if (new Date().getHours() >= 18) return true;
+    }
+    if (availability !== null) {
+      return !Object.values(availability).some(v => v === true);
+    }
+    return false;
+  }, [bookingType, visitDate, availability]);
+
   // ── Derived pricing ────────────────────────────────────────────────────────
   const isOvernight  = bookingType === "overnight";
   const baseRate     = isOvernight ? pricing.overnight_rate : pricing.day_rate;
@@ -319,7 +356,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
+    if (bookingType === "day" && availableSlots.length === 0) {
+      setError("No time slots available for today. Please select a future date or choose Overnight."); return;
+    }
+    if (overnightUnavailable) {
+      setError("No overnight rooms available for tonight. Please select a future date."); return;
+    }
     if (!roomType)  { setError("Please select a room type."); return; }
+    if (availability !== null && availability[roomType] !== true) {
+      setError("Selected room is not available for the chosen date and time. Please select another."); return;
+    }
     const room = rooms.find((r) => r.name === roomType);
     if (!room?.id)  { setError("Could not determine room. Please try again."); return; }
     setConfirmOpen(true);
@@ -564,9 +610,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             ) : (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Check-in / Check-out</label>
-                <div className="w-full px-4 py-2 border border-indigo-200 bg-indigo-50 rounded-md text-indigo-700 font-medium flex items-center gap-2">
-                  <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
-                </div>
+                {overnightUnavailable ? (
+                  <div className="w-full px-4 py-2 border border-red-200 bg-red-50 rounded-md text-red-700 text-sm flex items-center gap-2">
+                    <i className="fas fa-moon"></i>
+                    No overnight rooms available for tonight. Please select a future date.
+                  </div>
+                ) : (
+                  <div className="w-full px-4 py-2 border border-indigo-200 bg-indigo-50 rounded-md text-indigo-700 font-medium flex items-center gap-2">
+                    <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
+                  </div>
+                )}
               </div>
             )}
 
@@ -584,11 +637,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 value={roomType}
                 onChange={(e) => setRoomType(e.target.value)}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={(bookingType === "day" && availableSlots.length === 0) || overnightUnavailable}
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">Select Room Type</option>
+                <option value="">
+                  {(bookingType === "day" && availableSlots.length === 0) || overnightUnavailable
+                    ? "No rooms available — select a future date"
+                    : "Select Room Type"}
+                </option>
                 {rooms
-                  .filter(r => availability === null || availability?.[r.name] !== false)
+                  .filter(r => availability === null || availability?.[r.name] === true)
                   .map((r) => (
                     <option key={r.name} value={r.name}>{r.name}</option>
                   ))}
@@ -823,7 +881,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           )}
 
           {paymentPopup ? (
-            paymentPopup.popup ? (
+            paymentPopup.redirected ? (
+              /* Payment redirect received — polling is verifying with PayMongo */
+              <div className="flex flex-col items-center gap-3 py-4 bg-green-50 border border-green-200 rounded-md">
+                <i className="fas fa-spinner fa-spin text-green-600 text-2xl"></i>
+                <p className="text-sm font-medium text-green-800">Payment received! Confirming your booking…</p>
+                <p className="text-xs text-gray-500">Please wait, this only takes a moment.</p>
+              </div>
+            ) : paymentPopup.popup ? (
               /* Popup is open — show waiting state with countdown */
               <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md">
                 <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
@@ -859,6 +924,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     Cancel
                   </button>
                 </div>
+              </div>
+            ) : paymentPopup.verifying ? (
+              /* Cancel URL received — verifying with PayMongo before giving up */
+              <div className="flex flex-col items-center gap-3 py-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                <i className="fas fa-spinner fa-spin text-yellow-600 text-2xl"></i>
+                <p className="text-sm font-medium text-yellow-800">Verifying payment with PayMongo…</p>
+                <p className="text-xs text-gray-500">Please wait — do not close this window.</p>
               </div>
             ) : (
               /* Popup was closed — offer to reopen */

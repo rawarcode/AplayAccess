@@ -41,6 +41,7 @@ function getDayStatus(roomName, bookings) {
     b.roomType === roomName &&
     b.checkIn?.slice(0, 10) === today &&
     b.status !== 'Cancelled' &&
+    b.status !== 'Completed' &&
     !isOvernightBooking(b)
   );
 
@@ -79,7 +80,7 @@ function getOvernightStatus(roomName, bookings) {
   const today = todayStr();
 
   const ovBk = bookings.filter(b => {
-    if (b.roomType !== roomName || b.status === 'Cancelled') return false;
+    if (b.roomType !== roomName || b.status === 'Cancelled' || b.status === 'Completed') return false;
     if (!isOvernightBooking(b)) return false;
     const ci = new Date(b.checkIn.replace(' ', 'T'));
     const co = new Date(b.checkOut.replace(' ', 'T'));

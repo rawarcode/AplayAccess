@@ -49,10 +49,10 @@ export default function Sidebar({ children, showTopBar = true }) {
     frontDesk: [
       { path: '/frontdesk',             icon: 'fa-tachometer-alt',   label: 'Dashboard'     },
       { path: '/frontdesk/reservation', icon: 'fa-calendar-check',   label: 'Reservations',  badgeKey: 'pendingBookings' },
-      { path: '/frontdesk/billing',     icon: 'fa-receipt',          label: 'Billing'       },
       { path: '/frontdesk/walkin',      icon: 'fa-person-walking',   label: 'Walk-ins'      },
-      { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
+      { path: '/frontdesk/billing',     icon: 'fa-receipt',          label: 'Billing'       },
       { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms',         badgeKey: 'dirtyRooms'      },
+      { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
       { path: '/frontdesk/messages',    icon: 'fa-envelope',         label: 'Messages',      badgeKey: 'unreadMessages'  },
       { path: '/frontdesk/reports',     icon: 'fa-chart-bar',        label: 'Reports'       },
     ],

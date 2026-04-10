@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
   addAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
+  getFdRooms, transferRoom,
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
@@ -28,6 +29,7 @@ function parseWalkIn(b) {
 
 function isExpiredPending(b) {
   if (!b || b.status !== 'Pending') return false;
+  if (b.paymongo_link_id) return false; // payment session in progress — not expired
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
   return new Date(b.created_at ?? b.createdAt) < fiveMinAgo;
 }
@@ -137,6 +139,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const [promoError,       setPromoError]       = useState('');
   // pendingAction: { type, amenityId?, amenityName?, amenityTotal? } | null
   const [pendingAction,    setPendingAction]    = useState(null);
+  const [transferOpen,     setTransferOpen]     = useState(false);
+  const [transferRoomId,   setTransferRoomId]   = useState('');
+  const [transferring,     setTransferring]     = useState(false);
+  const [rooms,            setRooms]            = useState([]);
+  const [roomsLoading,     setRoomsLoading]     = useState(false);
 
   function applyUpdate(updates) {
     const updated = { ...booking, ...updates };
@@ -237,6 +244,35 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       showToast?.('Failed to download receipt.');
     } finally {
       setReceiptLoading(false);
+    }
+  }
+
+  function openTransfer() {
+    setTransferOpen(true);
+    setTransferRoomId('');
+    if (rooms.length === 0) {
+      setRoomsLoading(true);
+      getFdRooms()
+        .then(data => setRooms(data))
+        .catch(() => {})
+        .finally(() => setRoomsLoading(false));
+    }
+  }
+
+  async function handleTransfer() {
+    if (!transferRoomId) return;
+    setTransferring(true);
+    try {
+      const res = await transferRoom(booking.booking_id, Number(transferRoomId));
+      const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
+      applyUpdate({ roomType: newRoomName, room_id: Number(transferRoomId) });
+      setTransferOpen(false);
+      setTransferRoomId('');
+      showToast?.(`Guest transferred to ${newRoomName}.`);
+    } catch (err) {
+      showToast?.(err?.response?.data?.message ?? 'Transfer failed. Room may be occupied.');
+    } finally {
+      setTransferring(false);
     }
   }
 
@@ -508,6 +544,44 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             )}
           </div>
 
+          {/* Transfer Room Panel */}
+          {transferOpen && (
+            <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+                  <i className="fas fa-exchange-alt text-white text-xs"></i>
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-indigo-900">Transfer to Another Room</p>
+                  <p className="text-xs text-indigo-700">Currently in: <strong>{booking.roomType}</strong></p>
+                </div>
+              </div>
+              {roomsLoading ? (
+                <p className="text-xs text-indigo-600"><i className="fas fa-spinner fa-spin mr-1"></i>Loading rooms...</p>
+              ) : (
+                <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                  className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                  <option value="">Select a room...</option>
+                  {rooms
+                    .filter(r => String(r.id) !== String(booking.room_id))
+                    .map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              )}
+              <div className="flex gap-2">
+                <button onClick={() => { setTransferOpen(false); setTransferRoomId(''); }}
+                  className="flex-1 px-3 py-2 border border-gray-300 bg-white rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
+                  Cancel
+                </button>
+                <button onClick={handleTransfer} disabled={!transferRoomId || transferring || roomsLoading}
+                  className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-60">
+                  {transferring
+                    ? <><i className="fas fa-spinner fa-spin mr-1"></i>Transferring...</>
+                    : <><i className="fas fa-exchange-alt mr-1"></i>Confirm Transfer</>}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Actions — hidden while confirmation is pending */}
           {!pendingAction && (
             <div className="flex justify-end gap-2 pt-4 border-t">
@@ -516,6 +590,13 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   disabled={actionLoading}
                   className="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50">
                   <i className="fas fa-door-open mr-1"></i>Check In
+                </button>
+              )}
+              {booking.status === 'Checked In' && !transferOpen && (
+                <button onClick={openTransfer}
+                  disabled={actionLoading}
+                  className="px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50">
+                  <i className="fas fa-exchange-alt mr-1"></i>Transfer
                 </button>
               )}
               {booking.status === 'Checked In' && (
