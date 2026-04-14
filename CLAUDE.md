@@ -94,13 +94,20 @@ Aplaya Beach Resort booking system — Capstone project.
 - `GET /api/admin/stats` | `GET /api/admin/analytics/*` (owner only)
 - `GET /api/bookings/{id}/receipt` | `GET /api/admin/bookings/{id}/receipt`
 
-## Pending Tasks (as of 2026-04-14)
+## Pending Tasks (as of 2026-04-15)
 1. **Re-seed database** — `php artisan migrate:fresh --seed` (applies quantity column + new rooms)
-2. **Admin Rooms form** — add `rate_24hr`, `capacity_label`, `quantity` fields; add Cottage/Pavilion buttons
-3. **BookingModal bug** — `pricing.reservation_fee` should be computed `reservationFee` (shows ₱0.00)
-4. **Day booking 3PM cutoff** — disable Day type after 3PM for today's date
-5. **Booking type price** — show `—` until a room is selected
-6. **KPI dashboards** — Admin Dashboard + Frontdesk Dashboard improvements
+2. **KPI dashboards** — Admin Dashboard + Frontdesk Dashboard improvements
+
+## Completed (2026-04-15)
+- BookingModal: reservation fee ₱0 bug fixed; 3PM day cutoff; hide prices until room selected
+- WalkIn: 3PM day cutoff added
+- Admin Rooms: rate_24hr, capacity_label, quantity in form/table/modal; Add Cottage/Pavilion buttons; Videoke icon
+- AvailabilityController: booking_type param; quantity-aware; returns remaining count
+- ResortController::roomTypes(): now returns rate_24hr, capacity_label, quantity
+- Migration + Room model: quantity field added
+- RoomSeeder: cottage quantities seeded
+- RoomController: validates rate_24hr, capacity_label, quantity
+- BookingController + WalkInController: quantity-aware conflict checks
 
 ## Middleware Roles
 - `staff` — front_desk + admin
