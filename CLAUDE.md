@@ -1,155 +1,14 @@
-# AplayAccess — Claude Project Memory
+# AplayAccess — Frontend (Claude Code Context)
 
-## Project Overview
-- **Name:** AplayAccess (Aplaya Beach Resort booking system)
-- **Type:** Capstone project — React SPA (guest frontend) + Laravel API (backend)
-- **Frontend repo:** AplayAccess (this repo) — branch `GUEST` (merged to `main`)
-- **Backend repo:** AplayAccess-Backend — branch `main`
-- **Frontend stack:** React 19 + Vite 7 + Tailwind CSS v4 + React Router v7 + Axios
-- **Backend stack:** Laravel 12 + Sanctum Bearer token auth + MySQL (XAMPP)
-- **Backend URL:** http://localhost:8000
-- **Frontend URL:** http://localhost:5173
+## Project
+Aplaya Beach Resort booking system — Capstone project.
+**Stack:** React 19 + Vite 7 + Tailwind CSS v4 + React Router v7 + Axios
 
-## Business Model
-- Day-use beach resort (NOT a hotel) — guests book 8-hour slots
-- **Flat rate: ₱1,500 per slot** regardless of room type
-- Guest picks a date + start time (7AM, 9AM, 11AM, 1PM, 2PM)
-- Backend auto-calculates check_out = check_in + 8 hours
-- Overlap/availability check prevents double-booking
-- ₱150 reservation fee paid upfront, ₱1,350 balance on arrival
-
-## Running the Project
-```bash
-# Backend (terminal 1)
-cd AplayAccess-Backend
-php artisan serve          # → http://localhost:8000
-
-# Frontend (terminal 2)
-cd AplayAccess
-npm run dev                # → http://localhost:5173
-
-# Re-seed database (wipes all data)
-cd AplayAccess-Backend
-php artisan migrate:fresh --seed
-```
-
-## Architecture — Frontend
-- `src/main.jsx` — entry: BrowserRouter > AuthProvider > App
-- `src/App.jsx` — routes: Layout wraps all pages; /dashboard uses RequireAuth
-- `src/context/AuthContext.jsx` — auth state; localStorage `aplaya_user_v1` (user) + `aplaya_token` (Bearer token); restores session via me() on boot
-- `src/lib/api.js` — axios instance (baseURL localhost:8000); interceptor adds `Authorization: Bearer <token>`
-- `src/lib/authApi.js` — login/register/me/logout (NO CSRF, token-based)
-- `src/lib/bookingApi.js` — getBookings, createBooking, cancelBooking
-- `src/lib/messageApi.js` — getMessages, sendMessage, replyMessage, markMessageRead
-- `src/lib/notificationApi.js` — getNotifications, markNotificationRead, markAllNotificationsRead
-- `src/lib/profileApi.js` — updateProfile, changePassword
-- `src/lib/reviewApi.js` — getReviews, submitReview
-- `src/lib/resortApi.js` — getResorts, getResort, getResortRooms, getResortAmenities
-
-## Pages & Components — Frontend
-- `Home.jsx` — multi-resort landing (Cavite, Cebu, Bohol)
-- `Resort.jsx` — main resort page (RESORT_ID=1); BookingModal, LoginModal, SuccessModal, AlertModal; contact form + newsletter form both wired to API
-- `Gallery.jsx` — photo gallery page
-- `Signup.jsx` — signup page
-- `Navbar.jsx` — fixed nav with Login/Signup modals
-- `Layout.jsx` — Navbar + Outlet + Footer
-- `components/dashboard/DashboardShell.jsx` — sidebar nav + NotificationBell (real-time polling every 60s) + header
-- `RequireAuth.jsx` — redirects unauthenticated to /resort?login=1&next=<path>
-- `components/modals/BookingModal.jsx` — date + time slot picker, flat ₱1,500 rate, calls POST /api/bookings
-
-## Dashboard Pages — All API-connected
-- `GuestDashboard.jsx` — real booking data from API; upcoming/past split; fmtDateTime helper
-- `MyBookings.jsx` — full booking table with inline CancelModal (no browser confirm/alert)
-- `EditProfile.jsx` — PATCH /api/profile; saves to AuthContext
-- `Messages.jsx` — fully wired: getMessages, sendMessage, replyMessage, markMessageRead, changePassword
-
-## Key Data Files (fallbacks)
-- `src/data/rooms.js` — fallback room data (all prices: 1500)
-- `src/data/amenities.js` — fallback amenity data
-- `src/data/gallery.js` — gallery images
-- `src/data/testimonials.js` — testimonial data
-
-## Architecture — Backend
-- **Location:** AplayAccess-Backend (separate repo)
-- **Database:** aplayaccess (MySQL, root, no password)
-- **Auth:** Sanctum Bearer token. Login returns {user, token}. Token in localStorage `aplaya_token`
-- **CORS:** config/cors.php — allows localhost:5173 and 127.0.0.1:5173
-
-## Backend Models
-- User (role: guest/front_desk/admin/owner)
-- Resort, Room, Amenity, GalleryImage
-- Booking (check_in/check_out are dateTime, 8-hour slots)
-- Message, UserNotification
-- ContactSubmission
-- PromoCode (created_by, type: percentage/fixed, max_uses, expires_at, is_active)
-- NewsletterSubscription
-
-## Backend Migrations (in order)
-1. users table + phone/avatar + role column
-2. resorts, rooms, amenities tables
-3. bookings table (dateTime check_in/check_out, taxes default 0)
-4. reviews, messages, user_notifications, gallery_images tables
-5. contact_submissions table
-6. promo_codes table
-7. newsletter_subscriptions table
-
-## Guest API Endpoints (routes/api.php)
-**Public:**
-- POST /api/register, /api/login
-- GET /api/resorts, /api/resorts/{id}, /api/resorts/{id}/rooms, /api/resorts/{id}/amenities, /api/resorts/{id}/room-types, /api/resorts/{id}/gallery, /api/resorts/{id}/reviews
-- POST /api/contact
-- POST /api/newsletter
-
-**Auth required (Bearer token):**
-- POST /api/logout, GET /api/me
-- GET/POST /api/bookings, PATCH /api/bookings/{id}/cancel
-- PATCH /api/profile, POST /api/change-password
-- GET/POST /api/messages, POST /api/messages/{id}/reply, PATCH /api/messages/{id}/read
-- GET /api/notifications, PATCH /api/notifications/read-all, PATCH /api/notifications/{id}/read
-- GET/POST /api/reviews
-
-## Admin API Endpoints (/api/admin/*)
-**Public:**
-- POST /api/admin/login (rejects guests, returns Sanctum token)
-
-**Auth required:**
-- GET /api/admin/me, POST /api/admin/logout
-
-**staff middleware (front_desk + admin):**
-- GET /api/admin/bookings, PATCH /api/admin/bookings/{id}/status
-- GET /api/admin/messages, POST /api/admin/messages/{id}/reply, PATCH /api/admin/messages/{id}/read
-- GET /api/admin/contacts
-
-**admin_role middleware (admin only):**
-- GET/POST /api/admin/rooms, PATCH/DELETE /api/admin/rooms/{id}
-- GET/POST /api/admin/gallery, DELETE /api/admin/gallery/{id}
-
-**owner_role middleware (owner only):**
-- GET /api/admin/analytics/overview, /bookings, /revenue
-- GET/POST /api/admin/promo-codes, PATCH/DELETE /api/admin/promo-codes/{id}
-- GET /api/admin/newsletter
-
-## Content Page (src/pages/admin/Content.jsx)
-- Tab 1 — Page Editor: section-based editor for Home hero, Resort cards, Resort hero/about/rooms/contact/reviews/newsletter. Saves to localStorage (browser only).
-- Tab 2 — Gallery: wired to real API (getAdminGallery, createAdminGallery, deleteAdminGallery). resort_id defaults to 1.
-- Tab 3 — Contact Submissions: wired to real API (getAdminContacts). Read-only with search + "Reply via Email" mailto link.
-
-## Admin Controllers (app/Http/Controllers/Admin/)
-- AuthController — login (rejects guests), me, logout
-- BookingController — index (all bookings with guest info), updateStatus
-- MessageController — index (threads), reply, markRead
-- ContactController — index
-- RoomController — index, store, update, destroy
-- GalleryController — index, store, destroy
-- AnalyticsController — overview, bookings (daily), revenue (period)
-- PromoCodeController — index, store, update, destroy
-- NewsletterController — index (subscriber list + count)
-
-## Middleware (app/Http/Middleware/)
-- StaffMiddleware — allows front_desk + admin roles
-- AdminMiddleware — allows admin role only
-- OwnerMiddleware — allows owner role only
-- Registered in bootstrap/app.php as: staff, admin_role, owner_role
+- **Frontend repo:** `rawarcode/AplayAccess` (this repo)
+- **Backend repo:** `michaelmj23/AplayAccess-Backend` at `E:\Capstone\AplayAccess-Backend`
+- **Dev server:** `npm run dev` → http://localhost:5173
+- **Backend URL:** http://localhost:8000 (XAMPP + `php artisan serve`)
+- **Re-seed:** `php artisan migrate:fresh --seed` in the backend folder
 
 ## Test Accounts
 | Email | Password | Role |
@@ -159,16 +18,91 @@ php artisan migrate:fresh --seed
 | admin@aplaya.com | password | admin |
 | owner@aplaya.com | password | owner |
 
-## Seeders (DatabaseSeeder calls in order)
-ResortSeeder, RoomSeeder, AmenitySeeder, UserSeeder, ReviewSeeder, GallerySeeder, StaffSeeder
+## Architecture
+- `src/main.jsx` → BrowserRouter > AuthProvider > App
+- `src/lib/api.js` — Axios; adds `Authorization: Bearer <token>` from localStorage `aplaya_token`
+- `src/lib/authApi.js` — login / register / me / logout (Sanctum Bearer token, NO CSRF)
+- `src/lib/adminApi.js` — admin stats, analytics, rooms CRUD, addons, promo codes
+- `src/lib/frontdeskApi.js` — frontdesk bookings, rooms, walk-in, transfer, housekeeping
+- `src/context/AuthContext.jsx` — auth state; localStorage: `aplaya_user_v1` + `aplaya_token`
+- `src/context/ContentContext.jsx` — site content from API; cached in `aplaya_content_cache_v1`
 
-## Key Patterns
-- `fmtDateTime(str)` — converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" using `.replace(" ", "T")` for Safari compat
-- `useLockBodyScroll(open)` — hook used in all modals
-- Booking overlap check: `check_in < new_checkout AND check_out > new_checkin`
-- Admin frontend is delegated to another team — backend scaffold only done
+## Portals
+| Portal    | Pages                    | Shell                                    |
+|-----------|--------------------------|------------------------------------------|
+| Guest     | `src/pages/dashboard/`   | `src/components/DashboardShell.jsx`     |
+| Admin     | `src/pages/admin/`       | `src/components/admin/AdminShell.jsx`   |
+| Owner     | `src/pages/owner/`       | `src/components/owner/OwnerShell.jsx`   |
+| Frontdesk | `src/frontdesk/`         | `src/frontdesk/components/Layout/`      |
 
-## User Preferences
-- Filipino context (₱ currency, GCash/PayMaya, Philippines address)
-- Paths on dev PC: frontend at E:\Capstone\AplayAccess, backend at E:\Capstone\AplayAccess-Backend
-- GitHub: https://github.com/rawarTheNewbie/AplayAccess
+## Key Files
+- `src/components/modals/BookingModal.jsx` — guest/public online booking (3 types, PayMongo)
+- `src/frontdesk/components/WalkIn.jsx` — frontdesk walk-in booking form
+- `src/pages/admin/Rooms.jsx` — admin room CRUD
+
+## Pricing Model (current)
+- **3 booking types:** `day` (6AM–6PM), `night` (6PM–7AM next day), `24hr` (6AM–6AM next day)
+- **Room rate only** — no entrance fees, no guest count in booking price
+- **Entrance fees** collected at gate by frontdesk: ₱50 day / ₱80 night / ₱100 24hr (adults); children 3 & below free
+- **Online bookings:** 20% reservation fee paid upfront via PayMongo; balance at resort
+- **Walk-ins:** full amount at counter; `reservation_fee = 0`
+
+## Room Types (rooms table key fields)
+| Field               | Notes                                              |
+|---------------------|----------------------------------------------------|
+| `day_rate`          | 6AM–6PM rate                                       |
+| `overnight_rate`    | 6PM–7AM rate (often same as day_rate)              |
+| `rate_24hr`         | 6AM–6AM next-day rate                              |
+| `capacity_label`    | Display string e.g. "4–5 pax"                      |
+| `quantity`          | Units available (e.g. 12 for Small Cottage)        |
+| `features`          | JSON array `[{text, icon}]`                        |
+| `availability_status` | available / renovation / maintenance / reserved / closed |
+| `housekeeping_status` | clean / dirty / cleaning                         |
+
+## Rooms (seeded)
+### Rooms
+| Name | Day | Night | 24hr | Capacity |
+|---|---|---|---|---|
+| Rohan | ₱1,500 | ₱1,500 | ₱2,000 | 2–3 pax |
+| Ellie | ₱1,500 | ₱1,500 | ₱2,000 | 4–5 pax |
+| Quian | ₱1,500 | ₱1,500 | ₱2,000 | 4–5 pax |
+| 2nd Floor Standard | ₱1,800 | ₱1,800 | ₱2,500 | 2–3 pax |
+| Cassey | ₱1,800 | ₱1,800 | ₱2,500 | 6–7 pax |
+| Katrina | ₱1,800 | ₱1,800 | ₱2,500 | 5–6 pax |
+| Patrice | ₱3,000 | ₱3,000 | ₱4,500 | 7–8 pax · videoke add-on ₱1,000 |
+
+### Cottages & Pavilions (with quantity)
+| Name | Day | Night | 24hr | Qty | Notes |
+|---|---|---|---|---|---|
+| Small Cottage | ₱400 | ₱400 | ₱700 | 12 | — |
+| Medium Cottage | ₱600 | ₱600 | ₱1,000 | 4 | — |
+| Large Cottage | ₱800 | ₱800 | ₱1,400 | 3 | — |
+| Red Pavilion | ₱700 | ₱700 | ₱1,200 | 2 | Videoke add-on ₱1,500 |
+| Blue Pavilion | ₱2,000 | ₱2,000 | ₱2,000 | 1 | Videoke included |
+
+## API Endpoints (summary)
+- `POST /api/login` | `GET /api/me` | `POST /api/logout`
+- `GET /api/resorts/1/rooms` — available rooms (full model: rate_24hr, capacity_label, quantity)
+- `GET /api/resorts/1/room-types` — lightweight list (id, name, day_rate, overnight_rate, rate_24hr, capacity_label, quantity)
+- `GET /api/availability?date=YYYY-MM-DD&booking_type=day|night|24hr`
+- `GET|POST /api/bookings` | `PATCH /api/bookings/{id}/cancel`
+- `POST /api/guest-booking` — booking without account
+- `POST /api/admin/walkin-booking` — frontdesk walk-in (auto sets status=Checked In)
+- `PATCH /api/admin/bookings/{id}/transfer-room`
+- `GET|POST /api/admin/rooms` | `PATCH /api/admin/rooms/{id}` | `DELETE /api/admin/rooms/{id}`
+- `GET|POST|PATCH|DELETE /api/admin/promo-codes` | `POST /api/validate-promo`
+- `GET /api/admin/stats` | `GET /api/admin/analytics/*` (owner only)
+- `GET /api/bookings/{id}/receipt` | `GET /api/admin/bookings/{id}/receipt`
+
+## Pending Tasks (as of 2026-04-14)
+1. **Re-seed database** — `php artisan migrate:fresh --seed` (applies quantity column + new rooms)
+2. **Admin Rooms form** — add `rate_24hr`, `capacity_label`, `quantity` fields; add Cottage/Pavilion buttons
+3. **BookingModal bug** — `pricing.reservation_fee` should be computed `reservationFee` (shows ₱0.00)
+4. **Day booking 3PM cutoff** — disable Day type after 3PM for today's date
+5. **Booking type price** — show `—` until a room is selected
+6. **KPI dashboards** — Admin Dashboard + Frontdesk Dashboard improvements
+
+## Middleware Roles
+- `staff` — front_desk + admin
+- `admin_role` — admin only
+- `owner_role` — owner only
