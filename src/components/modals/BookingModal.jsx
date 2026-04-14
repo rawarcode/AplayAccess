@@ -238,6 +238,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // ── Selected room metadata ─────────────────────────────────────────────────
   const selectedRoomObj = useMemo(() => rooms.find(r => r.name === roomType) ?? null, [rooms, roomType]);
 
+  // null = unrestricted; array = only those types allowed for this room
+  const allowedTypes = selectedRoomObj?.allowed_booking_types ?? null;
+  const typeAllowed  = (type) => !allowedTypes || allowedTypes.includes(type);
+
   // ── Day unavailable: past 3PM today ───────────────────────────────────────
   const dayUnavailable = useMemo(() => {
     if (visitDate !== todayStr()) return false;
@@ -256,6 +260,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   useEffect(() => {
     if (dayUnavailable && bookingType === "day") setBookingType("night");
   }, [dayUnavailable]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-switch to first allowed type when room with restrictions is selected
+  useEffect(() => {
+    if (!allowedTypes) return;
+    if (!allowedTypes.includes(bookingType)) setBookingType(allowedTypes[0]);
+  }, [roomType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived pricing — room rate only, 20% reservation fee ─────────────────
   const baseRate = bookingType === "night"
@@ -484,9 +494,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate,       disabled: dayUnavailable },
-                  { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate, disabled: false },
-                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6:00 AM – 6:00 AM",  color: "purple", rate: pricing.rate_24hr,      disabled: false },
+                  { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate,       disabled: dayUnavailable || !typeAllowed("day")   },
+                  { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate, disabled: !typeAllowed("night") },
+                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6:00 AM – 6:00 AM",  color: "purple", rate: pricing.rate_24hr,      disabled: !typeAllowed("24hr")  },
                 ].map(({ key, icon, label, time, color, rate, disabled }) => {
                   const active = bookingType === key;
                   return (

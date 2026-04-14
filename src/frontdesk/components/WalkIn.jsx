@@ -156,6 +156,14 @@ export default function WalkIn() {
 
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
+  // Auto-switch to first allowed type when a restricted room is selected
+  useEffect(() => {
+    const room = rooms.find(r => String(r.id) === String(form.roomId));
+    const allowed = room?.allowed_booking_types ?? null;
+    if (!allowed) return;
+    if (!allowed.includes(form.bookingType)) setField('bookingType', allowed[0]);
+  }, [form.roomId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const todayBookings = [...bookings.filter(b =>
     b.checkIn?.slice(0, 10) === today &&
     b.specialRequests?.startsWith('Walk-in:')
@@ -173,10 +181,12 @@ export default function WalkIn() {
   });
 
   // Pricing preview — room rate only; entrance fees collected at check-in by frontdesk
-  const selectedRoom = rooms.find(r => String(r.id) === String(form.roomId));
-  const dayRate      = Number(selectedRoom?.day_rate       ?? 1500);
-  const nightRate    = Number(selectedRoom?.overnight_rate ?? 1500);
-  const rate24       = Number(selectedRoom?.rate_24hr      ?? 2000);
+  const selectedRoom  = rooms.find(r => String(r.id) === String(form.roomId));
+  const allowedTypes  = selectedRoom?.allowed_booking_types ?? null;
+  const typeAllowed   = (type) => !allowedTypes || allowedTypes.includes(type);
+  const dayRate       = Number(selectedRoom?.day_rate       ?? 1500);
+  const nightRate     = Number(selectedRoom?.overnight_rate ?? 1500);
+  const rate24        = Number(selectedRoom?.rate_24hr      ?? 2000);
   const baseRate     = form.bookingType === 'night' ? nightRate : form.bookingType === '24hr' ? rate24 : dayRate;
   const amenityTotal = addons.reduce((sum, a) => {
     const qty = Number(addonQtys[a.id] || 0);
@@ -224,6 +234,9 @@ export default function WalkIn() {
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
     if (dayUnavailable && form.bookingType === 'day') {
       setFormError('Day booking is not available after 3:00 PM. Please select Night or 24 Hours.'); return;
+    }
+    if (allowedTypes && !allowedTypes.includes(form.bookingType)) {
+      setFormError(`This room only supports: ${allowedTypes.join(', ')}.`); return;
     }
     if (nightUnavailable) {
       setFormError('Night booking is not available — it is past 6PM. Please select a future date.'); return;
@@ -717,9 +730,9 @@ export default function WalkIn() {
                     <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue',   disabled: dayUnavailable   },
-                        { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo', disabled: false             },
-                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM – 6AM',  rate: rate24,    color: 'purple', disabled: false             },
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue',   disabled: dayUnavailable || !typeAllowed('day')   },
+                        { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo', disabled: !typeAllowed('night') },
+                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM – 6AM',  rate: rate24,    color: 'purple', disabled: !typeAllowed('24hr')  },
                       ].map(opt => {
                         const active = form.bookingType === opt.type;
                         const colorMap = {

@@ -92,12 +92,13 @@ export default function GuestDashboard() {
       .then(data => setRooms(
         (data ?? []).map(r => ({
           id:             r?.id             ?? null,
-          name:           r?.name           ?? "Room",
-          day_rate:       Number(r?.day_rate       ?? 0),
-          overnight_rate: Number(r?.overnight_rate ?? 0),
-          rate_24hr:      Number(r?.rate_24hr      ?? 0),
-          capacity_label: r?.capacity_label ?? "",
-          quantity:       Number(r?.quantity ?? 1),
+          name:                  r?.name           ?? "Room",
+          day_rate:              Number(r?.day_rate       ?? 0),
+          overnight_rate:        Number(r?.overnight_rate ?? 0),
+          rate_24hr:             Number(r?.rate_24hr      ?? 0),
+          capacity_label:        r?.capacity_label ?? "",
+          quantity:              Number(r?.quantity ?? 1),
+          allowed_booking_types: r?.allowed_booking_types ?? null,
         }))
       ))
       .catch(() => {});

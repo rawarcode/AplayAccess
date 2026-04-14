@@ -48,7 +48,7 @@ const BLANK = {
   name: "", description: "", day_rate: 1500, overnight_rate: 2000, rate_24hr: 2500,
   capacity: 2, capacity_label: "", quantity: 1,
   size: "", beds: "", occupancy: "", view: "", image: "",
-  availability_status: "available", features: [],
+  availability_status: "available", features: [], allowed_booking_types: null,
 };
 
 const COTTAGE_TEMPLATE = {
@@ -239,8 +239,9 @@ export default function AdminRooms() {
       occupancy:           editing.occupancy || undefined,
       view:                editing.view      || undefined,
       image:               editing.image     || undefined,
-      features:            editing.features?.length ? editing.features : null,
-      resort_id:           1,
+      features:               editing.features?.length ? editing.features : null,
+      allowed_booking_types:  editing.allowed_booking_types?.length ? editing.allowed_booking_types : null,
+      resort_id:              1,
     };
     try {
       editing.id ? await updateAdminRoom(editing.id, payload) : await createAdminRoom(payload);
@@ -346,6 +347,11 @@ export default function AdminRooms() {
                       <td className="px-6 py-4 font-medium text-slate-900">
                         {room.name}
                         {room.capacity_label && <span className="ml-1 text-xs text-slate-400">· {room.capacity_label}</span>}
+                        {room.allowed_booking_types?.length > 0 && (
+                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
+                            {room.allowed_booking_types.join("/")} only
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-slate-600 text-center">{room.quantity ?? 1}</td>
                       <td className="px-6 py-4 text-slate-600">{room.capacity} pax</td>
@@ -425,6 +431,18 @@ export default function AdminRooms() {
                     <div className="col-span-2">
                       <p className="text-slate-500 text-xs">Description</p>
                       <p className="text-slate-700">{viewRoom.description}</p>
+                    </div>
+                  )}
+                  {viewRoom.allowed_booking_types?.length > 0 && (
+                    <div className="col-span-2">
+                      <p className="text-slate-500 text-xs mb-1">Booking Type Restriction</p>
+                      <div className="flex gap-2">
+                        {viewRoom.allowed_booking_types.map(t => (
+                          <span key={t} className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-semibold">
+                            {t === "day" ? "Day only" : t === "night" ? "Night only" : "24hr only"}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                   {features.length > 0 && (
@@ -602,6 +620,45 @@ export default function AdminRooms() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* ── Allowed Booking Types ── */}
+          <div className="border-t border-slate-100 pt-4">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Allowed Booking Types</label>
+            <p className="text-xs text-slate-400 mb-3">Leave all unchecked to allow all types (day, night, 24hr).</p>
+            <div className="flex gap-5">
+              {[
+                { key: "day",   label: "Day (6AM–6PM)",   icon: "fa-sun"   },
+                { key: "night", label: "Night (6PM–7AM)", icon: "fa-moon"  },
+                { key: "24hr",  label: "24 Hours",        icon: "fa-clock" },
+              ].map(({ key, label, icon }) => {
+                const checked = (editing?.allowed_booking_types ?? []).includes(key);
+                return (
+                  <label key={key} className="flex items-center gap-2 cursor-pointer text-sm text-slate-700 select-none">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={e => {
+                        const current = editing?.allowed_booking_types ?? [];
+                        const next = e.target.checked
+                          ? [...current, key]
+                          : current.filter(t => t !== key);
+                        setField("allowed_booking_types", next.length ? next : null);
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400"
+                    />
+                    <i className={`fas ${icon} text-slate-400 text-xs`}></i>
+                    {label}
+                  </label>
+                );
+              })}
+            </div>
+            {editing?.allowed_booking_types?.length > 0 && (
+              <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+                <i className="fas fa-exclamation-triangle"></i>
+                Guests can only select: {editing.allowed_booking_types.join(", ")}.
+              </p>
+            )}
           </div>
 
           {/* ── Live preview ── */}
