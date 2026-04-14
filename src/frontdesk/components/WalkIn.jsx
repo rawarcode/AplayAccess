@@ -43,52 +43,13 @@ function StatusBadge({ status }) {
   );
 }
 
-// Day check-in slots: 7AM–4PM (check-out capped at 5PM)
-const DAY_TIME_SLOTS = [
-  { value: '07:00', label: '7:00 AM'  },
-  { value: '08:00', label: '8:00 AM'  },
-  { value: '09:00', label: '9:00 AM'  },
-  { value: '10:00', label: '10:00 AM' },
-  { value: '11:00', label: '11:00 AM' },
-  { value: '12:00', label: '12:00 PM' },
-  { value: '13:00', label: '1:00 PM'  },
-  { value: '14:00', label: '2:00 PM'  },
-  { value: '15:00', label: '3:00 PM'  },
-  { value: '16:00', label: '4:00 PM'  },
-];
-
-// Day: check-in + 8hrs, capped at 5PM. Overnight: 6PM → 6AM next day (fixed).
-function computeCheckOut(dateStr, timeStr, bookingType) {
-  if (bookingType === 'overnight') {
-    const d = new Date(`${dateStr}T18:00:00`);
-    d.setDate(d.getDate() + 1);
-    d.setHours(6, 0, 0, 0);
-    return d;
-  }
-  const checkIn = new Date(`${dateStr}T${timeStr}:00`);
-  const co8 = new Date(checkIn.getTime() + 8 * 60 * 60 * 1000);
-  const fivePM = new Date(`${dateStr}T17:00:00`);
-  return co8 <= fivePM ? co8 : fivePM;
-}
-
-function fmtTime12(date) {
-  return date.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
-}
-
 // Addons are fetched from API — no hardcoded catalog
-
-// Pricing defaults — overwritten immediately by /api/pricing on mount
-const PRICING_DEFAULTS = {
-  entrance_fee:     50,
-  extra_guest_fee:  50,
-  free_guest_limit: 5,
-};
 
 const EMPTY_FORM = {
   firstName: '', lastName: '', phone: '', email: '',
-  roomId: '', date: todayStr(), time: '09:00',
-  guests: '2', payMethod: 'Cash', notes: '',
-  bookingType: 'day', // 'day' | 'overnight'
+  roomId: '', date: todayStr(),
+  payMethod: 'Cash', notes: '',
+  bookingType: 'day', // 'day' | 'night' | '24hr'
 };
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -100,7 +61,6 @@ export default function WalkIn() {
   const [sortDir, setSortDir] = useState('desc');
   const [bookings, setBookings]           = useState([]);
   const [rooms, setRooms]                 = useState([]);
-  const [pricing, setPricing]             = useState(PRICING_DEFAULTS);
   const [loading, setLoading]             = useState(true);
   const [formOpen, setFormOpen]           = useState(false);
   const [submitting,   setSubmitting]     = useState(false);
@@ -131,19 +91,12 @@ export default function WalkIn() {
 
   function loadAll() {
     setLoading(true);
-    Promise.all([getFdBookings(), getFdRooms(), api.get('/api/pricing'), api.get('/api/addons')])
-      .then(([bk, rm, prRes, adRes]) => {
+    Promise.all([getFdBookings(), getFdRooms(), api.get('/api/addons')])
+      .then(([bk, rm, adRes]) => {
         setBookings(bk);
         setRooms(rm);
-        const d = prRes.data?.data ?? {};
-        setPricing({
-          entrance_fee:     Number(d.entrance_fee     ?? PRICING_DEFAULTS.entrance_fee),
-          extra_guest_fee:  Number(d.extra_guest_fee  ?? PRICING_DEFAULTS.extra_guest_fee),
-          free_guest_limit: Number(d.free_guest_limit ?? PRICING_DEFAULTS.free_guest_limit),
-        });
         const fetchedAddons = adRes.data?.data ?? [];
         setAddons(fetchedAddons);
-        // Init qty map — 0 for all
         setAddonQtys(Object.fromEntries(fetchedAddons.map(a => [a.id, 0])));
         setError('');
       })
@@ -165,11 +118,9 @@ export default function WalkIn() {
 
   useEffect(() => {
     if (!form.date) { setAvailability(null); return; }
-    if (form.bookingType === 'day' && !form.time) return;
     const params = new URLSearchParams({
-      date:      form.date,
-      time:      form.time,
-      overnight: form.bookingType === 'overnight' ? '1' : '0',
+      date:         form.date,
+      booking_type: form.bookingType,
     });
     setAvailChecking(true);
     api.get(`/api/availability?${params}`)
@@ -180,38 +131,17 @@ export default function WalkIn() {
       })
       .catch(() => setAvailability(null))
       .finally(() => setAvailChecking(false));
-  }, [form.date, form.time, form.bookingType]);
+  }, [form.date, form.bookingType]);
 
-  // Hide past time slots when date is today
-  const availableSlots = useMemo(() => {
-    if (form.date !== today) return DAY_TIME_SLOTS;
-    const now     = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
-    return DAY_TIME_SLOTS.filter(s => {
-      const [hh, mm] = s.value.split(':').map(Number);
-      return hh * 60 + mm > nowMins;
-    });
-  }, [form.date, today]);
-
-  // Auto-advance to earliest valid slot when available slots change
-  useEffect(() => {
-    if (availableSlots.length === 0) return;
-    const stillValid = availableSlots.some(s => s.value === form.time);
-    if (!stillValid) setField('time', availableSlots[0].value);
-  }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Overnight is unavailable when: past 6PM today, OR availability loaded with no available rooms
-  const overnightUnavailable = useMemo(() => {
-    if (form.bookingType !== 'overnight') return false;
+  // Night is unavailable when: past 6PM today
+  const nightUnavailable = useMemo(() => {
+    if (form.bookingType !== 'night') return false;
     if (form.date === today) {
       const now = new Date();
       if (now.getHours() >= 18) return true;
     }
-    if (availability !== null) {
-      return !Object.values(availability).some(v => v === true);
-    }
     return false;
-  }, [form.bookingType, form.date, today, availability]);
+  }, [form.bookingType, form.date, today]);
 
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
@@ -231,24 +161,20 @@ export default function WalkIn() {
     return 0;
   });
 
-  // Pricing preview — uses live rates from /api/pricing + selected room's rates
-  const isOvernight     = form.bookingType === 'overnight';
-  const selectedRoom    = rooms.find(r => String(r.id) === String(form.roomId));
-  const dayRate         = Number(selectedRoom?.day_rate      ?? (rooms[0]?.day_rate      ?? 1500));
-  const nightRate       = Number(selectedRoom?.overnight_rate ?? (rooms[0]?.overnight_rate ?? 2000));
-  const baseRate        = isOvernight ? nightRate : dayRate;
-  const previewGuests   = Number(form.guests) || 0;
-  const previewExtraFee = Math.max(0, previewGuests - pricing.free_guest_limit) * pricing.extra_guest_fee;
-  const previewEntrance = previewGuests * pricing.entrance_fee;
-  const amenityTotal    = addons.reduce((sum, a) => {
+  // Pricing preview — room rate only; entrance fees collected at check-in by frontdesk
+  const selectedRoom = rooms.find(r => String(r.id) === String(form.roomId));
+  const dayRate      = Number(selectedRoom?.day_rate       ?? 1500);
+  const nightRate    = Number(selectedRoom?.overnight_rate ?? 1500);
+  const rate24       = Number(selectedRoom?.rate_24hr      ?? 2000);
+  const baseRate     = form.bookingType === 'night' ? nightRate : form.bookingType === '24hr' ? rate24 : dayRate;
+  const amenityTotal = addons.reduce((sum, a) => {
     const qty = Number(addonQtys[a.id] || 0);
     if (qty <= 0) return sum;
     return sum + (a.per_booking ? a.price : a.price * qty);
   }, 0);
-  const previewSubtotal = baseRate + previewExtraFee + previewEntrance + amenityTotal;
+  const previewSubtotal = baseRate + amenityTotal;
   const promoDiscount   = promoResult?.discount_amount ?? 0;
   const previewTotal    = Math.max(previewSubtotal - promoDiscount, 0);
-  const previewCheckOut = computeCheckOut(form.date, form.time, form.bookingType);
 
   async function applyPromo() {
     const code = promoInput.trim();
@@ -285,16 +211,13 @@ export default function WalkIn() {
       setFormError('Guest name is required.'); return;
     }
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
-    if (!isOvernight && availableSlots.length === 0) {
-      setFormError('No available time slots for today. Please select a future date.'); return;
+    if (nightUnavailable) {
+      setFormError('Night booking is not available — it is past 6PM. Please select a future date.'); return;
     }
-    if (overnightUnavailable) {
-      setFormError('No overnight rooms available for tonight. Please select a future date.'); return;
-    }
-    if (!form.roomId)       { setFormError('Please select a room.'); return; }
+    if (!form.roomId) { setFormError('Please select a room.'); return; }
     const selRoom = rooms.find(r => String(r.id) === String(form.roomId));
     if (availability !== null && (!selRoom || availability[selRoom.name] !== true)) {
-      setFormError('This room is not available for the selected date and time.'); return;
+      setFormError('This room is not available for the selected date and booking type.'); return;
     }
     setConfirmOpen(true);
   }
@@ -302,9 +225,10 @@ export default function WalkIn() {
   // Step 2 — confirmed → call API
   async function handleConfirmCreate() {
     setConfirmOpen(false);
-    const checkIn   = isOvernight ? `${form.date} 18:00:00` : `${form.date} ${form.time}:00`;
-    const guestName = `${form.firstName.trim()} ${form.lastName.trim()}`;
-    const amenities = addons
+    const checkInTime = form.bookingType === 'night' ? '18:00:00' : '06:00:00';
+    const checkIn     = `${form.date} ${checkInTime}`;
+    const guestName   = `${form.firstName.trim()} ${form.lastName.trim()}`;
+    const amenities   = addons
       .filter(a => Number(addonQtys[a.id] || 0) > 0)
       .map(a => ({ name: a.name, qty: Number(addonQtys[a.id]) }));
 
@@ -316,16 +240,15 @@ export default function WalkIn() {
         guest_email:       form.email.trim() || undefined,
         room_id:           Number(form.roomId),
         check_in:          checkIn,
-        guests:            previewGuests,
         payment_method:    form.payMethod.toLowerCase(),
         special_requests:  form.notes.trim() || undefined,
-        overnight:         isOvernight,
+        booking_type:      form.bookingType,
         amenities,
         promo_code:        promoResult ? promoInput.trim().toUpperCase() : null,
         discount:          promoDiscount,
       });
       setFormOpen(false);
-      setForm({ ...EMPTY_FORM, date: today });
+      setForm({ ...EMPTY_FORM, date: form.date });
       setAddonQtys(Object.fromEntries(addons.map(a => [a.id, 0])));
       setPromoInput(''); setPromoResult(null); setPromoError('');
       loadAll();
@@ -516,11 +439,12 @@ export default function WalkIn() {
       {confirmOpen && (() => {
         const selRoom    = rooms.find(r => String(r.id) === String(form.roomId));
         const guestName  = `${form.firstName.trim()} ${form.lastName.trim()}`;
-        const checkInLabel  = isOvernight ? '6:00 PM' : DAY_TIME_SLOTS.find(t => t.value === form.time)?.label;
-        const checkOutLabel = isOvernight ? '6:00 AM (next day)' : fmtTime12(computeCheckOut(form.date, form.time, form.bookingType));
+        const checkInLabel  = form.bookingType === 'night' ? '6:00 PM' : '6:00 AM';
+        const checkOutLabel = form.bookingType === 'night' ? '7:00 AM (next day)' : form.bookingType === '24hr' ? '6:00 AM (next day)' : '6:00 PM';
         const dateLabel  = form.date ? new Date(form.date + 'T00:00:00').toLocaleDateString('en-PH', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         }) : '—';
+        const typeLabel  = form.bookingType === 'night' ? 'Night Stay' : form.bookingType === '24hr' ? '24 Hours' : 'Day Visit';
         return (
           <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
             <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
@@ -544,10 +468,12 @@ export default function WalkIn() {
 
                 {/* Booking type badge */}
                 <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
-                  isOvernight ? 'bg-indigo-100 text-indigo-800' : 'bg-blue-100 text-blue-800'
+                  form.bookingType === 'night' ? 'bg-indigo-100 text-indigo-800' :
+                  form.bookingType === '24hr'  ? 'bg-purple-100 text-purple-800' :
+                                                 'bg-blue-100 text-blue-800'
                 }`}>
-                  <i className={`fas ${isOvernight ? 'fa-moon' : 'fa-sun'}`}></i>
-                  {isOvernight ? 'Overnight Stay' : 'Day Visit'}
+                  <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : form.bookingType === '24hr' ? 'fa-clock' : 'fa-sun'}`}></i>
+                  {typeLabel}
                 </span>
 
                 {/* Guest & Booking Details */}
@@ -591,10 +517,6 @@ export default function WalkIn() {
                         <td className="px-4 py-2.5 text-gray-900">{checkOutLabel}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Guests</td>
-                        <td className="px-4 py-2.5 text-gray-900">{previewGuests} {previewGuests === 1 ? 'person' : 'persons'}</td>
-                      </tr>
-                      <tr>
                         <td className="px-4 py-2.5 text-gray-500 font-medium">Payment</td>
                         <td className="px-4 py-2.5 text-gray-900">{form.payMethod}</td>
                       </tr>
@@ -630,21 +552,18 @@ export default function WalkIn() {
                 </div>
 
                 {/* Pricing Breakdown */}
-                <div className={`rounded-xl border p-4 space-y-2 text-sm ${isOvernight ? 'bg-indigo-50 border-indigo-200' : 'bg-blue-50 border-blue-200'}`}>
-                  <p className={`font-semibold mb-1 ${isOvernight ? 'text-indigo-900' : 'text-blue-900'}`}>Payment Breakdown</p>
+                <div className={`rounded-xl border p-4 space-y-2 text-sm ${
+                  form.bookingType === 'night' ? 'bg-indigo-50 border-indigo-200' :
+                  form.bookingType === '24hr'  ? 'bg-purple-50 border-purple-200' :
+                                                 'bg-blue-50 border-blue-200'
+                }`}>
+                  <p className={`font-semibold mb-1 ${
+                    form.bookingType === 'night' ? 'text-indigo-900' :
+                    form.bookingType === '24hr'  ? 'text-purple-900' : 'text-blue-900'
+                  }`}>Payment Breakdown</p>
                   <div className="flex justify-between text-gray-700">
-                    <span>{isOvernight ? 'Overnight rate' : 'Day visit rate'}</span>
+                    <span>Room rate ({typeLabel})</span>
                     <span>{fmtMoney(baseRate)}</span>
-                  </div>
-                  {previewExtraFee > 0 && (
-                    <div className="flex justify-between text-orange-700">
-                      <span>Extra guests ({previewGuests - pricing.free_guest_limit} × {fmtMoney(pricing.extra_guest_fee)})</span>
-                      <span>+ {fmtMoney(previewExtraFee)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-gray-700">
-                    <span>Entrance fee ({previewGuests} × {fmtMoney(pricing.entrance_fee)})</span>
-                    <span>{fmtMoney(previewEntrance)}</span>
                   </div>
                   {amenityTotal > 0 && (
                     <div className="flex justify-between text-gray-700">
@@ -666,10 +585,17 @@ export default function WalkIn() {
                   ) : (
                     <div className="border-t border-gray-200 pt-1"></div>
                   )}
-                  <div className={`flex justify-between font-bold text-base border-t pt-2 ${isOvernight ? 'text-indigo-900 border-indigo-200' : 'text-blue-900 border-blue-200'}`}>
+                  <div className={`flex justify-between font-bold text-base border-t pt-2 ${
+                    form.bookingType === 'night' ? 'text-indigo-900 border-indigo-200' :
+                    form.bookingType === '24hr'  ? 'text-purple-900 border-purple-200' :
+                                                   'text-blue-900 border-blue-200'
+                  }`}>
                     <span>Total Due</span>
                     <span>{fmtMoney(previewTotal)}</span>
                   </div>
+                  <p className="text-xs text-gray-500 pt-1">
+                    <i className="fas fa-info-circle mr-1"></i>Entrance fees collected at check-in.
+                  </p>
                 </div>
               </div>
 
@@ -775,52 +701,52 @@ export default function WalkIn() {
                   {/* Booking type */}
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setField('bookingType', 'day')}
-                        className={`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${
-                          !isOvernight ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <i className={`fas fa-sun text-lg ${!isOvernight ? 'text-blue-500' : 'text-gray-400'}`}></i>
-                        <div className="text-left">
-                          <p className={`text-sm font-semibold ${!isOvernight ? 'text-blue-700' : 'text-gray-700'}`}>Day Visit</p>
-                          <p className="text-xs text-gray-500">7AM – 5PM · {fmtMoney(dayRate)}</p>
-                        </div>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setField('bookingType', 'overnight')}
-                        className={`flex items-center gap-3 p-3 border-2 rounded-lg transition-colors ${
-                          isOvernight ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        <i className={`fas fa-moon text-lg ${isOvernight ? 'text-indigo-500' : 'text-gray-400'}`}></i>
-                        <div className="text-left">
-                          <p className={`text-sm font-semibold ${isOvernight ? 'text-indigo-700' : 'text-gray-700'}`}>Overnight</p>
-                          <p className="text-xs text-gray-500">6PM – 6AM · {fmtMoney(nightRate)}</p>
-                        </div>
-                      </button>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue'   },
+                        { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo' },
+                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM – 6AM',  rate: rate24,    color: 'purple' },
+                      ].map(opt => {
+                        const active = form.bookingType === opt.type;
+                        const colorMap = {
+                          blue:   { border: 'border-blue-500',   bg: 'bg-blue-50',   text: 'text-blue-700',   icon: 'text-blue-500'   },
+                          indigo: { border: 'border-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: 'text-indigo-500' },
+                          purple: { border: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
+                        };
+                        const c = colorMap[opt.color];
+                        return (
+                          <button key={opt.type} type="button"
+                            onClick={() => setField('bookingType', opt.type)}
+                            className={`flex flex-col items-center gap-1 p-3 border-2 rounded-lg transition-colors ${
+                              active ? `${c.border} ${c.bg}` : 'border-gray-200 hover:border-gray-300'
+                            }`}
+                          >
+                            <i className={`fas ${opt.icon} text-lg ${active ? c.icon : 'text-gray-400'}`}></i>
+                            <p className={`text-xs font-semibold ${active ? c.text : 'text-gray-700'}`}>{opt.label}</p>
+                            <p className="text-xs text-gray-500">{opt.time}</p>
+                            <p className={`text-xs font-bold ${active ? c.text : 'text-gray-600'}`}>{fmtMoney(opt.rate)}</p>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
-                  <div>
+                  <div className="col-span-2">
                     <label className="block text-xs font-medium text-slate-700 mb-1">
                       Room *{availChecking && <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>}
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
-                      disabled={(!isOvernight && availableSlots.length === 0) || overnightUnavailable}
+                      disabled={nightUnavailable}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-100 disabled:cursor-not-allowed" required>
                       <option value="">
-                        {(!isOvernight && availableSlots.length === 0) || overnightUnavailable
-                          ? 'No rooms available — select a future date'
-                          : 'Select room'}
+                        {nightUnavailable ? 'Night not available — select a future date' : 'Select room'}
                       </option>
                       {rooms
                         .filter(r => availability === null || availability?.[r.name] === true)
                         .map(r => (
-                          <option key={r.id} value={r.id}>{r.name}</option>
+                          <option key={r.id} value={r.id}>
+                            {r.name}{r.capacity_label ? ` (${r.capacity_label})` : ''}
+                          </option>
                         ))}
                     </select>
                     {(() => {
@@ -829,7 +755,7 @@ export default function WalkIn() {
                       if (avail === false) return (
                         <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
                           <i className="fas fa-times-circle"></i>
-                          This room is already booked for the selected date and time.
+                          This room is not available for the selected date.
                         </p>
                       );
                       if (avail === true) return (
@@ -841,15 +767,6 @@ export default function WalkIn() {
                       return null;
                     })()}
                   </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Number of Guests * <span className="text-green-600 font-normal">(children 3 & below are free)</span>
-                    </label>
-                    <select value={form.guests} onChange={e => setField('guests', e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-                      {[1,2,3,4,5,6,7,8,9,10].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
-                  </div>
 
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">Date *</label>
@@ -858,36 +775,19 @@ export default function WalkIn() {
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
 
-                  {/* Day: time picker | Overnight: fixed time display */}
-                  {!isOvernight ? (
-                    <div>
-                      <label className="block text-xs font-medium text-slate-700 mb-1">Check-in Time *</label>
-                      {availableSlots.length === 0 ? (
-                        <p className="text-sm text-red-500 py-2">No available slots for today. Please select a future date.</p>
-                      ) : (
-                        <select value={form.time} onChange={e => setField('time', e.target.value)}
-                          className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-                          {availableSlots.map(t => {
-                            const co = computeCheckOut(form.date, t.value, 'day');
-                            return (
-                              <option key={t.value} value={t.value}>{t.label} → {fmtTime12(co)}</option>
-                            );
-                          })}
-                        </select>
-                      )}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Check-in / Check-out</label>
+                    <div className={`border border-slate-200 rounded-xl px-3 py-2 w-full text-sm font-medium flex items-center gap-2 ${
+                      form.bookingType === 'night' ? 'bg-indigo-50 text-indigo-700' :
+                      form.bookingType === '24hr'  ? 'bg-purple-50 text-purple-700' :
+                                                     'bg-blue-50 text-blue-700'
+                    }`}>
+                      <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : form.bookingType === '24hr' ? 'fa-clock' : 'fa-sun'}`}></i>
+                      {form.bookingType === 'night' ? '6:00 PM → 7:00 AM (next day)' :
+                       form.bookingType === '24hr'  ? '6:00 AM → 6:00 AM (next day)' :
+                                                      '6:00 AM → 6:00 PM'}
                     </div>
-                  ) : (
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Check-in Time</label>
-                      {overnightUnavailable ? (
-                        <p className="text-sm text-red-500 py-2">No overnight rooms available for tonight. Please select a future date.</p>
-                      ) : (
-                        <div className="border border-slate-200 rounded-xl px-3 py-2 w-full text-sm bg-indigo-50 text-indigo-700 font-medium flex items-center gap-2">
-                          <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  </div>
 
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-slate-700 mb-1">Payment Method *</label>
@@ -1005,72 +905,71 @@ export default function WalkIn() {
                 </div>
 
                 {/* Pricing preview */}
-                <div className={`p-3 rounded text-sm mb-4 border ${isOvernight ? 'bg-indigo-50 border-indigo-200' : 'bg-blue-50 border-blue-200'}`}>
-                  <p className={`font-semibold mb-2 ${isOvernight ? 'text-indigo-800' : 'text-blue-800'}`}>
-                    <i className={`fas ${isOvernight ? 'fa-moon' : 'fa-sun'} mr-1`}></i>Booking Summary
-                  </p>
-                  <div className={`space-y-1 mb-2 ${isOvernight ? 'text-indigo-700' : 'text-blue-700'}`}>
-                    <div className="flex justify-between">
-                      <span>Check-in</span>
-                      <span className="font-medium">
-                        {isOvernight ? '6:00 PM' : DAY_TIME_SLOTS.find(t => t.value === form.time)?.label}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Check-out</span>
-                      <span className="font-medium">
-                        {isOvernight ? '6:00 AM (next day)' : fmtTime12(previewCheckOut)}
-                      </span>
-                    </div>
-                    <hr className={`my-1 ${isOvernight ? 'border-indigo-200' : 'border-blue-200'}`} />
-                    <div className="flex justify-between">
-                      <span>{isOvernight ? 'Overnight rate' : 'Day visit rate'}</span>
-                      <span>{fmtMoney(baseRate)}</span>
-                    </div>
-                    {previewExtraFee > 0 && (
-                      <div className="flex justify-between">
-                        <span>Extra guests ({previewGuests - pricing.free_guest_limit} × {fmtMoney(pricing.extra_guest_fee)})</span>
-                        <span>{fmtMoney(previewExtraFee)}</span>
+                {(() => {
+                  const typeColors = {
+                    day:   { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-800',   sub: 'text-blue-700',   hr: 'border-blue-200'   },
+                    night: { bg: 'bg-indigo-50',  border: 'border-indigo-200', text: 'text-indigo-800', sub: 'text-indigo-700', hr: 'border-indigo-200' },
+                    '24hr':{ bg: 'bg-purple-50',  border: 'border-purple-200', text: 'text-purple-800', sub: 'text-purple-700', hr: 'border-purple-200' },
+                  };
+                  const tc = typeColors[form.bookingType] ?? typeColors.day;
+                  const ciLabel = form.bookingType === 'night' ? '6:00 PM' : '6:00 AM';
+                  const coLabel = form.bookingType === 'night' ? '7:00 AM (next day)' : form.bookingType === '24hr' ? '6:00 AM (next day)' : '6:00 PM';
+                  const rateLabel = form.bookingType === 'night' ? 'Night rate' : form.bookingType === '24hr' ? '24 hr rate' : 'Day rate';
+                  return (
+                    <div className={`p-3 rounded text-sm mb-4 border ${tc.bg} ${tc.border}`}>
+                      <p className={`font-semibold mb-2 ${tc.text}`}>
+                        <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : form.bookingType === '24hr' ? 'fa-clock' : 'fa-sun'} mr-1`}></i>Booking Summary
+                      </p>
+                      <div className={`space-y-1 mb-2 ${tc.sub}`}>
+                        <div className="flex justify-between">
+                          <span>Check-in</span>
+                          <span className="font-medium">{ciLabel}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Check-out</span>
+                          <span className="font-medium">{coLabel}</span>
+                        </div>
+                        <hr className={`my-1 ${tc.hr}`} />
+                        <div className="flex justify-between">
+                          <span>{rateLabel}</span>
+                          <span>{fmtMoney(baseRate)}</span>
+                        </div>
+                        {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
+                          const qty = Number(addonQtys[a.id]);
+                          const subtotal = a.per_booking ? a.price : a.price * qty;
+                          return (
+                            <div key={a.id} className="flex justify-between">
+                              <span>
+                                <i className={`fas ${a.icon || 'fa-tag'} mr-1 text-xs`}></i>
+                                {a.name}{!a.per_booking && ` × ${qty}`}
+                              </span>
+                              <span>{fmtMoney(subtotal)}</span>
+                            </div>
+                          );
+                        })}
+                        {promoDiscount > 0 && (
+                          <>
+                            <div className="flex justify-between text-gray-400 line-through">
+                              <span>Subtotal</span>
+                              <span>{fmtMoney(previewSubtotal)}</span>
+                            </div>
+                            <div className="flex justify-between text-green-700 font-medium">
+                              <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput})</span>
+                              <span>− {fmtMoney(promoDiscount)}</span>
+                            </div>
+                          </>
+                        )}
                       </div>
-                    )}
-                    <div className="flex justify-between">
-                      <span>
-                        <i className="fas fa-ticket-alt mr-1 text-xs"></i>
-                        Entrance fee ({previewGuests} × {fmtMoney(pricing.entrance_fee)})
-                      </span>
-                      <span>{fmtMoney(previewEntrance)}</span>
+                      <div className={`flex justify-between font-bold border-t pt-2 ${tc.text} ${tc.hr}`}>
+                        <span>Total Due</span>
+                        <span>{fmtMoney(previewTotal)}</span>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        <i className="fas fa-info-circle mr-1"></i>Entrance fees collected at check-in.
+                      </p>
                     </div>
-                    {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
-                      const qty = Number(addonQtys[a.id]);
-                      const subtotal = a.per_booking ? a.price : a.price * qty;
-                      return (
-                        <div key={a.id} className="flex justify-between">
-                          <span>
-                            <i className={`fas ${a.icon || 'fa-tag'} mr-1 text-xs`}></i>
-                            {a.name}{!a.per_booking && ` × ${qty}`}
-                          </span>
-                          <span>{fmtMoney(subtotal)}</span>
-                        </div>
-                      );
-                    })}
-                    {promoDiscount > 0 && (
-                      <>
-                        <div className="flex justify-between text-gray-400 line-through">
-                          <span>Subtotal</span>
-                          <span>{fmtMoney(previewSubtotal)}</span>
-                        </div>
-                        <div className="flex justify-between text-green-700 font-medium">
-                          <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput})</span>
-                          <span>− {fmtMoney(promoDiscount)}</span>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                  <div className={`flex justify-between font-bold border-t pt-2 ${isOvernight ? 'text-indigo-800 border-indigo-200' : 'text-blue-800 border-blue-200'}`}>
-                    <span>Total Due</span>
-                    <span>{fmtMoney(previewTotal)}</span>
-                  </div>
-                </div>
+                  );
+                })()}
 
               </form>
             </div>
@@ -1082,7 +981,7 @@ export default function WalkIn() {
                 Cancel
               </button>
               <button type="submit" form="walkin-form"
-                disabled={submitting || (!isOvernight && availableSlots.length === 0) || overnightUnavailable}
+                disabled={submitting || nightUnavailable}
                 className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 <i className="fas fa-eye"></i>
                 {submitting ? 'Creating...' : 'Review & Confirm'}

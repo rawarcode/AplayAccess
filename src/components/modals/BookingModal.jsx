@@ -5,32 +5,13 @@ import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
 import { validatePromo } from "../../lib/adminApi.js";
 
-// Day visit: check-in slots 7AM–4PM (check-out capped at 5PM)
-const DAY_TIME_SLOTS = [
-  { label: "7:00 AM",  value: "07:00", end: "3:00 PM"  },
-  { label: "8:00 AM",  value: "08:00", end: "4:00 PM"  },
-  { label: "9:00 AM",  value: "09:00", end: "5:00 PM"  },
-  { label: "10:00 AM", value: "10:00", end: "5:00 PM"  },
-  { label: "11:00 AM", value: "11:00", end: "5:00 PM"  },
-  { label: "12:00 PM", value: "12:00", end: "5:00 PM"  },
-  { label: "1:00 PM",  value: "13:00", end: "5:00 PM"  },
-  { label: "2:00 PM",  value: "14:00", end: "5:00 PM"  },
-  { label: "3:00 PM",  value: "15:00", end: "5:00 PM"  },
-  { label: "4:00 PM",  value: "16:00", end: "5:00 PM"  },
-];
-
 // Fallback defaults — replaced immediately by /api/pricing on mount
 const DEFAULTS = {
-  day_rate:         1500,
-  overnight_rate:   2000,
-  reservation_fee:  150,
-  free_guest_limit: 5,
-  extra_guest_fee:  50,
-  entrance_fee:     50,
+  day_rate:            1500,
+  overnight_rate:      1500,
+  rate_24hr:           2000,
+  reservation_fee_pct: 20,   // % of room rate charged as online reservation fee
 };
-
-const MAX_GUESTS = 20;
-const MIN_GUESTS = 1;
 
 function formatPHP(n) {
   return `₱${Number(n || 0).toLocaleString("en-PH", {
@@ -47,11 +28,9 @@ function todayStr() {
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false }) {
   const modalRef        = useRef(null);
   const bookingResultRef = useRef(null); // stores API response after booking created
-  const [bookingType, setBookingType] = useState("day"); // "day" | "overnight"
+  const [bookingType, setBookingType] = useState("day"); // "day" | "night" | "24hr"
   const [visitDate, setVisitDate]     = useState("");
-  const [visitTime, setVisitTime]     = useState("09:00");
   const [roomType, setRoomType]       = useState(selectedRoom || "");
-  const [guests, setGuests]           = useState(2);
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
@@ -84,39 +63,25 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [availability,     setAvailability]     = useState(null);
   const [availChecking,    setAvailChecking]    = useState(false);
 
-  // Fetch pricing once on mount
+  // Derive rates from the selected room in the rooms prop (already fetched by parent)
   useEffect(() => {
-    api.get("/api/pricing")
-      .then(r => {
-        const d = r.data?.data ?? {};
-        setRawPricing(d);
-      })
-      .catch(() => { /* keep defaults on network error */ });
-  }, []);
-
-  // Re-derive rates whenever raw data or selected room changes
-  useEffect(() => {
-    if (!rawPricing) return;
-    const roomList    = rawPricing.rooms ?? [];
-    const matchedRoom = roomList.find(rm => rm.name === roomType) ?? roomList[0];
+    const r = rooms.find(rm => rm.name === roomType);
+    if (!r) return;
     setPricing({
-      day_rate:         Number(matchedRoom?.day_rate        ?? DEFAULTS.day_rate),
-      overnight_rate:   Number(matchedRoom?.overnight_rate  ?? DEFAULTS.overnight_rate),
-      reservation_fee:  Number(rawPricing.reservation_fee   ?? DEFAULTS.reservation_fee),
-      free_guest_limit: Number(rawPricing.free_guest_limit  ?? DEFAULTS.free_guest_limit),
-      extra_guest_fee:  Number(rawPricing.extra_guest_fee   ?? DEFAULTS.extra_guest_fee),
-      entrance_fee:     Number(rawPricing.entrance_fee      ?? DEFAULTS.entrance_fee),
+      day_rate:            Number(r.day_rate        ?? DEFAULTS.day_rate),
+      overnight_rate:      Number(r.overnight_rate  ?? DEFAULTS.overnight_rate),
+      rate_24hr:           Number(r.rate_24hr       ?? DEFAULTS.rate_24hr),
+      reservation_fee_pct: DEFAULTS.reservation_fee_pct,
     });
-  }, [rawPricing, roomType]);
+  }, [rooms, roomType]);
 
   // Check room availability whenever date, time, or booking type changes
   useEffect(() => {
     if (!visitDate) { setAvailability(null); return; }
     // For overnight we only need the date; for day visits we also need a time
     const params = new URLSearchParams({
-      date:      visitDate,
-      time:      visitTime,
-      overnight: bookingType === "overnight" ? "1" : "0",
+      date:         visitDate,
+      booking_type: bookingType,
     });
     setAvailChecking(true);
     api.get(`/api/availability?${params}`)
@@ -127,7 +92,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       })
       .catch(() => setAvailability(null)) // on error, show no indicators
       .finally(() => setAvailChecking(false));
-  }, [visitDate, visitTime, bookingType]);
+  }, [visitDate, bookingType]);
 
   // Scroll modal to top whenever an error appears so it's always visible
   useEffect(() => {
@@ -266,56 +231,32 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setGuestName("");
       setGuestEmail("");
       setGuestPhone("");
+      setPricing(DEFAULTS);
     }
   }, [open, selectedRoom]);
 
-  // ── Max guests: use selected room's capacity, fall back to MAX_GUESTS ──────
-  const maxGuests = useMemo(() => {
-    const r = rooms.find(r => r.name === roomType);
-    return r?.capacity || MAX_GUESTS;
-  }, [rooms, roomType]);
+  // ── Selected room metadata ─────────────────────────────────────────────────
+  const selectedRoomObj = useMemo(() => rooms.find(r => r.name === roomType) ?? null, [rooms, roomType]);
 
-  // ── Available time slots (hide past slots when date is today) ─────────────
-  const availableSlots = useMemo(() => {
-    if (visitDate !== todayStr()) return DAY_TIME_SLOTS;
-    const now     = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
-    return DAY_TIME_SLOTS.filter(s => {
-      const [hh, mm] = s.value.split(":").map(Number);
-      return hh * 60 + mm > nowMins;
-    });
-  }, [visitDate]);
-
-  // Auto-advance to earliest valid slot whenever the available list changes
-  useEffect(() => {
-    if (availableSlots.length === 0) return;
-    const stillValid = availableSlots.some(s => s.value === visitTime);
-    if (!stillValid) setVisitTime(availableSlots[0].value);
-  }, [availableSlots]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Overnight unavailable: past 6PM today, or availability loaded with no available rooms
-  const overnightUnavailable = useMemo(() => {
-    if (bookingType !== "overnight") return false;
-    if (visitDate === todayStr()) {
-      if (new Date().getHours() >= 18) return true;
-    }
-    if (availability !== null) {
-      return !Object.values(availability).some(v => v === true);
-    }
+  // ── Night unavailable: past 6PM today with no available rooms ─────────────
+  const nightUnavailable = useMemo(() => {
+    if (bookingType !== "night") return false;
+    if (visitDate === todayStr() && new Date().getHours() >= 18) return true;
+    if (availability !== null) return !Object.values(availability).some(v => v === true);
     return false;
   }, [bookingType, visitDate, availability]);
 
-  // ── Derived pricing ────────────────────────────────────────────────────────
-  const isOvernight  = bookingType === "overnight";
-  const baseRate     = isOvernight ? pricing.overnight_rate : pricing.day_rate;
-  const extraGuests  = Math.max(0, guests - pricing.free_guest_limit);
-  const extraCharge  = extraGuests * pricing.extra_guest_fee;
-  const entranceFee  = guests * pricing.entrance_fee;
-  const totalRate    = baseRate + extraCharge + entranceFee;
-  const discount        = promoResult?.discount_amount ?? 0;
-  const discountedTotal = Math.max(totalRate - discount, pricing.reservation_fee);
-  const amountDue       = paymentOption === "full" ? discountedTotal : pricing.reservation_fee;
-  const balanceDue      = discountedTotal - amountDue;
+  // ── Derived pricing — room rate only, 20% reservation fee ─────────────────
+  const baseRate = bookingType === "night"
+    ? pricing.overnight_rate
+    : bookingType === "24hr"
+      ? pricing.rate_24hr
+      : pricing.day_rate;
+  const discount           = promoResult?.discount_amount ?? 0;
+  const discountedTotal    = Math.max(baseRate - discount, 0);
+  const reservationFee     = Math.round(discountedTotal * (pricing.reservation_fee_pct / 100));
+  const amountDue          = paymentOption === "full" ? discountedTotal : reservationFee;
+  const balanceDue         = discountedTotal - amountDue;
 
   async function applyPromo() {
     const code = promoInput.trim();
@@ -324,7 +265,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     setPromoError("");
     setPromoResult(null);
     try {
-      const res = await validatePromo(code, totalRate);
+      const res = await validatePromo(code, baseRate);
       const d   = res.data;
       if (d.valid) {
         setPromoResult(d);
@@ -356,15 +297,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
-    if (bookingType === "day" && availableSlots.length === 0) {
-      setError("No time slots available for today. Please select a future date or choose Overnight."); return;
+    if (nightUnavailable) {
+      setError("No rooms available for tonight. Please select a future date."); return;
     }
-    if (overnightUnavailable) {
-      setError("No overnight rooms available for tonight. Please select a future date."); return;
-    }
-    if (!roomType)  { setError("Please select a room type."); return; }
+    if (!roomType)  { setError("Please select a room/cottage."); return; }
     if (availability !== null && availability[roomType] !== true) {
-      setError("Selected room is not available for the chosen date and time. Please select another."); return;
+      setError("Selected room is not available for the chosen date. Please select another."); return;
     }
     const room = rooms.find((r) => r.name === roomType);
     if (!room?.id)  { setError("Could not determine room. Please try again."); return; }
@@ -377,20 +315,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     const room = rooms.find((r) => r.name === roomType);
     if (!room?.id) { setError("Could not determine room. Please try again."); return; }
 
-    const checkIn = isOvernight
-      ? `${visitDate} 18:00:00`
-      : `${visitDate} ${visitTime}:00`;
-
     setConfirmOpen(false);
     setSubmitting(true);
     try {
       const bookingPayload = {
         room_id:          room.id,
-        check_in:         checkIn,
-        guests:           guests,
+        check_in:         visitDate,
         payment_method:   "Online",
         special_requests: specialRequests || null,
-        overnight:        isOvernight,
+        booking_type:     bookingType,
         promo_code:       promoResult ? promoInput.trim().toUpperCase() : null,
         discount:         discount,
       };
@@ -533,45 +466,43 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
             )}
 
-            {/* Booking type */}
+            {/* Booking type — 3 options */}
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Booking Type <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setBookingType("day")}
-                  className={`flex items-center gap-3 p-4 border-2 rounded-xl transition-colors ${
-                    !isOvernight ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <i className={`fas fa-sun text-2xl ${!isOvernight ? "text-blue-500" : "text-gray-300"}`}></i>
-                  <div className="text-left">
-                    <p className={`font-semibold ${!isOvernight ? "text-blue-700" : "text-gray-700"}`}>Day Visit</p>
-                    <p className="text-xs text-gray-500">7:00 AM – 5:00 PM · {formatPHP(pricing.day_rate)}</p>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBookingType("overnight")}
-                  className={`flex items-center gap-3 p-4 border-2 rounded-xl transition-colors ${
-                    isOvernight ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <i className={`fas fa-moon text-2xl ${isOvernight ? "text-indigo-500" : "text-gray-300"}`}></i>
-                  <div className="text-left">
-                    <p className={`font-semibold ${isOvernight ? "text-indigo-700" : "text-gray-700"}`}>Overnight</p>
-                    <p className="text-xs text-gray-500">6:00 PM – 6:00 AM · {formatPHP(pricing.overnight_rate)}</p>
-                  </div>
-                </button>
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate },
+                  { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate },
+                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6:00 AM – 6:00 AM",  color: "purple", rate: pricing.rate_24hr },
+                ].map(({ key, icon, label, time, color, rate }) => {
+                  const active = bookingType === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => { setBookingType(key); setPromoResult(null); setPromoInput(""); }}
+                      className={`flex flex-col items-center gap-1.5 p-3 border-2 rounded-xl transition-colors text-center ${
+                        active
+                          ? `border-${color}-500 bg-${color}-50`
+                          : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    >
+                      <i className={`fas ${icon} text-xl ${active ? `text-${color}-500` : "text-gray-300"}`}></i>
+                      <p className={`text-sm font-semibold ${active ? `text-${color}-700` : "text-gray-700"}`}>{label}</p>
+                      <p className="text-xs text-gray-400">{time}</p>
+                      <p className={`text-sm font-bold ${active ? `text-${color}-700` : "text-gray-500"}`}>{formatPHP(rate)}</p>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* Visit date */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                {isOvernight ? "Night" : "Visit Date"} <span className="text-red-500">*</span>
+                Date <span className="text-red-500">*</span>
               </label>
               <input
                 type="date"
@@ -581,123 +512,52 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              {nightUnavailable && (
+                <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                  <i className="fas fa-moon"></i>
+                  No rooms available for tonight. Please select a future date.
+                </p>
+              )}
             </div>
 
-            {/* Time slot — day only */}
-            {!isOvernight ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Start Time <span className="text-red-500">*</span>
-                  <span className="text-gray-400 font-normal ml-1">(up to 8 hrs, ends by 5PM)</span>
-                </label>
-                {availableSlots.length === 0 ? (
-                  <div className="w-full px-4 py-2 border border-red-200 bg-red-50 rounded-md text-red-700 text-sm flex items-center gap-2">
-                    <i className="fas fa-clock"></i>
-                    No day visit slots available for today. Please select a future date or choose Overnight.
-                  </div>
-                ) : (
-                  <select
-                    value={visitTime}
-                    onChange={(e) => setVisitTime(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    {availableSlots.map((s) => (
-                      <option key={s.value} value={s.value}>{s.label} – {s.end}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-in / Check-out</label>
-                {overnightUnavailable ? (
-                  <div className="w-full px-4 py-2 border border-red-200 bg-red-50 rounded-md text-red-700 text-sm flex items-center gap-2">
-                    <i className="fas fa-moon"></i>
-                    No overnight rooms available for tonight. Please select a future date.
-                  </div>
-                ) : (
-                  <div className="w-full px-4 py-2 border border-indigo-200 bg-indigo-50 rounded-md text-indigo-700 font-medium flex items-center gap-2">
-                    <i className="fas fa-moon"></i> 6:00 PM → 6:00 AM (next day)
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Room type */}
+            {/* Room / Cottage */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Room Type <span className="text-red-500">*</span>
+                Room / Cottage <span className="text-red-500">*</span>
                 {availChecking && (
                   <span className="ml-2 text-xs text-gray-400 font-normal">
-                    <i className="fas fa-spinner fa-spin mr-1"></i>Checking availability…
+                    <i className="fas fa-spinner fa-spin mr-1"></i>Checking…
                   </span>
                 )}
               </label>
               <select
                 value={roomType}
-                onChange={(e) => setRoomType(e.target.value)}
+                onChange={(e) => { setRoomType(e.target.value); setPromoResult(null); setPromoInput(""); }}
                 required
-                disabled={(bookingType === "day" && availableSlots.length === 0) || overnightUnavailable}
+                disabled={nightUnavailable}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">
-                  {(bookingType === "day" && availableSlots.length === 0) || overnightUnavailable
-                    ? "No rooms available — select a future date"
-                    : "Select Room Type"}
-                </option>
+                <option value="">{nightUnavailable ? "No rooms available" : "Select Room / Cottage"}</option>
                 {rooms
                   .filter(r => availability === null || availability?.[r.name] === true)
                   .map((r) => (
                     <option key={r.name} value={r.name}>{r.name}</option>
                   ))}
               </select>
-              {/* Availability badge for selected room */}
-              {availability !== null && roomType && (
-                availability[roomType] === false ? (
-                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                    <i className="fas fa-times-circle"></i>
-                    This room is already booked for the selected date and time. Please choose another.
-                  </p>
-                ) : availability[roomType] === true ? (
-                  <p className="mt-1.5 text-xs text-green-600 flex items-center gap-1">
-                    <i className="fas fa-check-circle"></i>
-                    Available for the selected slot.
-                  </p>
-                ) : null
+              {/* Capacity label + availability badge */}
+              {selectedRoomObj && (
+                <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
+                  <i className="fas fa-users text-[10px]"></i>
+                  Recommended: {selectedRoomObj.capacity_label ?? selectedRoomObj.occupancy ?? `Up to ${selectedRoomObj.capacity} guests`}
+                  {availability !== null && roomType && (
+                    availability[roomType] === false
+                      ? <span className="ml-2 text-red-600"><i className="fas fa-times-circle mr-0.5"></i>Not available</span>
+                      : availability[roomType] === true
+                        ? <span className="ml-2 text-green-600"><i className="fas fa-check-circle mr-0.5"></i>Available</span>
+                        : null
+                  )}
+                </p>
               )}
-            </div>
-
-            {/* Guests */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Number of Guests <span className="text-red-500">*</span>
-                <span className="text-gray-400 font-normal ml-1">(max {maxGuests})</span>
-              </label>
-              <div className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
-                <button
-                  type="button"
-                  onClick={() => setGuests((g) => Math.max(MIN_GUESTS, g - 1))}
-                  disabled={guests <= MIN_GUESTS}
-                  className="px-4 py-2 text-xl font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed select-none"
-                >−</button>
-                <input
-                  type="number"
-                  min={MIN_GUESTS}
-                  max={maxGuests}
-                  value={guests}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    if (!isNaN(val)) setGuests(Math.min(maxGuests, Math.max(MIN_GUESTS, val)));
-                  }}
-                  className="flex-1 text-center py-2 text-gray-900 font-medium focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => setGuests((g) => Math.min(maxGuests, g + 1))}
-                  disabled={guests >= maxGuests}
-                  className="px-4 py-2 text-xl font-bold text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed select-none"
-                >+</button>
-              </div>
             </div>
 
             {/* Special requests */}
@@ -719,7 +579,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                 <p className="text-sm text-yellow-800">
                   <span className="font-medium">Cancellation Policy:</span> Cancellations or no-shows will result in the
-                  forfeiture of the {formatPHP(pricing.reservation_fee)} reservation fee.
+                  forfeiture of the {pricing.reservation_fee_pct}% reservation fee ({formatPHP(reservationFee)}).
                 </p>
               </div>
 
@@ -809,31 +669,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <h4 className="font-medium text-gray-900 mb-2">Payment Summary</h4>
                 <div className="flex justify-between mb-1 text-sm">
                   <span className="text-gray-600">
-                    {isOvernight
-                      ? "Overnight rate:"
-                      : `Day visit rate (up to ${pricing.free_guest_limit} guests):`}
+                    Room rate ({bookingType === "night" ? "Night" : bookingType === "24hr" ? "24 Hours" : "Day"}):
                   </span>
-                  <span className="font-medium">{formatPHP(baseRate)}</span>
-                </div>
-                {extraGuests > 0 && (
-                  <div className="flex justify-between mb-1 text-sm">
-                    <span className="text-orange-600">
-                      Extra guests ({extraGuests} × {formatPHP(pricing.extra_guest_fee)}):
-                    </span>
-                    <span className="text-orange-600 font-medium">+ {formatPHP(extraCharge)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between mb-1 text-sm">
-                  <span className="text-gray-600">
-                    <i className="fas fa-ticket-alt mr-1 text-xs"></i>
-                    Entrance fee ({guests} × {formatPHP(pricing.entrance_fee)} · children 3 &amp; below free):
-                  </span>
-                  <span className="font-medium">{formatPHP(entranceFee)}</span>
-                </div>
-
-                <div className="flex justify-between mb-1 text-sm font-medium border-t border-blue-200 pt-2 mt-1">
-                  <span className="text-gray-700">Subtotal:</span>
-                  <span className={discount > 0 ? "line-through text-gray-400" : "text-gray-900"}>{formatPHP(totalRate)}</span>
+                  <span className={`font-medium ${discount > 0 ? "line-through text-gray-400" : ""}`}>{formatPHP(baseRate)}</span>
                 </div>
                 {discount > 0 && (
                   <>
@@ -842,23 +680,35 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       <span>− {formatPHP(discount)}</span>
                     </div>
                     <div className="flex justify-between mb-1 text-sm font-semibold">
-                      <span className="text-gray-800">Total Rate:</span>
+                      <span className="text-gray-800">Discounted Rate:</span>
                       <span className="text-gray-900">{formatPHP(discountedTotal)}</span>
                     </div>
                   </>
                 )}
+                <div className="flex justify-between mb-1 text-sm text-gray-500 border-t border-blue-200 pt-2 mt-1">
+                  <span>Reservation fee ({pricing.reservation_fee_pct}% — due online):</span>
+                  <span>{formatPHP(reservationFee)}</span>
+                </div>
+                <div className="flex justify-between mt-1 text-sm text-gray-500">
+                  <span>Balance due at resort:</span>
+                  <span>{formatPHP(discountedTotal - reservationFee)}</span>
+                </div>
                 <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
                   <span className="text-gray-900 font-bold">
-                    {paymentOption === "full" ? "Total Due Now:" : "Reservation Fee (Due Now):"}
+                    {paymentOption === "full" ? "Total Due Now:" : "Pay Online Now:"}
                   </span>
                   <span className="text-blue-700 font-bold text-lg">{formatPHP(amountDue)}</span>
                 </div>
-                <div className="flex justify-between mt-1 text-sm">
-                  <span className="text-gray-600">Balance Due at Check-in:</span>
-                  <span className={`font-medium ${balanceDue === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                    {balanceDue === 0 ? "₱0.00 — Fully Paid" : formatPHP(balanceDue)}
-                  </span>
-                </div>
+                {balanceDue > 0 && (
+                  <div className="flex justify-between mt-1 text-sm">
+                    <span className="text-gray-600">Balance Due at Check-in:</span>
+                    <span className="font-medium text-gray-900">{formatPHP(balanceDue)}</span>
+                  </div>
+                )}
+                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
+                  <i className="fas fa-info-circle mr-1"></i>
+                  Entrance fees are collected at the gate upon arrival.
+                </p>
               </div>
 
               <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-md px-3 py-2">
