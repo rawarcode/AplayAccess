@@ -141,8 +141,11 @@ export default function Resort() {
         id:             r?.id             ?? null,
         name:           r?.name           ?? "Room",
         day_rate:       Number(r?.day_rate       ?? 0),
-        overnight_rate: Number(r?.overnight_rate  ?? 0),
-        capacity:       Number(r?.capacity        ?? 20),
+        overnight_rate: Number(r?.overnight_rate ?? 0),
+        rate_24hr:      Number(r?.rate_24hr      ?? 0),
+        capacity_label: r?.capacity_label ?? "",
+        quantity:       Number(r?.quantity ?? 1),
+        capacity:       Number(r?.capacity ?? 20),
       }));
   }, [roomsApi]);
 
