@@ -133,6 +133,12 @@ export default function WalkIn() {
       .finally(() => setAvailChecking(false));
   }, [form.date, form.bookingType]);
 
+  // Day is unavailable when: today is selected and it's past 3PM
+  const dayUnavailable = useMemo(() => {
+    if (form.date !== today) return false;
+    return new Date().getHours() >= 15; // 3PM cutoff
+  }, [form.date, today]);
+
   // Night is unavailable when: past 6PM today
   const nightUnavailable = useMemo(() => {
     if (form.bookingType !== 'night') return false;
@@ -142,6 +148,11 @@ export default function WalkIn() {
     }
     return false;
   }, [form.bookingType, form.date, today]);
+
+  // Auto-switch away from Day if it becomes unavailable (past 3PM)
+  useEffect(() => {
+    if (dayUnavailable && form.bookingType === 'day') setField('bookingType', 'night');
+  }, [dayUnavailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
@@ -211,6 +222,9 @@ export default function WalkIn() {
       setFormError('Guest name is required.'); return;
     }
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
+    if (dayUnavailable && form.bookingType === 'day') {
+      setFormError('Day booking is not available after 3:00 PM. Please select Night or 24 Hours.'); return;
+    }
     if (nightUnavailable) {
       setFormError('Night booking is not available — it is past 6PM. Please select a future date.'); return;
     }
@@ -703,9 +717,9 @@ export default function WalkIn() {
                     <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue'   },
-                        { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo' },
-                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM – 6AM',  rate: rate24,    color: 'purple' },
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue',   disabled: dayUnavailable   },
+                        { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo', disabled: false             },
+                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM – 6AM',  rate: rate24,    color: 'purple', disabled: false             },
                       ].map(opt => {
                         const active = form.bookingType === opt.type;
                         const colorMap = {
@@ -716,15 +730,20 @@ export default function WalkIn() {
                         const c = colorMap[opt.color];
                         return (
                           <button key={opt.type} type="button"
-                            onClick={() => setField('bookingType', opt.type)}
+                            disabled={opt.disabled}
+                            onClick={() => { if (!opt.disabled) setField('bookingType', opt.type); }}
                             className={`flex flex-col items-center gap-1 p-3 border-2 rounded-lg transition-colors ${
-                              active ? `${c.border} ${c.bg}` : 'border-gray-200 hover:border-gray-300'
+                              opt.disabled
+                                ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
+                                : active ? `${c.border} ${c.bg}` : 'border-gray-200 hover:border-gray-300'
                             }`}
                           >
-                            <i className={`fas ${opt.icon} text-lg ${active ? c.icon : 'text-gray-400'}`}></i>
-                            <p className={`text-xs font-semibold ${active ? c.text : 'text-gray-700'}`}>{opt.label}</p>
+                            <i className={`fas ${opt.icon} text-lg ${active && !opt.disabled ? c.icon : 'text-gray-400'}`}></i>
+                            <p className={`text-xs font-semibold ${active && !opt.disabled ? c.text : 'text-gray-700'}`}>{opt.label}</p>
                             <p className="text-xs text-gray-500">{opt.time}</p>
-                            <p className={`text-xs font-bold ${active ? c.text : 'text-gray-600'}`}>{fmtMoney(opt.rate)}</p>
+                            <p className={`text-xs font-bold ${active && !opt.disabled ? c.text : 'text-gray-600'}`}>
+                              {form.roomId ? fmtMoney(opt.rate) : '—'}
+                            </p>
                           </button>
                         );
                       })}
@@ -981,7 +1000,7 @@ export default function WalkIn() {
                 Cancel
               </button>
               <button type="submit" form="walkin-form"
-                disabled={submitting || nightUnavailable}
+                disabled={submitting || nightUnavailable || (dayUnavailable && form.bookingType === 'day')}
                 className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                 <i className="fas fa-eye"></i>
                 {submitting ? 'Creating...' : 'Review & Confirm'}

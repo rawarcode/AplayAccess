@@ -238,6 +238,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // ── Selected room metadata ─────────────────────────────────────────────────
   const selectedRoomObj = useMemo(() => rooms.find(r => r.name === roomType) ?? null, [rooms, roomType]);
 
+  // ── Day unavailable: past 3PM today ───────────────────────────────────────
+  const dayUnavailable = useMemo(() => {
+    if (visitDate !== todayStr()) return false;
+    return new Date().getHours() >= 15; // 3PM cutoff for day booking
+  }, [visitDate]);
+
   // ── Night unavailable: past 6PM today with no available rooms ─────────────
   const nightUnavailable = useMemo(() => {
     if (bookingType !== "night") return false;
@@ -245,6 +251,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     if (availability !== null) return !Object.values(availability).some(v => v === true);
     return false;
   }, [bookingType, visitDate, availability]);
+
+  // Auto-switch away from Day if it becomes unavailable
+  useEffect(() => {
+    if (dayUnavailable && bookingType === "day") setBookingType("night");
+  }, [dayUnavailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived pricing — room rate only, 20% reservation fee ─────────────────
   const baseRate = bookingType === "night"
@@ -473,26 +484,31 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </label>
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate },
-                  { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate },
-                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6:00 AM – 6:00 AM",  color: "purple", rate: pricing.rate_24hr },
-                ].map(({ key, icon, label, time, color, rate }) => {
+                  { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate,       disabled: dayUnavailable },
+                  { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate, disabled: false },
+                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6:00 AM – 6:00 AM",  color: "purple", rate: pricing.rate_24hr,      disabled: false },
+                ].map(({ key, icon, label, time, color, rate, disabled }) => {
                   const active = bookingType === key;
                   return (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => { setBookingType(key); setPromoResult(null); setPromoInput(""); }}
+                      disabled={disabled}
+                      onClick={() => { if (!disabled) { setBookingType(key); setPromoResult(null); setPromoInput(""); } }}
                       className={`flex flex-col items-center gap-1.5 p-3 border-2 rounded-xl transition-colors text-center ${
-                        active
-                          ? `border-${color}-500 bg-${color}-50`
-                          : "border-gray-200 hover:border-gray-300"
+                        disabled
+                          ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                          : active
+                            ? `border-${color}-500 bg-${color}-50`
+                            : "border-gray-200 hover:border-gray-300"
                       }`}
                     >
-                      <i className={`fas ${icon} text-xl ${active ? `text-${color}-500` : "text-gray-300"}`}></i>
-                      <p className={`text-sm font-semibold ${active ? `text-${color}-700` : "text-gray-700"}`}>{label}</p>
+                      <i className={`fas ${icon} text-xl ${active && !disabled ? `text-${color}-500` : "text-gray-300"}`}></i>
+                      <p className={`text-sm font-semibold ${active && !disabled ? `text-${color}-700` : "text-gray-700"}`}>{label}</p>
                       <p className="text-xs text-gray-400">{time}</p>
-                      <p className={`text-sm font-bold ${active ? `text-${color}-700` : "text-gray-500"}`}>{formatPHP(rate)}</p>
+                      <p className={`text-sm font-bold ${active && !disabled ? `text-${color}-700` : "text-gray-500"}`}>
+                        {roomType ? formatPHP(rate) : "—"}
+                      </p>
                     </button>
                   );
                 })}
@@ -636,10 +652,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       <i className="fas fa-bookmark mr-1"></i>Reserve Only
                     </span>
                     <span className={`text-base font-bold ${paymentOption === "reservation" ? "text-blue-700" : "text-gray-700"}`}>
-                      {formatPHP(pricing.reservation_fee)} now
+                      {formatPHP(reservationFee)} now
                     </span>
                     <span className="text-xs text-gray-500 mt-0.5">
-                      Pay {formatPHP(Math.max(discountedTotal - pricing.reservation_fee, 0))} at check-in
+                      Pay {formatPHP(Math.max(discountedTotal - reservationFee, 0))} at check-in
                     </span>
                   </button>
                   <button

@@ -40,13 +40,29 @@ const FEATURE_ICONS = [
   { icon: "fa-concierge-bell",  label: "Room Service" },
   { icon: "fa-parking",         label: "Parking"      },
   { icon: "fa-star",            label: "Premium"      },
+  { icon: "fa-microphone",      label: "Videoke"      },
   { icon: "fa-check",           label: "Other"        },
 ];
 
 const BLANK = {
-  name: "", description: "", day_rate: 1500, overnight_rate: 2000,
-  capacity: 2, size: "", beds: "", occupancy: "", view: "", image: "",
+  name: "", description: "", day_rate: 1500, overnight_rate: 2000, rate_24hr: 2500,
+  capacity: 2, capacity_label: "", quantity: 1,
+  size: "", beds: "", occupancy: "", view: "", image: "",
   availability_status: "available", features: [],
+};
+
+const COTTAGE_TEMPLATE = {
+  ...BLANK,
+  name: "Cottage", capacity: 10, capacity_label: "Up to 10 pax",
+  quantity: 1, day_rate: 2000, overnight_rate: 2500, rate_24hr: 3500,
+  features: [{ text: "Beachside", icon: "fa-umbrella-beach" }],
+};
+
+const PAVILION_TEMPLATE = {
+  ...BLANK,
+  name: "Pavilion", capacity: 30, capacity_label: "Up to 30 pax",
+  quantity: 1, day_rate: 3000, overnight_rate: 4000, rate_24hr: 5000,
+  features: [{ text: "Open Air", icon: "fa-wind" }, { text: "Pool View", icon: "fa-water-ladder" }],
 };
 
 function AvailBadge({ status }) {
@@ -158,6 +174,24 @@ export default function AdminRooms() {
     setModalOpen(true);
   }
 
+  function openNewCottage() {
+    setEditing({ ...COTTAGE_TEMPLATE });
+    setSaveError("");
+    setFeatureInput("");
+    setSelectedIcon("fa-umbrella-beach");
+    setIconPickerOpen(false);
+    setModalOpen(true);
+  }
+
+  function openNewPavilion() {
+    setEditing({ ...PAVILION_TEMPLATE });
+    setSaveError("");
+    setFeatureInput("");
+    setSelectedIcon("fa-wind");
+    setIconPickerOpen(false);
+    setModalOpen(true);
+  }
+
   function openEdit(room) {
     const features = (room.features || []).map(f =>
       typeof f === "string" ? { text: f, icon: "fa-check" } : f
@@ -195,7 +229,10 @@ export default function AdminRooms() {
       description:         editing.description,
       day_rate:            Number(editing.day_rate),
       overnight_rate:      Number(editing.overnight_rate),
+      rate_24hr:           Number(editing.rate_24hr ?? 0),
       capacity:            Number(editing.capacity),
+      capacity_label:      editing.capacity_label || undefined,
+      quantity:            Number(editing.quantity ?? 1),
       availability_status: editing.availability_status || "available",
       size:                editing.size      || undefined,
       beds:                editing.beds      || undefined,
@@ -225,11 +262,20 @@ export default function AdminRooms() {
         <div>
           <p className="text-sm text-slate-500 mt-1">Manage rooms, rates, and availability status.</p>
         </div>
-        <button onClick={openNew}
-          className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2 rounded-xl shadow-sm">
-          <i className="fas fa-plus"></i>
-          <span className="text-sm font-medium">New Room</span>
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={openNewCottage}
+            className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl shadow-sm text-sm font-medium">
+            <i className="fas fa-umbrella-beach"></i>Add Cottage
+          </button>
+          <button onClick={openNewPavilion}
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl shadow-sm text-sm font-medium">
+            <i className="fas fa-archway"></i>Add Pavilion
+          </button>
+          <button onClick={openNew}
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow-sm text-sm font-medium">
+            <i className="fas fa-plus"></i>New Room
+          </button>
+        </div>
       </div>
 
       {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4">{error}</div>}
@@ -269,7 +315,7 @@ export default function AdminRooms() {
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
                   <th className="px-6 py-3 text-left"></th>
-                  {[['Name','Name'],['Capacity','Capacity'],['Day Rate','Day Rate'],['Overnight Rate','Overnight Rate'],['Availability','Availability'],['Housekeeping','Housekeeping']].map(([label,key]) => (
+                  {[['Name','Name'],['Qty','Qty'],['Capacity','Capacity'],['Day Rate','Day Rate'],['Overnight Rate','Overnight Rate'],['24hr Rate','24hr Rate'],['Availability','Availability'],['Housekeeping','Housekeeping']].map(([label,key]) => (
                     <th key={key} className="px-6 py-3 text-left">
                       <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
                         className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
@@ -299,11 +345,13 @@ export default function AdminRooms() {
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-900">
                         {room.name}
-                        {room.size && <span className="ml-1 text-xs text-slate-400">· {room.size}</span>}
+                        {room.capacity_label && <span className="ml-1 text-xs text-slate-400">· {room.capacity_label}</span>}
                       </td>
+                      <td className="px-6 py-4 text-slate-600 text-center">{room.quantity ?? 1}</td>
                       <td className="px-6 py-4 text-slate-600">{room.capacity} pax</td>
                       <td className="px-6 py-4 text-slate-600">₱{Number(room.day_rate).toLocaleString()}</td>
                       <td className="px-6 py-4 text-slate-600">₱{Number(room.overnight_rate).toLocaleString()}</td>
+                      <td className="px-6 py-4 text-slate-600">₱{Number(room.rate_24hr ?? 0).toLocaleString()}</td>
                       <td className="px-6 py-4"><AvailBadge status={avail} /></td>
                       <td className="px-6 py-4">
                         {hk ? (
@@ -352,9 +400,11 @@ export default function AdminRooms() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
                     ["Name",           viewRoom.name],
-                    ["Capacity",       `${viewRoom.capacity} pax`],
+                    ["Capacity",       viewRoom.capacity_label || `${viewRoom.capacity} pax`],
+                    ["Quantity",       `${viewRoom.quantity ?? 1} unit(s)`],
                     ["Day Rate",       `₱${Number(viewRoom.day_rate).toLocaleString()}`],
                     ["Overnight Rate", `₱${Number(viewRoom.overnight_rate).toLocaleString()}`],
+                    ["24hr Rate",      `₱${Number(viewRoom.rate_24hr ?? 0).toLocaleString()}`],
                     ["Size",           viewRoom.size || "—"],
                     ["Beds",           viewRoom.beds || "—"],
                     ["Occupancy",      viewRoom.occupancy || "—"],
@@ -444,18 +494,34 @@ export default function AdminRooms() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Day Rate (₱) *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Day Rate (₱) <span className="text-red-500">*</span></label>
               <input required type="number" min={0} value={editing?.day_rate ?? 1500} onChange={e => setField("day_rate", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Overnight Rate (₱) *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Overnight Rate (₱) <span className="text-red-500">*</span></label>
               <input required type="number" min={0} value={editing?.overnight_rate ?? 2000} onChange={e => setField("overnight_rate", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Capacity (pax) *</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">24hr Rate (₱) <span className="text-red-500">*</span></label>
+              <input required type="number" min={0} value={editing?.rate_24hr ?? 2500} onChange={e => setField("rate_24hr", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Quantity (units) <span className="text-red-500">*</span></label>
+              <input required type="number" min={1} value={editing?.quantity ?? 1} onChange={e => setField("quantity", e.target.value)}
+                placeholder="e.g. 12 for Small Cottages"
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Capacity (pax) <span className="text-red-500">*</span></label>
               <input required type="number" min={1} value={editing?.capacity ?? 2} onChange={e => setField("capacity", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Capacity Label</label>
+              <input placeholder="e.g. 4–5 pax" value={editing?.capacity_label || ""} onChange={e => setField("capacity_label", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
             </div>
             <div>
