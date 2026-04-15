@@ -45,11 +45,15 @@ function StatusBadge({ status }) {
 
 // Addons are fetched from API — no hardcoded catalog
 
+// Entrance fee rates per adult — matches Setting::pricing() defaults
+const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+
 const EMPTY_FORM = {
   firstName: '', lastName: '', phone: '', email: '',
   roomId: '', date: todayStr(),
   payMethod: 'Cash', notes: '',
   bookingType: 'day', // 'day' | 'night' | '24hr' | '24hr-pm'
+  guests: 1,
 };
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -197,6 +201,8 @@ export default function WalkIn() {
   const previewSubtotal = baseRate + amenityTotal;
   const promoDiscount   = promoResult?.discount_amount ?? 0;
   const previewTotal    = Math.max(previewSubtotal - promoDiscount, 0);
+  const entranceFeeRate = ENTRANCE_RATES[form.bookingType] ?? 50;
+  const entranceFeeTotal = Number(form.guests || 1) * entranceFeeRate;
 
   async function applyPromo() {
     const code = promoInput.trim();
@@ -268,6 +274,7 @@ export default function WalkIn() {
         guest_email:       form.email.trim() || undefined,
         room_id:           Number(form.roomId),
         check_in:          checkIn,
+        guests:            Number(form.guests || 1),
         payment_method:    form.payMethod.toLowerCase(),
         special_requests:  form.notes.trim() || undefined,
         booking_type:      form.bookingType,
@@ -551,6 +558,10 @@ export default function WalkIn() {
                         <td className="px-4 py-2.5 text-gray-900">{checkOutLabel}</td>
                       </tr>
                       <tr>
+                        <td className="px-4 py-2.5 text-gray-500 font-medium">Guests</td>
+                        <td className="px-4 py-2.5 text-gray-900">{form.guests} pax</td>
+                      </tr>
+                      <tr>
                         <td className="px-4 py-2.5 text-gray-500 font-medium">Payment</td>
                         <td className="px-4 py-2.5 text-gray-900">{form.payMethod}</td>
                       </tr>
@@ -624,12 +635,23 @@ export default function WalkIn() {
                     is24hr                       ? 'text-purple-900 border-purple-200' :
                                                    'text-blue-900 border-blue-200'
                   }`}>
-                    <span>Total Due</span>
+                    <span>Room Total</span>
                     <span>{fmtMoney(previewTotal)}</span>
                   </div>
-                  <p className="text-xs text-gray-500 pt-1">
-                    <i className="fas fa-info-circle mr-1"></i>Entrance fees collected at check-in.
-                  </p>
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex justify-between text-amber-800 font-semibold text-sm">
+                      <span className="flex items-center gap-1.5">
+                        <i className="fas fa-ticket-alt text-amber-600"></i>
+                        Entrance Fee
+                        <span className="text-amber-600 font-normal text-xs">({form.guests} pax × ₱{entranceFeeRate})</span>
+                      </span>
+                      <span>{fmtMoney(entranceFeeTotal)}</span>
+                    </div>
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <i className="fas fa-hand-holding-usd"></i>
+                      Collect this amount separately at the gate — not included in booking total.
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -857,6 +879,24 @@ export default function WalkIn() {
                   </div>
 
                   <div>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">
+                      No. of Guests *
+                      <span className="ml-1 text-gray-400 font-normal">(for entrance fee)</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <button type="button"
+                        onClick={() => setField('guests', Math.max(1, Number(form.guests) - 1))}
+                        className="w-8 h-9 border border-slate-200 rounded-lg text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
+                      <input type="number" min="1" max="200" value={form.guests}
+                        onChange={e => setField('guests', Math.max(1, Number(e.target.value) || 1))}
+                        className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                      <button type="button"
+                        onClick={() => setField('guests', Number(form.guests) + 1)}
+                        className="w-8 h-9 border border-slate-200 rounded-lg text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
+                    </div>
+                  </div>
+
+                  <div className="col-span-2">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Check-in / Check-out</label>
                     <div className={`border border-slate-200 rounded-xl px-3 py-2 w-full text-sm font-medium flex items-center gap-2 ${
                       form.bookingType === 'night'   ? 'bg-indigo-50 text-indigo-700' :
@@ -1047,11 +1087,18 @@ export default function WalkIn() {
                         )}
                       </div>
                       <div className={`flex justify-between font-bold border-t pt-2 ${tc.text} ${tc.hr}`}>
-                        <span>Total Due</span>
+                        <span>Room Total</span>
                         <span>{fmtMoney(previewTotal)}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        <i className="fas fa-info-circle mr-1"></i>Entrance fees collected at check-in.
+                      <div className="flex justify-between text-amber-700 font-medium pt-1.5 border-t border-dashed border-amber-200 mt-1.5">
+                        <span className="flex items-center gap-1">
+                          <i className="fas fa-ticket-alt text-xs"></i>
+                          Entrance fee ({form.guests} pax × ₱{entranceFeeRate})
+                        </span>
+                        <span>{fmtMoney(entranceFeeTotal)}</span>
+                      </div>
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        <i className="fas fa-hand-holding-usd mr-1"></i>Collect entrance fee separately at the gate.
                       </p>
                     </div>
                   );

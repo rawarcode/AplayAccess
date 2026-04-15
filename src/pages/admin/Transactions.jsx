@@ -235,7 +235,7 @@ export default function AdminTransactions() {
                   ["Guests",         viewBooking.guests ? `${viewBooking.guests} pax` : "—"],
                   ["Check-in",       viewBooking.checkIn  || "—"],
                   ["Check-out",      viewBooking.checkOut || "—"],
-                  ["Amount",         `₱${Number(viewBooking.total).toLocaleString()}`],
+                  ["Room Total",      `₱${Number(viewBooking.total).toLocaleString()}`],
                   ["Payment Method", viewBooking.paymentMethod || "—"],
                   ["Date",           viewBooking.createdAt?.split(" ")[0] || "—"],
                 ].map(([label, val]) => (
@@ -279,6 +279,18 @@ export default function AdminTransactions() {
                       <p className="text-xs text-green-700">Discount</p>
                       <p className="text-sm font-bold text-green-800">−₱{Number(viewBooking.discount).toLocaleString()}</p>
                     </div>
+                  </div>
+                )}
+                {Number(viewBooking.entrance_fee ?? 0) > 0 && (
+                  <div className="col-span-2 flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-ticket-alt text-amber-600 text-sm"></i>
+                      <div>
+                        <p className="text-xs text-amber-700 font-semibold">Entrance Fee</p>
+                        <p className="text-xs text-amber-600">{viewBooking.guests} pax — collected at gate</p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-amber-800">₱{Number(viewBooking.entrance_fee).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
                   </div>
                 )}
                 <div className="col-span-2">

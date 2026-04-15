@@ -14,8 +14,9 @@ export async function updateBookingStatus(bookingId, status, extra = {}) {
 }
 
 // POST /api/admin/bookings/{id}/checkin
-export async function checkInBooking(bookingId) {
-  const res = await api.post(`/api/admin/bookings/${bookingId}/checkin`);
+export async function checkInBooking(bookingId, entranceFee) {
+  const payload = entranceFee != null ? { entrance_fee: entranceFee } : {};
+  const res = await api.post(`/api/admin/bookings/${bookingId}/checkin`, payload);
   return res.data;
 }
 

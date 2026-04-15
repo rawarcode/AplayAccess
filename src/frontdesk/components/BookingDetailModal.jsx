@@ -8,6 +8,19 @@ import {
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
 
+// Entrance fee rates per adult — matches Setting::pricing() defaults
+const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+
+function entranceFeeForBooking(booking) {
+  const type   = booking.booking_type ?? booking.bookingType ?? 'day';
+  const rate   = ENTRANCE_RATES[type] ?? 50;
+  // Use stored DB value when available (after check-in/walk-in); otherwise compute expected
+  const amount = (booking.entrance_fee != null && Number(booking.entrance_fee) > 0)
+    ? Number(booking.entrance_fee)
+    : (booking.guests ?? 1) * rate;
+  return { rate, amount };
+}
+
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function fmtDateTime(dt) {
   if (!dt) return '—';
@@ -83,7 +96,7 @@ const ACTION_CONFIG = {
     icon:    'fa-door-open',
     color:   'purple',
     heading: 'Check in this guest?',
-    desc:    'This marks the guest as arrived. Ensure the balance has been collected.',
+    desc:    'Ensure the balance and entrance fee have been collected before checking in.',
   },
   checkout: {
     label:   'Check Out Guest',
@@ -162,8 +175,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         await updateBookingStatus(booking.booking_id, 'Confirmed');
         applyUpdate({ status: 'Confirmed' });
       } else if (type === 'checkin') {
-        const res = await checkInBooking(booking.booking_id);
-        applyUpdate({ status: 'Checked In', checkedInAt: res.checked_in_at });
+        const { amount: ef } = entranceFeeForBooking(booking);
+        const res = await checkInBooking(booking.booking_id, ef);
+        applyUpdate({ status: 'Checked In', checkedInAt: res.checked_in_at, entrance_fee: ef });
       } else if (type === 'checkout') {
         const res = await checkOutBooking(booking.booking_id);
         applyUpdate({ status: 'Completed', checkedOutAt: res.checked_out_at });
@@ -172,10 +186,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         applyUpdate({ status: 'Cancelled' });
       } else if (type === 'remove-amenity') {
         const res = await removeAmenity(booking.booking_id, amenityId);
-        applyUpdate({
-          amenities: (booking.amenities || []).filter(a => a.id !== amenityId),
-          total: res.new_total,
-        });
+        const newTotal  = Number(res.new_total);
+        const updated   = { ...booking, amenities: (booking.amenities || []).filter(a => a.id !== amenityId), total: newTotal };
+        setBooking(updated);
+        onUpdated?.(updated);
       }
     } catch {
       showToast?.('Action failed. Please try again.');
@@ -189,9 +203,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     setGuestLoading(true);
     try {
       const res = await updateBookingGuests(booking.booking_id, guestCount);
-      applyUpdate({ guests: res.guests, total: res.total });
+      applyUpdate({ guests: res.guests });
       setGuestEdit(false);
-      showToast?.(`Guest count updated to ${res.guests}. New total: ${fmtMoney(res.total)}`);
+      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(res.guests * (ENTRANCE_RATES[booking.booking_type ?? booking.bookingType ?? 'day'] ?? 50))}.`);
     } catch {
       showToast?.('Failed to update guest count.');
     } finally {
@@ -220,13 +234,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     setAmenityLoading(true);
     try {
       const res = await addAmenity(booking.booking_id, addingAmenity.name, addingAmenity.qty || 1);
-      applyUpdate({
-        amenities: [...(booking.amenities || []), res.data],
-        total: res.new_total,
-      });
+      const newAmenity = res.data;
+      const newTotal   = Number(res.new_total);
+      const updated    = { ...booking, amenities: [...(booking.amenities || []), newAmenity], total: newTotal };
+      setBooking(updated);
+      onUpdated?.(updated);
       setAddingAmenity(null);
     } catch (err) {
-      showToast?.(err?.response?.data?.message || 'Failed to add amenity.');
+      showToast?.(err?.response?.data?.message || 'Failed to add add-on.');
     } finally { setAmenityLoading(false); }
   }
 
@@ -318,6 +333,25 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <span className="text-gray-500">Room</span>
                   <span className="font-semibold">{booking.roomType}</span>
                 </div>
+                {pendingAction.type === 'checkin' && (() => {
+                  const { rate, amount } = entranceFeeForBooking(booking);
+                  return (
+                    <>
+                      <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
+                        <span className="text-gray-500">Balance due (room)</span>
+                        <span className="font-bold text-purple-700">{fmtMoney(balanceDue)}</span>
+                      </div>
+                      <div className="flex justify-between pt-0.5">
+                        <span className="text-amber-600 flex items-center gap-1">
+                          <i className="fas fa-ticket-alt text-[10px]"></i>
+                          Entrance fee ({booking.guests ?? 1} pax × ₱{rate})
+                        </span>
+                        <span className="font-bold text-amber-700">{fmtMoney(amount)}</span>
+                      </div>
+                      <p className="text-amber-600 text-[10px] pt-0.5">Collect entrance fee at the gate — not in booking total.</p>
+                    </>
+                  );
+                })()}
                 {pendingAction.type === 'checkout' && (
                   <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
                     <span className="text-gray-500">Total Amount</span>
@@ -460,11 +494,28 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             </div>
           </div>
 
-          {/* Amenities */}
+          {/* Entrance Fee Info — shown for active bookings */}
+          {['Pending', 'Confirmed', 'Checked In'].includes(booking.status) && (() => {
+            const { rate, amount } = entranceFeeForBooking(booking);
+            return (
+              <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
+                <i className="fas fa-ticket-alt text-amber-500 mt-0.5 shrink-0"></i>
+                <div className="flex-1">
+                  <p className="font-semibold text-amber-800">Entrance Fee to Collect at Gate</p>
+                  <p className="text-amber-700 text-xs mt-0.5">
+                    {booking.guests ?? 1} adult{(booking.guests ?? 1) !== 1 ? 's' : ''} × ₱{rate}/pax
+                  </p>
+                </div>
+                <p className="font-bold text-amber-800 text-base shrink-0">{fmtMoney(amount)}</p>
+              </div>
+            );
+          })()}
+
+          {/* Add-ons */}
           <div className="mb-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Amenities</p>
+            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add-ons</p>
             {(booking.amenities?.length ?? 0) === 0 ? (
-              <p className="text-xs text-gray-400 mb-2">No amenities added.</p>
+              <p className="text-xs text-gray-400 mb-2">No add-ons added.</p>
             ) : (
               <div className="space-y-1 mb-2">
                 {booking.amenities.map(a => (
@@ -492,7 +543,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             {['Confirmed', 'Checked In'].includes(booking.status) && addonCatalog.length > 0 && (
               addingAmenity ? (
                 <div className="border rounded-lg p-3 bg-blue-50">
-                  <p className="text-xs font-medium text-gray-700 mb-2">Add Amenity</p>
+                  <p className="text-xs font-medium text-gray-700 mb-2">Add Add-on</p>
                   <div className="flex gap-2 flex-wrap mb-2">
                     {addonCatalog.map(cat => (
                       <button key={cat.id} type="button"
@@ -538,7 +589,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   }}
                   className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                 >
-                  <i className="fas fa-plus-circle"></i> Add amenity
+                  <i className="fas fa-plus-circle"></i> Add add-on
                 </button>
               )
             )}

@@ -109,7 +109,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
           {/* Bill breakdown */}
           <div className="border rounded-lg overflow-hidden text-sm">
             <div className="flex justify-between px-4 py-3 border-b bg-gray-50">
-              <span className="text-gray-500">Visit Rate</span>
+              <span className="text-gray-500">Room Rate</span>
               <span className="font-medium">{fmtMoney(b.total)}</span>
             </div>
             {Number(b.reservation_fee ?? 0) > 0 && (
@@ -132,6 +132,15 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
               <div className="flex justify-between px-4 py-3 bg-blue-50 text-blue-800 font-bold text-base">
                 <span>Balance Due</span>
                 <span>{fmtMoney(balanceDue)}</span>
+              </div>
+            )}
+            {Number(b.entrance_fee ?? 0) > 0 && (
+              <div className="flex justify-between px-4 py-3 bg-amber-50 border-t border-amber-100 text-amber-800 text-xs">
+                <span className="flex items-center gap-1.5">
+                  <i className="fas fa-ticket-alt"></i>
+                  Entrance Fee ({b.guests} pax) — collected at gate
+                </span>
+                <span className="font-semibold">{fmtMoney(b.entrance_fee)}</span>
               </div>
             )}
           </div>
