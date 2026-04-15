@@ -443,7 +443,7 @@ export default function AdminRooms() {
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                 <h3 className="text-lg font-semibold text-slate-900">Room Details</h3>
-                <button onClick={() => setViewRoom(null)} className="text-slate-400 hover:text-slate-600">
+                <button onClick={() => setViewRoom(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -532,7 +532,7 @@ export default function AdminRooms() {
               <h2 className="text-xl font-semibold text-slate-900">{editing?.id ? "Edit Room" : "Add New Room"}</h2>
               <p className="text-sm text-slate-500">{editing?.id ? "Update room details, rates, and availability." : "Create a new room listing."}</p>
             </div>
-            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>

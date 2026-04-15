@@ -38,7 +38,7 @@ export default function Toast({ message, type = "error", onClose }) {
     >
       <i className={`fas ${icon} shrink-0`}></i>
       <span className="text-sm font-medium flex-1">{message}</span>
-      <button onClick={onClose} className="opacity-70 hover:opacity-100 shrink-0 ml-1">
+      <button onClick={onClose} className="opacity-70 hover:opacity-100 shrink-0 ml-1" aria-label="Close">
         <i className="fas fa-times"></i>
       </button>
     </div>

@@ -215,7 +215,7 @@ function HousekeepingModal({ room, onClose, onHousekeepingChange, onWalkIn }) {
             <h2 className="text-xl font-bold text-white leading-tight">{room.name}</h2>
             {room.type && <p className="text-sm opacity-80 text-white mt-0.5">{room.type}</p>}
           </div>
-          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 text-xl font-bold">
+          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 text-xl font-bold" aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>

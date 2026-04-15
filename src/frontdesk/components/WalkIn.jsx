@@ -361,7 +361,7 @@ export default function WalkIn() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Collect Payment — {collectBooking.id}</h3>
-                <button onClick={() => setCollectBooking(null)} className="text-gray-500 hover:text-gray-700">
+                <button onClick={() => setCollectBooking(null)} className="text-gray-500 hover:text-gray-700" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -435,7 +435,7 @@ export default function WalkIn() {
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
                   <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="text-gray-500 hover:text-gray-700"><i className="fas fa-times"></i></button>
+                    className="text-gray-500 hover:text-gray-700" aria-label="Close"><i className="fas fa-times"></i></button>
                 </div>
                 <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
                   <p className="font-medium text-gray-800">{walkInName(transferBooking)}</p>
@@ -500,7 +500,7 @@ export default function WalkIn() {
                     <p className="text-blue-200 text-xs">Review all details before confirming</p>
                   </div>
                 </div>
-                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white">
+                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -700,7 +700,7 @@ export default function WalkIn() {
                   <p className="text-blue-200 text-xs">Fill in guest and booking details</p>
                 </div>
               </div>
-              <button onClick={() => { setFormOpen(false); setFormError(''); }} className="text-white/70 hover:text-white">
+              <button onClick={() => { setFormOpen(false); setFormError(''); }} className="text-white/70 hover:text-white" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

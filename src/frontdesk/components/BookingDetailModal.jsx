@@ -384,7 +384,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Booking — {booking.id}</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>
@@ -532,7 +532,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           disabled={amenityLoading}
                           className="text-red-400 hover:text-red-600 text-xs disabled:opacity-40"
                           title="Remove"
-                        ><i className="fas fa-times"></i></button>
+                         aria-label="Remove"><i className="fas fa-times"></i></button>
                       )}
                     </div>
                   </div>

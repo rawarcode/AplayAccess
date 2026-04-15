@@ -1464,7 +1464,7 @@ function ContactSubmissionsTab() {
           <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-gray-900 text-lg">Contact Submission</h3>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600"><i className="fas fa-times"></i></button>
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600" aria-label="Close"><i className="fas fa-times"></i></button>
             </div>
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg">
@@ -1739,7 +1739,7 @@ function SitePreviewModal({ open, onClose }) {
           onClick={onClose}
           className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition"
           title="Close preview"
-        >
+         aria-label="Close" aria-label="Close">
           <i className="fas fa-times"></i>
         </button>
       </div>

@@ -125,7 +125,7 @@ export default function AdminGuests() {
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900">Guest Details</h3>
-              <button onClick={() => setSelectedGuest(null)} className="text-slate-400 hover:text-slate-600"><i className="fas fa-times"></i></button>
+              <button onClick={() => setSelectedGuest(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close"><i className="fas fa-times"></i></button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4 text-sm">

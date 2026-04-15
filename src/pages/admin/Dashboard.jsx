@@ -138,7 +138,7 @@ export default function AdminDashboard() {
               <h3 className="text-lg font-semibold text-slate-900">
                 Booking — <span className="font-mono text-sm">{viewBooking.id}</span>
               </h3>
-              <button onClick={() => setViewBooking(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setViewBooking(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

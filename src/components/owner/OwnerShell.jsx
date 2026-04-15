@@ -253,7 +253,7 @@ export default function OwnerShell() {
           <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl">
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-800">Account Settings</h3>
-              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-gray-700" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

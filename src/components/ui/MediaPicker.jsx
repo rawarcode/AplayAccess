@@ -134,7 +134,7 @@ export default function MediaPicker({
                 </div>
                 <h3 className="font-bold text-slate-800 text-base">Choose Media</h3>
               </div>
-              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

@@ -217,7 +217,7 @@ export default function AdminReviews() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900">Review Details</h3>
-              <button onClick={() => setViewReview(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setViewReview(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

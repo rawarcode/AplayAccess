@@ -78,7 +78,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
             <h3 className="text-lg font-bold text-gray-800">Billing Detail</h3>
             <p className="text-xs text-gray-400">{b.id}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl" aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -335,7 +335,7 @@ export default function Billing() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Collect Payment — {billing.id}</h3>
-                <button onClick={() => setBilling(null)} className="text-gray-500 hover:text-gray-700">
+                <button onClick={() => setBilling(null)} className="text-gray-500 hover:text-gray-700" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>

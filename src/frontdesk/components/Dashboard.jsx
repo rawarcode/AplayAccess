@@ -99,7 +99,7 @@ export default function Dashboard() {
           <div className="bg-white p-8 rounded-lg w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold">Account Settings</h3>
-              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={() => setSettingsOpen(false)} className="text-gray-500 hover:text-gray-700" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

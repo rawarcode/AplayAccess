@@ -531,7 +531,7 @@ function Modal({ title, children, onClose }) {
         <div className="relative bg-white w-full max-w-md rounded-xl shadow-xl">
           <div className="flex items-center justify-between p-5 border-b">
             <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>

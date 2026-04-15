@@ -197,7 +197,7 @@ export default function OwnerUsers() {
           <div className="bg-white rounded-2xl shadow-xl max-w-md w-full">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900">User Details</h3>
-              <button onClick={() => setViewUser(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setViewUser(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -249,7 +249,7 @@ export default function OwnerUsers() {
               <h2 className="text-xl font-semibold text-slate-900">{editing?.id ? "Edit User" : "Add New User"}</h2>
               <p className="text-sm text-slate-500">{editing?.id ? "Update details, role, or reset password." : "Create a new staff account."}</p>
             </div>
-            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>

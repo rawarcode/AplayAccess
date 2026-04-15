@@ -106,7 +106,7 @@ export default function GuestRecords() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Visit History — {viewGuest.name}</h3>
-                <button onClick={() => setViewGuest(null)} className="text-gray-500 hover:text-gray-700">
+                <button onClick={() => setViewGuest(null)} className="text-gray-500 hover:text-gray-700" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>

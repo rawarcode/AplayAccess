@@ -944,7 +944,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <p className="text-blue-100 text-xs">Please review before proceeding to payment</p>
                   </div>
                 </div>
-                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white text-lg">
+                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white text-lg" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>

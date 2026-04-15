@@ -207,7 +207,7 @@ export default function AdminAddons() {
                 <i className={`fas ${viewItem.icon || "fa-tag"} text-slate-500`}></i>
                 {viewItem.name}
               </h3>
-              <button onClick={() => setViewItem(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setViewItem(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -258,7 +258,7 @@ export default function AdminAddons() {
                 {editing?.id ? "Update pricing and settings." : "Create a new bookable add-on for guests."}
               </p>
             </div>
-            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+            <button type="button" onClick={() => setModalOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>

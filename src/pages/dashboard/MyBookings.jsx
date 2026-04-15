@@ -493,7 +493,7 @@ export default function MyBookings() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h3 className="text-lg font-semibold text-gray-900">Booking Details</h3>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

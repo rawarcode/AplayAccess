@@ -363,7 +363,7 @@ export default function OwnerNewsletter() {
                   <p className="text-xs text-slate-400">Sending to {total} subscriber{total !== 1 ? 's' : ''}</p>
                 </div>
               </div>
-              <button onClick={() => setComposeOpen(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100">
+              <button onClick={() => setComposeOpen(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
