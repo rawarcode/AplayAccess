@@ -805,15 +805,30 @@ export default function WalkIn() {
                       disabled={nightUnavailable}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-100 disabled:cursor-not-allowed" required>
                       <option value="">
-                        {nightUnavailable ? 'Night not available — select a future date' : 'Select room'}
+                        {nightUnavailable ? 'Night not available — select a future date' : 'Select room / cottage / pavilion'}
                       </option>
-                      {rooms
-                        .filter(r => availability === null || availability?.[r.name] === true)
-                        .map(r => (
-                          <option key={r.id} value={r.id}>
-                            {r.name}{r.capacity_label ? ` (${r.capacity_label})` : ''}
-                          </option>
-                        ))}
+                      {(() => {
+                        const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
+                        const getCat  = r => r.category || (r.name.toLowerCase().includes('cottage') ? 'cottage' : r.name.toLowerCase().includes('pavilion') ? 'pavilion' : 'room');
+                        const groups  = [
+                          { key: 'room',     label: '🛏️  Rooms'     },
+                          { key: 'cottage',  label: '⛱️  Cottages'  },
+                          { key: 'pavilion', label: '🏛️  Pavilions' },
+                        ];
+                        return groups.map(g => {
+                          const items = visible.filter(r => getCat(r) === g.key);
+                          if (!items.length) return null;
+                          return (
+                            <optgroup key={g.key} label={g.label}>
+                              {items.map(r => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name}{r.capacity_label ? ` — ${r.capacity_label}` : ''}
+                                </option>
+                              ))}
+                            </optgroup>
+                          );
+                        });
+                      })()}
                     </select>
                     {(() => {
                       const sel = rooms.find(r => String(r.id) === String(form.roomId));
