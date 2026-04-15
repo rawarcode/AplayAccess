@@ -12,11 +12,11 @@ import { applyPromoToBooking } from '../../lib/adminApi';
 const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
 function entranceFeeForBooking(booking) {
-  const type   = booking.booking_type ?? booking.bookingType ?? 'day';
+  const type   = booking.bookingType ?? booking.bookingType ?? 'day';
   const rate   = ENTRANCE_RATES[type] ?? 50;
   // Use stored DB value when available (after check-in/walk-in); otherwise compute expected
-  const amount = (booking.entrance_fee != null && Number(booking.entrance_fee) > 0)
-    ? Number(booking.entrance_fee)
+  const amount = (booking.entranceFee != null && Number(booking.entranceFee) > 0)
+    ? Number(booking.entranceFee)
     : (booking.guests ?? 1) * rate;
   return { rate, amount };
 }
@@ -42,9 +42,9 @@ function parseWalkIn(b) {
 
 function isExpiredPending(b) {
   if (!b || b.status !== 'Pending') return false;
-  if (b.paymongo_link_id) return false; // payment session in progress — not expired
+  if (b.paymongoLinkId) return false; // payment session in progress — not expired
   const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
-  return new Date(b.created_at ?? b.createdAt) < fiveMinAgo;
+  return new Date(b.createdAt) < fiveMinAgo;
 }
 
 function StatusBadge({ status, booking }) {
@@ -172,21 +172,21 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     setActionLoading(true);
     try {
       if (type === 'confirm-booking') {
-        await updateBookingStatus(booking.booking_id, 'Confirmed');
+        await updateBookingStatus(booking.bookingId, 'Confirmed');
         applyUpdate({ status: 'Confirmed' });
       } else if (type === 'checkin') {
         const { amount: ef } = entranceFeeForBooking(booking);
-        const res = await checkInBooking(booking.booking_id, ef);
-        applyUpdate({ status: 'Checked In', checkedInAt: res.checked_in_at, entrance_fee: ef });
+        const res = await checkInBooking(booking.bookingId, ef);
+        applyUpdate({ status: 'Checked In', checkedInAt: res.checkedInAt, entrance_fee: ef });
       } else if (type === 'checkout') {
-        const res = await checkOutBooking(booking.booking_id);
-        applyUpdate({ status: 'Completed', checkedOutAt: res.checked_out_at });
+        const res = await checkOutBooking(booking.bookingId);
+        applyUpdate({ status: 'Completed', checkedOutAt: res.checkedOutAt });
       } else if (type === 'cancel') {
-        await updateBookingStatus(booking.booking_id, 'Cancelled');
+        await updateBookingStatus(booking.bookingId, 'Cancelled');
         applyUpdate({ status: 'Cancelled' });
       } else if (type === 'remove-amenity') {
-        const res = await removeAmenity(booking.booking_id, amenityId);
-        const newTotal  = Number(res.new_total);
+        const res = await removeAmenity(booking.bookingId, amenityId);
+        const newTotal  = Number(res.newTotal);
         const updated   = { ...booking, amenities: (booking.amenities || []).filter(a => a.id !== amenityId), total: newTotal };
         setBooking(updated);
         onUpdated?.(updated);
@@ -202,10 +202,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     if (guestCount === booking.guests) { setGuestEdit(false); return; }
     setGuestLoading(true);
     try {
-      const res = await updateBookingGuests(booking.booking_id, guestCount);
+      const res = await updateBookingGuests(booking.bookingId, guestCount);
       applyUpdate({ guests: res.guests });
       setGuestEdit(false);
-      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(res.guests * (ENTRANCE_RATES[booking.booking_type ?? booking.bookingType ?? 'day'] ?? 50))}.`);
+      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(res.guests * (ENTRANCE_RATES[booking.bookingType ?? booking.bookingType ?? 'day'] ?? 50))}.`);
     } catch {
       showToast?.('Failed to update guest count.');
     } finally {
@@ -218,10 +218,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     setPromoLoading(true);
     setPromoError('');
     try {
-      const res = await applyPromoToBooking(booking.booking_id, promoInput.trim());
-      applyUpdate({ promo_code: res.data.promo_code, discount: res.data.discount, total: res.data.total });
+      const res = await applyPromoToBooking(booking.bookingId, promoInput.trim());
+      applyUpdate({ promo_code: res.data.promoCode, discount: res.data.discount, total: res.data.total });
       setPromoInput('');
-      showToast?.(`Promo code "${res.data.promo_code}" applied. Discount: ${fmtMoney(res.data.discount)}`);
+      showToast?.(`Promo code "${res.data.promoCode}" applied. Discount: ${fmtMoney(res.data.discount)}`);
     } catch (err) {
       setPromoError(err?.response?.data?.message || 'Invalid promo code.');
     } finally {
@@ -233,9 +233,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     if (!addingAmenity?.name) return;
     setAmenityLoading(true);
     try {
-      const res = await addAmenity(booking.booking_id, addingAmenity.name, addingAmenity.qty || 1);
+      const res = await addAmenity(booking.bookingId, addingAmenity.name, addingAmenity.qty || 1);
       const newAmenity = res.data;
-      const newTotal   = Number(res.new_total);
+      const newTotal   = Number(res.newTotal);
       const updated    = { ...booking, amenities: [...(booking.amenities || []), newAmenity], total: newTotal };
       setBooking(updated);
       onUpdated?.(updated);
@@ -248,7 +248,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   async function handleDownloadReceipt() {
     setReceiptLoading(true);
     try {
-      const blob = await downloadStaffReceipt(booking.booking_id);
+      const blob = await downloadStaffReceipt(booking.bookingId);
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
@@ -278,9 +278,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     if (!transferRoomId) return;
     setTransferring(true);
     try {
-      const res = await transferRoom(booking.booking_id, Number(transferRoomId));
+      const res = await transferRoom(booking.bookingId, Number(transferRoomId));
       const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
-      applyUpdate({ roomType: newRoomName, room_id: Number(transferRoomId) });
+      applyUpdate({ roomType: newRoomName, roomId: Number(transferRoomId) });
       setTransferOpen(false);
       setTransferRoomId('');
       showToast?.(`Guest transferred to ${newRoomName}.`);
@@ -293,9 +293,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
   const wi         = parseWalkIn(booking);
   const guestName  = wi ? wi.name  : booking.guest;
-  const guestEmail = wi ? wi.email : (booking.guest_email || '—');
-  const guestPhone = wi ? wi.phone : (booking.guest_phone || '—');
-  const balanceDue = Math.max(0, (booking.total || 0) - (booking.reservation_fee || 0));
+  const guestEmail = wi ? wi.email : (booking.guestEmail || '—');
+  const guestPhone = wi ? wi.phone : (booking.guestPhone || '—');
+  const balanceDue = Math.max(0, (booking.total || 0) - (booking.reservationFee || 0));
 
   const cfg   = pendingAction ? ACTION_CONFIG[pendingAction.type] : null;
   const clr   = cfg ? COLOR[cfg.color] : null;
@@ -443,14 +443,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               <p className="font-semibold text-blue-700">{fmtMoney(booking.total)}</p>
             </div>
             <div><p className="text-xs text-gray-500">Payment Method</p><PayIcon method={booking.paymentMethod} /></div>
-            {booking.promo_code && Number(booking.discount) > 0 && (
+            {booking.promoCode && Number(booking.discount) > 0 && (
               <div className="col-span-2">
                 <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-2">
                     <i className="fas fa-tag text-green-600 text-xs"></i>
                     <div>
                       <p className="text-xs text-green-700 font-semibold">Promo Applied</p>
-                      <p className="text-sm font-mono font-bold text-green-800">{booking.promo_code}</p>
+                      <p className="text-sm font-mono font-bold text-green-800">{booking.promoCode}</p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -460,7 +460,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </div>
               </div>
             )}
-            {!['Completed','Cancelled'].includes(booking.status) && !booking.promo_code && (
+            {!['Completed','Cancelled'].includes(booking.status) && !booking.promoCode && (
               <div className="col-span-2">
                 <p className="text-xs text-gray-500 mb-1">Apply Promo Code</p>
                 <div className="flex gap-2">
@@ -568,7 +568,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
                         className="w-6 h-6 border rounded text-xs">+</button>
                       <span className="ml-auto text-xs font-medium text-blue-700">
-                        ₱{((addingAmenity.qty || 1) * addingAmenity.unit_price).toLocaleString()}
+                        ₱{((addingAmenity.qty || 1) * addingAmenity.unitPrice).toLocaleString()}
                       </span>
                     </div>
                   )}
@@ -614,7 +614,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
                   <option value="">Select a room...</option>
                   {rooms
-                    .filter(r => String(r.id) !== String(booking.room_id))
+                    .filter(r => String(r.id) !== String(booking.roomId))
                     .map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               )}

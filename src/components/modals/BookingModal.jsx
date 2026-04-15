@@ -71,7 +71,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       day_rate:            Number(r.day_rate        ?? DEFAULTS.day_rate),
       overnight_rate:      Number(r.overnight_rate  ?? DEFAULTS.overnight_rate),
       rate_24hr:           Number(r.rate_24hr       ?? DEFAULTS.rate_24hr),
-      reservation_fee_pct: DEFAULTS.reservation_fee_pct,
+      reservation_fee_pct: DEFAULTS.reservationFee_pct,
     });
   }, [rooms, roomType]);
 
@@ -276,7 +276,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       : pricing.day_rate;
   const discount           = promoResult?.discount_amount ?? 0;
   const discountedTotal    = Math.max(baseRate - discount, 0);
-  const reservationFee     = Math.round(discountedTotal * (pricing.reservation_fee_pct / 100));
+  const reservationFee     = Math.round(discountedTotal * (pricing.reservationFee_pct / 100));
   const amountDue          = paymentOption === "full" ? discountedTotal : reservationFee;
   const balanceDue         = discountedTotal - amountDue;
 
@@ -654,7 +654,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                 <p className="text-sm text-yellow-800">
                   <span className="font-medium">Cancellation Policy:</span> Cancellations or no-shows will result in the
-                  forfeiture of the {pricing.reservation_fee_pct}% reservation fee ({formatPHP(reservationFee)}).
+                  forfeiture of the {pricing.reservationFee_pct}% reservation fee ({formatPHP(reservationFee)}).
                 </p>
               </div>
 
@@ -761,7 +761,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   </>
                 )}
                 <div className="flex justify-between mb-1 text-sm text-gray-500 border-t border-blue-200 pt-2 mt-1">
-                  <span>Reservation fee ({pricing.reservation_fee_pct}% — due online):</span>
+                  <span>Reservation fee ({pricing.reservationFee_pct}% — due online):</span>
                   <span>{formatPHP(reservationFee)}</span>
                 </div>
                 <div className="flex justify-between mt-1 text-sm text-gray-500">

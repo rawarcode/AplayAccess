@@ -228,7 +228,7 @@ export default function Dashboard() {
                 {[...arriving]
                   .sort((a, b) => a.checkIn.localeCompare(b.checkIn))
                   .map(b => (
-                    <div key={b.booking_id} className="flex items-start border-b pb-3">
+                    <div key={b.bookingId} className="flex items-start border-b pb-3">
                       <div className="bg-blue-100 text-blue-800 rounded-full h-8 w-8 flex items-center justify-center mr-3 mt-1 flex-shrink-0">
                         <i className="fas fa-user text-sm"></i>
                       </div>

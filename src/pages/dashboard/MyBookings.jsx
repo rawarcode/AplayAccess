@@ -25,8 +25,8 @@ function fmtDateTime(str) {
 // ─── Expired pending detection ────────────────────────────────────────────────
 function isExpiredPending(b) {
   if (b.status !== "Pending") return false;
-  if (b.fully_paid) return false;
-  const created = new Date(b.createdAt ?? b.created_at);
+  if (b.fullyPaid) return false;
+  const created = new Date(b.createdAt);
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }
 
@@ -80,8 +80,8 @@ function CancelModal({ booking, reservationFee, onClose, onConfirmed }) {
     setError("");
     setCancelling(true);
     try {
-      await cancelBooking(booking.booking_id);
-      onConfirmed(booking.booking_id);
+      await cancelBooking(booking.bookingId);
+      onConfirmed(booking.bookingId);
       onClose();
     } catch (err) {
       const msg =
@@ -161,8 +161,8 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
     setError("");
     setSaving(true);
     try {
-      await submitReview({ booking_id: booking.booking_id, rating, comment });
-      onSubmitted(booking.booking_id, { rating, comment });
+      await submitReview({ booking_id: booking.bookingId, rating, comment });
+      onSubmitted(booking.bookingId, { rating, comment });
       setSuccess(true);
       setTimeout(onClose, 2500);
     } catch (err) {
@@ -286,7 +286,7 @@ export default function MyBookings() {
       .finally(() => setLoading(false));
 
     api.get("/api/pricing")
-      .then(r => setReservationFee(Number(r.data?.data?.reservation_fee ?? 150)))
+      .then(r => setReservationFee(Number(r.data?.data?.reservationFee ?? 150)))
       .catch(() => {});
   }, []);
 
@@ -306,8 +306,8 @@ export default function MyBookings() {
   async function handleCheckIn(b) {
     setCheckingIn(true);
     try {
-      await api.post(`/api/bookings/${b.booking_id}/checkin`);
-      setItems(prev => prev.map(x => x.booking_id === b.booking_id ? { ...x, status: "Checked In" } : x));
+      await api.post(`/api/bookings/${b.bookingId}/checkin`);
+      setItems(prev => prev.map(x => x.bookingId === b.bookingId ? { ...x, status: "Checked In" } : x));
       setSelected(prev => prev ? { ...prev, status: "Checked In" } : null);
     } catch {
       // silent — polling will catch it
@@ -318,15 +318,15 @@ export default function MyBookings() {
 
   function handleCancelConfirmed(bookingId) {
     setItems((prev) =>
-      prev.map((b) => (b.booking_id === bookingId ? { ...b, status: "Cancelled" } : b))
+      prev.map((b) => (b.bookingId === bookingId ? { ...b, status: "Cancelled" } : b))
     );
     showToast("Booking cancelled successfully.", "success");
   }
 
   async function handleDownloadReceipt(b) {
-    setDownloadingId(b.booking_id);
+    setDownloadingId(b.bookingId);
     try {
-      const blob = await downloadReceipt(b.booking_id);
+      const blob = await downloadReceipt(b.bookingId);
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
@@ -343,7 +343,7 @@ export default function MyBookings() {
   function handleReviewSubmitted(bookingId, review) {
     setItems((prev) =>
       prev.map((b) =>
-        b.booking_id === bookingId ? { ...b, has_review: true, review } : b
+        b.bookingId === bookingId ? { ...b, has_review: true, review } : b
       )
     );
     showToast("Review submitted! Thank you.", "success");
@@ -394,10 +394,10 @@ export default function MyBookings() {
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{b.guests}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                   <div className="font-medium">₱{Number(b.total).toLocaleString()}</div>
-                  {b.promo_code && Number(b.discount) > 0 && (
+                  {b.promoCode && Number(b.discount) > 0 && (
                     <div className="mt-0.5 flex items-center gap-1">
                       <span className="inline-flex items-center gap-1 text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">
-                        <i className="fas fa-tag text-[10px]"></i>{b.promo_code}
+                        <i className="fas fa-tag text-[10px]"></i>{b.promoCode}
                       </span>
                       <span className="text-xs text-green-600 font-medium">−₱{Number(b.discount).toLocaleString()}</span>
                     </div>
@@ -419,7 +419,7 @@ export default function MyBookings() {
                     )}
 
                     {/* Review — only for completed bookings not yet reviewed */}
-                    {b.status === "Completed" && !b.has_review && (
+                    {b.status === "Completed" && !b.hasReview && (
                       <button
                         className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200"
                         onClick={() => setReviewing(b)}
@@ -429,7 +429,7 @@ export default function MyBookings() {
                     )}
 
                     {/* Already reviewed badge */}
-                    {b.status === "Completed" && b.has_review && (
+                    {b.status === "Completed" && b.hasReview && (
                       <span
                         className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded"
                         title={b.review?.comment || ""}
@@ -443,9 +443,9 @@ export default function MyBookings() {
                       <button
                         className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded hover:bg-sky-200 disabled:opacity-50"
                         onClick={() => handleDownloadReceipt(b)}
-                        disabled={downloadingId === b.booking_id}
+                        disabled={downloadingId === b.bookingId}
                       >
-                        {downloadingId === b.booking_id
+                        {downloadingId === b.bookingId
                           ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
                           : <><i className="fas fa-file-pdf mr-1"></i>Receipt</>}
                       </button>
@@ -505,7 +505,7 @@ export default function MyBookings() {
                 ["Check-out",    fmtDateTime(selected.checkOut)],
                 ["Guests",       selected.guests],
                 ["Total",        `₱${Number(selected.total).toLocaleString()}`],
-                ["Reservation Fee", `₱${Number(selected.reservation_fee).toLocaleString()}`],
+                ["Reservation Fee", `₱${Number(selected.reservationFee).toLocaleString()}`],
                 ["Payment",      selected.paymentMethod],
                 ["Status",       isExpiredPending(selected) ? "Expired" : selected.status],
               ].map(([label, val]) => (
@@ -514,10 +514,10 @@ export default function MyBookings() {
                   <span className="font-medium text-right">{val}</span>
                 </div>
               ))}
-              {selected.promo_code && Number(selected.discount) > 0 && (
+              {selected.promoCode && Number(selected.discount) > 0 && (
                 <div className="flex justify-between gap-4">
                   <span className="text-gray-500">Promo</span>
-                  <span className="font-medium text-green-600">{selected.promo_code} (−₱{Number(selected.discount).toLocaleString()})</span>
+                  <span className="font-medium text-green-600">{selected.promoCode} (−₱{Number(selected.discount).toLocaleString()})</span>
                 </div>
               )}
               {selected.specialRequests && (
@@ -528,7 +528,7 @@ export default function MyBookings() {
               )}
             </div>
             <div className="px-6 pb-6 flex gap-2 justify-end">
-              {selected.status === 'Confirmed' && selected.fully_paid && (
+              {selected.status === 'Confirmed' && selected.fullyPaid && (
                 <button onClick={() => handleCheckIn(selected)} disabled={checkingIn}
                   className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm hover:bg-purple-700 disabled:opacity-60">
                   {checkingIn ? <><i className="fas fa-spinner fa-spin mr-1"></i>Checking in…</> : <><i className="fas fa-door-open mr-1"></i>Check In</>}
@@ -540,7 +540,7 @@ export default function MyBookings() {
                   Cancel Booking
                 </button>
               )}
-              {selected.status === "Completed" && !selected.has_review && (
+              {selected.status === "Completed" && !selected.hasReview && (
                 <button onClick={() => { setSelected(null); setReviewing(selected); }}
                   className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-xl text-sm hover:bg-yellow-200">
                   ★ Leave Review

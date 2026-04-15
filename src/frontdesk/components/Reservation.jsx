@@ -48,9 +48,9 @@ function PayIcon({ method }) {
 // Bookings with a paymongo_link_id are excluded — the guest may still be paying.
 function isExpiredPending(b) {
   if (b.status !== 'Pending') return false;
-  if (b.fully_paid) return false;
-  if (b.paymongo_link_id) return false; // payment session in progress
-  const created = new Date(b.createdAt ?? b.created_at);
+  if (b.fullyPaid) return false;
+  if (b.paymongoLinkId) return false; // payment session in progress
+  const created = new Date(b.createdAt);
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }
 
@@ -175,7 +175,7 @@ export default function Reservation() {
 
   // ── status update (table row quick-actions only) ──────────────────────────
   function syncBooking(bookingId, updates) {
-    setBookings(prev => prev.map(b => b.booking_id === bookingId ? { ...b, ...updates } : b));
+    setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, ...updates } : b));
   }
 
   async function execConfirm() {
@@ -189,10 +189,10 @@ export default function Reservation() {
         syncBooking(bookingId, { status: 'Confirmed' });
       } else if (action === 'checkin') {
         const res = await checkInBooking(bookingId);
-        syncBooking(bookingId, { status: 'Checked In', checkedInAt: res.checked_in_at });
+        syncBooking(bookingId, { status: 'Checked In', checkedInAt: res.checkedInAt });
       } else if (action === 'checkout') {
         const res = await checkOutBooking(bookingId);
-        syncBooking(bookingId, { status: 'Completed', checkedOutAt: res.checked_out_at });
+        syncBooking(bookingId, { status: 'Completed', checkedOutAt: res.checkedOutAt });
       } else if (action === 'cancel') {
         await updateBookingStatus(bookingId, 'Cancelled');
         syncBooking(bookingId, { status: 'Cancelled' });
@@ -205,9 +205,9 @@ export default function Reservation() {
     if (!transferBooking || !transferRoomId) return;
     setTransferring(true);
     try {
-      const res = await transferRoom(transferBooking.booking_id, Number(transferRoomId));
+      const res = await transferRoom(transferBooking.bookingId, Number(transferRoomId));
       const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
-      syncBooking(transferBooking.booking_id, { roomType: newRoomName, room_id: Number(transferRoomId) });
+      syncBooking(transferBooking.bookingId, { roomType: newRoomName, roomId: Number(transferRoomId) });
       setTransferBooking(null);
       setTransferRoomId('');
       showToast(`Guest transferred to ${newRoomName}.`, 'success');
@@ -279,15 +279,15 @@ export default function Reservation() {
         const busyRoomIds = new Set(
           bookings
             .filter(b =>
-              b.booking_id !== transferBooking.booking_id &&
+              b.bookingId !== transferBooking.bookingId &&
               ['Confirmed', 'Checked In'].includes(b.status) &&
               new Date(b.checkIn)  < new Date(transferBooking.checkOut) &&
               new Date(b.checkOut) > new Date(transferBooking.checkIn)
             )
-            .map(b => b.room_id)
+            .map(b => b.roomId)
         );
         const availableRooms = rooms.filter(r =>
-          String(r.id) !== String(transferBooking.room_id) && !busyRoomIds.has(r.id)
+          String(r.id) !== String(transferBooking.roomId) && !busyRoomIds.has(r.id)
         );
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -338,7 +338,7 @@ export default function Reservation() {
           onClose={() => setViewBooking(null)}
           onUpdated={updated => {
             setViewBooking(updated);
-            syncBooking(updated.booking_id, updated);
+            syncBooking(updated.bookingId, updated);
           }}
           showToast={showToast}
         />
@@ -406,11 +406,11 @@ export default function Reservation() {
                   ) : filtered.map(b => {
                     const wi = parseWalkIn(b);
                     return (
-                      <tr key={b.booking_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewBooking(b)}>
+                      <tr key={b.bookingId} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewBooking(b)}>
                         <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-gray-900">{wi ? wi.name : b.guest}</p>
-                          <p className="text-xs text-gray-500">{wi ? wi.email : b.guest_email}</p>
+                          <p className="text-xs text-gray-500">{wi ? wi.email : b.guestEmail}</p>
                           {wi && <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">Walk-in</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{b.roomType}</td>
@@ -428,15 +428,15 @@ export default function Reservation() {
                               <i className="fas fa-eye"></i>
                             </button>
                             {b.status === 'Pending' && (
-                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'confirm', booking: b })}
-                                disabled={actionLoading === b.booking_id}
+                              <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'confirm', booking: b })}
+                                disabled={actionLoading === b.bookingId}
                                 title="Confirm" className="text-blue-600 hover:text-blue-800 disabled:opacity-40">
                                 <i className="fas fa-check"></i>
                               </button>
                             )}
                             {b.status === 'Confirmed' && (
-                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'checkin', booking: b })}
-                                disabled={actionLoading === b.booking_id}
+                              <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'checkin', booking: b })}
+                                disabled={actionLoading === b.bookingId}
                                 title="Check In" className="text-purple-600 hover:text-purple-800 disabled:opacity-40">
                                 <i className="fas fa-door-open"></i>
                               </button>
@@ -448,7 +448,7 @@ export default function Reservation() {
                                 </span>
                                 <button
                                   onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
-                                  disabled={actionLoading === b.booking_id}
+                                  disabled={actionLoading === b.bookingId}
                                   title="Transfer to another room"
                                   className="text-indigo-600 hover:text-indigo-800 disabled:opacity-40">
                                   <i className="fas fa-exchange-alt"></i>
@@ -456,8 +456,8 @@ export default function Reservation() {
                               </>
                             )}
                             {b.status === 'Pending' && (
-                              <button onClick={() => setConfirmState({ bookingId: b.booking_id, action: 'cancel', booking: b })}
-                                disabled={actionLoading === b.booking_id}
+                              <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'cancel', booking: b })}
+                                disabled={actionLoading === b.bookingId}
                                 title="Cancel" className="text-red-600 hover:text-red-800 disabled:opacity-40">
                                 <i className="fas fa-ban"></i>
                               </button>

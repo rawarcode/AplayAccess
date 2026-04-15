@@ -172,8 +172,8 @@ export default function OwnerSettings() {
             <div className="px-6 py-5 text-sm space-y-2 text-slate-700">
               <PreviewRow label="Day visit rate (base)" value="₱—" note="set per room in Manage Rooms" />
               <PreviewRow
-                label={`Entrance fee (6 × ₱${Number(draft.entrance_fee ?? 0).toLocaleString()})`}
-                value={`₱${(6 * Number(draft.entrance_fee ?? 0)).toLocaleString()}`}
+                label={`Entrance fee (6 × ₱${Number(draft.entranceFee ?? 0).toLocaleString()})`}
+                value={`₱${(6 * Number(draft.entranceFee ?? 0)).toLocaleString()}`}
               />
               {6 > Number(draft.free_guest_limit ?? 5) && (
                 <PreviewRow
@@ -184,7 +184,7 @@ export default function OwnerSettings() {
               )}
               <div className="border-t border-slate-100 pt-2 flex justify-between font-semibold">
                 <span>Reservation fee (charged now)</span>
-                <span className="text-sky-600">₱{Number(draft.reservation_fee ?? 0).toLocaleString()}</span>
+                <span className="text-sky-600">₱{Number(draft.reservationFee ?? 0).toLocaleString()}</span>
               </div>
             </div>
           </div>

@@ -159,10 +159,10 @@ export default function GuestDashboard() {
       icon: "fa-history",
       iconBg: "bg-green-100",
       iconColor: "text-green-600",
-      sub: past.filter(b => b.status === "Completed" && !b.has_review).length > 0
-        ? `${past.filter(b => b.status === "Completed" && !b.has_review).length} awaiting review`
+      sub: past.filter(b => b.status === "Completed" && !b.hasReview).length > 0
+        ? `${past.filter(b => b.status === "Completed" && !b.hasReview).length} awaiting review`
         : "Thank you for visiting!",
-      subColor: past.filter(b => b.status === "Completed" && !b.has_review).length > 0
+      subColor: past.filter(b => b.status === "Completed" && !b.hasReview).length > 0
         ? "text-orange-500"
         : "text-gray-400",
     },
@@ -294,12 +294,12 @@ export default function GuestDashboard() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-bold text-gray-900">₱{Number(b.total).toLocaleString()}</span>
-                        {b.promo_code && (
+                        {b.promoCode && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
-                            <i className="fas fa-tag text-[9px]"></i>{b.promo_code}
+                            <i className="fas fa-tag text-[9px]"></i>{b.promoCode}
                           </span>
                         )}
-                        {b.fully_paid && (
+                        {b.fullyPaid && (
                           <span className="text-xs text-green-600 font-medium">
                             <i className="fas fa-check-circle mr-0.5"></i>Paid
                           </span>
@@ -359,23 +359,23 @@ export default function GuestDashboard() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-bold text-gray-900">₱{Number(b.total).toLocaleString()}</span>
-                      {b.promo_code && (
+                      {b.promoCode && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
-                          <i className="fas fa-tag text-[9px]"></i>{b.promo_code}
+                          <i className="fas fa-tag text-[9px]"></i>{b.promoCode}
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
                       {b.status === "Completed" && (
-                        <ReceiptBtn bookingId={b.booking_id} />
+                        <ReceiptBtn bookingId={b.bookingId} />
                       )}
-                      {b.status === "Completed" && !b.has_review && (
+                      {b.status === "Completed" && !b.hasReview && (
                         <Link to="/dashboard/bookings"
                           className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium">
                           <i className="fas fa-star text-[10px]"></i>Review
                         </Link>
                       )}
-                      {b.status === "Completed" && b.has_review && (
+                      {b.status === "Completed" && b.hasReview && (
                         <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
                           <i className="fas fa-star text-[10px]"></i>
                           {b.review?.rating}/5

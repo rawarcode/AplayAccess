@@ -36,8 +36,8 @@ function PayIcon({ method }) {
 
 function isExpiredPending(b) {
   if (b.status !== 'Pending') return false;
-  if (b.fully_paid) return false;
-  const created = new Date(b.createdAt ?? b.created_at);
+  if (b.fullyPaid) return false;
+  const created = new Date(b.createdAt);
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }
 
@@ -67,7 +67,7 @@ function StatusBadge({ status, booking }) {
 function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading }) {
   if (!b) return null;
 
-  const balanceDue = Math.max(0, Number(b.total ?? 0) - Number(b.reservation_fee ?? 0));
+  const balanceDue = Math.max(0, Number(b.total ?? 0) - Number(b.reservationFee ?? 0));
 
   return (
     <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto z-40 border-l border-gray-200">
@@ -103,7 +103,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
           {/* Payment method */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-500">Payment Method</span>
-            <PayIcon method={b.payment_method} />
+            <PayIcon method={b.paymentMethod} />
           </div>
 
           {/* Bill breakdown */}
@@ -112,16 +112,16 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
               <span className="text-gray-500">Room Rate</span>
               <span className="font-medium">{fmtMoney(b.total)}</span>
             </div>
-            {Number(b.reservation_fee ?? 0) > 0 && (
+            {Number(b.reservationFee ?? 0) > 0 && (
               <div className="flex justify-between px-4 py-3 border-b text-green-700">
                 <span>Reservation Fee Paid</span>
-                <span>− {fmtMoney(b.reservation_fee)}</span>
+                <span>− {fmtMoney(b.reservationFee)}</span>
               </div>
             )}
             {b.status === 'Cancelled' ? (
               <div className="flex justify-between px-4 py-3 bg-red-50 text-red-700 font-semibold">
                 <span>Forfeited (Non-refundable)</span>
-                <span>{fmtMoney(b.reservation_fee ?? 0)}</span>
+                <span>{fmtMoney(b.reservationFee ?? 0)}</span>
               </div>
             ) : b.status === 'Completed' ? (
               <div className="flex justify-between px-4 py-3 bg-green-50 text-green-700 font-semibold">
@@ -134,13 +134,13 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                 <span>{fmtMoney(balanceDue)}</span>
               </div>
             )}
-            {Number(b.entrance_fee ?? 0) > 0 && (
+            {Number(b.entranceFee ?? 0) > 0 && (
               <div className="flex justify-between px-4 py-3 bg-amber-50 border-t border-amber-100 text-amber-800 text-xs">
                 <span className="flex items-center gap-1.5">
                   <i className="fas fa-ticket-alt"></i>
                   Entrance Fee ({b.guests} pax) — collected at gate
                 </span>
-                <span className="font-semibold">{fmtMoney(b.entrance_fee)}</span>
+                <span className="font-semibold">{fmtMoney(b.entranceFee)}</span>
               </div>
             )}
           </div>
@@ -153,7 +153,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                 {b.amenities.map((a, i) => (
                   <div key={i} className="flex justify-between text-sm text-gray-600">
                     <span>{a.name} × {a.qty}</span>
-                    <span>{fmtMoney(a.total ?? (a.unit_price * a.qty))}</span>
+                    <span>{fmtMoney(a.total ?? (a.unitPrice * a.qty))}</span>
                   </div>
                 ))}
               </div>
@@ -161,11 +161,11 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
           )}
 
           {/* Special requests */}
-          {b.special_requests && (
+          {b.specialRequests && (
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Special Requests</p>
               <p className="text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded p-3">
-                {b.special_requests}
+                {b.specialRequests}
               </p>
             </div>
           )}
@@ -183,12 +183,12 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
           )}
           {b.status === 'Completed' && (
             <button
-              onClick={() => onDownloadReceipt(b.booking_id)}
-              disabled={downloading === b.booking_id}
+              onClick={() => onDownloadReceipt(b.bookingId)}
+              disabled={downloading === b.bookingId}
               className="flex-1 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-60 transition"
             >
-              <i className={`fas ${downloading === b.booking_id ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i>
-              {downloading === b.booking_id ? 'Preparing...' : 'Download Receipt'}
+              <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i>
+              {downloading === b.bookingId ? 'Preparing...' : 'Download Receipt'}
             </button>
           )}
           {b.status === 'Cancelled' && (
@@ -254,22 +254,22 @@ export default function Billing() {
   });
 
   // Bookings awaiting balance collection: Confirmed/Checked In that haven't been fully paid yet
-  const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fully_paid);
+  const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fullyPaid);
   const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
   const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
 
   const revenueToday =
-    todayCompleted.reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entrance_fee ?? 0), 0) +
-    todayCancelled.reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0);
+    todayCompleted.reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0), 0) +
+    todayCancelled.reduce((s, b) => s + Number(b.reservationFee ?? 0), 0);
 
   async function handleCollect() {
     if (!billing) return;
     setPaying(true);
     try {
-      await collectPayment(billing.booking_id, payMethod);
+      await collectPayment(billing.bookingId, payMethod);
       setBookings(prev =>
-        prev.map(b => b.booking_id === billing.booking_id
-          ? { ...b, fully_paid: true, paymentMethod: payMethod }
+        prev.map(b => b.bookingId === billing.bookingId
+          ? { ...b, fullyPaid: true, paymentMethod: payMethod }
           : b)
       );
       setBilling(null);
@@ -307,7 +307,7 @@ export default function Billing() {
     setPayMethod('Cash');
   }
 
-  const balanceDue = billing ? Math.max(0, Number(billing.total) - Number(billing.reservation_fee ?? 0)) : 0;
+  const balanceDue = billing ? Math.max(0, Number(billing.total) - Number(billing.reservationFee ?? 0)) : 0;
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -352,7 +352,7 @@ export default function Billing() {
                 </div>
                 <div className="flex justify-between px-4 py-3 border-b text-green-700">
                   <span>Reservation Fee (paid online)</span>
-                  <span>− {fmtMoney(billing.reservation_fee ?? 0)}</span>
+                  <span>− {fmtMoney(billing.reservationFee ?? 0)}</span>
                 </div>
                 <div className="flex justify-between px-4 py-3 font-semibold text-blue-800 text-base">
                   <span>Balance Due Now</span>
@@ -450,7 +450,7 @@ export default function Billing() {
             </h2>
             <div className="space-y-3">
               {todayConfirmed.map(b => (
-                <div key={b.booking_id}
+                <div key={b.bookingId}
                   onClick={() => setSelected(b)}
                   className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 cursor-pointer hover:bg-blue-100 transition">
                   <div>
@@ -463,7 +463,7 @@ export default function Billing() {
                   <div className="text-right">
                     <p className="text-xs text-gray-500">Balance Due</p>
                     <p className="font-bold text-blue-700 text-lg">
-                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservation_fee ?? 0)))}
+                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)))}
                     </p>
                     <button
                       onClick={e => { e.stopPropagation(); openCollect(b); }}
@@ -510,7 +510,7 @@ export default function Billing() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {sortedTodayAll.map(b => (
-                    <tr key={b.booking_id}
+                    <tr key={b.bookingId}
                       className="hover:bg-gray-50 cursor-pointer"
                       onClick={() => setSelected(b)}
                     >
@@ -526,8 +526,8 @@ export default function Billing() {
                         {b.status === 'Completed'
                           ? <span className="text-green-600"><i className="fas fa-check mr-1"></i>Collected</span>
                           : b.status === 'Cancelled'
-                          ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservation_fee ?? 0)}</span>
-                          : <span className="text-blue-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservation_fee ?? 0)))}</span>
+                          ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservationFee ?? 0)}</span>
+                          : <span className="text-blue-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)))}</span>
                         }
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
@@ -542,11 +542,11 @@ export default function Billing() {
                         )}
                         {b.status === 'Completed' && (
                           <button
-                            onClick={() => handleDownloadReceipt(b.booking_id, b.id)}
-                            disabled={downloading === b.booking_id}
+                            onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
+                            disabled={downloading === b.bookingId}
                             className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-60 flex items-center gap-1"
                           >
-                            <i className={`fas ${downloading === b.booking_id ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
+                            <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
                             Receipt
                           </button>
                         )}
@@ -563,7 +563,7 @@ export default function Billing() {
                   <tr>
                     <td colSpan={4} className="px-4 py-3 text-right text-gray-600">Totals:</td>
                     <td className="px-4 py-3">
-                      {fmtMoney(todayAll.reduce((s, b) => s + Number(b.total || 0) + Number(b.entrance_fee || 0), 0))}
+                      {fmtMoney(todayAll.reduce((s, b) => s + Number(b.total || 0) + Number(b.entranceFee || 0), 0))}
                     </td>
                     <td className="px-4 py-3 text-green-700">
                       {fmtMoney(revenueToday)} earned

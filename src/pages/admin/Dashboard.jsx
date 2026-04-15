@@ -116,7 +116,7 @@ export default function AdminDashboard() {
                     <td className="px-6 py-4 font-mono text-xs text-gray-500">{b.id}</td>
                     <td className="px-6 py-4">{b.room}</td>
                     <td className="px-6 py-4">{b.guest}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{b.check_in} – {b.check_out}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{b.checkIn} – {b.checkOut}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[b.status] || "bg-gray-100 text-gray-700"}`}>
                         {b.status}
@@ -147,8 +147,8 @@ export default function AdminDashboard() {
                 {[
                   ["Guest",     viewBooking.guest],
                   ["Room",      viewBooking.room],
-                  ["Check-in",  viewBooking.check_in],
-                  ["Check-out", viewBooking.check_out],
+                  ["Check-in",  viewBooking.checkIn],
+                  ["Check-out", viewBooking.checkOut],
                 ].map(([label, val]) => (
                   <div key={label}>
                     <p className="text-slate-500 text-xs">{label}</p>

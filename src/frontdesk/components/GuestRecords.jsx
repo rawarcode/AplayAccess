@@ -50,12 +50,12 @@ export default function GuestRecords() {
       const wi  = parseWalkIn(b);
       const key = wi
         ? (wi.email !== '—' ? wi.email : wi.name)
-        : (b.guest_email || b.guest);
+        : (b.guestEmail || b.guest);
       if (!map[key]) {
         map[key] = {
           name:  wi ? wi.name  : b.guest,
-          email: wi ? wi.email : (b.guest_email || '—'),
-          phone: wi ? wi.phone : (b.guest_phone || '—'),
+          email: wi ? wi.email : (b.guestEmail || '—'),
+          phone: wi ? wi.phone : (b.guestPhone || '—'),
           visits: [],
         };
       }
@@ -141,7 +141,7 @@ export default function GuestRecords() {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {viewGuest.visits.map(v => (
-                      <tr key={v.booking_id}>
+                      <tr key={v.bookingId}>
                         <td className="px-3 py-2 text-xs text-gray-400">{v.id}</td>
                         <td className="px-3 py-2">{v.roomType}</td>
                         <td className="px-3 py-2 text-gray-600">{fmtDate(v.checkIn)}</td>

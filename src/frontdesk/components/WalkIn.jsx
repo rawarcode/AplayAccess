@@ -301,7 +301,7 @@ export default function WalkIn() {
     setActionLoading(bookingId);
     try {
       await updateBookingStatus(bookingId, status);
-      setBookings(prev => prev.map(b => b.booking_id === bookingId ? { ...b, status } : b));
+      setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, status } : b));
     } catch {
       showToast('Failed to update status. Please try again.');
     } finally {
@@ -313,9 +313,9 @@ export default function WalkIn() {
     if (!collectBooking) return;
     setCollectPaying(true);
     try {
-      await updateBookingStatus(collectBooking.booking_id, 'Completed', { payment_method: collectPayMethod });
+      await updateBookingStatus(collectBooking.bookingId, 'Completed', { payment_method: collectPayMethod });
       setBookings(prev => prev.map(b =>
-        b.booking_id === collectBooking.booking_id
+        b.bookingId === collectBooking.bookingId
           ? { ...b, status: 'Completed', fully_paid: true }
           : b
       ));
@@ -332,11 +332,11 @@ export default function WalkIn() {
     if (!transferBooking || !transferRoomId) return;
     setTransferring(true);
     try {
-      const res = await transferRoom(transferBooking.booking_id, Number(transferRoomId));
+      const res = await transferRoom(transferBooking.bookingId, Number(transferRoomId));
       const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
       setBookings(prev => prev.map(b =>
-        b.booking_id === transferBooking.booking_id
-          ? { ...b, roomType: newRoomName, room_id: Number(transferRoomId) }
+        b.bookingId === transferBooking.bookingId
+          ? { ...b, roomType: newRoomName, roomId: Number(transferRoomId) }
           : b
       ));
       setTransferBooking(null);
@@ -418,15 +418,15 @@ export default function WalkIn() {
         const busyRoomIds = new Set(
           bookings
             .filter(b =>
-              b.booking_id !== transferBooking.booking_id &&
+              b.bookingId !== transferBooking.bookingId &&
               ['Confirmed', 'Checked In'].includes(b.status) &&
               new Date(b.checkIn)  < new Date(transferBooking.checkOut) &&
               new Date(b.checkOut) > new Date(transferBooking.checkIn)
             )
-            .map(b => b.room_id)
+            .map(b => b.roomId)
         );
         const availableRooms = rooms.filter(r =>
-          String(r.id) !== String(transferBooking.room_id) && !busyRoomIds.has(r.id)
+          String(r.id) !== String(transferBooking.roomId) && !busyRoomIds.has(r.id)
         );
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -680,7 +680,7 @@ export default function WalkIn() {
           onClose={() => setViewWalkin(null)}
           onUpdated={updated => {
             setViewWalkin(updated);
-            setBookings(prev => prev.map(b => b.booking_id === updated.booking_id ? { ...b, ...updated } : b));
+            setBookings(prev => prev.map(b => b.bookingId === updated.bookingId ? { ...b, ...updated } : b));
           }}
           showToast={showToast}
         />
@@ -1180,7 +1180,7 @@ export default function WalkIn() {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {todayBookings.map(b => (
-                    <tr key={b.booking_id} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewWalkin(b)}>
+                    <tr key={b.bookingId} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewWalkin(b)}>
                       <td className="px-4 py-3 text-xs text-gray-500">{b.id}</td>
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium">{walkInName(b)}</p>
@@ -1201,13 +1201,13 @@ export default function WalkIn() {
                           {b.status === 'Checked In' && (
                             <>
                               <button
-                                onClick={() => { setCollectBooking(b); setCollectPayMethod(b.payment_method ?? 'Cash'); }}
-                                disabled={actionLoading === b.booking_id}
+                                onClick={() => { setCollectBooking(b); setCollectPayMethod(b.paymentMethod ?? 'Cash'); }}
+                                disabled={actionLoading === b.bookingId}
                                 className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-40"
                               >Collect</button>
                               <button
                                 onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
-                                disabled={actionLoading === b.booking_id}
+                                disabled={actionLoading === b.bookingId}
                                 className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-40"
                               ><i className="fas fa-exchange-alt mr-1"></i>Transfer</button>
                             </>

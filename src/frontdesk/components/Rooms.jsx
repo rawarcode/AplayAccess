@@ -700,8 +700,8 @@ export default function FDRooms() {
 
               return (
                 <button
-                  key={b.booking_id}
-                  onClick={() => setSelectedSlot({ room: { name: b.roomType, id: b.room_id }, info: { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' } })}
+                  key={b.bookingId}
+                  onClick={() => setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info: { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' } })}
                   className={`w-full text-left rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.99] ${
                     isToday
                       ? 'border-blue-200 bg-blue-50 hover:bg-blue-100'

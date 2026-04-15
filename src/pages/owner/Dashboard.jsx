@@ -250,7 +250,7 @@ export default function OwnerDashboard() {
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">{b.guest}</p>
                     <p className="text-xs text-gray-500 truncate">{b.room}</p>
-                    <p className="text-xs text-gray-400">{b.check_in} – {b.check_out}</p>
+                    <p className="text-xs text-gray-400">{b.checkIn} – {b.checkOut}</p>
                   </div>
                   <span className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLASSES[STATUS_COLOR_MAP[b.status] ?? "blue"]}`}>
                     {b.status}
