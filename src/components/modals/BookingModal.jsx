@@ -591,12 +591,29 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 disabled={nightUnavailable}
                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               >
-                <option value="">{nightUnavailable ? "No rooms available" : "Select Room / Cottage"}</option>
-                {rooms
-                  .filter(r => availability === null || availability?.[r.name] === true)
-                  .map((r) => (
-                    <option key={r.name} value={r.name}>{r.name}</option>
-                  ))}
+                <option value="">{nightUnavailable ? "No rooms available" : "Select Room / Cottage / Pavilion"}</option>
+                {(() => {
+                  const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
+                  const getCategory = r => r.category || (r.name.toLowerCase().includes("cottage") ? "cottage" : r.name.toLowerCase().includes("pavilion") ? "pavilion" : "room");
+                  const groups = [
+                    { key: "room",     label: "🛏️  Rooms"     },
+                    { key: "cottage",  label: "⛱️  Cottages"  },
+                    { key: "pavilion", label: "🏛️  Pavilions" },
+                  ];
+                  return groups.map(g => {
+                    const items = visible.filter(r => getCategory(r) === g.key);
+                    if (!items.length) return null;
+                    return (
+                      <optgroup key={g.key} label={g.label}>
+                        {items.map(r => (
+                          <option key={r.name} value={r.name}>
+                            {r.name}{r.capacity_label ? ` — ${r.capacity_label}` : ""}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  });
+                })()}
               </select>
               {/* Capacity label + availability badge */}
               {selectedRoomObj && (
