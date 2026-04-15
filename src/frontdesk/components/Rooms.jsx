@@ -278,81 +278,53 @@ function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
   const { quantity, occupied, incoming, pending, vacant } = info;
   const hk = HK_CONFIG[room.housekeeping_status ?? 'clean'];
 
-  // Build dot array: one dot per unit
   const dots = [];
   for (let i = 0; i < quantity; i++) {
-    let color;
-    if (i < occupied)                    color = 'bg-red-500';
-    else if (i < occupied + incoming)    color = 'bg-blue-500';
-    else if (i < occupied + incoming + pending) color = 'bg-yellow-400';
-    else                                 color = 'bg-green-500';
-    dots.push(color);
+    if (i < occupied)                         dots.push('bg-red-500');
+    else if (i < occupied + incoming)         dots.push('bg-blue-500');
+    else if (i < occupied + incoming + pending) dots.push('bg-yellow-400');
+    else                                      dots.push('bg-green-400');
   }
 
-  const allVacant  = vacant === quantity;
-  const allOccupied = occupied === quantity;
-
   return (
-    <div className="bg-white border-2 border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2">
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="font-bold text-slate-800 text-sm leading-tight">{room.name}</p>
-          <p className="text-xs text-slate-400 mt-0.5">{room.capacity_label || `${quantity} units`}</p>
-        </div>
-        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">×{quantity}</span>
+      <div className="flex items-center justify-between">
+        <p className="font-semibold text-slate-800 text-xs leading-tight truncate">{room.name}</p>
+        <span className="text-[10px] font-bold text-slate-400 ml-1 shrink-0">×{quantity}</span>
       </div>
 
-      {/* Dot grid — up to 20 dots, then show "+N" */}
+      {/* Dot grid */}
+      <div className="flex flex-wrap gap-0.5">
+        {dots.slice(0, 24).map((c, i) => <span key={i} className={`w-2.5 h-2.5 rounded-full ${c}`} />)}
+        {quantity > 24 && <span className="text-[9px] text-slate-400 self-center ml-0.5">+{quantity - 24}</span>}
+      </div>
+
+      {/* Counts — compact inline */}
       <div className="flex flex-wrap gap-1">
-        {dots.slice(0, 20).map((c, i) => (
-          <span key={i} className={`w-3.5 h-3.5 rounded-full ${c}`} />
+        {[
+          occupied  > 0 && { n: occupied,  label: 'Occ',      cls: 'bg-red-100 text-red-700'    },
+          incoming  > 0 && { n: incoming,  label: 'Arr',      cls: 'bg-blue-100 text-blue-700'  },
+          pending   > 0 && { n: pending,   label: 'Pend',     cls: 'bg-yellow-100 text-yellow-700' },
+          vacant    > 0 && { n: vacant,    label: 'Free',     cls: 'bg-green-100 text-green-700' },
+        ].filter(Boolean).map(({ n, label, cls }) => (
+          <span key={label} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cls}`}>{n} {label}</span>
         ))}
-        {quantity > 20 && <span className="text-[10px] text-slate-400 self-center">+{quantity - 20}</span>}
       </div>
 
-      {/* Count badges */}
-      <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
-        {occupied > 0 && (
-          <span className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>{occupied} Occupied
-          </span>
-        )}
-        {incoming > 0 && (
-          <span className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>{incoming} Arriving
-          </span>
-        )}
-        {pending > 0 && (
-          <span className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>{pending} Pending
-          </span>
-        )}
-        {vacant > 0 && (
-          <span className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-            <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>{vacant} Vacant
-          </span>
-        )}
-      </div>
-
-      {/* Footer: housekeeping + walk-in */}
-      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
-        <button
-          onClick={() => onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean'])}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${hk.bg} ${hk.text} hover:opacity-80 transition-opacity`}
-          title="Tap to update housekeeping"
-        >
-          <i className={`fas ${hk.icon} text-xs`}></i>{hk.label}
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-slate-100 pt-1.5">
+        <button onClick={() => onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean'])}
+          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${hk.bg} ${hk.text} hover:opacity-80`}
+          title="Tap to update housekeeping">
+          <i className={`fas ${hk.icon} text-[9px]`}></i>{hk.label}
         </button>
-        {vacant > 0 && (
-          <button onClick={onWalkIn}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
-            <i className="fas fa-person-walking text-xs"></i> Walk-in
-          </button>
-        )}
-        {allOccupied && (
-          <span className="text-xs text-red-500 font-semibold">Full</span>
-        )}
+        {vacant > 0
+          ? <button onClick={onWalkIn} className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-0.5">
+              <i className="fas fa-person-walking text-[9px]"></i> Walk-in
+            </button>
+          : <span className="text-[10px] text-red-500 font-semibold">Full</span>
+        }
       </div>
     </div>
   );
@@ -365,93 +337,64 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
   const guest  = guestName(info.booking);
 
   return (
-    <div
-      onClick={onClick}
+    <div onClick={onClick}
       className={`
         ${config.bg} ${config.border} ${config.text}
-        border-2 rounded-xl p-4 flex flex-col justify-between
-        min-h-[160px] shadow-md transition-all duration-300 cursor-pointer
-        hover:opacity-90 hover:scale-[1.02]
+        border-2 rounded-lg p-3 flex flex-col gap-1.5
+        shadow-sm cursor-pointer transition-all duration-200
+        hover:opacity-90 hover:scale-[1.015]
         ${info.status === 'occupied' && info.urgency === 'soon' ? 'animate-pulse' : ''}
       `}
     >
-      {/* Status badge */}
-      <div className="flex items-center justify-between mb-2">
-        <span className={`
-          flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase
-          px-2 py-1 rounded-full
-          ${info.status === 'pending' ? 'bg-yellow-500 text-gray-900' : 'bg-black bg-opacity-25 text-white'}
-        `}>
-          <i className={`fas ${config.icon} text-xs`}></i>
-          {config.label}
+      {/* Top row: status badge + ⚡ */}
+      <div className="flex items-center justify-between">
+        <span className={`flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full
+          ${info.status === 'pending' ? 'bg-yellow-500 text-gray-900' : 'bg-black/20 text-white'}`}>
+          <i className={`fas ${config.icon} text-[9px]`}></i>{config.label}
         </span>
         {info.status === 'occupied' && info.urgency === 'soon' && (
-          <span className="text-xs font-bold bg-white bg-opacity-30 px-2 py-0.5 rounded-full">⚡ Soon</span>
+          <span className="text-[10px] font-bold bg-white/30 px-1.5 py-0.5 rounded-full">⚡ Soon</span>
         )}
       </div>
 
-      {/* Room name */}
+      {/* Room name + guest */}
       <div>
-        <p className="text-base font-bold leading-tight">{room.name}</p>
-        {room.type && (
-          <p className={`text-xs mt-0.5 ${info.status === 'pending' ? 'text-gray-700' : 'opacity-80'}`}>
-            {room.type}
-          </p>
-        )}
+        <p className="text-sm font-bold leading-tight">{room.name}</p>
         {guest && (
-          <p className={`text-xs mt-1 font-semibold truncate ${info.status === 'pending' ? 'text-gray-800' : 'text-white opacity-90'}`}>
-            <i className="fas fa-user mr-1 opacity-70"></i>{guest}
+          <p className={`text-[11px] font-medium truncate mt-0.5 ${info.status === 'pending' ? 'text-gray-800' : 'opacity-85'}`}>
+            <i className="fas fa-user mr-1 opacity-60 text-[9px]"></i>{guest}
           </p>
         )}
       </div>
-
-      {/* Housekeeping badge — tap to cycle */}
-      <button
-        onClick={e => { e.stopPropagation(); onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean']); }}
-        className={`mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${hk.bg} ${hk.text} hover:opacity-80 transition-opacity`}
-        title="Click to update housekeeping status"
-      >
-        <i className={`fas ${hk.icon} text-xs`}></i>{hk.label}
-      </button>
 
       {/* Status detail */}
-      <div className="mt-2">
-        {info.status === 'vacant' && (
-          <p className="text-sm font-medium opacity-90">
-            <i className="fas fa-circle-check mr-1"></i>Ready for guests
-          </p>
-        )}
+      <div className="text-[11px] font-semibold opacity-90 leading-tight">
+        {info.status === 'vacant'   && <span><i className="fas fa-circle-check mr-1 text-[9px]"></i>Vacant</span>}
         {info.status === 'occupied' && (
-          <div>
-            <p className="text-sm font-semibold">
-              <i className="fas fa-clock mr-1 opacity-80"></i>Vacates at {fmtTime(info.vacatesAt)}
-            </p>
-            {info.remaining && (
-              <p className={`text-xs mt-0.5 font-bold ${info.urgency === 'soon' ? 'text-yellow-200' : 'opacity-75'}`}>
-                {info.remaining} remaining
-              </p>
-            )}
-          </div>
+          <span>
+            <i className="fas fa-clock mr-1 text-[9px]"></i>Out {fmtTime(info.vacatesAt)}
+            {info.remaining && <span className="ml-1 opacity-75">({info.remaining})</span>}
+          </span>
         )}
         {info.status === 'incoming' && (
-          <div>
-            <p className="text-sm font-semibold">
-              <i className="fas fa-arrow-right mr-1 opacity-80"></i>Arrives at {fmtTime(info.arrivesAt)}
-            </p>
-            {info.eta && <p className="text-xs mt-0.5 opacity-75 font-medium">in {info.eta}</p>}
-          </div>
+          <span>
+            <i className="fas fa-arrow-right mr-1 text-[9px]"></i>Arrives {fmtTime(info.arrivesAt)}
+            {info.eta && <span className="ml-1 opacity-75">(in {info.eta})</span>}
+          </span>
         )}
-        {info.status === 'pending' && (
-          <div>
-            <p className="text-sm font-semibold text-gray-800">
-              <i className="fas fa-exclamation-circle mr-1"></i>Awaiting confirmation
-            </p>
-            {info.booking && (
-              <p className="text-xs mt-0.5 text-gray-700">Scheduled {fmtTime(info.booking.checkIn)}</p>
-            )}
-          </div>
+        {info.status === 'pending'  && (
+          <span className="text-gray-800">
+            <i className="fas fa-exclamation-circle mr-1 text-[9px]"></i>Pending {info.booking ? fmtTime(info.booking.checkIn) : ''}
+          </span>
         )}
       </div>
+
+      {/* Housekeeping badge */}
+      <button onClick={e => { e.stopPropagation(); onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean']); }}
+        className={`self-start inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${hk.bg} ${hk.text} hover:opacity-80`}
+        title="Tap to cycle housekeeping">
+        <i className={`fas ${hk.icon} text-[9px]`}></i>{hk.label}
+      </button>
     </div>
   );
 }
@@ -642,7 +585,7 @@ export default function FDRooms() {
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                               <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
                             </p>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                               {items.map(({ room, dayInfo }) => dayInfo.multi ? (
                                 <MultiUnitCard key={`day-${room.id}`} room={room} info={dayInfo}
                                   onHousekeepingChange={handleHousekeeping}
@@ -682,7 +625,7 @@ export default function FDRooms() {
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                               <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
                             </p>
-                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                               {items.map(({ room, nightInfo }) => nightInfo.multi ? (
                                 <MultiUnitCard key={`night-${room.id}`} room={room} info={nightInfo}
                                   onHousekeepingChange={handleHousekeeping}
