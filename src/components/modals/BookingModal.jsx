@@ -71,7 +71,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       day_rate:            Number(r.day_rate        ?? DEFAULTS.day_rate),
       overnight_rate:      Number(r.overnight_rate  ?? DEFAULTS.overnight_rate),
       rate_24hr:           Number(r.rate_24hr       ?? DEFAULTS.rate_24hr),
-      reservation_fee_pct: DEFAULTS.reservationFee_pct,
+      reservation_fee_pct: DEFAULTS.reservation_fee_pct,
     });
   }, [rooms, roomType]);
 
@@ -213,6 +213,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     return () => clearTimeout(id);
   }, [timeLeft, paymentPopup]);
 
+  // Escape key to close (only when no confirmation overlay or payment popup)
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e) {
+      if (e.key === "Escape" && !confirmOpen && !paymentPopup) onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [open, confirmOpen, paymentPopup, onClose]);
+
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
@@ -276,7 +286,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       : pricing.day_rate;
   const discount           = promoResult?.discount_amount ?? 0;
   const discountedTotal    = Math.max(baseRate - discount, 0);
-  const reservationFee     = Math.round(discountedTotal * (pricing.reservationFee_pct / 100));
+  const reservationFee     = Math.round(discountedTotal * (pricing.reservation_fee_pct / 100));
   const amountDue          = paymentOption === "full" ? discountedTotal : reservationFee;
   const balanceDue         = discountedTotal - amountDue;
 
@@ -426,12 +436,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             Book Your Visit at Aplaya
             {guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close">✕</button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close"><i className="fas fa-times"></i></button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
-            {error}
+          <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
+            <i className="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
+            <span>{error}</span>
           </div>
         )}
 
@@ -460,6 +471,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       value={guestName}
                       onChange={e => setGuestName(e.target.value)}
                       placeholder="Your full name"
+                      autoComplete="name"
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -472,6 +484,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       value={guestEmail}
                       onChange={e => setGuestEmail(e.target.value)}
                       placeholder="your@email.com"
+                      autoComplete="email"
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -484,6 +497,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       value={guestPhone}
                       onChange={e => setGuestPhone(e.target.value)}
                       placeholder="+63 9xx xxx xxxx"
+                      autoComplete="tel"
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
@@ -654,7 +668,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
                 <p className="text-sm text-yellow-800">
                   <span className="font-medium">Cancellation Policy:</span> Cancellations or no-shows will result in the
-                  forfeiture of the {pricing.reservationFee_pct}% reservation fee ({formatPHP(reservationFee)}).
+                  forfeiture of the {pricing.reservation_fee_pct}% reservation fee ({formatPHP(reservationFee)}).
                 </p>
               </div>
 
@@ -761,7 +775,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   </>
                 )}
                 <div className="flex justify-between mb-1 text-sm text-gray-500 border-t border-blue-200 pt-2 mt-1">
-                  <span>Reservation fee ({pricing.reservationFee_pct}% — due online):</span>
+                  <span>Reservation fee ({pricing.reservation_fee_pct}% — due online):</span>
                   <span>{formatPHP(reservationFee)}</span>
                 </div>
                 <div className="flex justify-between mt-1 text-sm text-gray-500">
@@ -787,7 +801,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
 
               <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-md px-3 py-2">
-                <span className="text-blue-500 mt-0.5">🔒</span>
+                <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0"></i>
                 <span>
                   A secure <span className="font-medium">PayMongo</span> checkout window will open for you to pay{" "}
                   <span className="font-medium">{formatPHP(amountDue)}</span> via{" "}
@@ -797,13 +811,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
             </div>
           </div>
-
-          {error && (
-            <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
-              <i className="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
-              <span>{error}</span>
-            </div>
-          )}
 
           {paymentPopup ? (
             paymentPopup.redirected ? (
@@ -1041,7 +1048,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
                 {/* Payment note */}
                 <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-                  <span className="text-blue-500 mt-0.5">🔒</span>
+                  <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0"></i>
                   <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.</span>
                 </div>
               </div>

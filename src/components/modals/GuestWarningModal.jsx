@@ -57,7 +57,7 @@ export default function GuestWarningModal({ open, onClose, onContinueAsGuest, on
             onClick={onContinueAsGuest}
             className="w-full py-2.5 bg-white hover:bg-gray-50 text-gray-700 font-medium rounded-lg border border-gray-300 transition-colors"
           >
-            <i className="fas fa-user-secret mr-2 text-gray-400"></i>Continue as Guest
+            <i className="fas fa-user mr-2 text-gray-400"></i>Continue as Guest
           </button>
           <button
             onClick={onClose}

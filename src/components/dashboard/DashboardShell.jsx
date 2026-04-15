@@ -1,9 +1,20 @@
 // src/components/dashboard/DashboardShell.jsx
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../../lib/notificationApi.js";
 import { getMessages } from "../../lib/messageApi.js";
+import { Helmet } from "react-helmet-async";
+
+function timeAgo(dateStr) {
+  if (!dateStr) return "";
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  return new Date(dateStr).toLocaleDateString();
+}
 
 function NavItem({ to, badge, children }) {
   return (
@@ -77,7 +88,7 @@ function NotificationBell() {
         className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none"
         aria-label="Notifications"
       >
-        🔔
+        <i className="fas fa-bell text-lg"></i>
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
             {unread > 9 ? "9+" : unread}
@@ -112,17 +123,20 @@ function NotificationBell() {
                   ].join(" ")}
                   onClick={() => !n.is_read && handleMarkOne(n.id)}
                 >
-                  <span className="mt-0.5 text-lg">
-                    {n.type === "booking_confirmed" ? "📋" :
-                     n.type === "booking_cancelled" ? "❌" :
-                     n.type === "message_received"  ? "✉️" : "🔔"}
+                  <span className="mt-0.5">
+                    <i className={`fas ${
+                      n.type === "booking_confirmed" ? "fa-calendar-check text-green-500" :
+                      n.type === "booking_cancelled" ? "fa-calendar-xmark text-red-500" :
+                      n.type === "message_received"  ? "fa-envelope text-blue-500" :
+                      "fa-bell text-gray-400"
+                    }`}></i>
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${!n.is_read ? "font-semibold text-gray-900" : "text-gray-700"}`}>
                       {n.title}
                     </p>
                     <p className="text-xs text-gray-500 truncate">{n.body}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{n.created_at}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
                   </div>
                   {!n.is_read && (
                     <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" />
@@ -139,9 +153,9 @@ function NotificationBell() {
 
 // ─── Shell layout ─────────────────────────────────────────────────────────────
 export default function DashboardShell() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user } = useAuth();
   const [msgUnread, setMsgUnread] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Poll message unread count every 15s for sidebar badge
   useEffect(() => {
@@ -158,60 +172,73 @@ export default function DashboardShell() {
     return () => clearInterval(id);
   }, []);
 
-  function handleLogout() {
-    logout?.();
-    navigate("/resort");
-  }
+  const initials = (user?.name || "G").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="flex items-center">
-            <span className="text-xl font-bold text-blue-600">Aplaya Beach Resort</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <NotificationBell />
-            <span className="text-gray-700">
-              Welcome, <span className="font-semibold">{user?.name || user?.email || "Guest"}</span>!
-            </span>
-            <button
-              onClick={handleLogout}
-              className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="pt-16">
+      <Helmet><title>Dashboard — Aplaya Beach Resort</title></Helmet>
+      {/* Mobile sidebar overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
 
       {/* Layout */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
         {/* Sidebar */}
-        <aside className="bg-white shadow-md rounded-xl p-4 h-fit">
+        <aside
+          className={`bg-white shadow-md rounded-xl p-4 h-fit transition-all duration-200 ${
+            sidebarOpen
+              ? "fixed inset-y-0 left-0 z-40 w-64 rounded-none pt-20 shadow-2xl"
+              : "hidden md:block"
+          }`}
+        >
+          {/* Close button (mobile only) */}
+          {sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="absolute top-4 right-4 md:hidden text-gray-400 hover:text-gray-600"
+              aria-label="Close sidebar"
+            >
+              <i className="fas fa-times text-lg"></i>
+            </button>
+          )}
+
+          {/* User info */}
+          <div className="px-4 pb-4 mb-3 border-b border-gray-100">
+            <div className="flex items-center justify-between mb-2">
+              <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                {initials}
+              </div>
+              <NotificationBell />
+            </div>
+            <p className="text-sm font-semibold text-gray-900 break-words">{user?.name || "Guest"}</p>
+            <p className="text-xs text-gray-400 break-all">{user?.email || ""}</p>
+          </div>
+
           <nav>
-            <ul className="space-y-2">
-              <li><NavItem to="/dashboard">🏠 Dashboard</NavItem></li>
-              <li><NavItem to="/dashboard/bookings">📋 My Bookings</NavItem></li>
-              <li><NavItem to="/dashboard/profile">👤 Edit Profile</NavItem></li>
-              <li><NavItem to="/dashboard/messages" badge={msgUnread}>✉️ Messages</NavItem></li>
+            <ul className="space-y-1" onClick={() => setSidebarOpen(false)}>
+              <li><NavItem to="/dashboard"><i className="fas fa-home w-5 text-center"></i> Dashboard</NavItem></li>
+              <li><NavItem to="/dashboard/bookings"><i className="fas fa-calendar-alt w-5 text-center"></i> My Bookings</NavItem></li>
+              <li><NavItem to="/dashboard/profile"><i className="fas fa-user-edit w-5 text-center"></i> Edit Profile</NavItem></li>
+              <li><NavItem to="/dashboard/messages" badge={msgUnread}><i className="fas fa-envelope w-5 text-center"></i> Messages</NavItem></li>
             </ul>
           </nav>
         </aside>
+
+        {/* Mobile sidebar toggle */}
+        <button
+          onClick={() => setSidebarOpen((s) => !s)}
+          className="md:hidden fixed bottom-4 left-4 z-20 h-12 w-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition"
+          aria-label="Toggle sidebar"
+        >
+          <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"}`}></i>
+        </button>
 
         {/* Main content */}
         <main className="min-h-[60vh]">
           <Outlet />
         </main>
       </div>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-4 mt-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm">
-          © 2025 Aplaya Beach Resort. All rights reserved.
-        </div>
-      </footer>
     </div>
   );
 }

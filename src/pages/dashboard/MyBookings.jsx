@@ -1,5 +1,6 @@
 // src/pages/dashboard/MyBookings.jsx
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { getBookings, cancelBooking, downloadReceipt } from "../../lib/bookingApi.js";
 import { submitReview } from "../../lib/reviewApi.js";
 import { api } from "../../lib/api.js";
@@ -21,6 +22,36 @@ function fmtDateTime(str) {
     minute: "2-digit",
     hour12: true,
   });
+}
+
+// ─── Special requests formatter ───────────────────────────────────────────────
+function renderSpecialRequests(text) {
+  if (!text) return null;
+  const parts = text.split(/,\s*(?=(?:Walk-in|Phone|Type|Email|Name)\s*:)/i);
+  const parsed = parts.length > 1
+    ? parts.map(p => { const [k, ...v] = p.split(':'); return [k.trim(), v.join(':').trim()]; })
+    : null;
+  const icons = { 'walk-in': 'fa-user', phone: 'fa-phone', email: 'fa-envelope', type: 'fa-clock' };
+  return (
+    <div className="pt-3 border-t">
+      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-2">
+        {parsed ? "Walk-in Details" : "Special Requests"}
+      </p>
+      {parsed ? (
+        <div className="space-y-2 bg-gray-50 rounded-lg p-3">
+          {parsed.map(([key, val]) => (
+            <div key={key} className="flex items-start gap-2">
+              <i className={`fas ${icons[key.toLowerCase()] || 'fa-info-circle'} text-gray-400 w-4 text-center text-xs mt-0.5`}></i>
+              <span className="text-xs text-gray-500 min-w-[56px] shrink-0">{key}</span>
+              <span className="text-sm text-gray-700 font-medium break-all">{val}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 whitespace-pre-wrap">{text}</p>
+      )}
+    </div>
+  );
 }
 
 // ─── Expired pending detection ────────────────────────────────────────────────
@@ -64,7 +95,7 @@ function StarRating({ value, onChange }) {
           onClick={() => onChange(star)}
           className="text-2xl leading-none focus:outline-none"
         >
-          <span className={(hovered || value) >= star ? "text-yellow-400" : "text-gray-300"}>★</span>
+          <i className={`fas fa-star ${(hovered || value) >= star ? "text-yellow-400" : "text-gray-300"}`}></i>
         </button>
       ))}
     </div>
@@ -76,6 +107,12 @@ function CancelModal({ booking, reservationFee, onClose, onConfirmed }) {
   useLockBodyScroll(true);
   const [cancelling, setCancelling] = useState(false);
   const [error, setError]           = useState("");
+
+  useEffect(() => {
+    function handleKey(e) { if (e.key === "Escape") onClose?.(); }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
 
   async function handleConfirm() {
     setError("");
@@ -95,16 +132,13 @@ function CancelModal({ booking, reservationFee, onClose, onConfirmed }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="absolute inset-0 bg-gray-500/75" />
-        <div className="relative bg-white w-full max-w-sm rounded-lg shadow-xl">
+        <div className="absolute inset-0 bg-gray-500/75" onClick={onClose} />
+        <div className="relative bg-white w-full max-w-sm rounded-lg shadow-xl animate-hero-fade-in opacity-0">
           <div className="p-5 flex items-center justify-between border-b">
             <h3 className="text-lg font-bold text-gray-900">Cancel Booking</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700"><i className="fas fa-times"></i></button>
           </div>
           <div className="p-5 space-y-4">
             <p className="text-sm text-gray-700">
@@ -156,6 +190,15 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
   const [error, setError]     = useState("");
   const [success, setSuccess] = useState(false);
 
+  const hasDraft = rating > 0 || !!comment.trim();
+  function guardedClose() { if (hasDraft && !confirm("Discard your review?")) return; onClose?.(); }
+
+  useEffect(() => {
+    function handleKey(e) { if (e.key === "Escape") guardedClose(); }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, hasDraft]);
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!rating) { setError("Please select a star rating."); return; }
@@ -182,13 +225,13 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
       <div className="fixed inset-0 z-50 overflow-y-auto">
         <div className="min-h-screen flex items-center justify-center px-4 py-10">
           <div className="absolute inset-0 bg-gray-500/75" />
-          <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl p-8 text-center">
+          <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl p-8 text-center animate-hero-fade-in opacity-0">
             <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
               <i className="fas fa-check text-green-600 text-2xl"></i>
             </div>
             <h3 className="text-xl font-bold text-gray-900 mb-2">Review Submitted!</h3>
             <p className="text-gray-500 text-sm mb-1">
-              Thank you for your {"★".repeat(rating)} rating on <span className="font-medium">{booking.roomType}</span>.
+              Thank you for your {rating}<i className="fas fa-star text-yellow-400 mx-0.5"></i> rating on <span className="font-medium">{booking.roomType}</span>.
             </p>
             <p className="text-gray-400 text-xs">Your review is pending approval and will appear shortly.</p>
           </div>
@@ -198,16 +241,13 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 overflow-y-auto"
-      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
-    >
+    <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="absolute inset-0 bg-gray-500/75" />
-        <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl">
+        <div className="absolute inset-0 bg-gray-500/75" onClick={guardedClose} />
+        <div className="relative bg-white w-full max-w-md rounded-lg shadow-xl animate-hero-fade-in opacity-0">
           <div className="p-5 flex items-center justify-between border-b">
             <h3 className="text-lg font-bold text-gray-900">Write a Review</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+            <button onClick={guardedClose} className="text-gray-500 hover:text-gray-700"><i className="fas fa-times"></i></button>
           </div>
           <form onSubmit={handleSubmit} className="p-5 space-y-4">
             <p className="text-sm text-gray-600">
@@ -246,7 +286,7 @@ function ReviewModal({ booking, onClose, onSubmitted }) {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={guardedClose}
                 className="px-4 py-2 rounded-md bg-gray-100 hover:bg-gray-200 text-sm"
               >
                 Cancel
@@ -304,6 +344,14 @@ export default function MyBookings() {
     return () => { active = false; clearInterval(id); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Escape key to close detail drawer
+  useEffect(() => {
+    if (!selected) return;
+    function handleKey(e) { if (e.key === "Escape") setSelected(null); }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [selected]);
+
   async function handleCheckIn(b) {
     setCheckingIn(true);
     try {
@@ -344,7 +392,7 @@ export default function MyBookings() {
   function handleReviewSubmitted(bookingId, review) {
     setItems((prev) =>
       prev.map((b) =>
-        b.bookingId === bookingId ? { ...b, has_review: true, review } : b
+        b.bookingId === bookingId ? { ...b, hasReview: true, review } : b
       )
     );
     showToast("Review submitted! Thank you.", "success");
@@ -352,8 +400,29 @@ export default function MyBookings() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-md p-6">
-        <p className="text-gray-500">Loading bookings...</p>
+      <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
+        <div className="animate-pulse space-y-3">
+          <div className="h-7 bg-gray-200 rounded w-40"></div>
+          <div className="h-4 bg-gray-100 rounded w-60"></div>
+        </div>
+        <div className="border rounded-lg overflow-hidden">
+          <div className="bg-gray-50 px-6 py-3 flex gap-6">
+            {[80, 100, 120, 60, 70, 70, 80].map((w, i) => (
+              <div key={i} className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: w }}></div>
+            ))}
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="px-6 py-4 flex gap-6 border-t animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+              <div className="h-4 bg-gray-200 rounded w-24"></div>
+              <div className="h-4 bg-gray-100 rounded w-32"></div>
+              <div className="h-4 bg-gray-100 rounded w-10"></div>
+              <div className="h-4 bg-gray-200 rounded w-16"></div>
+              <div className="h-5 bg-gray-200 rounded-full w-16"></div>
+              <div className="h-4 bg-gray-100 rounded w-14"></div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -426,7 +495,7 @@ export default function MyBookings() {
                         className="text-xs bg-yellow-100 text-yellow-700 px-2 py-1 rounded hover:bg-yellow-200"
                         onClick={() => setReviewing(b)}
                       >
-                        ★ Review
+                        <i className="fas fa-star mr-1"></i>Review
                       </button>
                     )}
 
@@ -436,12 +505,12 @@ export default function MyBookings() {
                         className="text-xs text-green-700 bg-green-100 px-2 py-1 rounded"
                         title={b.review?.comment || ""}
                       >
-                        {"★".repeat(b.review?.rating || 0)} Reviewed
+                        <i className="fas fa-star mr-1"></i>{b.review?.rating}/5 Reviewed
                       </span>
                     )}
 
-                    {/* Download receipt — completed bookings only */}
-                    {b.status === "Completed" && (
+                    {/* Download receipt */}
+                    {["Confirmed", "Checked In", "Completed"].includes(b.status) && (
                       <button
                         className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded hover:bg-sky-200 disabled:opacity-50"
                         onClick={() => handleDownloadReceipt(b)}
@@ -459,8 +528,12 @@ export default function MyBookings() {
 
             {items.length === 0 && !error && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                  No bookings found.
+                <td colSpan={7} className="px-6 py-12 text-center">
+                  <i className="fas fa-calendar-times text-gray-200 text-4xl mb-3 block"></i>
+                  <p className="text-gray-400 text-sm">No bookings found.</p>
+                  <Link to="/dashboard?book=1" className="mt-2 inline-block text-xs text-blue-600 hover:underline font-medium">
+                    <i className="fas fa-plus mr-1"></i>Book a stay
+                  </Link>
                 </td>
               </tr>
             )}
@@ -489,10 +562,11 @@ export default function MyBookings() {
 
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
-      {/* Booking detail drawer */}
+      {/* Booking detail drawer — escape key handled via onKeyDown on the overlay */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setSelected(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md animate-hero-fade-in opacity-0">
             <div className="flex items-center justify-between px-6 py-4 border-b">
               <h3 className="text-lg font-semibold text-gray-900">Booking Details</h3>
               <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600" aria-label="Close">
@@ -522,14 +596,9 @@ export default function MyBookings() {
                   <span className="font-medium text-green-600">{selected.promoCode} (−₱{Number(selected.discount).toLocaleString()})</span>
                 </div>
               )}
-              {selected.specialRequests && (
-                <div className="pt-2 border-t">
-                  <p className="text-gray-500 mb-1">Special Requests</p>
-                  <p className="text-gray-700">{selected.specialRequests}</p>
-                </div>
-              )}
+              {renderSpecialRequests(selected.specialRequests)}
             </div>
-            <div className="px-6 pb-6 flex gap-2 justify-end">
+            <div className="px-6 pb-6 flex flex-wrap gap-2 justify-end">
               {selected.status === 'Confirmed' && selected.fullyPaid && (
                 <button onClick={() => handleCheckIn(selected)} disabled={checkingIn}
                   className="px-4 py-2 bg-purple-600 text-white rounded-xl text-sm hover:bg-purple-700 disabled:opacity-60">
@@ -545,14 +614,19 @@ export default function MyBookings() {
               {selected.status === "Completed" && !selected.hasReview && (
                 <button onClick={() => { setSelected(null); setReviewing(selected); }}
                   className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-xl text-sm hover:bg-yellow-200">
-                  ★ Leave Review
+                  <i className="fas fa-star mr-1"></i>Leave Review
                 </button>
               )}
-              {selected.status === "Completed" && (
-                <button onClick={() => { setSelected(null); handleDownloadReceipt(selected); }}
-                  className="px-4 py-2 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200">
-                  <i className="fas fa-file-pdf mr-1"></i>Receipt
-                </button>
+              {["Confirmed", "Checked In", "Completed"].includes(selected.status) && (
+                <>
+                  <button onClick={() => handleDownloadReceipt(selected)}
+                    disabled={downloadingId === selected.bookingId}
+                    className="px-4 py-2 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200 disabled:opacity-50">
+                    {downloadingId === selected.bookingId
+                      ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading…</>
+                      : <><i className="fas fa-file-pdf mr-1"></i>Receipt</>}
+                  </button>
+                </>
               )}
               <button onClick={() => setSelected(null)}
                 className="px-4 py-2 border rounded-xl text-sm text-gray-600 hover:bg-gray-50">

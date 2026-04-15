@@ -79,9 +79,12 @@ export default function LightboxModal({
           )}
         </div>
 
-        {/* Caption */}
-        <div className="text-white p-4 text-center text-lg bg-black/70">
-          {item?.caption || ""}
+        {/* Caption + counter */}
+        <div className="text-white p-4 text-center bg-black/70">
+          {item?.caption && <p className="text-lg">{item.caption}</p>}
+          <p className="text-white/50 text-xs mt-1">
+            {index + 1} of {items.length} — Use arrow keys to navigate
+          </p>
         </div>
       </div>
     </Modal>

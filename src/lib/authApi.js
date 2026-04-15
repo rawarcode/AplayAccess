@@ -25,6 +25,12 @@ export async function logoutRequest() {
   return res.data;
 }
 
+// POST /api/auth/google — Google Sign-In
+export async function googleLoginRequest(credential) {
+  const res = await api.post("/api/auth/google", { credential });
+  return res.data;
+}
+
 // POST /api/forgot-password — sends reset link email
 export async function forgotPasswordRequest(email) {
   const res = await api.post("/api/forgot-password", { email });

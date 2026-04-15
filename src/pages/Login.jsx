@@ -9,12 +9,12 @@ export default function Login() {
   const navigate  = useNavigate();
   const location  = useLocation();
 
-  const [email, setEmail]       = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError]           = useState("");
+  const [loading, setLoading]       = useState(false);
 
-  // Support ?next=/dashboard/bookings redirect after login
   const next = new URLSearchParams(location.search).get("next") || "/dashboard";
 
   async function submit(e) {
@@ -36,76 +36,138 @@ export default function Login() {
   }
 
   return (
-    <div className="pt-16 min-h-screen bg-gray-50 flex flex-col">
-      <Helmet><title>Log In — Aplaya Beach Resort</title></Helmet>
-      <div className="flex-1 flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg p-8">
+    <div
+      className="min-h-screen flex items-center justify-center p-6 relative"
+      style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+    >
+      <Helmet><title>Staff Login — Aplaya Beach Resort</title></Helmet>
 
-          {/* Logo */}
-          <div className="flex justify-center items-center gap-2 mb-6">
-            <span className="text-3xl">🏖️</span>
-            <span className="text-2xl font-bold text-blue-600">Aplaya Beach Resort</span>
+      {/* Background accents */}
+      <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
+        <i className="fas fa-umbrella-beach absolute text-7xl bottom-5 right-8 text-[#b0d0dd] rotate-6"></i>
+        <i className="fas fa-circle absolute text-5xl left-5 top-8 text-[#cbe0e9] -rotate-12"></i>
+      </div>
+
+      {/* Card */}
+      <div
+        className="relative z-20 bg-white rounded-[48px] shadow-2xl max-w-4xl w-full flex flex-wrap overflow-hidden border border-[#e2edf2] animate-hero-fade-in [animation-delay:0.1s] opacity-0"
+        style={{ boxShadow: "0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)" }}
+      >
+        {/* Left — Branding */}
+        <div className="flex-1 min-w-[280px] bg-[#f9fcfe] p-12 flex flex-col justify-between border-r border-[#e2edf2]">
+          <div>
+            <div className="flex items-center gap-2">
+              <i className="fas fa-umbrella-beach text-4xl text-[#1e3a8a]"></i>
+              <span className="text-3xl font-light text-[#1e3a8a] tracking-tight">AplayAccess</span>
+            </div>
+            <div className="mt-10 mb-4">
+              <h2 className="font-light text-3xl text-[#1e3a8a] leading-tight">
+                welcome back,<br />team
+              </h2>
+              <p className="text-[#4a6f8c] font-light mt-3">
+                <i className="fas fa-shield-halved text-[#5f9db2] mr-2"></i>
+                staff portal — sign in to access your dashboard
+              </p>
+            </div>
+
+            {/* Features */}
+            <div className="mt-6 space-y-2 text-sm text-[#4a6f8c]">
+              <div className="flex items-center gap-2">
+                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
+                <span>Manage bookings & check-ins</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
+                <span>Monitor resort operations</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
+                <span>View reports & analytics</span>
+              </div>
+            </div>
           </div>
 
-          <h2 className="text-center text-2xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-          <p className="text-center text-sm text-gray-500 mb-6">Sign in to manage your bookings</p>
+          <div className="text-[#6b8cae] font-light text-sm border-t border-dashed border-[#cde3ea] pt-6">
+            <i className="fas fa-map-pin text-[#5f9db2] mr-2"></i>
+            Aplaya Beach Resort · Cavite
+          </div>
+        </div>
+
+        {/* Right — Login form */}
+        <div className="flex-1 min-w-[340px] bg-white p-12">
+          <div className="flex items-center gap-2 mb-10">
+            <i className="fas fa-lock-open text-2xl text-[#1e3a8a] bg-[#e1f1f7] p-3 rounded-full"></i>
+            <h2 className="font-light text-3xl text-[#1e3a8a]">Sign In</h2>
+          </div>
 
           {error && (
-            <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
+              <i className="fas fa-exclamation-circle mr-2"></i>
               {error}
             </div>
           )}
 
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <form onSubmit={submit}>
+            <div className="relative mb-6">
+              <i className="fas fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
               <input
                 type="email"
                 autoComplete="email"
-                required
+                placeholder="email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                className="w-full py-4 pl-14 pr-6 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
               />
             </div>
 
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-sm font-medium text-gray-700">Password</label>
-                <Link
-                  to="/forgot-password"
-                  className="text-xs text-blue-600 hover:underline"
-                >
-                  Forgot password?
-                </Link>
-              </div>
+            <div className="relative mb-3">
+              <i className="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
-                required
+                placeholder="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+                className="w-full py-4 pl-14 pr-14 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-[#5f9db2] hover:text-[#1e3a8a] transition"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+              </button>
+            </div>
+
+            <div className="flex justify-end mb-6">
+              <Link to="/forgot-password" className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                Forgot password?
+              </Link>
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md transition"
+              className="w-full py-4 bg-[#1e3a8a] text-white rounded-[60px] font-medium text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:bg-[#152c6e] hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
+              style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
             >
-              {loading ? "Signing in..." : "Sign In"}
+              <i className="fas fa-arrow-right-to-bracket"></i>
+              {loading ? "signing in..." : "log in"}
             </button>
           </form>
 
-          <p className="text-center mt-6 text-sm text-gray-600">
-            Don&apos;t have an account?{" "}
-            <Link to="/signup" className="font-medium text-blue-600 hover:underline">
-              Sign up here
+          <div className="mt-6 text-center">
+            <Link
+              to="/resort"
+              className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] transition"
+            >
+              <i className="fas fa-arrow-left mr-1"></i>
+              Back to resort
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>

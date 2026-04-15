@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
@@ -16,10 +16,12 @@ import { amenities as amenitiesFallback } from "../data/amenities.js";
 import { gallery as galleryFallback } from "../data/gallery.js";
 
 import LoginModal from "../components/modals/LoginModal.jsx";
+import SignupModal from "../components/modals/SignupModal.jsx";
 import BookingModal from "../components/modals/BookingModal.jsx";
 import GuestWarningModal from "../components/modals/GuestWarningModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import AlertModal from "../components/modals/AlertModal.jsx";
+import Toast, { useToast } from "../components/ui/Toast.jsx";
 
 // Fallback image if DB has no images yet
 const FALLBACK_ROOM_IMG =
@@ -52,9 +54,10 @@ function amenityIcon(name = "") {
 }
 
 function buildRoomCard(room) {
-  const name     = room?.name ?? "Room";
-  const dayRate  = Number(room?.day_rate  ?? 0);
+  const name      = room?.name ?? "Room";
+  const dayRate   = Number(room?.day_rate  ?? 0);
   const nightRate = Number(room?.overnight_rate ?? 0);
+  const rate24hr  = Number(room?.rate_24hr ?? 0);
 
   // Find matching local room card by name (to reuse nicer UI fields)
   const local = roomsFallback.find((r) => r?.name === name);
@@ -65,7 +68,60 @@ function buildRoomCard(room) {
 
   const img = local?.img ?? FALLBACK_ROOM_IMG;
 
-  return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, img, desc };
+  return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, rate_24hr: rate24hr, img, desc };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Scroll-triggered reveal animation                                 */
+/* ------------------------------------------------------------------ */
+function useReveal() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          el.classList.add("reveal-visible");
+          io.unobserve(el);
+        }
+      },
+      { threshold: 0.15 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Floating hero particles                                           */
+/* ------------------------------------------------------------------ */
+function HeroParticles() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
+      <div className="absolute w-2 h-2 bg-white/20 rounded-full animate-float-slow" style={{ top: "20%", left: "10%" }} />
+      <div className="absolute w-3 h-3 bg-white/15 rounded-full animate-float-slow" style={{ top: "60%", left: "80%", animationDelay: "2s" }} />
+      <div className="absolute w-1.5 h-1.5 bg-white/25 rounded-full animate-float-slow" style={{ top: "80%", left: "25%", animationDelay: "4s" }} />
+      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "30%", left: "55%", animationDelay: "1s" }} />
+      <div className="absolute w-1.5 h-1.5 bg-white/20 rounded-full animate-float-fast" style={{ top: "70%", left: "40%", animationDelay: "3s" }} />
+      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "15%", left: "70%", animationDelay: "5s" }} />
+      <div className="absolute top-0 left-[-50%] w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Wavy SVG divider                                                  */
+/* ------------------------------------------------------------------ */
+function WaveDivider({ flip = false, color = "#ffffff" }) {
+  return (
+    <div className={`w-full overflow-hidden leading-none ${flip ? "rotate-180" : ""}`} style={{ marginTop: "-1px" }}>
+      <svg viewBox="0 0 1440 100" preserveAspectRatio="none" className="w-full h-16 md:h-24">
+        <path d="M0,40 C360,100 1080,0 1440,60 L1440,100 L0,100 Z" fill={color} />
+      </svg>
+    </div>
+  );
 }
 
 const DEFAULT_PC = {
@@ -81,12 +137,14 @@ export default function Resort() {
   const { user, login } = useAuth();
   const isLoggedIn = !!user;
   const siteContent = useContent();
+  const [toast, showToast, clearToast, toastType] = useToast();
 
   const location = useLocation();
   const navigate = useNavigate();
 
   const [bookingOpen, setBookingOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [signupOpen, setSignupOpen] = useState(false);
   const [guestWarningOpen, setGuestWarningOpen] = useState(false);
   const [guestMode, setGuestMode] = useState(false); // true = booking without account
   const [successOpen, setSuccessOpen] = useState(false);
@@ -109,6 +167,12 @@ export default function Resort() {
 
   // Newsletter inline feedback (no modal needed)
   const [newsletter, setNewsletter] = useState({ email: "", msg: "", type: "", submitting: false });
+
+  // Gallery lightbox
+  const [lightboxIdx, setLightboxIdx] = useState(null);
+
+  // Contact form validation
+  const [contactErrors, setContactErrors] = useState({});
 
   // Page content — derived synchronously so there is never a painted frame
   // showing hardcoded defaults when the ContentContext cache is already populated.
@@ -203,6 +267,7 @@ export default function Resort() {
   function handleLoginSuccess(u) {
     login(u);
     setLoginOpen(false);
+    showToast(`Welcome back, ${u?.name || ""}!`, "success");
 
     const params = new URLSearchParams(location.search);
     const next = params.get("next");
@@ -303,29 +368,72 @@ export default function Resort() {
       .catch(() => setAnnouncements([]));
   }, []);
 
+  // #6 — Escape key to close announcement modal + lightbox
+  useEffect(() => {
+    function onKey(e) {
+      if (e.key === "Escape") {
+        if (lightboxIdx !== null) setLightboxIdx(null);
+        else if (announcementModal) setAnnouncementModal(null);
+      }
+      // Lightbox arrow navigation
+      if (lightboxIdx !== null && galleryDisplay?.length) {
+        if (e.key === "ArrowRight") setLightboxIdx((i) => (i + 1) % galleryDisplay.length);
+        if (e.key === "ArrowLeft")  setLightboxIdx((i) => (i - 1 + galleryDisplay.length) % galleryDisplay.length);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [lightboxIdx, announcementModal, galleryDisplay]);
+
+  // Testimonials auto-scroll carousel
+  const scrollRef = useRef(null);
+  const [carouselPaused, setCarouselPaused] = useState(false);
+  useEffect(() => {
+    if (carouselPaused || !scrollRef.current || testimonialsDisplay.length <= 3) return;
+    const iv = setInterval(() => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 10;
+      el.scrollBy({ left: atEnd ? -el.scrollWidth : 320, behavior: "smooth" });
+    }, 4000);
+    return () => clearInterval(iv);
+  }, [carouselPaused, testimonialsDisplay.length]);
+
+  // Scroll reveal refs
+  const aboutRef     = useReveal();
+  const roomsRef     = useReveal();
+  const amenitiesRef = useReveal();
+  const reviewsRef   = useReveal();
+  const galleryRef   = useReveal();
+  const contactRef   = useReveal();
+
+  // #5 — Contact form validation
+  const validateContact = useCallback(() => {
+    const errs = {};
+    if (!contactForm.name.trim())    errs.name    = "Name is required.";
+    if (!contactForm.email.trim())   errs.email   = "Email is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactForm.email)) errs.email = "Enter a valid email.";
+    if (!contactForm.subject.trim()) errs.subject = "Subject is required.";
+    if (!contactForm.message.trim()) errs.message = "Message is required.";
+    setContactErrors(errs);
+    return Object.keys(errs).length === 0;
+  }, [contactForm]);
+
   async function submitContact(e) {
     e.preventDefault();
+    if (!validateContact()) return;
     setContactSubmitting(true);
     try {
       await api.post("/api/contact", contactForm);
-      setContactAlert({
-        open: true,
-        type: "success",
-        title: "Message Sent!",
-        message: "Thank you for reaching out! We'll get back to you within 24 hours.",
-      });
+      showToast("Message sent! We'll get back to you within 24 hours.", "success");
       setContactForm({ name: "", email: "", subject: "", message: "" });
+      setContactErrors({});
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
         "Failed to send message. Please try again.";
-      setContactAlert({
-        open: true,
-        type: "error",
-        title: "Error",
-        message: msg,
-      });
+      showToast(msg, "error");
     } finally {
       setContactSubmitting(false);
     }
@@ -349,13 +457,15 @@ export default function Resort() {
     setNewsletter((p) => ({ ...p, submitting: true, msg: "", type: "" }));
     try {
       const res = await api.post("/api/newsletter", { email });
-      setNewsletter({ email: "", msg: `🎉 ${res.data.message}`, type: "success", submitting: false });
+      showToast(res.data.message || "Subscribed successfully!", "success");
+      setNewsletter({ email: "", msg: "", type: "", submitting: false });
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
         Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
         "Something went wrong. Please try again.";
-      setNewsletter((p) => ({ ...p, msg, type: "error", submitting: false }));
+      showToast(msg, "error");
+      setNewsletter((p) => ({ ...p, msg: "", type: "", submitting: false }));
     }
   }
 
@@ -388,14 +498,18 @@ export default function Resort() {
               <div className="absolute inset-0 bg-black/50" />
             </>
           )}
-          <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6">{pc.hero.title}</h1>
-            <p className="text-xl md:text-2xl mb-8">{pc.hero.subtitle}</p>
 
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+          {/* Floating particles */}
+          <HeroParticles />
+
+          <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-hero-fade-in [animation-delay:0.2s] opacity-0">{pc.hero.title}</h1>
+            <p className="text-xl md:text-2xl mb-8 animate-hero-fade-in [animation-delay:0.6s] opacity-0">{pc.hero.subtitle}</p>
+
+            <div className="flex flex-col sm:flex-row justify-center gap-4 animate-hero-fade-in [animation-delay:1s] opacity-0">
               <button
                 onClick={() => requestBooking("")}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md text-lg font-medium"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md text-lg font-medium transition shadow-lg hover:shadow-xl"
               >
                 {pc.hero.ctaText}
               </button>
@@ -403,14 +517,14 @@ export default function Resort() {
               {isLoggedIn ? (
                 <Link
                   to="/dashboard"
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm transition"
                 >
                   My Dashboard →
                 </Link>
               ) : (
                 <button
                   onClick={() => setLoginOpen(true)}
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm transition"
                 >
                   Login
                 </button>
@@ -418,12 +532,15 @@ export default function Resort() {
             </div>
 
             {isLoggedIn ? (
-              <p className="mt-4 text-sm text-white/80">
+              <p className="mt-4 text-sm text-white/80 animate-hero-fade-in [animation-delay:1.3s] opacity-0">
                 Welcome back, <span className="font-semibold">{user?.name || user?.email || "Guest"}</span>!
               </p>
             ) : null}
           </div>
         </section>
+
+        {/* Wave divider */}
+        <WaveDivider color={announcements?.length ? "#f0f9ff" : "#ffffff"} />
 
         {/* WHAT'S NEW — Announcements preview (hidden if no announcements or still loading) */}
         {announcements !== null && announcements.length > 0 && (
@@ -553,6 +670,7 @@ export default function Resort() {
                   <button
                     onClick={() => setAnnouncementModal(null)}
                     className="text-gray-400 hover:text-gray-700 transition flex-shrink-0"
+                    aria-label="Close"
                   >
                     <i className="fas fa-times text-xl"></i>
                   </button>
@@ -577,7 +695,7 @@ export default function Resort() {
                style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
           <div className="pointer-events-none absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-10"
                style={{ background: "radial-gradient(circle, #fbbf24, transparent 70%)" }} />
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div ref={aboutRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="lg:flex lg:items-center lg:justify-between gap-16">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
                 <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">{pc.about.title}</h2>
@@ -621,7 +739,7 @@ export default function Resort() {
 
         {/* ROOMS */}
         <section id="rooms" className="py-24 bg-sky-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div ref={roomsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="text-4xl mb-3 block">🛏️</span>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">{pc.rooms.sectionTitle}</h2>
@@ -633,8 +751,11 @@ export default function Resort() {
               {roomCards.slice(0, 3).map((r) => (
                 <div
                   key={r.id ?? r.name}
-                  className="group bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+                  className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ring-1 ring-gray-200 hover:ring-blue-400/50"
                 >
+                  {/* Hover glow */}
+                  <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
+
                   <div className="relative overflow-hidden">
                     <img src={r.img} alt={r.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -645,6 +766,11 @@ export default function Resort() {
                       {r.overnight_rate > 0 && (
                         <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                           Overnight
+                        </span>
+                      )}
+                      {r.rate_24hr > 0 && (
+                        <span className="bg-amber-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                          24 Hours
                         </span>
                       )}
                     </div>
@@ -658,15 +784,21 @@ export default function Resort() {
                   <div className="p-5">
                     <h3 className="text-lg font-bold text-gray-900 mb-1">{r.name}</h3>
                     <p className="text-gray-500 text-sm mb-4 line-clamp-2">{r.desc}</p>
-                    <div className="flex gap-3 mb-4">
-                      <div className="flex-1 bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
-                        <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day Use</p>
-                        <p className="text-base font-bold text-sky-700">{formatPHP(r.day_rate)}</p>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
+                        <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day</p>
+                        <p className="text-sm font-bold text-sky-700">{formatPHP(r.day_rate)}</p>
                       </div>
                       {r.overnight_rate > 0 && (
-                        <div className="flex-1 bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
-                          <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide">Overnight</p>
-                          <p className="text-base font-bold text-indigo-700">{formatPHP(r.overnight_rate)}</p>
+                        <div className="flex-1 min-w-[80px] bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
+                          <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide">Night</p>
+                          <p className="text-sm font-bold text-indigo-700">{formatPHP(r.overnight_rate)}</p>
+                        </div>
+                      )}
+                      {r.rate_24hr > 0 && (
+                        <div className="flex-1 min-w-[80px] bg-amber-50 rounded-xl px-3 py-2 text-center border border-amber-100">
+                          <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide">24 Hrs</p>
+                          <p className="text-sm font-bold text-amber-700">{formatPHP(r.rate_24hr)}</p>
                         </div>
                       )}
                     </div>
@@ -701,7 +833,7 @@ export default function Resort() {
           <div className="pointer-events-none absolute -bottom-24 -right-24 w-96 h-96 rounded-full opacity-20"
                style={{ background: "radial-gradient(circle, #fbbf24, transparent 70%)" }} />
 
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div ref={amenitiesRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="text-4xl mb-3 block">🌴</span>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Resort Amenities</h2>
@@ -746,31 +878,59 @@ export default function Resort() {
 
         {/* TESTIMONIALS */}
         {pc.reviews.visible !== false && testimonialsDisplay.length > 0 && (
-        <section className="py-20 bg-blue-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section className="py-20 bg-blue-600 text-white overflow-hidden">
+          <div ref={reviewsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">{pc.reviews.sectionTitle}</h2>
               <p className="text-xl text-blue-100 max-w-3xl mx-auto">{pc.reviews.sectionSubtitle}</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {testimonialsDisplay.map((t, i) => (
-                <div
-                  key={`${t.name}-${i}`}
-                  className="bg-white/10 p-6 rounded-xl backdrop-blur-sm hover:scale-[1.03] transition"
-                >
-                  <div className="flex items-center mb-4">
-                    <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
-                      <img src={t.img} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
+            {/* Carousel wrapper */}
+            <div className="relative">
+              {testimonialsDisplay.length > 3 && (
+                <>
+                  <button
+                    onClick={() => scrollRef.current?.scrollBy({ left: -320, behavior: "smooth" })}
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition"
+                    aria-label="Previous review"
+                  >
+                    <i className="fas fa-chevron-left text-sm"></i>
+                  </button>
+                  <button
+                    onClick={() => scrollRef.current?.scrollBy({ left: 320, behavior: "smooth" })}
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition"
+                    aria-label="Next review"
+                  >
+                    <i className="fas fa-chevron-right text-sm"></i>
+                  </button>
+                </>
+              )}
+
+              <div
+                ref={scrollRef}
+                onMouseEnter={() => setCarouselPaused(true)}
+                onMouseLeave={() => setCarouselPaused(false)}
+                className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 scrollbar-hide"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {testimonialsDisplay.map((t, i) => (
+                  <div
+                    key={`${t.name}-${i}`}
+                    className="bg-white/10 p-6 rounded-xl backdrop-blur-sm hover:scale-[1.03] transition flex-shrink-0 snap-start w-[300px] md:w-[calc(33.333%-16px)]"
+                  >
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
+                        <img src={t.img} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
+                      </div>
+                      <div>
+                        <h4 className="font-bold">{t.name}</h4>
+                        <div className="text-yellow-300">{t.stars}</div>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="font-bold">{t.name}</h4>
-                      <div className="text-yellow-300">{t.stars}</div>
-                    </div>
+                    <p className="text-blue-100">&ldquo;{t.quote}&rdquo;</p>
                   </div>
-                  <p className="text-blue-100">&ldquo;{t.quote}&rdquo;</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -778,7 +938,7 @@ export default function Resort() {
 
         {/* GALLERY */}
         <section id="gallery" className="py-24 bg-gray-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div ref={galleryRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="text-4xl mb-3 block">📸</span>
               <h2 className="text-3xl font-bold text-white mb-2">Gallery</h2>
@@ -795,7 +955,11 @@ export default function Resort() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {galleryDisplay.map((g, i) => (
-                  <div key={`${g.alt}-${i}`} className="group relative rounded-2xl overflow-hidden shadow-lg cursor-pointer">
+                  <div
+                    key={`${g.alt}-${i}`}
+                    className="group relative rounded-2xl overflow-hidden shadow-lg cursor-pointer"
+                    onClick={() => setLightboxIdx(i)}
+                  >
                     <img
                       src={g.src}
                       alt={g.alt}
@@ -803,7 +967,10 @@ export default function Resort() {
                       loading="lazy"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                      {g.caption && <p className="text-white text-sm font-medium">{g.caption}</p>}
+                      <div className="flex items-center justify-between w-full">
+                        {g.caption && <p className="text-white text-sm font-medium">{g.caption}</p>}
+                        <i className="fas fa-expand text-white/70 text-sm"></i>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -823,7 +990,7 @@ export default function Resort() {
 
         {/* CONTACT */}
         <section id="contact" className="py-24 bg-gradient-to-br from-sky-50 via-white to-blue-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div ref={contactRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="text-4xl mb-3 block">✉️</span>
               <h2 className="text-3xl font-bold text-gray-900 mb-2">Get In Touch</h2>
@@ -855,10 +1022,10 @@ export default function Resort() {
                   <div className="mt-8">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">Follow Us</h3>
                     <div className="flex space-x-4 text-xl">
-                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600"><i className="fab fa-facebook"></i></a>}
-                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pink-500"><i className="fab fa-instagram"></i></a>}
-                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-sky-500"><i className="fab fa-twitter"></i></a>}
-                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-900"><i className="fab fa-tiktok"></i></a>}
+                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition" aria-label="Facebook"><i className="fab fa-facebook"></i></a>}
+                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram"></i></a>}
+                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-sky-500 transition" aria-label="Twitter"><i className="fab fa-twitter"></i></a>}
+                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-900 transition" aria-label="TikTok"><i className="fab fa-tiktok"></i></a>}
                     </div>
                   </div>
                 )}
@@ -868,57 +1035,71 @@ export default function Resort() {
                 <form onSubmit={submitContact} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-blue-500" noValidate>
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input
-                      type="text"
-                      value={contactForm.name}
-                      onChange={(e) => setContactForm((p) => ({ ...p, name: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Your name"
-                      required
-                    />
+                    <div className="relative">
+                      <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <input
+                        type="text"
+                        value={contactForm.name}
+                        onChange={(e) => { setContactForm((p) => ({ ...p, name: e.target.value })); setContactErrors((p) => ({ ...p, name: undefined })); }}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.name ? "border-red-400" : "border-gray-300"}`}
+                        placeholder="Your name"
+                        autoComplete="name"
+                      />
+                    </div>
+                    {contactErrors.name && <p className="text-red-500 text-xs mt-1">{contactErrors.name}</p>}
                   </div>
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      value={contactForm.email}
-                      onChange={(e) => setContactForm((p) => ({ ...p, email: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Your email"
-                      required
-                    />
+                    <div className="relative">
+                      <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <input
+                        type="email"
+                        value={contactForm.email}
+                        onChange={(e) => { setContactForm((p) => ({ ...p, email: e.target.value })); setContactErrors((p) => ({ ...p, email: undefined })); }}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.email ? "border-red-400" : "border-gray-300"}`}
+                        placeholder="Your email"
+                        autoComplete="email"
+                      />
+                    </div>
+                    {contactErrors.email && <p className="text-red-500 text-xs mt-1">{contactErrors.email}</p>}
                   </div>
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                    <input
-                      type="text"
-                      value={contactForm.subject}
-                      onChange={(e) => setContactForm((p) => ({ ...p, subject: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Subject"
-                      required
-                    />
+                    <div className="relative">
+                      <i className="fas fa-pen absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <input
+                        type="text"
+                        value={contactForm.subject}
+                        onChange={(e) => { setContactForm((p) => ({ ...p, subject: e.target.value })); setContactErrors((p) => ({ ...p, subject: undefined })); }}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.subject ? "border-red-400" : "border-gray-300"}`}
+                        placeholder="Subject"
+                      />
+                    </div>
+                    {contactErrors.subject && <p className="text-red-500 text-xs mt-1">{contactErrors.subject}</p>}
                   </div>
 
                   <div className="mb-4">
                     <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                    <textarea
-                      rows={4}
-                      value={contactForm.message}
-                      onChange={(e) => setContactForm((p) => ({ ...p, message: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Your message"
-                      required
-                    />
+                    <div className="relative">
+                      <i className="fas fa-comment-alt absolute left-3 top-3 text-gray-400"></i>
+                      <textarea
+                        rows={4}
+                        value={contactForm.message}
+                        onChange={(e) => { setContactForm((p) => ({ ...p, message: e.target.value })); setContactErrors((p) => ({ ...p, message: undefined })); }}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.message ? "border-red-400" : "border-gray-300"}`}
+                        placeholder="Your message"
+                      />
+                    </div>
+                    {contactErrors.message && <p className="text-red-500 text-xs mt-1">{contactErrors.message}</p>}
                   </div>
 
                   <button
                     disabled={contactSubmitting}
                     className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl shadow hover:shadow-md transition-all"
                   >
-                    {contactSubmitting ? "Sending..." : "Send Message ✉️"}
+                    {contactSubmitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Sending...</> : <><i className="fas fa-paper-plane mr-2"></i>Send Message</>}
                   </button>
                 </form>
               </div>
@@ -972,28 +1153,26 @@ export default function Resort() {
 
               <form onSubmit={submitNewsletter}>
                 <div className="flex">
-                  <input
-                    type="email"
-                    value={newsletter.email}
-                    onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
-                    placeholder="Your email address"
-                    disabled={newsletter.submitting}
-                    className="flex-grow px-4 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:bg-gray-50"
-                  />
+                  <div className="relative flex-grow">
+                    <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input
+                      type="email"
+                      value={newsletter.email}
+                      onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
+                      placeholder="Your email address"
+                      disabled={newsletter.submitting}
+                      autoComplete="email"
+                      className="w-full pl-10 pr-3 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:bg-gray-50"
+                    />
+                  </div>
                   <button
                     type="submit"
                     disabled={newsletter.submitting}
                     className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
                   >
-                    {newsletter.submitting ? "Subscribing..." : "Subscribe"}
+                    {newsletter.submitting ? <><i className="fas fa-spinner fa-spin mr-1"></i>Subscribing...</> : <><i className="fas fa-bell mr-1"></i>Subscribe</>}
                   </button>
                 </div>
-
-                {newsletter.msg && (
-                  <p className={`mt-3 text-sm font-medium ${newsletter.type === "success" ? "text-green-600" : "text-red-600"}`}>
-                    {newsletter.msg}
-                  </p>
-                )}
               </form>
 
               <p className="text-xs text-gray-400 mt-4">We respect your privacy. Unsubscribe at any time.</p>
@@ -1011,6 +1190,18 @@ export default function Resort() {
           setPendingBookingRoom(null);
         }}
         onLoginSuccess={handleLoginSuccess}
+        onOpenSignup={() => { setLoginOpen(false); setSignupOpen(true); }}
+      />
+
+      <SignupModal
+        open={signupOpen}
+        onClose={() => setSignupOpen(false)}
+        onSignedUp={(u) => {
+          login(u);
+          setSignupOpen(false);
+          showToast(`Welcome, ${u?.name || ""}!`, "success");
+        }}
+        onOpenLogin={() => { setSignupOpen(false); setLoginOpen(true); }}
       />
 
       <GuestWarningModal
@@ -1059,6 +1250,56 @@ export default function Resort() {
         message={contactAlert.message}
       />
 
+      {/* Gallery Lightbox */}
+      {lightboxIdx !== null && galleryDisplay?.[lightboxIdx] && (
+        <div
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setLightboxIdx(null); }}
+        >
+          <button
+            onClick={() => setLightboxIdx(null)}
+            className="absolute top-4 right-4 text-white/70 hover:text-white transition z-10"
+            aria-label="Close lightbox"
+          >
+            <i className="fas fa-times text-2xl"></i>
+          </button>
+
+          {galleryDisplay.length > 1 && (
+            <>
+              <button
+                onClick={() => setLightboxIdx((i) => (i - 1 + galleryDisplay.length) % galleryDisplay.length)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
+                aria-label="Previous image"
+              >
+                <i className="fas fa-chevron-left"></i>
+              </button>
+              <button
+                onClick={() => setLightboxIdx((i) => (i + 1) % galleryDisplay.length)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
+                aria-label="Next image"
+              >
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </>
+          )}
+
+          <div className="max-w-4xl w-full text-center">
+            <img
+              src={galleryDisplay[lightboxIdx].src}
+              alt={galleryDisplay[lightboxIdx].alt}
+              className="max-h-[80vh] w-auto mx-auto rounded-lg shadow-2xl object-contain"
+            />
+            {galleryDisplay[lightboxIdx].caption && (
+              <p className="text-white/80 text-sm mt-4">{galleryDisplay[lightboxIdx].caption}</p>
+            )}
+            <p className="text-white/40 text-xs mt-2">
+              {lightboxIdx + 1} / {galleryDisplay.length} — Use arrow keys or click to navigate
+            </p>
+          </div>
+        </div>
+      )}
+
+      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

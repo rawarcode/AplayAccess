@@ -6,8 +6,6 @@ import Resort from "./pages/Resort.jsx";
 import Rooms from "./pages/Rooms.jsx";
 import Gallery from "./pages/Gallery.jsx";
 import Announcements from "./pages/Announcements.jsx";
-import Signup from "./pages/Signup.jsx";
-import Login from "./pages/Login.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import PaymentReturn from "./pages/PaymentReturn.jsx";
@@ -67,8 +65,7 @@ export default function App() {
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/announcements" element={<Announcements />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Navigate to="/staff-login" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
 

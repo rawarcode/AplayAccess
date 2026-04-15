@@ -131,7 +131,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
               <button
                 onClick={handleDownloadReceipt}
                 disabled={downloading || !guestToken}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md text-sm"
+                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition"
               >
                 {downloading
                   ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</>
@@ -139,9 +139,9 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
               </button>
               <button
                 onClick={handleClose}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-md text-sm"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg text-sm transition"
               >
-                Close
+                <i className="fas fa-times mr-1"></i>Close
               </button>
             </div>
           </>
@@ -154,15 +154,15 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
               <Link
                 to="/dashboard/bookings"
                 onClick={handleClose}
-                className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-md text-sm"
+                className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2"
               >
-                View My Bookings
+                <i className="fas fa-calendar-check"></i>View My Bookings
               </Link>
               <button
                 onClick={handleClose}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-md text-sm"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg text-sm transition"
               >
-                Close
+                <i className="fas fa-times mr-1"></i>Close
               </button>
             </div>
           </>

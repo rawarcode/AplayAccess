@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +19,7 @@ export default function StaffLogin() {
   const { loginWithEmail, isLoggedIn, user, booting } = useAuth();
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError]               = useState('');
   const [loading, setLoading]           = useState(false);
   const navigate = useNavigate();
@@ -69,7 +70,7 @@ export default function StaffLogin() {
 
       {/* Card */}
       <div
-        className="relative z-20 bg-white rounded-[48px] shadow-2xl max-w-4xl w-full flex flex-wrap overflow-hidden border border-[#e2edf2]"
+        className="relative z-20 bg-white rounded-[48px] shadow-2xl max-w-4xl w-full flex flex-wrap overflow-hidden border border-[#e2edf2] animate-hero-fade-in [animation-delay:0.1s] opacity-0"
         style={{ boxShadow: '0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)' }}
       >
         {/* Left — Branding */}
@@ -132,6 +133,7 @@ export default function StaffLogin() {
               <i className="fas fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
               <input
                 type="email"
+                autoComplete="email"
                 placeholder="work email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -140,16 +142,31 @@ export default function StaffLogin() {
               />
             </div>
 
-            <div className="relative mb-8">
+            <div className="relative mb-3">
               <i className="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 placeholder="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full py-4 pl-14 pr-6 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
+                className="w-full py-4 pl-14 pr-14 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-[#5f9db2] hover:text-[#1e3a8a] transition"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+              </button>
+            </div>
+
+            <div className="flex justify-end mb-6">
+              <Link to="/forgot-password" className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                Forgot password?
+              </Link>
             </div>
 
             <button
@@ -163,9 +180,19 @@ export default function StaffLogin() {
             </button>
           </form>
 
-          <div className="mt-8 text-center text-sm text-[#6b8cae]">
+          <div className="mt-6 text-center text-sm text-[#6b8cae]">
             <i className="fas fa-circle-check text-[#5f9db2] mr-2"></i>
             authorized personnel only
+          </div>
+
+          <div className="mt-4 text-center">
+            <Link
+              to="/resort"
+              className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] transition"
+            >
+              <i className="fas fa-arrow-left mr-1"></i>
+              Back to resort
+            </Link>
           </div>
         </div>
       </div>

@@ -1,12 +1,14 @@
 // src/components/modals/LoginModal.jsx
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { GoogleLogin } from "@react-oauth/google";
 
-export default function LoginModal({ open, onClose, onLoginSuccess }) {
-  const { loginWithEmail } = useAuth();
+export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup }) {
+  const { loginWithEmail, loginWithGoogle } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -32,67 +34,130 @@ export default function LoginModal({ open, onClose, onLoginSuccess }) {
     }
   }
 
+  async function handleGoogleSuccess(credentialResponse) {
+    setError("");
+    setSubmitting(true);
+    try {
+      const u = await loginWithGoogle(credentialResponse.credential);
+      onLoginSuccess?.(u);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        "Google sign-in failed. Please try again.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl">
+      <div className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl animate-hero-fade-in opacity-0">
         <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-lg font-semibold">Login to Your Account</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Login to Your Account</h2>
           <button
             onClick={onClose}
             className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100"
-            aria-label="Close"
+            aria-label="Close login modal"
           >
-            ✕
+            <i className="fas fa-times"></i>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="px-5 py-5 space-y-4">
+        <div className="px-5 py-5 space-y-4">
           {error ? (
             <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+              <i className="fas fa-exclamation-circle mr-2"></i>
               {error}
             </div>
           ) : null}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              required
-              autoComplete="email"
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <div className="relative">
+                <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  className="w-full rounded-md border border-gray-300 pl-10 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  required
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="relative">
+                <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <input
+                  className="w-full rounded-md border border-gray-300 pl-10 pr-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                </button>
+              </div>
+            </div>
+
+            <button
+              disabled={submitting}
+              className="w-full rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 transition"
+              type="submit"
+            >
+              {submitting ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 uppercase tracking-wide">or</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          {/* Google Sign-In */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={() => setError("Google sign-in failed. Please try again.")}
+              size="large"
+              width="100%"
+              text="signin_with"
+              shape="pill"
+              theme="outline"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button
-            disabled={submitting}
-            className="w-full rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2"
-            type="submit"
-          >
-            {submitting ? "Logging in..." : "Login"}
-          </button>
-
-          <p className="text-xs text-gray-500">
-            Note: This uses Laravel Sanctum cookies. If your backend is not running, login will fail.
-          </p>
-        </form>
+          {/* Sign Up link */}
+          {onOpenSignup && (
+            <p className="text-center text-sm text-gray-500">
+              Don&apos;t have an account?{" "}
+              <button
+                type="button"
+                onClick={onOpenSignup}
+                className="font-semibold text-blue-600 hover:underline"
+              >
+                Sign Up
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

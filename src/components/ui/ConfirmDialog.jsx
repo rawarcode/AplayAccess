@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -35,6 +36,13 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }) {
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e) { if (e.key === 'Escape') onCancel?.(); }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [open, onCancel]);
+
   if (!open) return null;
 
   const { icon, bg, text } = ICON[variant] ?? ICON.danger;
@@ -45,7 +53,7 @@ export default function ConfirmDialog({
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
       {/* Dialog */}
-      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden animate-hero-fade-in opacity-0">
         <div className="p-6">
           {/* Icon + title */}
           <div className="flex items-start gap-4 mb-4">

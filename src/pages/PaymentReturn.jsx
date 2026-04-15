@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { getPaymentStatus } from "../lib/paymentApi.js";
 import { getGuestPaymentStatus, downloadGuestReceipt } from "../lib/bookingApi.js";
 
@@ -19,7 +20,6 @@ import { getGuestPaymentStatus, downloadGuestReceipt } from "../lib/bookingApi.j
 export default function PaymentReturn({ outcome }) {
   const [searchParams] = useSearchParams();
   const isGuest        = searchParams.get("guest") === "1";
-  // Guest bookings use a non-guessable token; logged-in users use the numeric ID
   const bookingId      = isGuest
     ? searchParams.get("token")
     : searchParams.get("booking");
@@ -29,17 +29,21 @@ export default function PaymentReturn({ outcome }) {
   const [downloading,  setDownloading]  = useState(false);
   const [dlError,      setDlError]      = useState("");
 
+  const pageTitle = status === "confirmed" ? "Payment Confirmed"
+    : status === "pending" ? "Payment Processing"
+    : status === "failed" ? "Payment Failed"
+    : "Verifying Payment";
+
   async function handleDownload() {
     if (!bookingId) return;
     setDownloading(true);
     setDlError("");
     try {
       const blob = await downloadGuestReceipt(bookingId);
-      const ref  = "booking";
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
-      a.download = `${ref}-receipt.pdf`;
+      a.download = `booking-receipt.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -55,13 +59,10 @@ export default function PaymentReturn({ outcome }) {
     // ── POPUP MODE ────────────────────────────────────────────────────────────
     if (isPopup) {
       if (outcome === "failed") {
-        // Send cancelled — BookingModal will attempt to verify the payment on its side
-        // using guestConfirmPayment (which has an API-unreachable fallback to confirm).
         try { window.opener.postMessage({ type: "paymongo_cancelled", bookingId }, "*"); } catch { /* ignore */ }
         setStatus("closing_failed");
         window.close();
       } else {
-        // Success URL — PayMongo only redirects here after confirmed payment.
         try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
         setStatus("closing_success");
         window.close();
@@ -72,8 +73,6 @@ export default function PaymentReturn({ outcome }) {
     // ── FULL-PAGE MODE ────────────────────────────────────────────────────────
     if (!bookingId) { setStatus("failed"); return; }
 
-    // Cancel URL: don't fail immediately — PayMongo test mode's "Return to Merchant"
-    // lands here even after a successful payment. Poll to see if it went through.
     if (outcome === "failed") {
       let tries = 0;
       async function pollAfterCancel() {
@@ -109,25 +108,33 @@ export default function PaymentReturn({ outcome }) {
   // ── Popup closing screen ──────────────────────────────────────────────────
   if (isPopup) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center p-8">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+      >
+        <Helmet><title>{pageTitle} — Aplaya Beach Resort</title></Helmet>
+        <div className="text-center p-8 animate-hero-fade-in opacity-0">
           {status === "closing_success" ? (
             <>
-              <div className="text-5xl mb-4">✅</div>
+              <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <i className="fas fa-check text-green-600 text-2xl"></i>
+              </div>
               <p className="text-lg font-semibold text-gray-800">Payment received!</p>
               <p className="text-sm text-gray-500 mt-1">Closing window…</p>
             </>
           ) : status === "verifying" ? (
             <>
               <div className="flex justify-center mb-4">
-                <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin" />
+                <div className="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
               </div>
               <p className="text-lg font-semibold text-gray-800">Verifying payment…</p>
               <p className="text-sm text-gray-500 mt-1">Please wait a moment.</p>
             </>
           ) : (
             <>
-              <div className="text-5xl mb-4">❌</div>
+              <div className="mx-auto h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <i className="fas fa-times text-red-600 text-2xl"></i>
+              </div>
               <p className="text-lg font-semibold text-gray-800">Payment cancelled.</p>
               <p className="text-sm text-gray-500 mt-1">Closing window…</p>
             </>
@@ -139,56 +146,76 @@ export default function PaymentReturn({ outcome }) {
 
   // ── Full-page screens ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="bg-white rounded-2xl shadow-lg max-w-md w-full p-8 text-center">
+    <div
+      className="min-h-screen flex items-center justify-center px-4"
+      style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+    >
+      <Helmet><title>{pageTitle} — Aplaya Beach Resort</title></Helmet>
+
+      <div
+        className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center animate-hero-fade-in opacity-0"
+        style={{ boxShadow: "0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)" }}
+      >
 
         {status === "loading" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              <div className="w-16 h-16 border-4 border-[#cde3ec] border-t-[#1e3a8a] rounded-full animate-spin" />
             </div>
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">Verifying your payment…</h2>
-            <p className="text-sm text-gray-500">Please wait. This only takes a few seconds.</p>
+            <h2 className="text-xl font-light text-[#1e3a8a] mb-2">Verifying your payment…</h2>
+            <p className="text-sm text-[#6b8cae]">Please wait. This only takes a few seconds.</p>
           </>
         )}
 
         {status === "confirmed" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-4xl">✅</div>
+              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                <i className="fas fa-check text-green-600 text-3xl"></i>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Confirmed!</h2>
-            <p className="text-gray-600 mb-1">Your reservation fee has been received.</p>
-            <p className="text-gray-500 text-sm mb-5">
+            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Confirmed!</h2>
+            <p className="text-[#4a6f8c] mb-1">Your reservation fee has been received.</p>
+            {bookingId && (
+              <p className="text-xs text-[#6b8cae] mb-1">
+                <i className="fas fa-hashtag mr-1"></i>
+                Booking ref: <span className="font-medium text-[#1e3a8a]">{bookingId}</span>
+              </p>
+            )}
+            <p className="text-[#6b8cae] text-sm mb-5">
               Your booking is now <span className="font-semibold text-green-600">Confirmed</span>.
             </p>
             {isGuest ? (
               <>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 mb-4 text-xs text-amber-800 text-left flex items-start gap-2">
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4 text-xs text-amber-800 text-left flex items-start gap-2">
                   <i className="fas fa-info-circle mt-0.5 shrink-0 text-amber-500"></i>
                   <span>You booked as a guest. Download your receipt now — this is the only way to retrieve your booking details without contacting the resort.</span>
                 </div>
-                {dlError && <p className="text-xs text-red-600 mb-3">{dlError}</p>}
+                {dlError && <p className="text-xs text-red-600 mb-3"><i className="fas fa-exclamation-circle mr-1"></i>{dlError}</p>}
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleDownload}
                     disabled={downloading}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 rounded-lg"
+                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-60 text-white font-medium py-3 rounded-xl transition"
                   >
                     {downloading
                       ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</>
                       : <><i className="fas fa-file-pdf"></i> Download Receipt (PDF)</>}
                   </button>
-                  <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
+                  <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                    <i className="fas fa-arrow-left mr-1"></i>Back to Resort
+                  </Link>
                 </div>
               </>
             ) : (
               <div className="flex flex-col gap-3">
                 <Link to="/dashboard/bookings"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg">
-                  View My Bookings
+                  className="w-full inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white font-medium py-3 rounded-xl transition">
+                  <i className="fas fa-calendar-check"></i> View My Bookings
                 </Link>
-                <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
+                <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                  <i className="fas fa-arrow-left mr-1"></i>Back to Resort
+                </Link>
               </div>
             )}
           </>
@@ -197,19 +224,29 @@ export default function PaymentReturn({ outcome }) {
         {status === "pending" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center text-4xl">⏳</div>
+              <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">
+                <i className="fas fa-hourglass-half text-amber-600 text-3xl"></i>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Processing</h2>
-            <p className="text-gray-600 mb-1">We received your payment but confirmation is still processing.</p>
-            <p className="text-gray-500 text-sm mb-6">
-              Your booking will update to <span className="font-semibold">Confirmed</span> within a few minutes.
+            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Processing</h2>
+            <p className="text-[#4a6f8c] mb-1">We received your payment but confirmation is still processing.</p>
+            <p className="text-[#6b8cae] text-sm mb-2">
+              Your booking will update to <span className="font-semibold text-green-600">Confirmed</span> within a few minutes.
             </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] mb-5 transition"
+            >
+              <i className="fas fa-arrows-rotate mr-1"></i>Refresh to check again
+            </button>
             <div className="flex flex-col gap-3">
               <Link to="/dashboard/bookings"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg">
-                Go to My Bookings
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white font-medium py-3 rounded-xl transition">
+                <i className="fas fa-calendar-check"></i> Go to My Bookings
               </Link>
-              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
+              <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                <i className="fas fa-arrow-left mr-1"></i>Back to Resort
+              </Link>
             </div>
           </>
         )}
@@ -217,18 +254,22 @@ export default function PaymentReturn({ outcome }) {
         {status === "failed" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center text-4xl">❌</div>
+              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+                <i className="fas fa-times text-red-600 text-3xl"></i>
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Failed</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Failed</h2>
+            <p className="text-[#4a6f8c] mb-6">
               Your payment was not completed. Please try again.
             </p>
             <div className="flex flex-col gap-3">
               <Link to="/resort?book=1"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg">
-                Try Again
+                className="w-full inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white font-medium py-3 rounded-xl transition">
+                <i className="fas fa-redo"></i> Try Again
               </Link>
-              <Link to="/resort" className="text-sm text-gray-500 hover:text-gray-700">Back to Resort</Link>
+              <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                <i className="fas fa-arrow-left mr-1"></i>Back to Resort
+              </Link>
             </div>
           </>
         )}
