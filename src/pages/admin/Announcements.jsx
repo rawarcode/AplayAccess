@@ -35,10 +35,10 @@ export default function AdminAnnouncements() {
   const [deleteId, setDeleteId] = useState(null); // id to confirm delete
   const [toast, setToast] = useState(null); // { msg, type }
 
-  function showToast(msg, type = "success") {
+  const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
-  }
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -46,7 +46,7 @@ export default function AdminAnnouncements() {
       .then((r) => setAnnouncements(r.data?.data ?? []))
       .catch(() => showToast("Failed to load announcements.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     load();

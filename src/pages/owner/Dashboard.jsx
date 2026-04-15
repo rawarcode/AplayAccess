@@ -75,7 +75,7 @@ export default function OwnerDashboard() {
       })
       .catch(() => showToast("Failed to load dashboard data.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   const revThisMonth = overview?.revenue_this_month ?? 0;
   const revLastMonth = overview?.revenue_last_month ?? 0;

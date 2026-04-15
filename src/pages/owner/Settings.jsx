@@ -56,7 +56,7 @@ export default function OwnerSettings() {
       })
       .catch(() => showToast("Failed to load settings.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
 

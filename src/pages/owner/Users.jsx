@@ -32,7 +32,7 @@ export default function OwnerUsers() {
       .then(r => setUsers(r.data.data))
       .catch(() => showToast("Failed to load users.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
 

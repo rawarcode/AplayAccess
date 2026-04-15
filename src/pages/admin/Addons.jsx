@@ -25,7 +25,7 @@ export default function AdminAddons() {
       .then(r => setAddons(r.data.data))
       .catch(() => showToast("Failed to load add-ons.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
 

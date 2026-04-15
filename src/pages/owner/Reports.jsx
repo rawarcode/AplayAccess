@@ -73,7 +73,7 @@ export default function OwnerReports() {
       .then((res) => setBookings(res.data.data ?? []))
       .catch(() => { setBookings([]); showToast("Failed to load report data.", "error"); })
       .finally(() => setLoading(false));
-  }, [month, year]);
+  }, [month, year, showToast]);
 
   // ── Analytics state ───────────────────────────────────────────────────────
   const [chartDays,    setChartDays]    = useState(30);
@@ -88,7 +88,7 @@ export default function OwnerReports() {
       .then((res) => setOverview(res.data.data))
       .catch(() => showToast("Failed to load report data.", "error"))
       .finally(() => setLoadingOv(false));
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     setLoadingChart(true);
@@ -96,7 +96,7 @@ export default function OwnerReports() {
       .then(([dRes, rRes]) => { setDailyData(dRes.data.data ?? []); setRoomsData(rRes.data.data ?? []); })
       .catch(() => showToast("Failed to load report data.", "error"))
       .finally(() => setLoadingChart(false));
-  }, [chartDays]);
+  }, [chartDays, showToast]);
 
   // Monthly trend state
   const [monthlyData,    setMonthlyData]    = useState([]);

@@ -82,7 +82,7 @@ export default function OwnerTransactions() {
       })
       .catch(() => showToast("Failed to load transactions.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   const hasFilters = search || dateFrom || dateTo;
 
