@@ -102,7 +102,7 @@ export default function AdminTransactions() {
   // Revenue per row: Completed = full total, Cancelled = forfeited reservation_fee,
   // Pending / Confirmed / Checked In = reservation_fee paid online (balance not yet collected)
   const totalAmount = filtered.reduce((s, b) => {
-    if (b.status === "Completed") return s + Number(b.total ?? 0);
+    if (b.status === "Completed") return s + Number(b.total ?? 0) + Number(b.entrance_fee ?? 0);
     return s + Number(b.reservation_fee ?? 0);
   }, 0);
   const completedCount  = filtered.filter(b => b.status === "Completed").length;

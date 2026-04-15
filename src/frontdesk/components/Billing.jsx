@@ -259,7 +259,7 @@ export default function Billing() {
   const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
 
   const revenueToday =
-    todayCompleted.reduce((s, b) => s + Number(b.total ?? 0), 0) +
+    todayCompleted.reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entrance_fee ?? 0), 0) +
     todayCancelled.reduce((s, b) => s + Number(b.reservation_fee ?? 0), 0);
 
   async function handleCollect() {
@@ -563,7 +563,7 @@ export default function Billing() {
                   <tr>
                     <td colSpan={4} className="px-4 py-3 text-right text-gray-600">Totals:</td>
                     <td className="px-4 py-3">
-                      {fmtMoney(todayAll.reduce((s, b) => s + Number(b.total), 0))}
+                      {fmtMoney(todayAll.reduce((s, b) => s + Number(b.total || 0) + Number(b.entrance_fee || 0), 0))}
                     </td>
                     <td className="px-4 py-3 text-green-700">
                       {fmtMoney(revenueToday)} earned

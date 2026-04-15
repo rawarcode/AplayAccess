@@ -32,14 +32,14 @@ function printReport({ bookings, active, revenue, avgVal, nights, period, roomTy
   const fmtN = v => Number(v||0).toLocaleString('en-PH');
   const statusCount = (s) => bookings.filter(b => b.status === s).length;
   const roomRows = roomTypes.map((r, i) => roomBookings[i] > 0 ? `<tr><td>${r}</td><td style="text-align:center">${roomBookings[i]}</td><td style="text-align:right">₱${fmtN(roomRevenue[i])}</td><td style="text-align:right">₱${fmtN(Math.round(roomRevenue[i]/roomBookings[i]))}</td></tr>` : '').join('');
-  const bookingRows = bookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td>${b.guest}</td><td>${b.room}</td><td>${b.payment||'—'}</td><td style="text-align:center">${b.nights}</td><td style="text-align:right">${b.status==='Cancelled'?`<s>₱${fmtN(b.total)}</s>`:`₱${fmtN(b.total)}`}</td><td>${statusBadge(b.status)}</td></tr>`).join('');
+  const bookingRows = bookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td>${b.guest}</td><td>${b.room}</td><td>${b.payment||'—'}</td><td style="text-align:center">${b.nights}</td><td style="text-align:right">${b.status==='Cancelled'?`<s>₱${fmtN(b.total)}</s>`:`₱${fmtN(b.total)}`}</td><td style="text-align:right;color:#92400e">${Number(b.entrance_fee)>0?`₱${fmtN(b.entrance_fee)}`:'—'}</td><td>${statusBadge(b.status)}</td></tr>`).join('');
   const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;padding:32px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px}.co{font-size:18pt;font-weight:bold;color:#1e3a8a}.cosub{font-size:9pt;color:#64748b;margin-top:3px}.rt{text-align:right}.rt h2{font-size:13pt;font-weight:bold;color:#1e3a8a}.rt p{font-size:10pt;color:#334155;margin-top:2px}.rt small{font-size:8pt;color:#94a3b8}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}.card{border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px}.lbl{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.val{font-size:17pt;font-weight:bold;color:#0f172a;margin-top:4px}.hint{font-size:8pt;color:#94a3b8;margin-top:2px}.srow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px}.sbox{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}.sbox .n{font-size:20pt;font-weight:bold;color:#0f172a}.sbox .s{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.sec{margin-bottom:22px}.sech{font-size:9pt;font-weight:bold;color:#1e3a8a;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:10pt}th{background:#1e3a8a;color:#fff;padding:8px 10px;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em}td{padding:7px 10px;border-bottom:1px solid #f1f5f9}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#1e3a8a!important;color:#fff!important;font-weight:bold;padding:8px 10px}.ftr{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}@page{margin:1.5cm}`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Monthly Report — ${period}</title><style>${css}</style></head><body>
 <div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Booking Management System</div></div><div class="rt"><h2>Monthly Report</h2><p>${period}</p><small>Generated: ${now}</small></div></div>
 <div class="cards"><div class="card"><div class="lbl">Total Revenue</div><div class="val">₱${fmtN(revenue)}</div><div class="hint">Excluding cancelled</div></div><div class="card"><div class="lbl">Total Bookings</div><div class="val">${bookings.length}</div><div class="hint">${active.length} active · ${bookings.length-active.length} cancelled</div></div><div class="card"><div class="lbl">Avg. Stay Value</div><div class="val">₱${fmtN(Math.round(avgVal))}</div><div class="hint">Per active booking</div></div><div class="card"><div class="lbl">Total Nights</div><div class="val">${Math.round(nights)}</div><div class="hint">Active bookings only</div></div></div>
 <div class="sec"><div class="sech">Booking Status Breakdown</div><div class="srow">${['Confirmed','Checked In','Completed','Pending','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div></div>
 <div class="sec"><div class="sech">Revenue by Room</div><table><thead><tr><th>Room</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${active.length}</td><td style="text-align:right">₱${fmtN(revenue)}</td><td style="text-align:right">₱${active.length?fmtN(Math.round(revenue/active.length)):'—'}</td></tr></tfoot></table></div>
-<div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Nights</th><th style="text-align:right">Amount</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(revenue)}</td><td></td></tr></tfoot></table></div>
+<div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Nights</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(revenue - active.reduce((s,b)=>s+Number(b.entrance_fee??0),0))}</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.entrance_fee??0),0))}</td><td></td></tr></tfoot></table></div>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
@@ -110,7 +110,7 @@ export default function OwnerReports() {
   }, []);
 
   const active         = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
-  const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0), 0), [active]);
+  const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entrance_fee ?? 0), 0), [active]);
   const avgVal         = active.length ? revenue / active.length : 0;
   const nights         = useMemo(() => active.reduce((s, b) => s + Number(b.nights ?? 0), 0), [active]);
   const totalDiscounts = useMemo(() => active.reduce((s, b) => s + Number(b.discount ?? 0), 0), [active]);
@@ -123,7 +123,7 @@ export default function OwnerReports() {
     active.forEach((b) => {
       if (!b.check_in) return;
       const day = parseInt(b.check_in.split("-")[2], 10);
-      map[day] = (map[day] ?? 0) + Number(b.total ?? 0);
+      map[day] = (map[day] ?? 0) + Number(b.total ?? 0) + Number(b.entrance_fee ?? 0);
     });
     return Array.from({ length: daysInMonth }, (_, i) => ({
       day: i + 1,
@@ -133,7 +133,7 @@ export default function OwnerReports() {
 
   // Room type breakdown
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
-  const roomRevenue  = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).reduce((s, b) => s + Number(b.total ?? 0), 0)), [roomTypes, active]);
+  const roomRevenue  = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entrance_fee ?? 0), 0)), [roomTypes, active]);
   const roomBookings = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).length), [roomTypes, active]);
 
   const roomBarData = {
