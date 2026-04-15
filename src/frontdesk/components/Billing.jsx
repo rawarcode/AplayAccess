@@ -67,7 +67,7 @@ function StatusBadge({ status, booking }) {
 function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading }) {
   if (!b) return null;
 
-  const balanceDue = Math.max(0, Number(b.total ?? 0) - Number(b.reservationFee ?? 0));
+  const balanceDue = b.fullyPaid ? 0 : Math.max(0, Number(b.total ?? 0) - Number(b.reservationFee ?? 0));
 
   return (
     <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto z-40 border-l border-gray-200">
@@ -126,6 +126,11 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
             ) : b.status === 'Completed' ? (
               <div className="flex justify-between px-4 py-3 bg-green-50 text-green-700 font-semibold">
                 <span>Total Collected</span>
+                <span>{fmtMoney(b.total)}</span>
+              </div>
+            ) : b.fullyPaid ? (
+              <div className="flex justify-between px-4 py-3 bg-green-50 text-green-700 font-semibold">
+                <span>Fully Paid</span>
                 <span>{fmtMoney(b.total)}</span>
               </div>
             ) : (
@@ -307,7 +312,7 @@ export default function Billing() {
     setPayMethod('Cash');
   }
 
-  const balanceDue = billing ? Math.max(0, Number(billing.total) - Number(billing.reservationFee ?? 0)) : 0;
+  const balanceDue = billing ? (billing.fullyPaid ? 0 : Math.max(0, Number(billing.total) - Number(billing.reservationFee ?? 0))) : 0;
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -527,6 +532,8 @@ export default function Billing() {
                           ? <span className="text-green-600"><i className="fas fa-check mr-1"></i>Collected</span>
                           : b.status === 'Cancelled'
                           ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservationFee ?? 0)}</span>
+                          : b.fullyPaid
+                          ? <span className="text-green-600"><i className="fas fa-check mr-1"></i>Paid</span>
                           : <span className="text-blue-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)))}</span>
                         }
                       </td>
