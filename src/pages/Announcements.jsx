@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { getAnnouncements } from "../lib/resortApi.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
+import { Helmet } from "react-helmet-async";
 
 function formatDate(str) {
   if (!str) return "";
@@ -29,6 +30,10 @@ export default function Announcements() {
 
   return (
     <div className="pt-16 bg-gray-900 min-h-screen">
+      <Helmet>
+        <title>Announcements — Aplaya Beach Resort</title>
+        <meta name="description" content="Latest news, events, and announcements from Aplaya Beach Resort." />
+      </Helmet>
       {/* HERO */}
       <section
         className="relative h-[55vh] flex items-center justify-center text-center"

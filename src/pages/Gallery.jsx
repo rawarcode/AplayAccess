@@ -6,6 +6,7 @@ import { getResortGallery } from "../lib/resortApi.js";
 import { RESORT_ID } from "../lib/config.js";
 import LightboxModal from "../components/modals/LightboxModal.jsx";
 import { isVideoUrl } from "../lib/uploadApi.js";
+import { Helmet } from "react-helmet-async";
 
 const ALL_CATS = ["all", "beach", "rooms", "amenities", "dining", "events", "other"];
 
@@ -91,6 +92,10 @@ export default function Gallery() {
 
   return (
     <div className="pt-16 bg-gray-900 min-h-screen">
+      <Helmet>
+        <title>Gallery — Aplaya Beach Resort</title>
+        <meta name="description" content="View photos and videos of Aplaya Beach Resort — beach, rooms, amenities, dining, and events." />
+      </Helmet>
       {/* HERO */}
       <section
         className="relative h-[60vh] flex items-center justify-center text-center"

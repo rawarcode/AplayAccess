@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { useContent } from "../context/ContentContext.jsx";
 
@@ -101,6 +102,10 @@ export default function Home() {
 
   return (
     <div className="font-sans">
+      <Helmet>
+        <title>Aplaya Beach Resort — Book Your Stay</title>
+        <meta name="description" content="Book rooms at Aplaya Beach Resort Cavite. Day visits, night stays, and 24-hour beach getaway packages." />
+      </Helmet>
       {/* Hero */}
       <section
         className="min-h-screen flex items-center justify-center text-center relative overflow-hidden"

@@ -8,6 +8,7 @@ import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { getAnnouncements } from "../lib/resortApi.js";
 import { RESORT_ID } from "../lib/config.js";
+import { Helmet } from "react-helmet-async";
 
 // Local data for UI enrichment + offline fallback
 import { rooms as roomsFallback } from "../data/rooms.js";
@@ -360,6 +361,10 @@ export default function Resort() {
 
   return (
     <div className="font-sans">
+      <Helmet>
+        <title>Aplaya Beach Resort Cavite — Rooms, Amenities & Reviews</title>
+        <meta name="description" content="Explore rooms, amenities, gallery, and guest reviews at Aplaya Beach Resort in Cavite, Philippines." />
+      </Helmet>
       <div className="pt-16">
         {/* HERO */}
         <section

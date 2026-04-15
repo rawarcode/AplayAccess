@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../context/AuthContext';
 
 const ROLE_REDIRECTS = {
@@ -59,6 +60,7 @@ export default function StaffLogin() {
       className="min-h-screen flex items-center justify-center p-6 relative"
       style={{ background: 'radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)' }}
     >
+      <Helmet><title>Staff Login — Aplaya Beach Resort</title></Helmet>
       {/* Background accents */}
       <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
         <i className="fas fa-umbrella-beach absolute text-7xl bottom-5 right-8 text-[#b0d0dd] rotate-6"></i>

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import AlertModal from "../components/modals/AlertModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { registerRequest } from "../lib/authApi.js";
@@ -81,6 +82,7 @@ export default function Signup() {
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50 flex flex-col">
+      <Helmet><title>Sign Up — Aplaya Beach Resort</title></Helmet>
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[450px] bg-white rounded-lg shadow-lg p-8">
           {/* Logo */}

@@ -1,6 +1,7 @@
 // src/pages/ForgotPassword.jsx
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { forgotPasswordRequest } from "../lib/authApi.js";
 
 export default function ForgotPassword() {
@@ -28,6 +29,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50 flex flex-col">
+      <Helmet><title>Forgot Password — Aplaya Beach Resort</title></Helmet>
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg p-8">
 

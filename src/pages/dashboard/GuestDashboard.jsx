@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getBookings, downloadReceipt } from "../../lib/bookingApi.js";
 import { getResortRooms } from "../../lib/resortApi.js";
 import { RESORT_ID } from "../../lib/config.js";
+import { Helmet } from "react-helmet-async";
 import BookingModal from "../../components/modals/BookingModal.jsx";
 import SuccessModal from "../../components/modals/SuccessModal.jsx";
 
@@ -189,6 +190,7 @@ export default function GuestDashboard() {
 
   return (
     <div className="space-y-6">
+      <Helmet><title>Dashboard — Aplaya Beach Resort</title></Helmet>
       <BookingModal
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}

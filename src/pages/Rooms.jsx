@@ -8,6 +8,7 @@ import BookingModal from "../components/modals/BookingModal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import { Helmet } from "react-helmet-async";
 
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80";
 
@@ -125,6 +126,10 @@ export default function Rooms() {
 
   return (
     <div className="pt-16 bg-sky-50 min-h-screen">
+      <Helmet>
+        <title>Rooms & Cottages — Aplaya Beach Resort</title>
+        <meta name="description" content="Browse rooms, cottages, and pavilions at Aplaya Beach Resort. Book day visits, night stays, or 24-hour packages online." />
+      </Helmet>
       {/* HERO */}
       <section
         className="relative h-[60vh] flex items-center justify-center text-center"

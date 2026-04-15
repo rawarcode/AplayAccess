@@ -5,6 +5,7 @@ import { submitReview } from "../../lib/reviewApi.js";
 import { api } from "../../lib/api.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 import Toast, { useToast } from "../../components/ui/Toast";
+import { Helmet } from "react-helmet-async";
 
 // ─── Datetime formatter ───────────────────────────────────────────────────────
 /** Converts "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
@@ -359,6 +360,7 @@ export default function MyBookings() {
 
   return (
     <div className="bg-white rounded-xl shadow-md p-6">
+      <Helmet><title>My Bookings — Aplaya Beach Resort</title></Helmet>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Bookings</h1>

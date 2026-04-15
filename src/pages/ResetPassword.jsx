@@ -1,6 +1,7 @@
 // src/pages/ResetPassword.jsx
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { resetPasswordRequest } from "../lib/authApi.js";
 
 export default function ResetPassword() {
@@ -55,6 +56,7 @@ export default function ResetPassword() {
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50 flex flex-col">
+      <Helmet><title>Reset Password — Aplaya Beach Resort</title></Helmet>
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg p-8">
 

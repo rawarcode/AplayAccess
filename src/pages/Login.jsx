@@ -1,6 +1,7 @@
 // src/pages/Login.jsx
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Login() {
@@ -36,6 +37,7 @@ export default function Login() {
 
   return (
     <div className="pt-16 min-h-screen bg-gray-50 flex flex-col">
+      <Helmet><title>Log In — Aplaya Beach Resort</title></Helmet>
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[420px] bg-white rounded-lg shadow-lg p-8">
 
