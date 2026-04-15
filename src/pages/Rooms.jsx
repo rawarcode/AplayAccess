@@ -29,12 +29,28 @@ function enrichRoom(room) {
   };
 }
 
+const CATEGORY_TABS = [
+  { key: "all",      label: "All",       icon: "fa-th-large"       },
+  { key: "room",     label: "Rooms",     icon: "fa-bed"            },
+  { key: "cottage",  label: "Cottages",  icon: "fa-umbrella-beach" },
+  { key: "pavilion", label: "Pavilions", icon: "fa-archway"        },
+];
+
+function getRoomCategory(r) {
+  if (r.category) return r.category;
+  const n = (r.name || "").toLowerCase();
+  if (n.includes("cottage"))  return "cottage";
+  if (n.includes("pavilion")) return "pavilion";
+  return "room";
+}
+
 export default function Rooms() {
   const { user, login } = useAuth();
 
   const [roomsApi,     setRoomsApi]     = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [selectedId,   setSelectedId]   = useState(null);
+  const [activeTab,    setActiveTab]    = useState("all");
 
   const [bookingOpen,  setBookingOpen]  = useState(false);
   const [loginOpen,    setLoginOpen]    = useState(false);
@@ -53,13 +69,17 @@ export default function Rooms() {
       .finally(() => setLoading(false));
   }, []);
 
-  const roomCards = roomsApi;
+  const roomCards = useMemo(() =>
+    activeTab === "all" ? roomsApi : roomsApi.filter(r => getRoomCategory(r) === activeTab),
+  [roomsApi, activeTab]);
+
   const bookingRooms = useMemo(() =>
     roomsApi
       .filter(r => !r.availability_status || r.availability_status === "available")
       .map(r => ({
-        id:             r.id ?? null,
-        name:           r.name,
+        id:                    r.id ?? null,
+        name:                  r.name,
+        category:              getRoomCategory(r),
         day_rate:              Number(r.day_rate       ?? 0),
         overnight_rate:        Number(r.overnight_rate ?? 0),
         rate_24hr:             Number(r.rate_24hr      ?? 0),
@@ -153,11 +173,36 @@ export default function Rooms() {
           ) : !detailRoom ? (
             /* ── GRID ── */
             <>
-              <div className="text-center mb-12">
+              <div className="text-center mb-8">
                 <span className="text-4xl mb-3 block">🛏️</span>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">All Accommodations</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Our Accommodations</h2>
                 <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">{roomCards.length} room{roomCards.length !== 1 ? "s" : ""} available</p>
+              </div>
+
+              {/* Category tabs */}
+              <div className="flex flex-wrap justify-center gap-2 mb-8">
+                {CATEGORY_TABS.map(tab => {
+                  const count = tab.key === "all"
+                    ? roomsApi.length
+                    : roomsApi.filter(r => getRoomCategory(r) === tab.key).length;
+                  if (count === 0 && tab.key !== "all") return null;
+                  return (
+                    <button key={tab.key}
+                      onClick={() => { setActiveTab(tab.key); setSelectedId(null); }}
+                      className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold border transition-all ${
+                        activeTab === tab.key
+                          ? "bg-blue-600 text-white border-blue-600 shadow"
+                          : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+                      }`}
+                    >
+                      <i className={`fas ${tab.icon} text-xs`}></i>
+                      {tab.label}
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                        activeTab === tab.key ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
+                      }`}>{count}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

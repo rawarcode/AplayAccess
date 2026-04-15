@@ -45,7 +45,7 @@ const FEATURE_ICONS = [
 ];
 
 const BLANK = {
-  name: "", description: "", day_rate: 1500, overnight_rate: 2000, rate_24hr: 2500,
+  name: "", category: "room", description: "", day_rate: 1500, overnight_rate: 2000, rate_24hr: 2500,
   capacity: 2, capacity_label: "", quantity: 1,
   size: "", beds: "", occupancy: "", view: "", image: "",
   availability_status: "available", features: [], allowed_booking_types: null,
@@ -53,17 +53,32 @@ const BLANK = {
 
 const COTTAGE_TEMPLATE = {
   ...BLANK,
-  name: "Cottage", capacity: 10, capacity_label: "Up to 10 pax",
+  name: "Cottage", category: "cottage", capacity: 10, capacity_label: "Up to 10 pax",
   quantity: 1, day_rate: 2000, overnight_rate: 2500, rate_24hr: 3500,
   features: [{ text: "Beachside", icon: "fa-umbrella-beach" }],
 };
 
 const PAVILION_TEMPLATE = {
   ...BLANK,
-  name: "Pavilion", capacity: 30, capacity_label: "Up to 30 pax",
+  name: "Pavilion", category: "pavilion", capacity: 30, capacity_label: "Up to 30 pax",
   quantity: 1, day_rate: 3000, overnight_rate: 4000, rate_24hr: 5000,
   features: [{ text: "Open Air", icon: "fa-wind" }, { text: "Pool View", icon: "fa-water-ladder" }],
 };
+
+const ADMIN_CATEGORY_TABS = [
+  { key: "",         label: "All",       icon: "fa-th-large"       },
+  { key: "room",     label: "Rooms",     icon: "fa-bed"            },
+  { key: "cottage",  label: "Cottages",  icon: "fa-umbrella-beach" },
+  { key: "pavilion", label: "Pavilions", icon: "fa-archway"        },
+];
+
+function getRoomCategory(r) {
+  if (r.category) return r.category;
+  const n = (r.name || "").toLowerCase();
+  if (n.includes("cottage"))  return "cottage";
+  if (n.includes("pavilion")) return "pavilion";
+  return "room";
+}
 
 function AvailBadge({ status }) {
   const cfg = AVAIL[status] || AVAIL.available;
@@ -123,8 +138,9 @@ export default function AdminRooms() {
   const [modalOpen,    setModalOpen]    = useState(false);
   const [editing,      setEditing]      = useState(null);
   const [viewRoom,     setViewRoom]     = useState(null);
-  const [searchTerm,   setSearchTerm]   = useState("");
-  const [filterAvail,  setFilterAvail]  = useState("");
+  const [searchTerm,      setSearchTerm]      = useState("");
+  const [filterAvail,     setFilterAvail]     = useState("");
+  const [filterCategory,  setFilterCategory]  = useState("");
 
   // Feature input state
   const [featureInput,   setFeatureInput]   = useState("");
@@ -149,9 +165,10 @@ export default function AdminRooms() {
   const [sortDir, setSortDir] = useState('asc');
 
   const filtered = rooms.filter(r => {
-    const matchSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchAvail  = !filterAvail || r.availability_status === filterAvail;
-    return matchSearch && matchAvail;
+    const matchSearch    = r.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchAvail     = !filterAvail     || r.availability_status === filterAvail;
+    const matchCategory  = !filterCategory  || getRoomCategory(r) === filterCategory;
+    return matchSearch && matchAvail && matchCategory;
   }).sort((a, b) => {
     let aVal, bVal;
     if (sortBy === 'Name')           { aVal = a.name.toLowerCase();           bVal = b.name.toLowerCase(); }
@@ -226,6 +243,7 @@ export default function AdminRooms() {
     setSaving(true);
     const payload = {
       name:                editing.name,
+      category:            editing.category || "room",
       description:         editing.description,
       day_rate:            Number(editing.day_rate),
       overnight_rate:      Number(editing.overnight_rate),
@@ -281,12 +299,37 @@ export default function AdminRooms() {
 
       {error && <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4">{error}</div>}
 
+      {/* Category tabs */}
+      <div className="flex flex-wrap gap-2">
+        {ADMIN_CATEGORY_TABS.map(tab => {
+          const count = tab.key === ""
+            ? rooms.length
+            : rooms.filter(r => getRoomCategory(r) === tab.key).length;
+          return (
+            <button key={tab.key}
+              onClick={() => setFilterCategory(tab.key)}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+                filterCategory === tab.key
+                  ? "bg-sky-600 text-white border-sky-600 shadow"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-600"
+              }`}
+            >
+              <i className={`fas ${tab.icon} text-xs`}></i>
+              {tab.label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
+                filterCategory === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+              }`}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Table card */}
       <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 px-6 py-5 bg-slate-50 border-b border-slate-200">
           <div>
-            <p className="text-sm text-slate-600">Total Rooms</p>
-            <p className="text-2xl font-semibold text-slate-900">{rooms.length}</p>
+            <p className="text-sm text-slate-600">{filterCategory ? `${filterCategory.charAt(0).toUpperCase() + filterCategory.slice(1)}s` : "Total Rooms"}</p>
+            <p className="text-2xl font-semibold text-slate-900">{filtered.length}</p>
           </div>
           <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
             <div className="relative w-full md:w-64">
@@ -345,8 +388,17 @@ export default function AdminRooms() {
                         }
                       </td>
                       <td className="px-6 py-4 font-medium text-slate-900">
-                        {room.name}
-                        {room.capacity_label && <span className="ml-1 text-xs text-slate-400">· {room.capacity_label}</span>}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {room.name}
+                          {(() => {
+                            const cat = getRoomCategory(room);
+                            const catStyle = { cottage: "bg-amber-100 text-amber-700", pavilion: "bg-emerald-100 text-emerald-700" }[cat];
+                            return catStyle ? (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${catStyle}`}>{cat}</span>
+                            ) : null;
+                          })()}
+                        </div>
+                        {room.capacity_label && <span className="text-xs text-slate-400">{room.capacity_label}</span>}
                         {room.allowed_booking_types?.length > 0 && (
                           <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
                             {room.allowed_booking_types.join("/")} only
@@ -405,8 +457,9 @@ export default function AdminRooms() {
                 )}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   {[
-                    ["Name",           viewRoom.name],
-                    ["Capacity",       viewRoom.capacity_label || `${viewRoom.capacity} pax`],
+                    ["Name",     viewRoom.name],
+                    ["Category", (() => { const c = viewRoom.category || getRoomCategory(viewRoom); return c.charAt(0).toUpperCase() + c.slice(1); })()],
+                    ["Capacity", viewRoom.capacity_label || `${viewRoom.capacity} pax`],
                     ["Quantity",       `${viewRoom.quantity ?? 1} unit(s)`],
                     ["Day Rate",       `₱${Number(viewRoom.day_rate).toLocaleString()}`],
                     ["Overnight Rate", `₱${Number(viewRoom.overnight_rate).toLocaleString()}`],
@@ -484,10 +537,19 @@ export default function AdminRooms() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Room Name *</label>
               <input required value={editing?.name || ""} onChange={e => setField("name", e.target.value)}
                 className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Category *</label>
+              <select value={editing?.category || "room"} onChange={e => setField("category", e.target.value)}
+                className="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm">
+                <option value="room">Room</option>
+                <option value="cottage">Cottage</option>
+                <option value="pavilion">Pavilion</option>
+              </select>
             </div>
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">Description *</label>
