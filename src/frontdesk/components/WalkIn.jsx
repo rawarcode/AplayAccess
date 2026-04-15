@@ -49,7 +49,7 @@ const EMPTY_FORM = {
   firstName: '', lastName: '', phone: '', email: '',
   roomId: '', date: todayStr(),
   payMethod: 'Cash', notes: '',
-  bookingType: 'day', // 'day' | 'night' | '24hr'
+  bookingType: 'day', // 'day' | 'night' | '24hr' | '24hr-pm'
 };
 
 // ─── component ────────────────────────────────────────────────────────────────
@@ -187,7 +187,8 @@ export default function WalkIn() {
   const dayRate       = Number(selectedRoom?.day_rate       ?? 1500);
   const nightRate     = Number(selectedRoom?.overnight_rate ?? 1500);
   const rate24        = Number(selectedRoom?.rate_24hr      ?? 2000);
-  const baseRate     = form.bookingType === 'night' ? nightRate : form.bookingType === '24hr' ? rate24 : dayRate;
+  const is24hr        = form.bookingType === '24hr' || form.bookingType === '24hr-pm';
+  const baseRate      = form.bookingType === 'night' ? nightRate : is24hr ? rate24 : dayRate;
   const amenityTotal = addons.reduce((sum, a) => {
     const qty = Number(addonQtys[a.id] || 0);
     if (qty <= 0) return sum;
@@ -252,7 +253,7 @@ export default function WalkIn() {
   // Step 2 — confirmed → call API
   async function handleConfirmCreate() {
     setConfirmOpen(false);
-    const checkInTime = form.bookingType === 'night' ? '18:00:00' : '06:00:00';
+    const checkInTime = (form.bookingType === 'night' || form.bookingType === '24hr-pm') ? '18:00:00' : '06:00:00';
     const checkIn     = `${form.date} ${checkInTime}`;
     const guestName   = `${form.firstName.trim()} ${form.lastName.trim()}`;
     const amenities   = addons
@@ -466,12 +467,18 @@ export default function WalkIn() {
       {confirmOpen && (() => {
         const selRoom    = rooms.find(r => String(r.id) === String(form.roomId));
         const guestName  = `${form.firstName.trim()} ${form.lastName.trim()}`;
-        const checkInLabel  = form.bookingType === 'night' ? '6:00 PM' : '6:00 AM';
-        const checkOutLabel = form.bookingType === 'night' ? '7:00 AM (next day)' : form.bookingType === '24hr' ? '6:00 AM (next day)' : '6:00 PM';
+        const checkInLabel  = (form.bookingType === 'night' || form.bookingType === '24hr-pm') ? '6:00 PM' : '6:00 AM';
+        const checkOutLabel = form.bookingType === 'night'   ? '7:00 AM (next day)'
+                            : form.bookingType === '24hr'    ? '6:00 AM (next day)'
+                            : form.bookingType === '24hr-pm' ? '6:00 PM (next day)'
+                            : '6:00 PM';
         const dateLabel  = form.date ? new Date(form.date + 'T00:00:00').toLocaleDateString('en-PH', {
           weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
         }) : '—';
-        const typeLabel  = form.bookingType === 'night' ? 'Night Stay' : form.bookingType === '24hr' ? '24 Hours' : 'Day Visit';
+        const typeLabel  = form.bookingType === 'night'   ? 'Night Stay'
+                         : form.bookingType === '24hr'    ? '24 Hours (6AM–6AM)'
+                         : form.bookingType === '24hr-pm' ? '24 Hours (6PM–6PM)'
+                         : 'Day Visit';
         return (
           <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
             <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
@@ -495,11 +502,11 @@ export default function WalkIn() {
 
                 {/* Booking type badge */}
                 <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
-                  form.bookingType === 'night' ? 'bg-indigo-100 text-indigo-800' :
-                  form.bookingType === '24hr'  ? 'bg-purple-100 text-purple-800' :
-                                                 'bg-blue-100 text-blue-800'
+                  form.bookingType === 'night'   ? 'bg-indigo-100 text-indigo-800' :
+                  is24hr                         ? 'bg-purple-100 text-purple-800' :
+                                                   'bg-blue-100 text-blue-800'
                 }`}>
-                  <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : form.bookingType === '24hr' ? 'fa-clock' : 'fa-sun'}`}></i>
+                  <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'}`}></i>
                   {typeLabel}
                 </span>
 
@@ -581,12 +588,12 @@ export default function WalkIn() {
                 {/* Pricing Breakdown */}
                 <div className={`rounded-xl border p-4 space-y-2 text-sm ${
                   form.bookingType === 'night' ? 'bg-indigo-50 border-indigo-200' :
-                  form.bookingType === '24hr'  ? 'bg-purple-50 border-purple-200' :
+                  is24hr                       ? 'bg-purple-50 border-purple-200' :
                                                  'bg-blue-50 border-blue-200'
                 }`}>
                   <p className={`font-semibold mb-1 ${
                     form.bookingType === 'night' ? 'text-indigo-900' :
-                    form.bookingType === '24hr'  ? 'text-purple-900' : 'text-blue-900'
+                    is24hr                       ? 'text-purple-900' : 'text-blue-900'
                   }`}>Payment Breakdown</p>
                   <div className="flex justify-between text-gray-700">
                     <span>Room rate ({typeLabel})</span>
@@ -614,7 +621,7 @@ export default function WalkIn() {
                   )}
                   <div className={`flex justify-between font-bold text-base border-t pt-2 ${
                     form.bookingType === 'night' ? 'text-indigo-900 border-indigo-200' :
-                    form.bookingType === '24hr'  ? 'text-purple-900 border-purple-200' :
+                    is24hr                       ? 'text-purple-900 border-purple-200' :
                                                    'text-blue-900 border-blue-200'
                   }`}>
                     <span>Total Due</span>
@@ -732,9 +739,10 @@ export default function WalkIn() {
                       {[
                         { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue',   disabled: dayUnavailable || !typeAllowed('day')   },
                         { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo', disabled: !typeAllowed('night') },
-                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM – 6AM',  rate: rate24,    color: 'purple', disabled: !typeAllowed('24hr')  },
+                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM or 6PM', rate: rate24,    color: 'purple', disabled: !typeAllowed('24hr')  },
                       ].map(opt => {
-                        const active = form.bookingType === opt.type;
+                        // 24hr button is active for both '24hr' and '24hr-pm'
+                        const active = opt.type === '24hr' ? is24hr : form.bookingType === opt.type;
                         const colorMap = {
                           blue:   { border: 'border-blue-500',   bg: 'bg-blue-50',   text: 'text-blue-700',   icon: 'text-blue-500'   },
                           indigo: { border: 'border-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: 'text-indigo-500' },
@@ -761,6 +769,32 @@ export default function WalkIn() {
                         );
                       })}
                     </div>
+
+                    {/* 24hr start-time sub-toggle */}
+                    {is24hr && (
+                      <div className="mt-2 flex rounded-lg overflow-hidden border border-purple-200 text-xs font-medium">
+                        <button type="button"
+                          onClick={() => setField('bookingType', '24hr')}
+                          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
+                            form.bookingType === '24hr'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white text-purple-700 hover:bg-purple-50'
+                          }`}
+                        >
+                          <i className="fas fa-sun text-xs"></i> 6 AM start
+                        </button>
+                        <button type="button"
+                          onClick={() => setField('bookingType', '24hr-pm')}
+                          className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
+                            form.bookingType === '24hr-pm'
+                              ? 'bg-purple-600 text-white'
+                              : 'bg-white text-purple-700 hover:bg-purple-50'
+                          }`}
+                        >
+                          <i className="fas fa-moon text-xs"></i> 6 PM start
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   <div className="col-span-2">
@@ -810,14 +844,15 @@ export default function WalkIn() {
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Check-in / Check-out</label>
                     <div className={`border border-slate-200 rounded-xl px-3 py-2 w-full text-sm font-medium flex items-center gap-2 ${
-                      form.bookingType === 'night' ? 'bg-indigo-50 text-indigo-700' :
-                      form.bookingType === '24hr'  ? 'bg-purple-50 text-purple-700' :
-                                                     'bg-blue-50 text-blue-700'
+                      form.bookingType === 'night'   ? 'bg-indigo-50 text-indigo-700' :
+                      is24hr                         ? 'bg-purple-50 text-purple-700' :
+                                                       'bg-blue-50 text-blue-700'
                     }`}>
-                      <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : form.bookingType === '24hr' ? 'fa-clock' : 'fa-sun'}`}></i>
-                      {form.bookingType === 'night' ? '6:00 PM → 7:00 AM (next day)' :
-                       form.bookingType === '24hr'  ? '6:00 AM → 6:00 AM (next day)' :
-                                                      '6:00 AM → 6:00 PM'}
+                      <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'}`}></i>
+                      {form.bookingType === 'night'   ? '6:00 PM → 7:00 AM (next day)'
+                     : form.bookingType === '24hr'    ? '6:00 AM → 6:00 AM (next day)'
+                     : form.bookingType === '24hr-pm' ? '6:00 PM → 6:00 PM (next day)'
+                     :                                  '6:00 AM → 6:00 PM'}
                     </div>
                   </div>
 
@@ -939,18 +974,22 @@ export default function WalkIn() {
                 {/* Pricing preview */}
                 {(() => {
                   const typeColors = {
-                    day:   { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-800',   sub: 'text-blue-700',   hr: 'border-blue-200'   },
-                    night: { bg: 'bg-indigo-50',  border: 'border-indigo-200', text: 'text-indigo-800', sub: 'text-indigo-700', hr: 'border-indigo-200' },
-                    '24hr':{ bg: 'bg-purple-50',  border: 'border-purple-200', text: 'text-purple-800', sub: 'text-purple-700', hr: 'border-purple-200' },
+                    day:      { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-800',   sub: 'text-blue-700',   hr: 'border-blue-200'   },
+                    night:    { bg: 'bg-indigo-50',  border: 'border-indigo-200', text: 'text-indigo-800', sub: 'text-indigo-700', hr: 'border-indigo-200' },
+                    '24hr':   { bg: 'bg-purple-50',  border: 'border-purple-200', text: 'text-purple-800', sub: 'text-purple-700', hr: 'border-purple-200' },
+                    '24hr-pm':{ bg: 'bg-purple-50',  border: 'border-purple-200', text: 'text-purple-800', sub: 'text-purple-700', hr: 'border-purple-200' },
                   };
                   const tc = typeColors[form.bookingType] ?? typeColors.day;
-                  const ciLabel = form.bookingType === 'night' ? '6:00 PM' : '6:00 AM';
-                  const coLabel = form.bookingType === 'night' ? '7:00 AM (next day)' : form.bookingType === '24hr' ? '6:00 AM (next day)' : '6:00 PM';
-                  const rateLabel = form.bookingType === 'night' ? 'Night rate' : form.bookingType === '24hr' ? '24 hr rate' : 'Day rate';
+                  const ciLabel = (form.bookingType === 'night' || form.bookingType === '24hr-pm') ? '6:00 PM' : '6:00 AM';
+                  const coLabel = form.bookingType === 'night'   ? '7:00 AM (next day)'
+                                : form.bookingType === '24hr'    ? '6:00 AM (next day)'
+                                : form.bookingType === '24hr-pm' ? '6:00 PM (next day)'
+                                : '6:00 PM';
+                  const rateLabel = form.bookingType === 'night' ? 'Night rate' : is24hr ? '24 hr rate' : 'Day rate';
                   return (
                     <div className={`p-3 rounded text-sm mb-4 border ${tc.bg} ${tc.border}`}>
                       <p className={`font-semibold mb-2 ${tc.text}`}>
-                        <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : form.bookingType === '24hr' ? 'fa-clock' : 'fa-sun'} mr-1`}></i>Booking Summary
+                        <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'} mr-1`}></i>Booking Summary
                       </p>
                       <div className={`space-y-1 mb-2 ${tc.sub}`}>
                         <div className="flex justify-between">

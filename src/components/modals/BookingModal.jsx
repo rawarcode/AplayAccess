@@ -268,9 +268,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }, [roomType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived pricing — room rate only, 20% reservation fee ─────────────────
+  const is24hr   = bookingType === "24hr" || bookingType === "24hr-pm";
   const baseRate = bookingType === "night"
     ? pricing.overnight_rate
-    : bookingType === "24hr"
+    : is24hr
       ? pricing.rate_24hr
       : pricing.day_rate;
   const discount           = promoResult?.discount_amount ?? 0;
@@ -496,9 +497,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {[
                   { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate,       disabled: dayUnavailable || !typeAllowed("day")   },
                   { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate, disabled: !typeAllowed("night") },
-                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6:00 AM – 6:00 AM",  color: "purple", rate: pricing.rate_24hr,      disabled: !typeAllowed("24hr")  },
+                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6AM or 6PM start",   color: "purple", rate: pricing.rate_24hr,      disabled: !typeAllowed("24hr")  },
                 ].map(({ key, icon, label, time, color, rate, disabled }) => {
-                  const active = bookingType === key;
+                  // 24hr button is active for both '24hr' and '24hr-pm'
+                  const active = key === "24hr" ? is24hr : bookingType === key;
                   return (
                     <button
                       key={key}
@@ -523,6 +525,32 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   );
                 })}
               </div>
+
+              {/* 24hr start-time sub-toggle */}
+              {is24hr && (
+                <div className="mt-2 flex rounded-lg overflow-hidden border border-purple-200 text-xs font-medium">
+                  <button type="button"
+                    onClick={() => { setBookingType("24hr"); setPromoResult(null); setPromoInput(""); }}
+                    className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
+                      bookingType === "24hr"
+                        ? "bg-purple-600 text-white"
+                        : "bg-white text-purple-700 hover:bg-purple-50"
+                    }`}
+                  >
+                    <i className="fas fa-sun text-xs"></i> 6 AM start
+                  </button>
+                  <button type="button"
+                    onClick={() => { setBookingType("24hr-pm"); setPromoResult(null); setPromoInput(""); }}
+                    className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
+                      bookingType === "24hr-pm"
+                        ? "bg-purple-600 text-white"
+                        : "bg-white text-purple-700 hover:bg-purple-50"
+                    }`}
+                  >
+                    <i className="fas fa-moon text-xs"></i> 6 PM start
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Visit date */}
@@ -695,7 +723,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <h4 className="font-medium text-gray-900 mb-2">Payment Summary</h4>
                 <div className="flex justify-between mb-1 text-sm">
                   <span className="text-gray-600">
-                    Room rate ({bookingType === "night" ? "Night" : bookingType === "24hr" ? "24 Hours" : "Day"}):
+                    Room rate ({bookingType === "night" ? "Night" : is24hr ? "24 Hours" : "Day"}):
                   </span>
                   <span className={`font-medium ${discount > 0 ? "line-through text-gray-400" : ""}`}>{formatPHP(baseRate)}</span>
                 </div>
@@ -873,7 +901,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         </form>
 
         {/* ── Booking Confirmation ── */}
-        {confirmOpen && (
+        {confirmOpen && (() => {
+          const typeInfo = {
+            day:      { label: "Day Visit",       icon: "fa-sun",   color: "blue",   checkIn: "6:00 AM",  checkOut: "6:00 PM (same day)"  },
+            night:    { label: "Night Stay",       icon: "fa-moon",  color: "indigo", checkIn: "6:00 PM",  checkOut: "7:00 AM (next day)"  },
+            "24hr":   { label: "24 Hours (6AM)",   icon: "fa-clock", color: "purple", checkIn: "6:00 AM",  checkOut: "6:00 AM (next day)"  },
+            "24hr-pm":{ label: "24 Hours (6PM)",   icon: "fa-clock", color: "purple", checkIn: "6:00 PM",  checkOut: "6:00 PM (next day)"  },
+          }[bookingType] ?? { label: "Day Visit", icon: "fa-sun", color: "blue", checkIn: "6:00 AM", checkOut: "6:00 PM (same day)" };
+          const rateLabel = bookingType === "night" ? "Overnight rate" : is24hr ? "24-hour rate" : "Day visit rate";
+          return (
           <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
             <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
             <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
@@ -896,11 +932,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
                 {/* Booking Type Badge */}
                 <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
-                    isOvernight ? "bg-indigo-100 text-indigo-800" : "bg-blue-100 text-blue-800"
-                  }`}>
-                    <i className={`fas ${isOvernight ? "fa-moon" : "fa-sun"}`}></i>
-                    {isOvernight ? "Overnight Stay" : "Day Visit"}
+                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-${typeInfo.color}-100 text-${typeInfo.color}-800`}>
+                    <i className={`fas ${typeInfo.icon}`}></i>
+                    {typeInfo.label}
                   </span>
                 </div>
 
@@ -922,19 +956,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       </tr>
                       <tr>
                         <td className="px-4 py-2.5 text-gray-500 font-medium">Check-in</td>
-                        <td className="px-4 py-2.5 text-gray-900">
-                          {isOvernight ? "6:00 PM" : DAY_TIME_SLOTS.find(s => s.value === visitTime)?.label}
-                        </td>
+                        <td className="px-4 py-2.5 text-gray-900">{typeInfo.checkIn}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-2.5 text-gray-500 font-medium">Check-out</td>
-                        <td className="px-4 py-2.5 text-gray-900">
-                          {isOvernight ? "6:00 AM (next day)" : DAY_TIME_SLOTS.find(s => s.value === visitTime)?.end}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Guests</td>
-                        <td className="px-4 py-2.5 text-gray-900">{guests} {guests === 1 ? "person" : "persons"}</td>
+                        <td className="px-4 py-2.5 text-gray-900">{typeInfo.checkOut}</td>
                       </tr>
                       {specialRequests && (
                         <tr>
@@ -950,39 +976,20 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <div className="bg-blue-50 rounded-xl border border-blue-200 p-4 space-y-2 text-sm">
                   <p className="font-semibold text-blue-900 mb-1">Payment Breakdown</p>
                   <div className="flex justify-between text-gray-700">
-                    <span>{isOvernight ? "Overnight rate" : "Day visit rate"}</span>
-                    <span>{formatPHP(baseRate)}</span>
+                    <span>{rateLabel}</span>
+                    <span className={discount > 0 ? "line-through text-gray-400" : ""}>{formatPHP(baseRate)}</span>
                   </div>
-                  {extraGuests > 0 && (
-                    <div className="flex justify-between text-orange-700">
-                      <span>Extra guests ({extraGuests} × {formatPHP(pricing.extra_guest_fee)})</span>
-                      <span>+ {formatPHP(extraCharge)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-gray-700">
-                    <span>Entrance fee ({guests} × {formatPHP(pricing.entrance_fee)})</span>
-                    <span>{formatPHP(entranceFee)}</span>
-                  </div>
-                  {discount > 0 ? (
+                  {discount > 0 && (
                     <>
-                      <div className="flex justify-between text-gray-400 border-t border-blue-200 pt-2">
-                        <span>Subtotal</span>
-                        <span className="line-through">{formatPHP(totalRate)}</span>
-                      </div>
                       <div className="flex justify-between text-green-700 font-medium">
                         <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput.toUpperCase()})</span>
                         <span>− {formatPHP(discount)}</span>
                       </div>
-                      <div className="flex justify-between font-semibold text-gray-900">
-                        <span>Total Rate</span>
+                      <div className="flex justify-between font-semibold text-gray-900 border-t border-blue-200 pt-2">
+                        <span>Discounted Rate</span>
                         <span>{formatPHP(discountedTotal)}</span>
                       </div>
                     </>
-                  ) : (
-                    <div className="flex justify-between font-semibold text-gray-900 border-t border-blue-200 pt-2">
-                      <span>Total Rate</span>
-                      <span>{formatPHP(totalRate)}</span>
-                    </div>
                   )}
                   <div className="border-t border-blue-300 pt-2 flex justify-between font-bold text-blue-800 text-base">
                     <span>{paymentOption === "full" ? "Total (Pay Now)" : "Reservation Fee (Pay Now)"}</span>
@@ -994,6 +1001,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       {balanceDue === 0 ? "₱0.00 — Fully Paid" : formatPHP(balanceDue)}
                     </span>
                   </div>
+                  <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
+                    <i className="fas fa-info-circle mr-1"></i>Entrance fees are collected at the gate upon arrival.
+                  </p>
                 </div>
 
                 {/* Payment option badge */}
@@ -1029,7 +1039,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </div>
     </Modal>
   );
