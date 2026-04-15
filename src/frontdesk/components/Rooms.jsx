@@ -8,6 +8,20 @@ import BookingDetailModal from './BookingDetailModal';
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
+function getCat(room) {
+  if (room.category) return room.category;
+  const n = (room.name || '').toLowerCase();
+  if (n.includes('cottage'))  return 'cottage';
+  if (n.includes('pavilion')) return 'pavilion';
+  return 'room';
+}
+
+const CATEGORY_GROUPS = [
+  { key: 'room',     label: 'Rooms',     icon: 'fa-bed'            },
+  { key: 'cottage',  label: 'Cottages',  icon: 'fa-umbrella-beach' },
+  { key: 'pavilion', label: 'Pavilions', icon: 'fa-archway'        },
+];
+
 function fmtTime(dt) {
   if (!dt) return '—';
   return new Date(dt.replace(' ', 'T')).toLocaleTimeString('en-PH', {
@@ -461,28 +475,41 @@ export default function FDRooms() {
               <i className="fas fa-door-open text-3xl mb-3 block"></i>No rooms match this filter.
             </div>
           ) : (
-            <div className="space-y-8">
+            <div className="space-y-10">
               {/* Day Section */}
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
                     <i className="fas fa-sun text-amber-500"></i>
                     <span className="font-semibold text-amber-800 text-sm">Day Visit</span>
-                    <span className="text-xs text-amber-600">7:00 AM – 5:00 PM · ₱1,500</span>
+                    <span className="text-xs text-amber-600">6:00 AM – 6:00 PM</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredInfos
-                    .filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter)
-                    .map(({ room, dayInfo }) => (
-                      <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
-                        onClick={() => setSelectedSlot({ room, info: dayInfo })} />
-                    ))
-                  }
-                </div>
-                {filteredInfos.filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter).length === 0 && (
-                  <p className="text-gray-400 text-sm py-4">No day rooms match this filter.</p>
-                )}
+                {(() => {
+                  const dayItems = filteredInfos.filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter);
+                  if (dayItems.length === 0) return <p className="text-gray-400 text-sm py-4">No rooms match this filter.</p>;
+                  return (
+                    <div className="space-y-5">
+                      {CATEGORY_GROUPS.map(grp => {
+                        const items = dayItems.filter(({ room }) => getCat(room) === grp.key);
+                        if (!items.length) return null;
+                        return (
+                          <div key={grp.key}>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                              <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
+                            </p>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                              {items.map(({ room, dayInfo }) => (
+                                <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
+                                  onClick={() => setSelectedSlot({ room, info: dayInfo })} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Overnight Section */}
@@ -491,21 +518,34 @@ export default function FDRooms() {
                   <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
                     <i className="fas fa-moon text-indigo-500"></i>
                     <span className="font-semibold text-indigo-800 text-sm">Overnight Stay</span>
-                    <span className="text-xs text-indigo-600">6:00 PM – 6:00 AM · ₱2,000</span>
+                    <span className="text-xs text-indigo-600">6:00 PM – 7:00 AM</span>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredInfos
-                    .filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter)
-                    .map(({ room, nightInfo }) => (
-                      <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
-                        onClick={() => setSelectedSlot({ room, info: nightInfo })} />
-                    ))
-                  }
-                </div>
-                {filteredInfos.filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter).length === 0 && (
-                  <p className="text-gray-400 text-sm py-4">No overnight rooms match this filter.</p>
-                )}
+                {(() => {
+                  const nightItems = filteredInfos.filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter);
+                  if (nightItems.length === 0) return <p className="text-gray-400 text-sm py-4">No rooms match this filter.</p>;
+                  return (
+                    <div className="space-y-5">
+                      {CATEGORY_GROUPS.map(grp => {
+                        const items = nightItems.filter(({ room }) => getCat(room) === grp.key);
+                        if (!items.length) return null;
+                        return (
+                          <div key={grp.key}>
+                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                              <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
+                            </p>
+                            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                              {items.map(({ room, nightInfo }) => (
+                                <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
+                                  onClick={() => setSelectedSlot({ room, info: nightInfo })} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
