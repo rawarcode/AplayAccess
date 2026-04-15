@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './Layout/Sidebar';
-import { getFdBookings, updateBookingStatus, downloadStaffReceipt } from '../../lib/frontdeskApi';
+import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 
 
@@ -253,8 +253,8 @@ export default function Billing() {
     return 0;
   });
 
-  // Bookings awaiting balance collection: Confirmed (walk-ins) + Checked In (online guests at departure)
-  const todayConfirmed  = todayAll.filter(b => b.status === 'Confirmed' || b.status === 'Checked In');
+  // Bookings awaiting balance collection: Confirmed/Checked In that haven't been fully paid yet
+  const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fully_paid);
   const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
   const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
 
@@ -266,17 +266,17 @@ export default function Billing() {
     if (!billing) return;
     setPaying(true);
     try {
-      await updateBookingStatus(billing.booking_id, 'Completed', { payment_method: payMethod });
+      await collectPayment(billing.booking_id, payMethod);
       setBookings(prev =>
         prev.map(b => b.booking_id === billing.booking_id
-          ? { ...b, status: 'Completed', fully_paid: true }
+          ? { ...b, fully_paid: true, paymentMethod: payMethod }
           : b)
       );
       setBilling(null);
       setSelected(null);
-      showToast('Payment collected! Booking completed.', 'success');
+      showToast('Payment collected successfully!', 'success');
     } catch {
-      showToast('Failed to update booking. Please try again.', 'error');
+      showToast('Failed to collect payment. Please try again.', 'error');
     } finally {
       setPaying(false);
     }
@@ -392,7 +392,7 @@ export default function Billing() {
                 <button onClick={handleCollect} disabled={paying}
                   className="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60">
                   <i className="fas fa-check mr-1"></i>
-                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue)} & Complete`}
+                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue)}`}
                 </button>
               </div>
             </div>

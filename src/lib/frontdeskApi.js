@@ -20,6 +20,12 @@ export async function checkInBooking(bookingId, entranceFee) {
   return res.data;
 }
 
+// POST /api/admin/bookings/{id}/collect-payment
+export async function collectPayment(bookingId, paymentMethod) {
+  const res = await api.post(`/api/admin/bookings/${bookingId}/collect-payment`, { payment_method: paymentMethod });
+  return res.data;
+}
+
 // PATCH /api/admin/bookings/{id}/guests
 export async function updateBookingGuests(bookingId, guests) {
   const res = await api.patch(`/api/admin/bookings/${bookingId}/guests`, { guests });
