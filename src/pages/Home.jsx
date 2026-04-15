@@ -129,11 +129,26 @@ export default function Home() {
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-6">{hero.title}</h1>
           <p className="text-xl md:text-2xl mb-8">{hero.subtitle}</p>
+          <Link
+            to="/resort"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl"
+          >
+            Book Now
+          </Link>
         </div>
+
+        {/* Scroll indicator */}
+        <button
+          onClick={() => document.getElementById("resorts-section")?.scrollIntoView({ behavior: "smooth" })}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-bounce"
+          aria-label="Scroll down"
+        >
+          <i className="fas fa-chevron-down text-2xl"></i>
+        </button>
       </section>
 
       {/* Resorts */}
-      <section className="py-20 bg-white">
+      <section id="resorts-section" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">{resortContent.sectionTitle}</h2>
