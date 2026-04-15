@@ -174,23 +174,35 @@ export default function Dashboard() {
       <main className="p-6">
         {/* Metric Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {[
-            { label: "Today's Bookings",  value: todayBookings.length, color: 'blue',   icon: 'fa-calendar-day'  },
-            { label: 'Arriving Today',    value: arriving.length,      color: 'green',  icon: 'fa-door-open',  sub: 'Confirmed' },
-            { label: 'Completed Today',   value: completed.length,     color: 'purple', icon: 'fa-check-circle' },
-            { label: 'Pending (All)',      value: allPending.length,    color: 'yellow', icon: 'fa-clock'        },
-          ].map(card => (
-            <div key={card.label} className="bg-white rounded-lg shadow p-6 flex items-center">
-              <div className={`p-3 rounded-full bg-${card.color}-100 text-${card.color}-600 mr-4`}>
-                <i className={`fas ${card.icon} text-xl`}></i>
+          {loading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-lg shadow p-6 flex items-center animate-pulse">
+                <div className="h-12 w-12 rounded-full bg-gray-200 mr-4"></div>
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-24 bg-gray-200 rounded"></div>
+                  <div className="h-6 w-12 bg-gray-200 rounded"></div>
+                </div>
               </div>
-              <div>
-                <p className="text-gray-500 text-sm">{card.label}</p>
-                <h3 className="text-2xl font-bold">{loading ? '—' : card.value}</h3>
-                {card.sub && <p className="text-xs text-gray-400">{card.sub}</p>}
+            ))
+          ) : (
+            [
+              { label: "Today's Bookings",  value: todayBookings.length, color: 'blue',   icon: 'fa-calendar-day'  },
+              { label: 'Arriving Today',    value: arriving.length,      color: 'green',  icon: 'fa-door-open',  sub: 'Confirmed' },
+              { label: 'Completed Today',   value: completed.length,     color: 'purple', icon: 'fa-check-circle' },
+              { label: 'Pending (All)',      value: allPending.length,    color: 'yellow', icon: 'fa-clock'        },
+            ].map(card => (
+              <div key={card.label} className="bg-white rounded-lg shadow p-6 flex items-center">
+                <div className={`p-3 rounded-full bg-${card.color}-100 text-${card.color}-600 mr-4`}>
+                  <i className={`fas ${card.icon} text-xl`}></i>
+                </div>
+                <div>
+                  <p className="text-gray-500 text-sm">{card.label}</p>
+                  <h3 className="text-2xl font-bold">{card.value}</h3>
+                  {card.sub && <p className="text-xs text-gray-400">{card.sub}</p>}
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Chart + Upcoming Arrivals */}
@@ -198,7 +210,11 @@ export default function Dashboard() {
           <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Bookings — Last 7 Days</h2>
             {loading ? (
-              <div className="h-64 flex items-center justify-center text-gray-400">Loading...</div>
+              <div className="h-64 animate-pulse flex items-end gap-3 px-4 pb-4">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="flex-1 bg-gray-200 rounded-t" style={{ height: `${30 + Math.random() * 50}%` }}></div>
+                ))}
+              </div>
             ) : (
               <div className="h-64">
                 <Bar
@@ -217,7 +233,18 @@ export default function Dashboard() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Arriving Today</h2>
             {loading ? (
-              <p className="text-gray-400 text-sm">Loading...</p>
+              <div className="space-y-4 animate-pulse">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-start border-b pb-3">
+                    <div className="h-8 w-8 rounded-full bg-gray-200 mr-3 mt-1 shrink-0"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-28 bg-gray-200 rounded"></div>
+                      <div className="h-3 w-20 bg-gray-200 rounded"></div>
+                      <div className="h-3 w-32 bg-gray-200 rounded"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : arriving.length === 0 ? (
               <div className="py-6 text-center text-gray-400">
                 <i className="fas fa-calendar-check text-3xl mb-2 block"></i>
