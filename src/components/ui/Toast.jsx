@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 
 /**
  * Floating error toast — red by default, green when type="success".
@@ -8,18 +8,21 @@ import { useState, useCallback, useEffect } from "react";
  */
 export function useToast(duration = 4000) {
   const [toast, setToast] = useState({ message: "", type: "error" });
-  const timerRef = { current: null };
+  const timerRef = useRef(null);
 
   const showToast = useCallback((message, type = "error") => {
     setToast({ message, type });
     if (timerRef.current) clearTimeout(timerRef.current);
     timerRef.current = setTimeout(() => setToast({ message: "", type: "error" }), duration);
-  }, [duration]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [duration]);
 
-  const clearToast = useCallback(() => setToast({ message: "", type: "error" }), []);
+  const clearToast = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ message: "", type: "error" });
+  }, []);
 
   // Clean up timer on unmount
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   return [toast.message, showToast, clearToast, toast.type];
 }
