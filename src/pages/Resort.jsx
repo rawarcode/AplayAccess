@@ -280,9 +280,8 @@ export default function Resort() {
         setGalleryApi(normalizeApiList(galleryRes.data));
         setReviewsApi(normalizeApiList(reviewsRes.data));
       } catch (e) {
-        // Silent fallback only (no banner)
+        // Silent fallback — page uses local data if API is unreachable
         if (!alive) return;
-        console.warn("Resort API load failed, using local fallback:", e?.message || e);
         setRoomsApi([]);
         setAmenitiesApi([]);
         setGalleryApi([]); // empty array triggers fallback
