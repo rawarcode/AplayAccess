@@ -129,6 +129,62 @@ function getOvernightStatus(roomName, bookings) {
   return { status: 'vacant' };
 }
 
+// ─── Multi-unit aggregate status (cottages, pavilions with quantity > 1) ──────
+function getMultiDayStatus(roomName, quantity, bookings) {
+  const now   = new Date();
+  const today = todayStr();
+  let occupied = 0, incoming = 0, pending = 0;
+
+  bookings.filter(b =>
+    b.roomType === roomName &&
+    b.checkIn?.slice(0, 10) === today &&
+    b.status !== 'Cancelled' &&
+    b.status !== 'Completed' &&
+    !isOvernightBooking(b)
+  ).forEach(b => {
+    const ci = new Date(b.checkIn.replace(' ', 'T'));
+    const co = new Date(b.checkOut.replace(' ', 'T'));
+    if (now >= ci && now < co)        occupied++;
+    else if (now < ci) {
+      if (b.status === 'Pending')     pending++;
+      else                            incoming++;
+    }
+  });
+
+  const booked = occupied + incoming + pending;
+  const vacant = Math.max(0, quantity - booked);
+  // summarised status for filter matching
+  const status = occupied > 0 ? 'occupied' : incoming > 0 ? 'incoming' : pending > 0 ? 'pending' : 'vacant';
+  return { multi: true, quantity, occupied, incoming, pending, vacant, status };
+}
+
+function getMultiNightStatus(roomName, quantity, bookings) {
+  const now   = new Date();
+  const today = todayStr();
+  let occupied = 0, incoming = 0, pending = 0;
+
+  bookings.filter(b => {
+    if (b.roomType !== roomName || b.status === 'Cancelled' || b.status === 'Completed') return false;
+    if (!isOvernightBooking(b)) return false;
+    const ci = new Date(b.checkIn.replace(' ', 'T'));
+    const co = new Date(b.checkOut.replace(' ', 'T'));
+    return (now >= ci && now < co) || ci.toISOString().slice(0, 10) === today;
+  }).forEach(b => {
+    const ci = new Date(b.checkIn.replace(' ', 'T'));
+    const co = new Date(b.checkOut.replace(' ', 'T'));
+    if (now >= ci && now < co)        occupied++;
+    else if (now < ci) {
+      if (b.status === 'Pending')     pending++;
+      else                            incoming++;
+    }
+  });
+
+  const booked = occupied + incoming + pending;
+  const vacant = Math.max(0, quantity - booked);
+  const status = occupied > 0 ? 'occupied' : incoming > 0 ? 'incoming' : pending > 0 ? 'pending' : 'vacant';
+  return { multi: true, quantity, occupied, incoming, pending, vacant, status };
+}
+
 // ─── status card config ───────────────────────────────────────────────────────
 const STATUS_CONFIG = {
   vacant:   { bg: 'bg-green-500',  border: 'border-green-600',  text: 'text-white',      label: 'VACANT',   icon: 'fa-check-circle'  },
@@ -215,6 +271,91 @@ function fmtDateLabel(dt) {
   if (d.toDateString() === now.toDateString())  return `Today · ${time}`;
   if (d.toDateString() === tom.toDateString())  return `Tomorrow · ${time}`;
   return d.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }) + ' · ' + time;
+}
+
+// ─── MultiUnitCard — for cottages / pavilions with quantity > 1 ──────────────
+function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
+  const { quantity, occupied, incoming, pending, vacant } = info;
+  const hk = HK_CONFIG[room.housekeeping_status ?? 'clean'];
+
+  // Build dot array: one dot per unit
+  const dots = [];
+  for (let i = 0; i < quantity; i++) {
+    let color;
+    if (i < occupied)                    color = 'bg-red-500';
+    else if (i < occupied + incoming)    color = 'bg-blue-500';
+    else if (i < occupied + incoming + pending) color = 'bg-yellow-400';
+    else                                 color = 'bg-green-500';
+    dots.push(color);
+  }
+
+  const allVacant  = vacant === quantity;
+  const allOccupied = occupied === quantity;
+
+  return (
+    <div className="bg-white border-2 border-slate-200 rounded-xl p-4 shadow-sm flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="font-bold text-slate-800 text-sm leading-tight">{room.name}</p>
+          <p className="text-xs text-slate-400 mt-0.5">{room.capacity_label || `${quantity} units`}</p>
+        </div>
+        <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">×{quantity}</span>
+      </div>
+
+      {/* Dot grid — up to 20 dots, then show "+N" */}
+      <div className="flex flex-wrap gap-1">
+        {dots.slice(0, 20).map((c, i) => (
+          <span key={i} className={`w-3.5 h-3.5 rounded-full ${c}`} />
+        ))}
+        {quantity > 20 && <span className="text-[10px] text-slate-400 self-center">+{quantity - 20}</span>}
+      </div>
+
+      {/* Count badges */}
+      <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
+        {occupied > 0 && (
+          <span className="flex items-center gap-1 bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>{occupied} Occupied
+          </span>
+        )}
+        {incoming > 0 && (
+          <span className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-blue-500 inline-block"></span>{incoming} Arriving
+          </span>
+        )}
+        {pending > 0 && (
+          <span className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span>{pending} Pending
+          </span>
+        )}
+        {vacant > 0 && (
+          <span className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+            <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span>{vacant} Vacant
+          </span>
+        )}
+      </div>
+
+      {/* Footer: housekeeping + walk-in */}
+      <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+        <button
+          onClick={() => onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean'])}
+          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${hk.bg} ${hk.text} hover:opacity-80 transition-opacity`}
+          title="Tap to update housekeeping"
+        >
+          <i className={`fas ${hk.icon} text-xs`}></i>{hk.label}
+        </button>
+        {vacant > 0 && (
+          <button onClick={onWalkIn}
+            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+            <i className="fas fa-person-walking text-xs"></i> Walk-in
+          </button>
+        )}
+        {allOccupied && (
+          <span className="text-xs text-red-500 font-semibold">Full</span>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ─── RoomCard ─────────────────────────────────────────────────────────────────
@@ -364,11 +505,14 @@ export default function FDRooms() {
   }, [bookings]);
 
   // Compute day and overnight info for every room
-  const roomInfos = useMemo(() => rooms.map(r => ({
-    room:      r,
-    dayInfo:   getDayStatus(r.name, bookings),
-    nightInfo: getOvernightStatus(r.name, bookings),
-  })), [rooms, bookings]);
+  const roomInfos = useMemo(() => rooms.map(r => {
+    const qty = r.quantity ?? 1;
+    return {
+      room:      r,
+      dayInfo:   qty > 1 ? getMultiDayStatus(r.name, qty, bookings)   : getDayStatus(r.name, bookings),
+      nightInfo: qty > 1 ? getMultiNightStatus(r.name, qty, bookings) : getOvernightStatus(r.name, bookings),
+    };
+  }), [rooms, bookings]);
 
   // Summary counts (day + overnight combined)
   const counts = useMemo(() => {
@@ -499,7 +643,11 @@ export default function FDRooms() {
                               <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
                             </p>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                              {items.map(({ room, dayInfo }) => (
+                              {items.map(({ room, dayInfo }) => dayInfo.multi ? (
+                                <MultiUnitCard key={`day-${room.id}`} room={room} info={dayInfo}
+                                  onHousekeepingChange={handleHousekeeping}
+                                  onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: room } })} />
+                              ) : (
                                 <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
                                   onClick={() => setSelectedSlot({ room, info: dayInfo })} />
                               ))}
@@ -535,7 +683,11 @@ export default function FDRooms() {
                               <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
                             </p>
                             <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                              {items.map(({ room, nightInfo }) => (
+                              {items.map(({ room, nightInfo }) => nightInfo.multi ? (
+                                <MultiUnitCard key={`night-${room.id}`} room={room} info={nightInfo}
+                                  onHousekeepingChange={handleHousekeeping}
+                                  onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: room } })} />
+                              ) : (
                                 <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
                                   onClick={() => setSelectedSlot({ room, info: nightInfo })} />
                               ))}
