@@ -2,13 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getResortRooms } from "../lib/resortApi.js";
+import { RESORT_ID } from "../lib/config.js";
 import { rooms as roomsFallback } from "../data/rooms.js";
 import BookingModal from "../components/modals/BookingModal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
-
-const RESORT_ID = 1;
 
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80";
 

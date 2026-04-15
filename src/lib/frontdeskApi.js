@@ -1,5 +1,6 @@
 // src/lib/frontdeskApi.js
 import { api } from "./api";
+import { RESORT_ID } from "./config";
 
 // GET /api/admin/bookings — all bookings (staff + admin only)
 export async function getFdBookings() {
@@ -44,9 +45,9 @@ export async function createWalkInBooking(payload) {
   return res.data;
 }
 
-// GET /api/resorts/1/rooms — room list with housekeeping_status
+// GET /api/resorts/:id/rooms — room list with housekeeping_status
 export async function getFdRooms() {
-  const res = await api.get("/api/resorts/1/rooms");
+  const res = await api.get(`/api/resorts/${RESORT_ID}/rooms`);
   return res.data.data ?? res.data;
 }
 

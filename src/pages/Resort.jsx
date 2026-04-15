@@ -7,6 +7,7 @@ import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { getAnnouncements } from "../lib/resortApi.js";
+import { RESORT_ID } from "../lib/config.js";
 
 // Local data for UI enrichment + offline fallback
 import { rooms as roomsFallback } from "../data/rooms.js";
@@ -18,8 +19,6 @@ import BookingModal from "../components/modals/BookingModal.jsx";
 import GuestWarningModal from "../components/modals/GuestWarningModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import AlertModal from "../components/modals/AlertModal.jsx";
-
-const RESORT_ID = 1;
 
 // Fallback image if DB has no images yet
 const FALLBACK_ROOM_IMG =

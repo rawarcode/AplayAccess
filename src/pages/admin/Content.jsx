@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
+import { RESORT_ID } from "../../lib/config.js";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
 import { isVideoUrl } from "../../lib/uploadApi.js";
@@ -1162,7 +1163,7 @@ function GalleryTab() {
     setApiError("");
     try {
       const payload = {
-        resort_id:  1,
+        resort_id:  RESORT_ID,
         image_url:  form.image_url,
         caption:    form.caption || null,
         category:   form.category,

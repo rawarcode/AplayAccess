@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Modal from "../../components/modals/Modal.jsx";
 import { getAdminRooms, createAdminRoom, updateAdminRoom } from "../../lib/adminApi";
+import { RESORT_ID } from "../../lib/config.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
 
@@ -259,7 +260,7 @@ export default function AdminRooms() {
       image:               editing.image     || undefined,
       features:               editing.features?.length ? editing.features : null,
       allowed_booking_types:  editing.allowed_booking_types?.length ? editing.allowed_booking_types : null,
-      resort_id:              1,
+      resort_id:              RESORT_ID,
     };
     try {
       editing.id ? await updateAdminRoom(editing.id, payload) : await createAdminRoom(payload);

@@ -3,6 +3,7 @@ import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useEffect, useMemo, useState } from "react";
 import { getBookings, downloadReceipt } from "../../lib/bookingApi.js";
 import { getResortRooms } from "../../lib/resortApi.js";
+import { RESORT_ID } from "../../lib/config.js";
 import BookingModal from "../../components/modals/BookingModal.jsx";
 import SuccessModal from "../../components/modals/SuccessModal.jsx";
 
@@ -88,7 +89,7 @@ export default function GuestDashboard() {
       .then(setBookings)
       .catch(() => {})
       .finally(() => setLoading(false));
-    getResortRooms(1)
+    getResortRooms(RESORT_ID)
       .then(data => setRooms(
         (data ?? []).map(r => ({
           id:             r?.id             ?? null,

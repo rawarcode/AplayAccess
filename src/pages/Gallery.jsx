@@ -3,10 +3,9 @@ import { Link } from "react-router-dom";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { gallery as galleryFallback } from "../data/gallery.js";
 import { getResortGallery } from "../lib/resortApi.js";
+import { RESORT_ID } from "../lib/config.js";
 import LightboxModal from "../components/modals/LightboxModal.jsx";
 import { isVideoUrl } from "../lib/uploadApi.js";
-
-const RESORT_ID = 1;
 
 const ALL_CATS = ["all", "beach", "rooms", "amenities", "dining", "events", "other"];
 
