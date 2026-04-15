@@ -11,13 +11,18 @@ import { getGuestPaymentStatus, downloadGuestReceipt } from "../lib/bookingApi.j
  *  B) Full-page   — user somehow landed here directly; shows success/failed UI.
  *
  * Routes:
- *   /payment/success?booking=<id>
+ *   /payment/success?booking=<id>           (logged-in)
+ *   /payment/success?token=<uuid>&guest=1   (guest)
  *   /payment/failed?booking=<id>
+ *   /payment/failed?token=<uuid>&guest=1
  */
 export default function PaymentReturn({ outcome }) {
   const [searchParams] = useSearchParams();
-  const bookingId      = searchParams.get("booking");
   const isGuest        = searchParams.get("guest") === "1";
+  // Guest bookings use a non-guessable token; logged-in users use the numeric ID
+  const bookingId      = isGuest
+    ? searchParams.get("token")
+    : searchParams.get("booking");
   const isPopup        = Boolean(window.opener);
 
   const [status,       setStatus]       = useState("loading");
@@ -30,7 +35,7 @@ export default function PaymentReturn({ outcome }) {
     setDlError("");
     try {
       const blob = await downloadGuestReceipt(bookingId);
-      const ref  = "APL-" + String(bookingId);
+      const ref  = "booking";
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;

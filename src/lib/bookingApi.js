@@ -20,20 +20,20 @@ export async function createGuestBooking(payload) {
 }
 
 // POST /api/guest-payment-link → PayMongo checkout session for guest booking (public)
-export async function createGuestPaymentLink(bookingId, payFull = false) {
-  const res = await api.post("/api/guest-payment-link", { booking_id: bookingId, pay_full: payFull });
+export async function createGuestPaymentLink(guestToken, payFull = false) {
+  const res = await api.post("/api/guest-payment-link", { guest_token: guestToken, pay_full: payFull });
   return res.data;
 }
 
-// GET /api/guest-payment-status/{id} → poll payment status (public)
-export async function getGuestPaymentStatus(bookingId) {
-  const res = await api.get(`/api/guest-payment-status/${bookingId}`);
+// GET /api/guest-payment-status/{guest_token} → poll payment status (public)
+export async function getGuestPaymentStatus(guestToken) {
+  const res = await api.get(`/api/guest-payment-status/${guestToken}`);
   return res.data;
 }
 
-// POST /api/guest-confirm-payment/{id} → confirm payment after redirect (public)
-export async function guestConfirmPayment(bookingId, fullyPaid = false) {
-  const res = await api.post(`/api/guest-confirm-payment/${bookingId}`, { fully_paid: fullyPaid });
+// POST /api/guest-confirm-payment/{guest_token} → confirm payment after redirect (public)
+export async function guestConfirmPayment(guestToken, fullyPaid = false) {
+  const res = await api.post(`/api/guest-confirm-payment/${guestToken}`, { fully_paid: fullyPaid });
   return res.data;
 }
 
@@ -43,9 +43,9 @@ export async function cancelBooking(bookingId) {
   return res.data;
 }
 
-// POST /api/guest-cancel-booking/{id} — cancel a guest booking (no auth)
-export async function cancelGuestBooking(bookingId) {
-  const res = await api.post(`/api/guest-cancel-booking/${bookingId}`);
+// POST /api/guest-cancel-booking/{guest_token} — cancel a guest booking (no auth)
+export async function cancelGuestBooking(guestToken) {
+  const res = await api.post(`/api/guest-cancel-booking/${guestToken}`);
   return res.data;
 }
 
@@ -55,8 +55,8 @@ export async function downloadReceipt(bookingId) {
   return res.data;
 }
 
-// GET /api/guest-receipt/{id} — download PDF receipt for guest bookings (no auth)
-export async function downloadGuestReceipt(bookingId) {
-  const res = await api.get(`/api/guest-receipt/${bookingId}`, { responseType: 'blob' });
+// GET /api/guest-receipt/{guest_token} — download PDF receipt for guest bookings (no auth)
+export async function downloadGuestReceipt(guestToken) {
+  const res = await api.get(`/api/guest-receipt/${guestToken}`, { responseType: 'blob' });
   return res.data;
 }

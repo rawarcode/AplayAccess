@@ -23,15 +23,16 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
 
   // Build a booking reference from the DB id if available
   const bookingId = booking?.bookingData?.id ?? null;
+  const guestToken = booking?.guestToken ?? null;
   const ref = booking?.bookingData?.res_id
     ?? (bookingId ? "APL-" + String(bookingId) : null);
 
   async function handleDownloadReceipt() {
-    if (!bookingId) return;
+    if (!guestToken) return;
     setDownloading(true);
     setDownloadError("");
     try {
-      const blob = await downloadGuestReceipt(bookingId);
+      const blob = await downloadGuestReceipt(guestToken);
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
@@ -129,7 +130,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleDownloadReceipt}
-                disabled={downloading || !bookingId}
+                disabled={downloading || !guestToken}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md text-sm"
               >
                 {downloading

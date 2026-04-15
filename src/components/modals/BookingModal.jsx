@@ -379,11 +379,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           balanceDue:     Math.max(0, (raw.total ?? 0) - (raw.reservation_fee ?? 0)),
         },
         bookingData: raw,
+        guestToken: result.guest_token ?? null,
       };
-      const bookingId = raw.id;
+      // For guest bookings, use the guest_token (UUID) for all subsequent API calls
+      // to prevent ID enumeration. For logged-in users, use the numeric booking ID.
+      const guestToken = result.guest_token;
+      const bookingId = guestMode ? guestToken : raw.id;
       const { checkout_url } = guestMode
-        ? await createGuestPaymentLink(bookingId, paymentOption === "full")
-        : await createPaymentLink(bookingId, paymentOption === "full");
+        ? await createGuestPaymentLink(guestToken, paymentOption === "full")
+        : await createPaymentLink(raw.id, paymentOption === "full");
 
       // Open PayMongo in a small centered popup so the main page stays visible
       const pw = 600, ph = 700;
