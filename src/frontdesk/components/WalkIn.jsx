@@ -285,6 +285,9 @@ export default function WalkIn() {
     }
   }
 
+  const [cancelBooking, setCancelBooking] = useState(null);
+  const [cancelling,    setCancelling]    = useState(false);
+
   async function handleStatus(bookingId, status) {
     setActionLoading(bookingId);
     try {
@@ -294,6 +297,23 @@ export default function WalkIn() {
       showToast('Failed to update status. Please try again.');
     } finally {
       setActionLoading(null);
+    }
+  }
+
+  async function handleCancel() {
+    if (!cancelBooking) return;
+    setCancelling(true);
+    try {
+      await updateBookingStatus(cancelBooking.bookingId, 'Cancelled');
+      setBookings(prev => prev.map(b =>
+        b.bookingId === cancelBooking.bookingId ? { ...b, status: 'Cancelled' } : b
+      ));
+      setCancelBooking(null);
+      showToast('Booking cancelled successfully.', 'success');
+    } catch {
+      showToast('Failed to cancel booking. Please try again.', 'error');
+    } finally {
+      setCancelling(false);
     }
   }
 
@@ -393,6 +413,44 @@ export default function WalkIn() {
                   className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
                   <i className="fas fa-check mr-1"></i>
                   {collectPaying ? 'Processing...' : `Collect ${fmtMoney(collectBooking.total)} & Complete`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Cancel / Undo Booking Modal ── */}
+      {cancelBooking && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold text-rose-700">
+                  <i className="fas fa-undo mr-2"></i>Cancel Booking
+                </h3>
+                <button onClick={() => setCancelBooking(null)} className="text-slate-500 hover:text-slate-700" aria-label="Close">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg mb-4 text-sm">
+                <p className="font-semibold text-rose-900 mb-1">Are you sure you want to cancel this booking?</p>
+                <p className="text-rose-700">This will free up the room and void the transaction.</p>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-lg mb-4 text-sm space-y-1">
+                <p className="font-medium text-slate-800">{walkInName(cancelBooking)}</p>
+                <p className="text-slate-600">{cancelBooking.roomType} · {cancelBooking.guests} pax</p>
+                <p className="text-slate-600">{cancelBooking.id} · {fmtMoney(cancelBooking.total)}</p>
+                <p className="text-slate-500 text-xs">{fmtDateTime(cancelBooking.checkIn)} → {fmtDateTime(cancelBooking.checkOut)}</p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setCancelBooking(null)} className="px-4 py-2 border rounded text-sm text-slate-700 hover:bg-slate-50">
+                  Go Back
+                </button>
+                <button onClick={handleCancel} disabled={cancelling}
+                  className="px-4 py-2 bg-rose-600 text-white rounded text-sm hover:bg-rose-700 disabled:opacity-60">
+                  <i className="fas fa-times-circle mr-1"></i>
+                  {cancelling ? 'Cancelling...' : 'Yes, Cancel Booking'}
                 </button>
               </div>
             </div>
@@ -1243,6 +1301,14 @@ export default function WalkIn() {
                                 className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-40"
                               ><i className="fas fa-exchange-alt mr-1"></i>Transfer</button>
                             </>
+                          )}
+                          {['Confirmed', 'Checked In'].includes(b.status) && (
+                            <button
+                              onClick={() => setCancelBooking(b)}
+                              disabled={actionLoading === b.bookingId}
+                              className="px-2 py-1 bg-rose-100 text-rose-700 border border-rose-200 rounded text-xs hover:bg-rose-200 disabled:opacity-40"
+                              title="Cancel / Undo booking"
+                            ><i className="fas fa-undo mr-1"></i>Undo</button>
                           )}
                         </div>
                       </td>
