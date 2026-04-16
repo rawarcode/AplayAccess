@@ -711,7 +711,7 @@ export default function WalkIn() {
               </button>
             </div>
 
-            <div className="overflow-y-auto flex-1 p-6">
+            <div id="walkin-scroll" className="overflow-y-auto flex-1 p-6">
               {formError && (
                 <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm flex items-center gap-2">
                   <i className="fas fa-exclamation-circle"></i>{formError}
@@ -942,6 +942,22 @@ export default function WalkIn() {
                 {/* ═══ STEP 2 — Extras & Summary ═══ */}
                 {wiStep === 2 && (<>
 
+                {/* Check-in / Check-out display */}
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Check-in / Check-out</label>
+                  <div className={`border border-slate-200 rounded-xl px-3 py-2 w-full text-sm font-medium flex items-center gap-2 ${
+                    form.bookingType === 'night'   ? 'bg-indigo-50 text-indigo-700' :
+                    is24hr                         ? 'bg-purple-50 text-purple-700' :
+                                                     'bg-sky-50 text-sky-700'
+                  }`}>
+                    <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'}`}></i>
+                    {form.bookingType === 'night'   ? '6:00 PM → 7:00 AM (next day)'
+                   : form.bookingType === '24hr'    ? '6:00 AM → 6:00 AM (next day)'
+                   : form.bookingType === '24hr-pm' ? '6:00 PM → 6:00 PM (next day)'
+                   :                                  '6:00 AM → 6:00 PM'}
+                  </div>
+                </div>
+
                 {/* Notes */}
                 {showWiNotes ? (
                   <div className="mb-4">
@@ -1136,12 +1152,13 @@ export default function WalkIn() {
                     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
                     if (!form.roomId) { setFormError('Please select a room.'); return; }
                     setWiStep(2);
+                    document.getElementById('walkin-scroll')?.scrollTo(0, 0);
                   }}
                   className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
                   Next <i className="fas fa-arrow-right"></i>
                 </button>
               </>) : (<>
-                <button type="button" onClick={() => setWiStep(1)}
+                <button type="button" onClick={() => { setWiStep(1); document.getElementById('walkin-scroll')?.scrollTo(0, 0); }}
                   className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
                   <i className="fas fa-arrow-left mr-1"></i>Back
                 </button>
