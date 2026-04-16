@@ -8,7 +8,7 @@ import {
 import Sidebar from './Layout/Sidebar';
 import Modal from '../../components/modals/Modal';
 import { useAuth } from '../../context/AuthContext';
-import { getFdBookings } from '../../lib/frontdeskApi';
+import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
 import NotificationBell from '../../components/ui/NotificationBell';
 import Toast, { useToast } from '../../components/ui/Toast';
 
@@ -41,8 +41,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { user: session, logout } = useAuth();
 
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading]   = useState(true);
+  const [bookings, setBookings]   = useState([]);
+  const [rooms, setRooms]         = useState([]);
+  const [loading, setLoading]     = useState(true);
   const [toast, showToast, clearToast, toastType] = useToast();
 
   const [profileOpen, setProfileOpen]   = useState(false);
@@ -54,12 +55,12 @@ export default function Dashboard() {
   const userEmail = session?.email || '';
   const initials  = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
-  // ── load bookings ───────────────────────────────────────────────────────────
+  // ── load data ────────────────────────────────────────────────────────────────
   useEffect(() => {
     function load() {
-      getFdBookings()
-        .then(data => { setBookings(data); })
-        .catch(() => showToast('Failed to load bookings.', 'error'))
+      Promise.all([getFdBookings(), getFdRooms()])
+        .then(([bData, rData]) => { setBookings(bData); setRooms(rData); })
+        .catch(() => showToast('Failed to load dashboard data.', 'error'))
         .finally(() => setLoading(false));
     }
     load();
@@ -80,8 +81,28 @@ export default function Dashboard() {
   const today          = todayStr();
   const todayBookings  = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
   const arriving       = todayBookings.filter(b => b.status === 'Confirmed');
+  const checkedIn      = todayBookings.filter(b => b.status === 'Checked In');
   const completed      = todayBookings.filter(b => b.status === 'Completed');
   const allPending     = bookings.filter(b => b.status === 'Pending');
+  const walkIns        = todayBookings.filter(b => b.source === 'walk-in' || b.source === 'walkin');
+
+  // Occupancy
+  const totalRooms     = rooms.reduce((sum, r) => sum + Number(r.quantity ?? 1), 0);
+  const occupiedRooms  = bookings.filter(b => b.status === 'Checked In').length;
+  const availableRooms = Math.max(0, totalRooms - occupiedRooms);
+  const occupancyPct   = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+
+  // Today's revenue
+  const todayRevenue   = todayBookings
+    .filter(b => ['Confirmed', 'Checked In', 'Completed'].includes(b.status))
+    .reduce((sum, b) => sum + Number(b.totalAmount ?? b.total ?? 0), 0);
+
+  // Overdue checkouts — checked in but checkout time has passed
+  const now = new Date();
+  const overdueCheckouts = bookings.filter(b => {
+    if (b.status !== 'Checked In' || !b.checkOut) return false;
+    return new Date(b.checkOut.replace(' ', 'T')) < now;
+  });
 
   const { labels, counts } = buildWeekChart(bookings);
   const chartData = {
@@ -167,11 +188,11 @@ export default function Dashboard() {
       {/* ── Main Content ── */}
       <main className="p-6">
         {/* Metric Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           {loading ? (
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="bg-white rounded-lg shadow p-6 flex items-center animate-pulse">
-                <div className="h-12 w-12 rounded-full bg-slate-200 mr-4"></div>
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl shadow p-5 flex items-center animate-pulse">
+                <div className="h-12 w-12 rounded-xl bg-slate-200 mr-4"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-3 w-24 bg-slate-200 rounded"></div>
                   <div className="h-6 w-12 bg-slate-200 rounded"></div>
@@ -180,13 +201,15 @@ export default function Dashboard() {
             ))
           ) : (
             [
-              { label: "Today's Bookings",  value: todayBookings.length, bg: 'bg-sky-100',     text: 'text-sky-600',     icon: 'fa-calendar-day'  },
-              { label: 'Arriving Today',    value: arriving.length,      bg: 'bg-emerald-100', text: 'text-emerald-600', icon: 'fa-door-open',  sub: 'Confirmed' },
-              { label: 'Completed Today',   value: completed.length,     bg: 'bg-violet-100',  text: 'text-violet-600',  icon: 'fa-check-circle' },
-              { label: 'Pending (All)',      value: allPending.length,    bg: 'bg-amber-100',   text: 'text-amber-600',   icon: 'fa-clock'        },
+              { label: 'Occupancy',          value: `${occupancyPct}%`,                    bg: 'bg-sky-100',     text: 'text-sky-600',     icon: 'fa-chart-pie',     sub: `${occupiedRooms} / ${totalRooms} rooms` },
+              { label: 'Available Rooms',     value: availableRooms,                        bg: 'bg-emerald-100', text: 'text-emerald-600', icon: 'fa-door-open'      },
+              { label: "Today's Revenue",     value: `₱${todayRevenue.toLocaleString()}`,   bg: 'bg-teal-100',    text: 'text-teal-600',    icon: 'fa-peso-sign'      },
+              { label: 'Arriving Today',      value: arriving.length,                       bg: 'bg-indigo-100',  text: 'text-indigo-600',  icon: 'fa-plane-arrival',  sub: 'Confirmed' },
+              { label: 'Walk-ins Today',      value: walkIns.length,                        bg: 'bg-amber-100',   text: 'text-amber-600',   icon: 'fa-walking'        },
+              { label: 'Pending (All)',        value: allPending.length,                     bg: 'bg-violet-100',  text: 'text-violet-600',  icon: 'fa-clock'          },
             ].map(card => (
-              <div key={card.label} className="bg-white rounded-lg shadow p-6 flex items-center">
-                <div className={`p-3 rounded-full ${card.bg} ${card.text} mr-4`}>
+              <div key={card.label} className="bg-white rounded-xl shadow p-5 flex items-center">
+                <div className={`p-3 rounded-xl ${card.bg} ${card.text} mr-4`}>
                   <i className={`fas ${card.icon} text-xl`}></i>
                 </div>
                 <div>
@@ -266,6 +289,31 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+        {/* Overdue Checkouts */}
+        {!loading && overdueCheckouts.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl shadow p-6 border-l-4 border-rose-400">
+            <h2 className="text-lg font-semibold text-rose-600 mb-3 flex items-center gap-2">
+              <i className="fas fa-exclamation-triangle"></i>
+              Overdue Checkouts ({overdueCheckouts.length})
+            </h2>
+            <div className="space-y-3 max-h-48 overflow-y-auto">
+              {overdueCheckouts.map(b => (
+                <div key={b.bookingId} className="flex items-center justify-between bg-rose-50 rounded-lg px-4 py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-rose-100 text-rose-600 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                      <i className="fas fa-user text-sm"></i>
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">{b.guest}</p>
+                      <p className="text-xs text-slate-500">{b.roomType} · Checkout was {fmtTime(b.checkOut)}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold text-rose-600 bg-rose-100 px-2 py-1 rounded-full">Overdue</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
       <Toast message={toast} type={toastType} onClose={clearToast} />
     </Sidebar>
