@@ -9,6 +9,7 @@ import Announcements from "./pages/Announcements.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 import ResetPassword from "./pages/ResetPassword.jsx";
 import PaymentReturn from "./pages/PaymentReturn.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 
 // Guest dashboard (protected)
 import RequireAuth from "./components/auth/RequireAuth.jsx";
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="/announcements" element={<Announcements />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
+        <Route path="/verify-email"    element={<VerifyEmail />} />
 
         {/* PayMongo return pages */}
         <Route path="/payment/success" element={<PaymentReturn outcome="success" />} />

@@ -21,5 +21,10 @@ export default function RequireAuth({ children }) {
     return <Navigate to={ROLE_REDIRECTS[user.role]} replace />;
   }
 
+  // Guest must verify email before accessing dashboard
+  if (user.role === "guest" && !user.email_verified_at) {
+    return <Navigate to="/verify-email" replace />;
+  }
+
   return children;
 }

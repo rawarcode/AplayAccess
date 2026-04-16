@@ -31,6 +31,18 @@ export async function googleLoginRequest(credential) {
   return res.data;
 }
 
+// POST /api/verify-email — verify OTP code
+export async function verifyEmailRequest(code) {
+  const res = await api.post("/api/verify-email", { code });
+  return res.data;
+}
+
+// POST /api/resend-verification — resend OTP email
+export async function resendVerificationRequest() {
+  const res = await api.post("/api/resend-verification");
+  return res.data;
+}
+
 // POST /api/forgot-password — sends reset link email
 export async function forgotPasswordRequest(email) {
   const res = await api.post("/api/forgot-password", { email });

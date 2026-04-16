@@ -33,7 +33,7 @@ export default function Signup() {
     const wasSuccess = alert.type === "success";
     setAlert((s) => ({ ...s, open: false }));
     if (wasSuccess) {
-      navigate("/dashboard");
+      navigate("/verify-email");
     }
   }
 
