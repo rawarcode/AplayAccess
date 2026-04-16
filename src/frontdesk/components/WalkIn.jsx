@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
 import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus, transferRoom } from '../../lib/frontdeskApi';
@@ -30,14 +31,14 @@ function walkInName(b) {
 
 function StatusBadge({ status }) {
   const cls = {
-    'Checked In': 'bg-purple-100 text-purple-800',
-    Confirmed:    'bg-blue-100 text-blue-800',
-    Completed:    'bg-green-100 text-green-800',
-    Cancelled:    'bg-red-100 text-red-800',
-    Pending:      'bg-yellow-100 text-yellow-800',
+    'Checked In': 'bg-violet-100 text-violet-800',
+    Confirmed:    'bg-sky-100 text-sky-800',
+    Completed:    'bg-emerald-100 text-emerald-800',
+    Cancelled:    'bg-rose-100 text-rose-800',
+    Pending:      'bg-amber-100 text-amber-800',
   };
   return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-slate-100 text-slate-800'}`}>
       {status}
     </span>
   );
@@ -352,6 +353,7 @@ export default function WalkIn() {
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
+      <Helmet><title>Walk-in — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
       {/* ── Collect Payment Modal ── */}
@@ -361,35 +363,35 @@ export default function WalkIn() {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Collect Payment — {collectBooking.id}</h3>
-                <button onClick={() => setCollectBooking(null)} className="text-gray-500 hover:text-gray-700" aria-label="Close">
+                <button onClick={() => setCollectBooking(null)} className="text-slate-500 hover:text-slate-700" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
-              <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
-                <p className="font-medium text-gray-800">{walkInName(collectBooking)}</p>
-                <p className="text-gray-600">{collectBooking.roomType} · {collectBooking.guests} pax</p>
-                <p className="text-gray-500 text-xs mt-1">{fmtDateTime(collectBooking.checkIn)} → {fmtDateTime(collectBooking.checkOut)}</p>
+              <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
+                <p className="font-medium text-slate-800">{walkInName(collectBooking)}</p>
+                <p className="text-slate-600">{collectBooking.roomType} · {collectBooking.guests} pax</p>
+                <p className="text-slate-500 text-xs mt-1">{fmtDateTime(collectBooking.checkIn)} → {fmtDateTime(collectBooking.checkOut)}</p>
               </div>
               <div className="border rounded mb-4 text-sm">
-                <div className="flex justify-between px-4 py-3 font-semibold text-blue-800 text-base">
+                <div className="flex justify-between px-4 py-3 font-semibold text-sky-800 text-base">
                   <span>Total to Collect</span>
                   <span>{fmtMoney(collectBooking.total)}</span>
                 </div>
               </div>
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Payment Method</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Payment Method</label>
                 <div className="flex gap-2">
                   {[
-                    { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-green-600' },
-                    { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-blue-500'  },
-                    { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-green-500' },
+                    { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-emerald-600' },
+                    { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-sky-500'  },
+                    { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-emerald-500' },
                   ].map(opt => (
                     <button key={opt.value} type="button"
                       onClick={() => setCollectPayMethod(opt.value)}
                       className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded text-sm font-medium transition-colors ${
                         collectPayMethod === opt.value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-300 text-gray-600 hover:bg-gray-50'
+                          ? 'border-sky-500 bg-sky-50 text-sky-700'
+                          : 'border-slate-300 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
                       <i className={`fas ${opt.icon} ${collectPayMethod === opt.value ? '' : opt.color}`}></i>
@@ -399,9 +401,9 @@ export default function WalkIn() {
                 </div>
               </div>
               <div className="flex justify-end gap-3">
-                <button onClick={() => setCollectBooking(null)} className="px-4 py-2 border rounded text-sm text-gray-700">Cancel</button>
+                <button onClick={() => setCollectBooking(null)} className="px-4 py-2 border rounded text-sm text-slate-700">Cancel</button>
                 <button onClick={handleCollect} disabled={collectPaying}
-                  className="px-4 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-60">
+                  className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
                   <i className="fas fa-check mr-1"></i>
                   {collectPaying ? 'Processing...' : `Collect ${fmtMoney(collectBooking.total)} & Complete`}
                 </button>
@@ -435,19 +437,19 @@ export default function WalkIn() {
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
                   <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="text-gray-500 hover:text-gray-700" aria-label="Close"><i className="fas fa-times"></i></button>
+                    className="text-slate-500 hover:text-slate-700" aria-label="Close"><i className="fas fa-times"></i></button>
                 </div>
-                <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
-                  <p className="font-medium text-gray-800">{walkInName(transferBooking)}</p>
-                  <p className="text-gray-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
+                <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
+                  <p className="font-medium text-slate-800">{walkInName(transferBooking)}</p>
+                  <p className="text-slate-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
                 </div>
                 <div className="mb-5">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Transfer to Room</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Transfer to Room</label>
                   {availableRooms.length === 0 ? (
-                    <p className="text-sm text-red-600">No other rooms are available for this time slot.</p>
+                    <p className="text-sm text-rose-600">No other rooms are available for this time slot.</p>
                   ) : (
                     <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                       <option value="">Select a room...</option>
                       {availableRooms.map(r => (
                         <option key={r.id} value={r.id}>{r.name}</option>
@@ -457,7 +459,7 @@ export default function WalkIn() {
                 </div>
                 <div className="flex justify-end gap-3">
                   <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="px-4 py-2 border rounded text-sm text-gray-700">Cancel</button>
+                    className="px-4 py-2 border rounded text-sm text-slate-700">Cancel</button>
                   <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
                     className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-60">
                     <i className="fas fa-exchange-alt mr-1"></i>
@@ -492,12 +494,12 @@ export default function WalkIn() {
             <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
 
               {/* Header */}
-              <div className="bg-blue-700 px-6 py-4 flex items-center justify-between">
+              <div className="bg-sky-700 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 text-white">
                   <i className="fas fa-clipboard-check text-xl"></i>
                   <div>
                     <h3 className="font-bold text-lg">Walk-in Booking Summary</h3>
-                    <p className="text-blue-200 text-xs">Review all details before confirming</p>
+                    <p className="text-sky-200 text-xs">Review all details before confirming</p>
                   </div>
                 </div>
                 <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white" aria-label="Close">
@@ -511,80 +513,80 @@ export default function WalkIn() {
                 <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${
                   form.bookingType === 'night'   ? 'bg-indigo-100 text-indigo-800' :
                   is24hr                         ? 'bg-purple-100 text-purple-800' :
-                                                   'bg-blue-100 text-blue-800'
+                                                   'bg-sky-100 text-sky-800'
                 }`}>
                   <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'}`}></i>
                   {typeLabel}
                 </span>
 
                 {/* Guest & Booking Details */}
-                <div className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Guest</div>
+                <div className="bg-slate-50 rounded-xl border border-slate-200 overflow-hidden">
+                  <div className="bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Guest</div>
                   <table className="w-full text-sm">
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium w-32">Name</td>
-                        <td className="px-4 py-2.5 font-semibold text-gray-900">{guestName}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium w-32">Name</td>
+                        <td className="px-4 py-2.5 font-semibold text-slate-900">{guestName}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Phone</td>
-                        <td className="px-4 py-2.5 text-gray-900">{form.phone}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium">Phone</td>
+                        <td className="px-4 py-2.5 text-slate-900">{form.phone}</td>
                       </tr>
                       {form.email && (
                         <tr>
-                          <td className="px-4 py-2.5 text-gray-500 font-medium">Email</td>
-                          <td className="px-4 py-2.5 text-gray-900">{form.email}</td>
+                          <td className="px-4 py-2.5 text-slate-500 font-medium">Email</td>
+                          <td className="px-4 py-2.5 text-slate-900">{form.email}</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
-                  <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Booking</div>
+                  <div className="bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Booking</div>
                   <table className="w-full text-sm">
-                    <tbody className="divide-y divide-gray-100">
+                    <tbody className="divide-y divide-slate-100">
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium w-32">Room</td>
-                        <td className="px-4 py-2.5 font-semibold text-gray-900">{selRoom?.name || '—'}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium w-32">Room</td>
+                        <td className="px-4 py-2.5 font-semibold text-slate-900">{selRoom?.name || '—'}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Date</td>
-                        <td className="px-4 py-2.5 text-gray-900">{dateLabel}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium">Date</td>
+                        <td className="px-4 py-2.5 text-slate-900">{dateLabel}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Check-in</td>
-                        <td className="px-4 py-2.5 text-gray-900">{checkInLabel}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium">Check-in</td>
+                        <td className="px-4 py-2.5 text-slate-900">{checkInLabel}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Check-out</td>
-                        <td className="px-4 py-2.5 text-gray-900">{checkOutLabel}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium">Check-out</td>
+                        <td className="px-4 py-2.5 text-slate-900">{checkOutLabel}</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Guests</td>
-                        <td className="px-4 py-2.5 text-gray-900">{form.guests} pax</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium">Guests</td>
+                        <td className="px-4 py-2.5 text-slate-900">{form.guests} pax</td>
                       </tr>
                       <tr>
-                        <td className="px-4 py-2.5 text-gray-500 font-medium">Payment</td>
-                        <td className="px-4 py-2.5 text-gray-900">{form.payMethod}</td>
+                        <td className="px-4 py-2.5 text-slate-500 font-medium">Payment</td>
+                        <td className="px-4 py-2.5 text-slate-900">{form.payMethod}</td>
                       </tr>
                       {form.notes && (
                         <tr>
-                          <td className="px-4 py-2.5 text-gray-500 font-medium align-top">Notes</td>
-                          <td className="px-4 py-2.5 text-gray-700 italic">"{form.notes}"</td>
+                          <td className="px-4 py-2.5 text-slate-500 font-medium align-top">Notes</td>
+                          <td className="px-4 py-2.5 text-slate-700 italic">"{form.notes}"</td>
                         </tr>
                       )}
                     </tbody>
                   </table>
                   {addons.some(a => Number(addonQtys[a.id] || 0) > 0) && (
                     <>
-                      <div className="bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">Add-ons</div>
+                      <div className="bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Add-ons</div>
                       <table className="w-full text-sm">
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-slate-100">
                           {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
                             const qty = Number(addonQtys[a.id]);
                             const subtotal = a.per_booking ? a.price : a.price * qty;
                             return (
                               <tr key={a.id}>
-                                <td className="px-4 py-2.5 text-gray-500 font-medium w-32">{a.name}</td>
-                                <td className="px-4 py-2.5 text-gray-900">
+                                <td className="px-4 py-2.5 text-slate-500 font-medium w-32">{a.name}</td>
+                                <td className="px-4 py-2.5 text-slate-900">
                                   {a.per_booking ? fmtMoney(subtotal) : `× ${qty} — ${fmtMoney(subtotal)}`}
                                 </td>
                               </tr>
@@ -600,40 +602,40 @@ export default function WalkIn() {
                 <div className={`rounded-xl border p-4 space-y-2 text-sm ${
                   form.bookingType === 'night' ? 'bg-indigo-50 border-indigo-200' :
                   is24hr                       ? 'bg-purple-50 border-purple-200' :
-                                                 'bg-blue-50 border-blue-200'
+                                                 'bg-sky-50 border-sky-200'
                 }`}>
                   <p className={`font-semibold mb-1 ${
                     form.bookingType === 'night' ? 'text-indigo-900' :
-                    is24hr                       ? 'text-purple-900' : 'text-blue-900'
+                    is24hr                       ? 'text-purple-900' : 'text-sky-900'
                   }`}>Payment Breakdown</p>
-                  <div className="flex justify-between text-gray-700">
+                  <div className="flex justify-between text-slate-700">
                     <span>Room rate ({typeLabel})</span>
                     <span>{fmtMoney(baseRate)}</span>
                   </div>
                   {amenityTotal > 0 && (
-                    <div className="flex justify-between text-gray-700">
+                    <div className="flex justify-between text-slate-700">
                       <span>Add-ons</span>
                       <span>{fmtMoney(amenityTotal)}</span>
                     </div>
                   )}
                   {promoDiscount > 0 ? (
                     <>
-                      <div className="flex justify-between text-gray-400 border-t border-gray-200 pt-2">
+                      <div className="flex justify-between text-slate-400 border-t border-slate-200 pt-2">
                         <span>Subtotal</span>
                         <span className="line-through">{fmtMoney(previewSubtotal)}</span>
                       </div>
-                      <div className="flex justify-between text-green-700 font-medium">
+                      <div className="flex justify-between text-emerald-700 font-medium">
                         <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput.toUpperCase()})</span>
                         <span>− {fmtMoney(promoDiscount)}</span>
                       </div>
                     </>
                   ) : (
-                    <div className="border-t border-gray-200 pt-1"></div>
+                    <div className="border-t border-slate-200 pt-1"></div>
                   )}
                   <div className={`flex justify-between font-bold text-base border-t pt-2 ${
                     form.bookingType === 'night' ? 'text-indigo-900 border-indigo-200' :
                     is24hr                       ? 'text-purple-900 border-purple-200' :
-                                                   'text-blue-900 border-blue-200'
+                                                   'text-sky-900 border-sky-200'
                   }`}>
                     <span>Room Total</span>
                     <span>{fmtMoney(previewTotal)}</span>
@@ -656,13 +658,13 @@ export default function WalkIn() {
               </div>
 
               {/* Actions */}
-              <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
+              <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
                 <button onClick={() => setConfirmOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
+                  className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
                   <i className="fas fa-arrow-left mr-2"></i>Back
                 </button>
                 <button onClick={handleConfirmCreate} disabled={submitting}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                  className="flex-1 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
                   {submitting
                     ? <><i className="fas fa-spinner fa-spin"></i> Creating...</>
                     : <><i className="fas fa-check"></i> Confirm Booking</>}
@@ -697,7 +699,7 @@ export default function WalkIn() {
                 <i className="fas fa-person-walking-luggage text-xl"></i>
                 <div>
                   <h3 className="font-bold text-lg">New Walk-in Booking</h3>
-                  <p className="text-blue-200 text-xs">Fill in guest and booking details</p>
+                  <p className="text-sky-200 text-xs">Fill in guest and booking details</p>
                 </div>
               </div>
               <button onClick={() => { setFormOpen(false); setFormError(''); }} className="text-white/70 hover:text-white" aria-label="Close">
@@ -707,7 +709,7 @@ export default function WalkIn() {
 
             <div className="overflow-y-auto flex-1 p-6">
               {formError && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
+                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm flex items-center gap-2">
                   <i className="fas fa-exclamation-circle"></i>{formError}
                 </div>
               )}
@@ -766,7 +768,7 @@ export default function WalkIn() {
                         // 24hr button is active for both '24hr' and '24hr-pm'
                         const active = opt.type === '24hr' ? is24hr : form.bookingType === opt.type;
                         const colorMap = {
-                          blue:   { border: 'border-blue-500',   bg: 'bg-blue-50',   text: 'text-blue-700',   icon: 'text-blue-500'   },
+                          blue:   { border: 'border-sky-500',   bg: 'bg-sky-50',   text: 'text-sky-700',   icon: 'text-sky-500'   },
                           indigo: { border: 'border-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: 'text-indigo-500' },
                           purple: { border: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
                         };
@@ -777,14 +779,14 @@ export default function WalkIn() {
                             onClick={() => { if (!opt.disabled) setField('bookingType', opt.type); }}
                             className={`flex flex-col items-center gap-1 p-3 border-2 rounded-lg transition-colors ${
                               opt.disabled
-                                ? 'border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed'
-                                : active ? `${c.border} ${c.bg}` : 'border-gray-200 hover:border-gray-300'
+                                ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
+                                : active ? `${c.border} ${c.bg}` : 'border-slate-200 hover:border-slate-300'
                             }`}
                           >
-                            <i className={`fas ${opt.icon} text-lg ${active && !opt.disabled ? c.icon : 'text-gray-400'}`}></i>
-                            <p className={`text-xs font-semibold ${active && !opt.disabled ? c.text : 'text-gray-700'}`}>{opt.label}</p>
-                            <p className="text-xs text-gray-500">{opt.time}</p>
-                            <p className={`text-xs font-bold ${active && !opt.disabled ? c.text : 'text-gray-600'}`}>
+                            <i className={`fas ${opt.icon} text-lg ${active && !opt.disabled ? c.icon : 'text-slate-400'}`}></i>
+                            <p className={`text-xs font-semibold ${active && !opt.disabled ? c.text : 'text-slate-700'}`}>{opt.label}</p>
+                            <p className="text-xs text-slate-500">{opt.time}</p>
+                            <p className={`text-xs font-bold ${active && !opt.disabled ? c.text : 'text-slate-600'}`}>
                               {form.roomId ? fmtMoney(opt.rate) : '—'}
                             </p>
                           </button>
@@ -825,7 +827,7 @@ export default function WalkIn() {
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
                       disabled={nightUnavailable}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-gray-100 disabled:cursor-not-allowed" required>
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-100 disabled:cursor-not-allowed" required>
                       <option value="">
                         {nightUnavailable ? 'Night not available — select a future date' : 'Select room / cottage / pavilion'}
                       </option>
@@ -857,13 +859,13 @@ export default function WalkIn() {
                       const sel = rooms.find(r => String(r.id) === String(form.roomId));
                       const avail = sel ? availability?.[sel.name] : undefined;
                       if (avail === false) return (
-                        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                        <p className="mt-1 text-xs text-rose-600 flex items-center gap-1">
                           <i className="fas fa-times-circle"></i>
                           This room is not available for the selected date.
                         </p>
                       );
                       if (avail === true) return (
-                        <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                        <p className="mt-1 text-xs text-emerald-600 flex items-center gap-1">
                           <i className="fas fa-check-circle"></i>
                           Room is available.
                         </p>
@@ -882,27 +884,27 @@ export default function WalkIn() {
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
                       No. of Guests *
-                      <span className="ml-1 text-gray-400 font-normal">(for entrance fee)</span>
+                      <span className="ml-1 text-slate-400 font-normal">(for entrance fee)</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <button type="button"
                         onClick={() => setField('guests', Math.max(1, Number(form.guests) - 1))}
-                        className="w-8 h-9 border border-slate-200 rounded-lg text-lg font-bold text-gray-600 hover:bg-gray-100">−</button>
+                        className="w-8 h-9 border border-slate-200 rounded-lg text-lg font-bold text-slate-600 hover:bg-slate-100">−</button>
                       <input type="number" min="1" max="200" value={form.guests}
                         onChange={e => setField('guests', Math.max(1, Number(e.target.value) || 1))}
                         className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-sky-400" />
                       <button type="button"
                         onClick={() => setField('guests', Number(form.guests) + 1)}
-                        className="w-8 h-9 border border-slate-200 rounded-lg text-lg font-bold text-gray-600 hover:bg-gray-100">+</button>
+                        className="w-8 h-9 border border-slate-200 rounded-lg text-lg font-bold text-slate-600 hover:bg-slate-100">+</button>
                     </div>
                   </div>
 
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Check-in / Check-out</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Check-in / Check-out</label>
                     <div className={`border border-slate-200 rounded-xl px-3 py-2 w-full text-sm font-medium flex items-center gap-2 ${
                       form.bookingType === 'night'   ? 'bg-indigo-50 text-indigo-700' :
                       is24hr                         ? 'bg-purple-50 text-purple-700' :
-                                                       'bg-blue-50 text-blue-700'
+                                                       'bg-sky-50 text-sky-700'
                     }`}>
                       <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'}`}></i>
                       {form.bookingType === 'night'   ? '6:00 PM → 7:00 AM (next day)'
@@ -916,9 +918,9 @@ export default function WalkIn() {
                     <label className="block text-xs font-medium text-slate-700 mb-1">Payment Method *</label>
                     <div className="flex gap-2">
                       {[
-                        { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-green-600' },
-                        { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-blue-500'  },
-                        { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-green-500' },
+                        { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-emerald-600' },
+                        { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-sky-500'  },
+                        { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-emerald-500' },
                       ].map(opt => (
                         <button key={opt.value} type="button"
                           onClick={() => setField('payMethod', opt.value)}
@@ -960,13 +962,13 @@ export default function WalkIn() {
                           return (
                             <button key={a.id} type="button"
                               onClick={() => setAddonQtys(q => ({ ...q, [a.id]: active ? 0 : 1 }))}
-                              className={`border rounded-lg p-3 text-left transition-colors ${active ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}`}
+                              className={`border rounded-lg p-3 text-left transition-colors ${active ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-slate-300'}`}
                             >
                               <div className="flex items-center gap-2 mb-1">
-                                <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-gray-400'}`}></i>
-                                <p className={`text-sm font-medium ${active ? 'text-indigo-700' : 'text-gray-700'}`}>{a.name}</p>
+                                <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-slate-400'}`}></i>
+                                <p className={`text-sm font-medium ${active ? 'text-indigo-700' : 'text-slate-700'}`}>{a.name}</p>
                               </div>
-                              <p className="text-xs text-gray-500">₱{Number(a.price).toLocaleString()} flat</p>
+                              <p className="text-xs text-slate-500">₱{Number(a.price).toLocaleString()} flat</p>
                               {active && <p className="text-xs font-medium text-indigo-700 mt-1">Added ✓</p>}
                             </button>
                           );
@@ -974,20 +976,20 @@ export default function WalkIn() {
                         return (
                           <div key={a.id} className="border rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-2">
-                              <i className={`fas ${a.icon || 'fa-tag'} text-gray-500`}></i>
-                              <p className="text-sm font-medium text-gray-700">{a.name}</p>
-                              <span className="ml-auto text-xs text-gray-500">₱{Number(a.price).toLocaleString()} each</span>
+                              <i className={`fas ${a.icon || 'fa-tag'} text-slate-500`}></i>
+                              <p className="text-sm font-medium text-slate-700">{a.name}</p>
+                              <span className="ml-auto text-xs text-slate-500">₱{Number(a.price).toLocaleString()} each</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <button type="button"
                                 onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.max(0, qty - 1) }))}
-                                className="w-7 h-7 rounded border text-gray-600 hover:bg-gray-100 text-sm font-bold">−</button>
+                                className="w-7 h-7 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold">−</button>
                               <span className="w-8 text-center text-sm font-medium">{qty}</span>
                               <button type="button"
                                 onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.min(a.max_qty, qty + 1) }))}
-                                className="w-7 h-7 rounded border text-gray-600 hover:bg-gray-100 text-sm font-bold">+</button>
+                                className="w-7 h-7 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold">+</button>
                               {qty > 0 && (
-                                <span className="ml-auto text-xs font-medium text-blue-700">₱{(qty * a.price).toLocaleString()}</span>
+                                <span className="ml-auto text-xs font-medium text-sky-700">₱{(qty * a.price).toLocaleString()}</span>
                               )}
                             </div>
                           </div>
@@ -999,14 +1001,14 @@ export default function WalkIn() {
 
                 {/* Promo code */}
                 <div className="mb-3">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <i className="fas fa-tag mr-1 text-blue-500"></i>Promo Code <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    <i className="fas fa-tag mr-1 text-sky-500"></i>Promo Code <span className="text-slate-400 font-normal text-xs">(optional)</span>
                   </label>
                   {promoResult ? (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-md">
-                      <i className="fas fa-check-circle text-green-600"></i>
-                      <span className="text-sm text-green-800 font-medium flex-1">{promoResult.message}</span>
-                      <button type="button" onClick={removePromo} className="text-xs text-gray-500 hover:text-red-600 underline">Remove</button>
+                    <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-md">
+                      <i className="fas fa-check-circle text-emerald-600"></i>
+                      <span className="text-sm text-emerald-800 font-medium flex-1">{promoResult.message}</span>
+                      <button type="button" onClick={removePromo} className="text-xs text-slate-500 hover:text-rose-600 underline">Remove</button>
                     </div>
                   ) : (
                     <div className="flex gap-2">
@@ -1016,21 +1018,21 @@ export default function WalkIn() {
                         onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), applyPromo())}
                         placeholder="Enter promo code"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-sky-500"
                       />
                       <button type="button" onClick={applyPromo} disabled={!promoInput.trim() || promoLoading}
-                        className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
+                        className="px-3 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
                         {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
                       </button>
                     </div>
                   )}
-                  {promoError && <p className="mt-1 text-xs text-red-600"><i className="fas fa-times-circle mr-1"></i>{promoError}</p>}
+                  {promoError && <p className="mt-1 text-xs text-rose-600"><i className="fas fa-times-circle mr-1"></i>{promoError}</p>}
                 </div>
 
                 {/* Pricing preview */}
                 {(() => {
                   const typeColors = {
-                    day:      { bg: 'bg-blue-50',   border: 'border-blue-200',   text: 'text-blue-800',   sub: 'text-blue-700',   hr: 'border-blue-200'   },
+                    day:      { bg: 'bg-sky-50',   border: 'border-sky-200',   text: 'text-sky-800',   sub: 'text-sky-700',   hr: 'border-sky-200'   },
                     night:    { bg: 'bg-indigo-50',  border: 'border-indigo-200', text: 'text-indigo-800', sub: 'text-indigo-700', hr: 'border-indigo-200' },
                     '24hr':   { bg: 'bg-purple-50',  border: 'border-purple-200', text: 'text-purple-800', sub: 'text-purple-700', hr: 'border-purple-200' },
                     '24hr-pm':{ bg: 'bg-purple-50',  border: 'border-purple-200', text: 'text-purple-800', sub: 'text-purple-700', hr: 'border-purple-200' },
@@ -1076,11 +1078,11 @@ export default function WalkIn() {
                         })}
                         {promoDiscount > 0 && (
                           <>
-                            <div className="flex justify-between text-gray-400 line-through">
+                            <div className="flex justify-between text-slate-400 line-through">
                               <span>Subtotal</span>
                               <span>{fmtMoney(previewSubtotal)}</span>
                             </div>
-                            <div className="flex justify-between text-green-700 font-medium">
+                            <div className="flex justify-between text-emerald-700 font-medium">
                               <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput})</span>
                               <span>− {fmtMoney(promoDiscount)}</span>
                             </div>
@@ -1128,7 +1130,7 @@ export default function WalkIn() {
       {/* ── Main ── */}
       <main className="p-6">
         {error && (
-          <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+          <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded text-sm">
             <i className="fas fa-exclamation-circle mr-2"></i>{error}
           </div>
         )}
@@ -1138,61 +1140,61 @@ export default function WalkIn() {
             <h2 className="text-lg font-semibold">Today's Bookings</h2>
             <button
               onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+              className="bg-sky-600 text-white px-4 py-2 rounded hover:bg-sky-700 text-sm"
             >
               <i className="fas fa-plus mr-2"></i>New Walk-in
             </button>
           </div>
 
           {loading ? (
-            <div className="py-10 text-center text-gray-400">
+            <div className="py-10 text-center text-slate-400">
               <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading...
             </div>
           ) : todayBookings.length === 0 ? (
-            <div className="py-10 text-center text-gray-400">
+            <div className="py-10 text-center text-slate-400">
               <i className="fas fa-calendar-day text-3xl mb-2 block"></i>
               <p>No bookings for today yet.</p>
               <button
                 onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
-                className="mt-3 px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                className="mt-3 px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700"
               >
                 <i className="fas fa-plus mr-2"></i>Create Walk-in
               </button>
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
                     {[['ID','ID'],['Guest','Guest'],['Room','Room'],['Guests','Guests'],['Total','Total'],['Status','Status']].map(([label,key]) => (
-                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
                           {label}
-                          <span className="text-gray-400 group-hover:text-blue-400">
-                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                          <span className="text-slate-400 group-hover:text-sky-400">
+                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
                           </span>
                         </button>
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Time Slot</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Time Slot</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y divide-slate-200">
                   {todayBookings.map(b => (
-                    <tr key={b.bookingId} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewWalkin(b)}>
-                      <td className="px-4 py-3 text-xs text-gray-500">{b.id}</td>
+                    <tr key={b.bookingId} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewWalkin(b)}>
+                      <td className="px-4 py-3 text-xs text-slate-500">{b.id}</td>
                       <td className="px-4 py-3">
                         <p className="text-sm font-medium">{walkInName(b)}</p>
                         {b.specialRequests?.startsWith('Walk-in:') && (
-                          <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">Walk-in</span>
+                          <span className="text-xs text-sky-600 bg-sky-50 px-1 rounded">Walk-in</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{b.roomType}</td>
-                      <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                      <td className="px-4 py-3 text-sm text-slate-600">{b.roomType}</td>
+                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                         {fmtDateTime(b.checkIn)}<br />
-                        <span className="text-gray-400">→ {fmtDateTime(b.checkOut)}</span>
+                        <span className="text-slate-400">→ {fmtDateTime(b.checkOut)}</span>
                       </td>
                       <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
                       <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
@@ -1204,7 +1206,7 @@ export default function WalkIn() {
                               <button
                                 onClick={() => { setCollectBooking(b); setCollectPayMethod(b.paymentMethod ?? 'Cash'); }}
                                 disabled={actionLoading === b.bookingId}
-                                className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-40"
+                                className="px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 disabled:opacity-40"
                               >Collect</button>
                               <button
                                 onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
