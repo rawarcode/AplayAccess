@@ -50,7 +50,7 @@ function StatusBadge({ status }) {
 const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
 const EMPTY_FORM = {
-  firstName: '', lastName: '', phone: '', email: '',
+  fullName: '', phone: '', email: '',
   roomId: '', date: todayStr(),
   payMethod: 'Cash', notes: '',
   bookingType: 'day', // 'day' | 'night' | '24hr' | '24hr-pm'
@@ -236,7 +236,7 @@ export default function WalkIn() {
   function handleCreate(e) {
     e.preventDefault();
     setFormError('');
-    if (!form.firstName.trim() || !form.lastName.trim()) {
+    if (!form.fullName.trim()) {
       setFormError('Guest name is required.'); return;
     }
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
@@ -262,7 +262,7 @@ export default function WalkIn() {
     setConfirmOpen(false);
     const checkInTime = (form.bookingType === 'night' || form.bookingType === '24hr-pm') ? '18:00:00' : '06:00:00';
     const checkIn     = `${form.date} ${checkInTime}`;
-    const guestName   = `${form.firstName.trim()} ${form.lastName.trim()}`;
+    const guestName   = form.fullName.trim();
     const amenities   = addons
       .filter(a => Number(addonQtys[a.id] || 0) > 0)
       .map(a => ({ name: a.name, qty: Number(addonQtys[a.id]) }));
@@ -475,7 +475,7 @@ export default function WalkIn() {
       {/* ── Walk-in Confirmation Modal ── */}
       {confirmOpen && (() => {
         const selRoom    = rooms.find(r => String(r.id) === String(form.roomId));
-        const guestName  = `${form.firstName.trim()} ${form.lastName.trim()}`;
+        const guestName  = form.fullName.trim();
         const checkInLabel  = (form.bookingType === 'night' || form.bookingType === '24hr-pm') ? '6:00 PM' : '6:00 AM';
         const checkOutLabel = form.bookingType === 'night'   ? '7:00 AM (next day)'
                             : form.bookingType === '24hr'    ? '6:00 AM (next day)'
@@ -722,16 +722,11 @@ export default function WalkIn() {
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-5">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">First Name *</label>
-                    <input type="text" value={form.firstName}
-                      onChange={e => setField('firstName', e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Last Name *</label>
-                    <input type="text" value={form.lastName}
-                      onChange={e => setField('lastName', e.target.value)}
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
+                    <input type="text" value={form.fullName}
+                      onChange={e => setField('fullName', e.target.value)}
+                      placeholder="e.g. Juan dela Cruz Jr."
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
                   <div>
@@ -755,6 +750,14 @@ export default function WalkIn() {
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-5">
+
+                  {/* Date — must be chosen first */}
+                  <div className="col-span-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Date *</label>
+                    <input type="date" value={form.date} min={today}
+                      onChange={e => setField('date', e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
+                  </div>
 
                   {/* Booking type */}
                   <div className="col-span-2">
@@ -872,13 +875,6 @@ export default function WalkIn() {
                       );
                       return null;
                     })()}
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Date *</label>
-                    <input type="date" value={form.date} min={today}
-                      onChange={e => setField('date', e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
 
                   <div>
