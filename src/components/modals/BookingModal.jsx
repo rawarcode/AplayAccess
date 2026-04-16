@@ -326,6 +326,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // ── Step 1: validate → show confirmation ──────────────────────────────────
   function submit(e) {
     e.preventDefault();
+    if (step !== 2) return;            // prevent Enter-key submission on step 1
     setError("");
     // Guest mode: require contact info
     if (guestMode) {

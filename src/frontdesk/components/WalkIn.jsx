@@ -236,9 +236,10 @@ export default function WalkIn() {
     setPromoError('');
   }
 
-  // Step 1 — validate → show confirmation
+  // Step 2 — validate → show confirmation (guard: only from step 2)
   function handleCreate(e) {
     e.preventDefault();
+    if (wiStep !== 2) return;          // prevent Enter-key submission on step 1
     setFormError('');
     if (!form.fullName.trim()) {
       setFormError('Guest name is required.'); return;
