@@ -92,25 +92,28 @@ function timeAgo(dateStr) {
   return "";
 }
 
+// ── HTML escape helper (prevent stored XSS in document.write exports) ───────
+const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+
 // ── PDF Export ───────────────────────────────────────────────────────────────
 function exportPDF(logs, filters) {
   const win = window.open("", "_blank");
   if (!win) return;
 
   const filterSummary = [
-    filters.search && `Search: "${filters.search}"`,
-    filters.category && `Category: ${filters.category}`,
-    filters.from && `From: ${filters.from}`,
-    filters.to && `To: ${filters.to}`,
+    filters.search && `Search: "${esc(filters.search)}"`,
+    filters.category && `Category: ${esc(filters.category)}`,
+    filters.from && `From: ${esc(filters.from)}`,
+    filters.to && `To: ${esc(filters.to)}`,
   ].filter(Boolean).join(" · ") || "All entries";
 
   const rows = logs.map(l => `
     <tr>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;white-space:nowrap">${fmtDateTime(l.created_at)}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px">${l.user_name ?? "\u2014"}<br><small style="color:#64748b">${l.user_role ?? ""}</small></td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px">${l.category ?? ""}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:600">${l.action ?? ""}</td>
-      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;max-width:280px;word-break:break-word">${l.description ?? ""}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;white-space:nowrap">${esc(fmtDateTime(l.created_at))}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px">${esc(l.user_name ?? "\u2014")}<br><small style="color:#64748b">${esc(l.user_role ?? "")}</small></td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px">${esc(l.category ?? "")}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:600">${esc(l.action ?? "")}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;max-width:280px;word-break:break-word">${esc(l.description ?? "")}</td>
     </tr>
   `).join("");
 
