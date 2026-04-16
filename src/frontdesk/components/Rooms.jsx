@@ -468,7 +468,13 @@ export default function FDRooms() {
   }, [roomInfos, filter]);
 
   // After 6PM PH time, overnight is the active shift — show it first, fade day
-  const isNightShift = new Date().getHours() >= 18;
+  // Before 6AM, overnight is still active (ends 7AM)
+  const currentHour  = new Date().getHours();
+  const isNightShift = currentHour >= 18 || currentHour < 6;
+
+  // Don't fade a section if it still has occupied rooms (e.g. 24hr bookings in progress)
+  const hasOccupiedDay   = roomInfos.some(({ dayInfo })   => dayInfo.status === 'occupied');
+  const hasOccupiedNight = roomInfos.some(({ nightInfo }) => nightInfo.status === 'occupied');
 
   const FILTERS = [
     { key: 'all',      label: 'All Rooms',  color: 'bg-slate-700 text-white'       },
@@ -562,7 +568,10 @@ export default function FDRooms() {
               {/* Sections swap order: after 6PM overnight comes first */}
               {(isNightShift ? ['night', 'day'] : ['day', 'night']).map(slot => {
                 const isDay   = slot === 'day';
-                const faded   = (isDay && isNightShift) || (!isDay && !isNightShift && new Date().getHours() < 6);
+                // Fade the off-shift section UNLESS it still has occupied rooms (24hr bookings)
+                const faded   = isDay
+                  ? (isNightShift && !hasOccupiedDay)
+                  : (!isNightShift && !hasOccupiedNight);
                 const infoKey = isDay ? 'dayInfo' : 'nightInfo';
                 const slotItems = filteredInfos.filter(item => filter === 'all' || item[infoKey].status === filter);
 
@@ -582,17 +591,27 @@ export default function FDRooms() {
                           {isDay ? '6:00 AM – 6:00 PM' : '6:00 PM – 7:00 AM'}
                         </span>
                       </div>
-                      {faded && (
-                        <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
-                          {isDay ? 'Ended' : 'Not yet'}
-                        </span>
-                      )}
-                      {!faded && (
-                        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Active
-                        </span>
-                      )}
+                      {(() => {
+                        const slotOccupied = isDay ? hasOccupiedDay : hasOccupiedNight;
+                        const offShift = isDay ? isNightShift : !isNightShift;
+                        if (!offShift) return (
+                          <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            Active
+                          </span>
+                        );
+                        if (slotOccupied) return (
+                          <span className="text-xs font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                            <i className="fas fa-clock text-[10px]"></i>
+                            In progress
+                          </span>
+                        );
+                        return (
+                          <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                            {isDay ? 'Ended' : 'Not yet'}
+                          </span>
+                        );
+                      })()}
                     </div>
                     {slotItems.length === 0
                       ? <p className="text-slate-400 text-sm py-4">No rooms match this filter.</p>
