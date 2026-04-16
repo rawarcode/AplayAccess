@@ -49,9 +49,9 @@ export default function ForgotPassword() {
         style={{ boxShadow: "0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)" }}
       >
         {/* Logo */}
-        <div className="flex justify-center items-center gap-2 mb-6">
-          <i className="fas fa-umbrella-beach text-3xl text-[#1e3a8a]"></i>
-          <span className="text-2xl font-light text-[#1e3a8a] tracking-tight">AplayAccess</span>
+        <div className="flex flex-col items-center mb-6">
+          <img src="/logo.jpg" alt="Aplaya Cottages & Rentals" className="h-20 w-auto" />
+          <span className="text-lg font-semibold text-[#1e3a8a] mt-2">Aplaya Cottages & Rentals</span>
         </div>
 
         {!submitted ? (
@@ -142,8 +142,8 @@ export default function ForgotPassword() {
 
         <p className="text-center mt-6 text-sm text-[#6b8cae]">
           Remember your password?{" "}
-          <Link to="/staff-login" className="font-semibold text-[#1e3a8a] hover:underline">
-            Sign in
+          <Link to="/resort" className="font-semibold text-[#1e3a8a] hover:underline">
+            Back to Resort
           </Link>
         </p>
       </div>

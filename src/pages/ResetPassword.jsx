@@ -41,14 +41,16 @@ export default function ResetPassword() {
 
     setLoading(true);
     try {
-      await resetPasswordRequest({
+      const data = await resetPasswordRequest({
         token,
         email,
         password,
         password_confirmation: passwordConfirm,
       });
       setDone(true);
-      setTimeout(() => navigate("/staff-login"), 3000);
+      const role = data?.role;
+      const dest = (role === "front_desk" || role === "owner") ? "/staff-login" : "/resort";
+      setTimeout(() => navigate(dest), 3000);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -71,9 +73,9 @@ export default function ResetPassword() {
         style={{ boxShadow: "0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)" }}
       >
         {/* Logo */}
-        <div className="flex justify-center items-center gap-2 mb-6">
-          <i className="fas fa-umbrella-beach text-3xl text-[#1e3a8a]"></i>
-          <span className="text-2xl font-light text-[#1e3a8a] tracking-tight">AplayAccess</span>
+        <div className="flex flex-col items-center mb-6">
+          <img src="/logo.jpg" alt="Aplaya Cottages & Rentals" className="h-20 w-auto" />
+          <span className="text-lg font-semibold text-[#1e3a8a] mt-2">Aplaya Cottages & Rentals</span>
         </div>
 
         {done ? (
@@ -198,9 +200,9 @@ export default function ResetPassword() {
         )}
 
         <p className="text-center mt-6 text-sm text-[#6b8cae]">
-          <Link to="/staff-login" className="font-semibold text-[#1e3a8a] hover:underline">
+          <Link to="/resort" className="font-semibold text-[#1e3a8a] hover:underline">
             <i className="fas fa-arrow-left mr-1"></i>
-            Back to Sign In
+            Back to Resort
           </Link>
         </p>
       </div>
