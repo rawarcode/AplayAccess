@@ -11,6 +11,8 @@ export default function Signup() {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [submitting, setSubmitting] = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const [alert, setAlert] = useState({ open: false, type: "info", title: "Information", message: "" });
   const [form, setForm] = useState({
@@ -81,23 +83,23 @@ export default function Signup() {
   }
 
   return (
-    <div className="pt-16 min-h-screen bg-gray-50 flex flex-col">
+    <div className="pt-16 min-h-screen bg-slate-50 flex flex-col">
       <Helmet><title>Sign Up — Aplaya Beach Resort</title></Helmet>
       <div className="flex-1 flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-[450px] bg-white rounded-lg shadow-lg p-8">
           {/* Logo */}
           <div className="flex justify-center items-center gap-2 mb-6">
             <span className="text-3xl">🏖️</span>
-            <span className="text-2xl font-bold text-blue-600">Aplaya Beach Resort</span>
+            <span className="text-2xl font-bold text-sky-600">Aplaya Beach Resort</span>
           </div>
 
-          <h2 className="text-center text-2xl font-bold text-gray-900 mb-6">Create Your Account</h2>
+          <h2 className="text-center text-2xl font-bold text-slate-900 mb-6">Create Your Account</h2>
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
               <input
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="Enter your full name"
                 value={form.name}
                 onChange={(e) => setField("name", e.target.value)}
@@ -106,10 +108,10 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
               <input
                 type="email"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="Enter your email"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
@@ -118,10 +120,10 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
               <input
                 type="tel"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="Enter your phone number"
                 value={form.phone}
                 onChange={(e) => setField("phone", e.target.value)}
@@ -129,30 +131,46 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-              <input
-                type="password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Create a password"
-                value={form.password}
-                onChange={(e) => setField("password", e.target.value)}
-                required
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <div className="relative">
+                <input
+                  type={showPass ? "text" : "password"}
+                  className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Create a password"
+                  value={form.password}
+                  onChange={(e) => setField("password", e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <button type="button" onClick={() => setShowPass(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  aria-label={showPass ? "Hide password" : "Show password"}>
+                  <i className={`fas ${showPass ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                </button>
+              </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
-              <input
-                type="password"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Confirm your password"
-                value={form.confirmPassword}
-                onChange={(e) => setField("confirmPassword", e.target.value)}
-                required
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
+                  placeholder="Confirm your password"
+                  value={form.confirmPassword}
+                  onChange={(e) => setField("confirmPassword", e.target.value)}
+                  required
+                  minLength={8}
+                />
+                <button type="button" onClick={() => setShowConfirm(s => !s)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  aria-label={showConfirm ? "Hide password" : "Show password"}>
+                  <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                </button>
+              </div>
             </div>
 
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label className="flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 className="mt-1 h-4 w-4"
@@ -161,17 +179,17 @@ export default function Signup() {
               />
               <span>
                 I agree to the{" "}
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="#" className="font-medium text-sky-600 hover:text-sky-500">
                   Terms and Conditions
                 </a>{" "}
                 and{" "}
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="#" className="font-medium text-sky-600 hover:text-sky-500">
                   Privacy Policy
                 </a>
               </span>
             </label>
 
-            <label className="flex items-start gap-2 text-sm text-gray-700">
+            <label className="flex items-start gap-2 text-sm text-slate-700">
               <input
                 type="checkbox"
                 className="mt-1 h-4 w-4"
@@ -183,15 +201,15 @@ export default function Signup() {
 
             <button
               disabled={submitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md"
+              className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md"
             >
-              {submitting ? "Creating account..." : "Sign Up"}
+              {submitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Creating account...</> : "Sign Up"}
             </button>
           </form>
 
-          <div className="text-center mt-6 text-sm text-gray-600">
+          <div className="text-center mt-6 text-sm text-slate-600">
             Already have an account?{" "}
-            <Link to="/resort" className="font-medium text-blue-600 hover:underline">
+            <Link to="/resort" className="font-medium text-sky-600 hover:underline">
               Login here
             </Link>
           </div>
