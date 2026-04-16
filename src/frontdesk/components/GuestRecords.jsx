@@ -66,13 +66,14 @@ export default function GuestRecords() {
     return Object.values(map).map(g => {
       const sorted  = [...g.visits].sort((a, b) => b.checkIn.localeCompare(a.checkIn));
       const done    = g.visits.filter(v => v.status === 'Completed');
+      const active  = g.visits.filter(v => !['Cancelled', 'Pending'].includes(v.status));
       return {
         ...g,
         visits:         sorted,
         totalVisits:    g.visits.length,
         completedVisits: done.length,
         lastVisit:      sorted[0]?.checkIn ?? null,
-        totalSpend:     done.reduce((s, v) => s + Number(v.total), 0),
+        totalSpend:     active.reduce((s, v) => s + Number(v.total ?? 0) + Number(v.entranceFee ?? 0), 0),
       };
     }).sort((a, b) => (b.lastVisit ?? '').localeCompare(a.lastVisit ?? ''));
   }, [bookings]);
