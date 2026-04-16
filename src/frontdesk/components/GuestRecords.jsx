@@ -5,6 +5,13 @@ import { getFdBookings } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+function calcEntrance(b) {
+  if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
+  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  return (b.guests ?? 1) * rate;
+}
+
 function fmtDate(dt) {
   if (!dt) return '—';
   return new Date(dt.replace(' ', 'T')).toLocaleDateString('en-PH', {
@@ -73,7 +80,7 @@ export default function GuestRecords() {
         totalVisits:    g.visits.length,
         completedVisits: done.length,
         lastVisit:      sorted[0]?.checkIn ?? null,
-        totalSpend:     active.reduce((s, v) => s + Number(v.total ?? 0) + Number(v.entranceFee ?? 0), 0),
+        totalSpend:     active.reduce((s, v) => s + Number(v.total ?? 0) + calcEntrance(v), 0),
       };
     }).sort((a, b) => (b.lastVisit ?? '').localeCompare(a.lastVisit ?? ''));
   }, [bookings]);

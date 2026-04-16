@@ -338,6 +338,21 @@ export default function WalkIn() {
     }
   }
 
+  async function handleAction(bookingId, status) {
+    setActionLoading(bookingId);
+    try {
+      await updateBookingStatus(bookingId, status);
+      setBookings(prev => prev.map(b =>
+        b.bookingId === bookingId ? { ...b, status } : b
+      ));
+      showToast(`Booking ${status.toLowerCase()} successfully.`, 'success');
+    } catch {
+      showToast(`Failed to update booking.`, 'error');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
   async function handleTransfer() {
     if (!transferBooking || !transferRoomId) return;
     setTransferring(true);
@@ -1305,10 +1320,10 @@ export default function WalkIn() {
                           {b.status === 'Checked In' && (
                             <>
                               <button
-                                onClick={() => { setCollectBooking(b); setCollectPayMethod(b.paymentMethod ?? 'Cash'); }}
+                                onClick={() => handleAction(b.bookingId, 'Completed')}
                                 disabled={actionLoading === b.bookingId}
                                 className="px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 disabled:opacity-40"
-                              >Collect</button>
+                              ><i className="fas fa-flag-checkered mr-1"></i>Complete</button>
                               <button
                                 onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
                                 disabled={actionLoading === b.bookingId}

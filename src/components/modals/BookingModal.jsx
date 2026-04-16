@@ -403,8 +403,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       );
 
       if (!popup || popup.closed) {
-        // Popup blocked by browser — fall back to full redirect
-        window.location.href = checkout_url;
+        // Popup blocked — open in a new tab instead of redirecting away
+        const tab = window.open(checkout_url, '_blank');
+        setPaymentPopup({ bookingId, checkoutUrl: checkout_url, popup: tab });
+        setTimeLeft(5 * 60);
         return;
       }
 
@@ -945,7 +947,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         `width=${pw},height=${ph},left=${pl},top=${pt},resizable=yes,scrollbars=yes`
                       );
                       if (!newPopup || newPopup.closed) {
-                        window.location.href = checkoutUrl;
+                        const tab = window.open(checkoutUrl, '_blank');
+                        setPaymentPopup({ bookingId, checkoutUrl, popup: tab });
                         return;
                       }
                       setPaymentPopup({ bookingId, checkoutUrl, popup: newPopup });

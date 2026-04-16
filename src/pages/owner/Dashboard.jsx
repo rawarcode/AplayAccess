@@ -1,55 +1,31 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { Line } from "react-chartjs-2";
+import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  ArcElement,
   Tooltip,
   Legend,
   Filler,
 } from "chart.js";
-import {
-  getAdminBookings,
-  getAnalyticsOverview,
-  getAnalyticsBookings,
-  getAnalyticsOccupancy,
-  getAnalyticsRevenue,
-  getAnalyticsRooms,
-} from "../../lib/adminApi.js";
-import { updateBookingStatus } from "../../lib/frontdeskApi.js";
+import { getAdminBookings } from "../../lib/adminApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
+
+// Entrance fee rates (unified with Billing/Reports)
+const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+function calcEntrance(b) {
+  if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
+  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  return (b.guests ?? 1) * rate;
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0, 10); }
-
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 0 })}`;
-
-function fmtTime(str) {
-  if (!str) return "";
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
-}
-
-function fmtDate(str) {
-  if (!str) return "";
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleString("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true });
-}
-
-const STATUS_COLORS = {
-  Pending:      "bg-amber-100 text-amber-800",
-  Confirmed:    "bg-blue-100 text-blue-800",
-  "Checked In": "bg-green-100 text-green-800",
-  Completed:    "bg-slate-100 text-slate-600",
-  Cancelled:    "bg-rose-100 text-rose-800",
-};
 
 const chartOptions = {
   responsive: true,
@@ -58,29 +34,10 @@ const chartOptions = {
   scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` } } },
 };
 
-function OccupancyBar({ pct, color = "bg-[#1e3a8a]" }) {
-  return (
-    <div className="w-full bg-slate-100 rounded-full h-2">
-      <div className={`${color} h-2 rounded-full transition-all`} style={{ width: `${pct}%` }} />
-    </div>
-  );
-}
-
 // ── Component ────────────────────────────────────────────────────────────────
 export default function OwnerDashboard() {
   const [toast, showToast, clearToast, toastType] = useToast();
-  const navigate = useNavigate();
-
-  // Operations data
   const [bookings,   setBookings]   = useState([]);
-  const [acting,     setActing]     = useState(null);
-
-  // Analytics data
-  const [overview,   setOverview]   = useState(null);
-  const [dailyData,  setDailyData]  = useState([]);
-  const [occupancy,  setOccupancy]  = useState(null);
-  const [revenueData, setRevenueData] = useState(null);
-  const [roomsData,  setRoomsData]  = useState([]);
 
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -90,22 +47,10 @@ export default function OwnerDashboard() {
     if (!silent) setLoading(true);
     else setRefreshing(true);
 
-    Promise.all([
-      getAdminBookings(),
-      getAnalyticsOverview(),
-      getAnalyticsBookings(30),
-      getAnalyticsOccupancy(),
-      getAnalyticsRevenue(30),
-      getAnalyticsRooms(30),
-    ])
-      .then(([bkRes, ovRes, dailyRes, occRes, revRes, rmRes]) => {
+    getAdminBookings()
+      .then(bkRes => {
         const data = bkRes.data?.data ?? bkRes.data ?? bkRes;
         setBookings(Array.isArray(data) ? data : []);
-        setOverview(ovRes.data.data);
-        setDailyData(dailyRes.data.data ?? []);
-        setOccupancy(occRes.data.data);
-        setRevenueData(revRes.data.data);
-        setRoomsData(rmRes.data.data ?? []);
         setError(null);
       })
       .catch(() => setError("Failed to load dashboard data."))
@@ -118,74 +63,145 @@ export default function OwnerDashboard() {
     return () => clearInterval(id);
   }, [load]);
 
-  // ── Derived operations data ─────────────────────────────────────────────
-  const today = todayStr();
-  const pending = bookings.filter(b => b.status === "Pending");
-  const todayCheckIns = bookings.filter(b => b.status === "Confirmed" && b.checkIn?.slice(0, 10) === today);
-  const todayCheckOuts = bookings.filter(b => b.status === "Checked In" && b.checkOut?.slice(0, 10) === today);
+  // ── Derived analytics — all computed from bookings array for consistency ──
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
+  const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+  const days30ago = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
 
-  // ── Derived analytics data ──────────────────────────────────────────────
-  const revThisMonth = overview?.revenue_this_month ?? 0;
-  const revLastMonth = overview?.revenue_last_month ?? 0;
+  // Helper: revenue for a booking (total + entrance fee)
+  const bookingRevenue = (b) => Number(b.total ?? 0) + calcEntrance(b);
+
+  // Active = not Cancelled/Pending (same filter as Reports, Billing, GuestRecords)
+  const activeBookings = bookings.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+
+  // This month bookings (by check-in date)
+  const thisMonthAll    = bookings.filter(b => (b.checkIn?.slice(0, 10) ?? '') >= monthStart);
+  const thisMonthActive = thisMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+  const lastMonthAll    = bookings.filter(b => { const d = b.checkIn?.slice(0, 10) ?? ''; return d >= lastMonthStart && d <= lastMonthEnd; });
+  const lastMonthActive = lastMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+
+  const revThisMonth = thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
+  const revLastMonth = lastMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
   const revMoM = revLastMonth > 0 ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
-  const txThisMonth = overview?.bookings_this_month ?? 0;
-  const txLastMonth = overview?.bookings_last_month ?? 0;
+  const txThisMonth = thisMonthAll.length;
+  const txLastMonth = lastMonthAll.length;
   const txMoM = txThisMonth - txLastMonth;
-  const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
-  const dailyAvg = revThisMonth > 0 ? Math.round(revThisMonth / daysInMonth) : 0;
 
-  // New KPIs
-  const avgBookingValue = revenueData?.avg_per_booking ?? 0;
-  const cancelledCount  = revenueData?.total_cancelled ?? 0;
-  const totalThisMonth  = txThisMonth + cancelledCount;
-  const cancelRate      = totalThisMonth > 0 ? Math.round((cancelledCount / totalThisMonth) * 100) : 0;
-  const totalGuests     = overview?.total_guests ?? 0;
+  // Avg booking value (from active bookings this month)
+  const avgBookingValue = thisMonthActive.length > 0
+    ? Math.round(thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0) / thisMonthActive.length)
+    : 0;
 
-  // Online vs Walk-in split (from loaded bookings)
-  const onlineBookings  = bookings.filter(b => b.source !== 'walk-in' && b.source !== 'walkin').length;
-  const walkinBookings  = bookings.filter(b => b.source === 'walk-in' || b.source === 'walkin').length;
+  // Cancellation rate this month
+  const cancelledThisMonth = thisMonthAll.filter(b => b.status === 'Cancelled').length;
+  const cancelRate = txThisMonth > 0 ? Math.round((cancelledThisMonth / txThisMonth) * 100) : 0;
+
+  // Total guests (sum of guest counts from active bookings)
+  const totalGuests = activeBookings.reduce((s, b) => s + Number(b.guests ?? 0), 0);
+
+  // Online vs Walk-in — walk-ins have specialRequests starting with 'Walk-in:'
+  const isWalkIn = (b) => b.specialRequests?.startsWith('Walk-in:') || b.reservationFee == 0 || b.reservationFee === '0';
+  const walkinBookings  = bookings.filter(b => isWalkIn(b)).length;
+  const onlineBookings  = bookings.length - walkinBookings;
   const onlinePct       = bookings.length > 0 ? Math.round((onlineBookings / bookings.length) * 100) : 0;
 
-  // Peak day of week (from last 30 days dailyData)
+  // Peak day of week (from last 30 days bookings)
   const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
   const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  dailyData.forEach(d => {
-    if (!d.date) return;
-    const dayIdx = new Date(d.date + 'T00:00:00').getDay();
-    dayOfWeekCounts[dayIdx] += Number(d.bookings ?? 0);
+  bookings.forEach(b => {
+    const d = b.checkIn?.slice(0, 10) ?? '';
+    if (d < days30ago) return;
+    const dayIdx = new Date(d + 'T00:00:00').getDay();
+    dayOfWeekCounts[dayIdx] += 1;
   });
   const peakDayIdx = dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts));
   const peakDay    = dayLabels[peakDayIdx];
 
-  // Top performing rooms (sorted by revenue)
-  const topRooms = [...roomsData].sort((a, b) => (b.revenue ?? 0) - (a.revenue ?? 0)).slice(0, 5);
+  // Revenue breakdown from active bookings (consistent with Reports page)
+  const revBreakdown = (() => {
+    let room = 0, entrance = 0, addons = 0, promos = 0;
+    activeBookings.forEach(b => {
+      const amenityTotal = Array.isArray(b.amenities)
+        ? b.amenities.reduce((s, a) => s + Number(a.total ?? (Number(a.unitPrice ?? 0) * Number(a.qty ?? 0))), 0)
+        : 0;
+      const disc = Number(b.discount ?? 0);
+      const tot  = Number(b.total ?? 0);
+      room     += tot + disc - amenityTotal;
+      entrance += calcEntrance(b);
+      addons   += amenityTotal;
+      promos   += disc;
+    });
+    return { room: Math.max(room, 0), entrance, addons, promos };
+  })();
+  const revGrand = revBreakdown.room + revBreakdown.entrance + revBreakdown.addons;
+  const revSlices = [
+    { label: 'Room Rates',    value: revBreakdown.room,     color: '#3b82f6', icon: 'fa-bed' },
+    { label: 'Entrance Fees', value: revBreakdown.entrance, color: '#10b981', icon: 'fa-ticket' },
+    { label: 'Add-ons',       value: revBreakdown.addons,   color: '#f59e0b', icon: 'fa-concierge-bell' },
+  ].filter(s => s.value > 0);
 
-  const chartData = {
-    labels: dailyData.map(d => (d.date ?? "").slice(5)),
+  const doughnutData = {
+    labels: revSlices.map(s => s.label),
     datasets: [{
-      label: "Revenue (₱)",
-      data: dailyData.map(d => Number(d.revenue ?? 0)),
-      borderColor: "rgba(59, 130, 246, 0.8)",
-      backgroundColor: "rgba(59, 130, 246, 0.1)",
-      tension: 0.3,
-      fill: true,
-      pointRadius: 2,
+      data: revSlices.map(s => s.value),
+      backgroundColor: revSlices.map(s => s.color),
+      borderWidth: 2,
+      borderColor: '#fff',
+      hoverOffset: 6,
     }],
   };
+  const doughnutOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '65%',
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `${ctx.label}: ${fmt(ctx.raw)}` } },
+    },
+  };
 
-  // ── Actions ─────────────────────────────────────────────────────────────
-  async function handleAction(bookingId, status) {
-    setActing(bookingId);
-    try {
-      await updateBookingStatus(bookingId, status);
-      showToast(`Booking ${status.toLowerCase()} successfully.`, "success");
-      load(true);
-    } catch (err) {
-      showToast(err.response?.data?.message || `Failed to ${status.toLowerCase()} booking.`, "error");
-    } finally {
-      setActing(null);
+  // Top performing rooms (computed from active bookings, last 30 days)
+  const topRooms = (() => {
+    const map = {};
+    activeBookings.forEach(b => {
+      const d = b.checkIn?.slice(0, 10) ?? '';
+      if (d < days30ago) return;
+      const key = b.roomType ?? 'Unknown';
+      if (!map[key]) map[key] = { label: key, bookings: 0, revenue: 0 };
+      map[key].bookings += 1;
+      map[key].revenue  += bookingRevenue(b);
+    });
+    return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+  })();
+
+  // Daily revenue chart (computed from bookings, last 30 days)
+  const chartData = (() => {
+    const dayMap = {};
+    // Init all 30 days
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+      dayMap[d] = 0;
     }
-  }
+    activeBookings.forEach(b => {
+      const d = b.checkIn?.slice(0, 10) ?? '';
+      if (d in dayMap) dayMap[d] += bookingRevenue(b);
+    });
+    const entries = Object.entries(dayMap).sort((a, b) => a[0].localeCompare(b[0]));
+    return {
+      labels: entries.map(([d]) => d.slice(5)),
+      datasets: [{
+        label: "Revenue (₱)",
+        data: entries.map(([, v]) => v),
+        borderColor: "rgba(59, 130, 246, 0.8)",
+        backgroundColor: "rgba(59, 130, 246, 0.1)",
+        tension: 0.3,
+        fill: true,
+        pointRadius: 2,
+      }],
+    };
+  })();
 
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) return (
@@ -230,19 +246,8 @@ export default function OwnerDashboard() {
     </div>
   );
 
-  // ── Action cards ────────────────────────────────────────────────────────
-  const actionCards = [
-    { label: "Pending Approval", count: pending.length, icon: "fa-clock", color: "bg-amber-50 text-amber-600 border-amber-200", iconBg: "bg-amber-100", empty: "All caught up!", target: "#pending" },
-    { label: "Today's Check-ins", count: todayCheckIns.length, icon: "fa-arrow-right-to-bracket", color: "bg-green-50 text-green-600 border-green-200", iconBg: "bg-green-100", empty: "No arrivals today", target: "#checkins" },
-    { label: "Today's Check-outs", count: todayCheckOuts.length, icon: "fa-arrow-right-from-bracket", color: "bg-blue-50 text-blue-600 border-blue-200", iconBg: "bg-blue-100", empty: "No departures today", target: "#checkouts" },
-  ];
-
   return (
     <div className="p-6 space-y-6">
-
-      {/* ════════════════════════════════════════════════════════════════════
-          OPERATIONS — Command Center
-          ════════════════════════════════════════════════════════════════════ */}
 
       {/* Header + refresh */}
       <div className="flex items-center justify-between">
@@ -260,159 +265,6 @@ export default function OwnerDashboard() {
           <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`}></i>
         </button>
       </div>
-
-      {/* Action Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {actionCards.map(c => (
-          <a key={c.label} href={c.target} className={`rounded-xl border p-5 flex items-center gap-4 transition hover:shadow-md ${c.color}`}>
-            <div className={`h-12 w-12 rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
-              <i className={`fas ${c.icon} text-lg`}></i>
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium opacity-70 uppercase tracking-wide">{c.label}</p>
-              {c.count > 0
-                ? <p className="text-2xl font-bold">{c.count}</p>
-                : <p className="text-sm font-medium opacity-60">{c.empty}</p>}
-            </div>
-          </a>
-        ))}
-      </div>
-
-      {/* Pending Approval Queue */}
-      {pending.length > 0 && (
-        <section id="pending" className="bg-white rounded-xl shadow">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
-            <h2 className="text-base font-semibold text-slate-800">
-              <i className="fas fa-clock text-amber-500 mr-2"></i>Pending Approval
-              <span className="ml-2 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">{pending.length}</span>
-            </h2>
-            <button onClick={() => navigate("/owner/transactions")} className="text-xs text-blue-600 hover:underline font-medium">
-              View All <i className="fas fa-arrow-right ml-0.5 text-[10px]"></i>
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-6 py-3 text-left">Guest</th>
-                  <th className="px-6 py-3 text-left">Room</th>
-                  <th className="px-6 py-3 text-left">Check-in</th>
-                  <th className="px-6 py-3 text-left">Total</th>
-                  <th className="px-6 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {pending.slice(0, 5).map(b => (
-                  <tr key={b.id || b.bookingId} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-3">
-                      <p className="font-medium">{b.guest}</p>
-                      <p className="text-xs text-slate-400">{b.id}</p>
-                    </td>
-                    <td className="px-6 py-3 text-slate-700">{b.room}</td>
-                    <td className="px-6 py-3 text-slate-500 whitespace-nowrap">{fmtDate(b.checkIn)}</td>
-                    <td className="px-6 py-3 font-medium">₱{Number(b.total || 0).toLocaleString()}</td>
-                    <td className="px-6 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleAction(b.bookingId || b.id, "Confirmed")}
-                          disabled={acting === (b.bookingId || b.id)}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition"
-                        >
-                          {acting === (b.bookingId || b.id) ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-check mr-1"></i>Confirm</>}
-                        </button>
-                        <button
-                          onClick={() => handleAction(b.bookingId || b.id, "Cancelled")}
-                          disabled={acting === (b.bookingId || b.id)}
-                          className="px-3 py-1.5 bg-rose-50 text-rose-600 rounded-lg text-xs font-medium hover:bg-rose-100 disabled:opacity-50 transition"
-                        >
-                          <i className="fas fa-ban mr-1"></i>Decline
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {/* Today's Schedule — Check-ins & Check-outs */}
-      {(todayCheckIns.length > 0 || todayCheckOuts.length > 0) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Arriving */}
-          <section id="checkins" className="bg-white rounded-xl shadow">
-            <div className="px-6 py-4 border-b border-slate-200">
-              <h2 className="text-base font-semibold text-slate-800">
-                <i className="fas fa-arrow-right-to-bracket text-emerald-500 mr-2"></i>Arriving Today
-                {todayCheckIns.length > 0 && <span className="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">{todayCheckIns.length}</span>}
-              </h2>
-            </div>
-            {todayCheckIns.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <i className="fas fa-couch text-slate-200 text-3xl mb-2 block"></i>
-                <p className="text-slate-400 text-sm">No arrivals today</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {todayCheckIns.map(b => (
-                  <div key={b.id || b.bookingId} className="px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{b.guest}</p>
-                      <p className="text-xs text-slate-500">{b.room} · {fmtTime(b.checkIn)}</p>
-                    </div>
-                    <button
-                      onClick={() => handleAction(b.bookingId || b.id, "Checked In")}
-                      disabled={acting === (b.bookingId || b.id)}
-                      className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50 transition shrink-0"
-                    >
-                      {acting === (b.bookingId || b.id) ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-door-open mr-1"></i>Check In</>}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Departing */}
-          <section id="checkouts" className="bg-white rounded-xl shadow">
-            <div className="px-6 py-4 border-b border-slate-200">
-              <h2 className="text-base font-semibold text-slate-800">
-                <i className="fas fa-arrow-right-from-bracket text-blue-500 mr-2"></i>Departing Today
-                {todayCheckOuts.length > 0 && <span className="ml-2 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">{todayCheckOuts.length}</span>}
-              </h2>
-            </div>
-            {todayCheckOuts.length === 0 ? (
-              <div className="px-6 py-8 text-center">
-                <i className="fas fa-door-closed text-slate-200 text-3xl mb-2 block"></i>
-                <p className="text-slate-400 text-sm">No departures today</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {todayCheckOuts.map(b => (
-                  <div key={b.id || b.bookingId} className="px-6 py-4 flex items-center justify-between gap-3 hover:bg-slate-50 transition-colors">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-900 truncate">{b.guest}</p>
-                      <p className="text-xs text-slate-500">{b.room} · out by {fmtTime(b.checkOut)}</p>
-                    </div>
-                    <button
-                      onClick={() => handleAction(b.bookingId || b.id, "Completed")}
-                      disabled={acting === (b.bookingId || b.id)}
-                      className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50 transition shrink-0"
-                    >
-                      {acting === (b.bookingId || b.id) ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-flag-checkered mr-1"></i>Check Out</>}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          ANALYTICS — KPI + Charts
-          ════════════════════════════════════════════════════════════════════ */}
 
       {/* KPI Cards — Row 1: Revenue & Bookings */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -463,7 +315,7 @@ export default function OwnerDashboard() {
             <div>
               <p className="text-slate-500 text-sm">Cancellation Rate</p>
               <h3 className="text-2xl font-bold mt-1">{cancelRate}%</h3>
-              <p className="text-xs text-slate-400 mt-1">{cancelledCount} cancelled this month</p>
+              <p className="text-xs text-slate-400 mt-1">{cancelledThisMonth} cancelled this month</p>
             </div>
             <div className="p-3 rounded-xl bg-rose-100 text-rose-600"><i className="fas fa-ban text-xl"></i></div>
           </div>
@@ -503,40 +355,12 @@ export default function OwnerDashboard() {
         </div>
       </div>
 
-      {/* Occupancy Rate */}
-      {occupancy && (
-        <div className="bg-white rounded-xl shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Occupancy Rate</h2>
-            <span className="text-3xl font-bold text-[#1e3a8a]">{occupancy.pct}%</span>
-          </div>
-          <OccupancyBar pct={occupancy.pct} />
-          <p className="text-xs text-slate-400 mt-1 mb-5">
-            {occupancy.occupied} of {occupancy.total} rooms occupied right now
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {occupancy.rooms.map(r => (
-              <div key={r.type}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-slate-600 truncate">{r.type}</span>
-                  <span className="font-semibold text-slate-800 ml-2">{r.pct}%</span>
-                </div>
-                <OccupancyBar
-                  pct={r.pct}
-                  color={r.pct === 100 ? "bg-emerald-500" : r.pct >= 75 ? "bg-sky-500" : r.pct >= 50 ? "bg-amber-500" : "bg-rose-400"}
-                />
-                <p className="text-xs text-slate-400 mt-1">{r.occupied}/{r.total} rooms</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Revenue Chart */}
       <div className="bg-white rounded-xl shadow p-6">
         <h2 className="text-lg font-semibold mb-4">Revenue — Last 30 Days</h2>
         <div className="h-64">
-          {dailyData.length > 0 ? (
+          {chartData.datasets[0].data.some(v => v > 0) ? (
             <Line data={chartData} options={chartOptions} />
           ) : (
             <div className="flex items-center justify-center h-full">
@@ -545,6 +369,61 @@ export default function OwnerDashboard() {
           )}
         </div>
       </div>
+
+      {/* Revenue Breakdown */}
+      {revGrand > 0 && (
+        <div className="bg-white rounded-xl shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            <i className="fas fa-chart-pie text-sky-500 mr-2"></i>Revenue Breakdown
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            {/* Donut */}
+            <div className="relative mx-auto w-52 h-52">
+              <Doughnut data={doughnutData} options={doughnutOpts} />
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-xs text-slate-400">Total</span>
+                <span className="text-lg font-bold text-slate-800">{fmt(revGrand)}</span>
+              </div>
+            </div>
+            {/* Line items */}
+            <div className="space-y-3">
+              {revSlices.map(s => {
+                const pct = revGrand > 0 ? ((s.value / revGrand) * 100).toFixed(1) : 0;
+                return (
+                  <div key={s.label} className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: s.color + '1a' }}>
+                      <i className={`fas ${s.icon}`} style={{ color: s.color }}></i>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">{s.label}</span>
+                        <span className="font-semibold text-slate-800">{fmt(s.value)}</span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1">
+                        <div className="h-1.5 rounded-full" style={{ width: `${pct}%`, backgroundColor: s.color }} />
+                      </div>
+                    </div>
+                    <span className="text-xs font-medium text-slate-500 w-12 text-right">{pct}%</span>
+                  </div>
+                );
+              })}
+              {revBreakdown.promos > 0 && (
+                <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-rose-50">
+                    <i className="fas fa-tag text-rose-500"></i>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-600">Promo Discounts</span>
+                      <span className="font-semibold text-rose-600">−{fmt(revBreakdown.promos)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top Performing Rooms */}
       {topRooms.length > 0 && (
