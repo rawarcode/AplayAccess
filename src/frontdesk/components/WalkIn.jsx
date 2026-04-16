@@ -143,6 +143,16 @@ export default function WalkIn() {
   }, [form.date, form.bookingType]);
 
 
+  // Time-slot guard: disable booking types whose window already passed today
+  const isToday     = form.date === today;
+  const currentHour = new Date().getHours();
+  const dayPassed   = isToday && currentHour >= 18;   // Day (6AM–6PM) window closed
+
+  // Auto-switch away from Day if its window passed
+  useEffect(() => {
+    if (dayPassed && form.bookingType === 'day') setField('bookingType', 'night');
+  }, [dayPassed]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
   // Auto-switch to first allowed type when a restricted room is selected
@@ -762,7 +772,7 @@ export default function WalkIn() {
                     <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
                     <div className="flex gap-2">
                       {[
-                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: !typeAllowed('day')   },
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: dayPassed || !typeAllowed('day')   },
                         { type: 'night', icon: 'fa-moon',  label: 'Night', disabled: !typeAllowed('night') },
                         { type: '24hr',  icon: 'fa-clock', label: '24 Hrs', disabled: !typeAllowed('24hr')  },
                       ].map(opt => {

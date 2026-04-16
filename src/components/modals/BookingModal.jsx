@@ -258,6 +258,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const allowedTypes = selectedRoomObj?.allowed_booking_types ?? null;
   const typeAllowed  = (type) => !allowedTypes || allowedTypes.includes(type);
 
+  // Time-slot guard: disable booking types whose window already passed today
+  const isToday     = visitDate === todayStr();
+  const currentHour = new Date().getHours();
+  const dayPassed   = isToday && currentHour >= 18;   // Day (6AM–6PM) window closed
+
+  // Auto-switch away from Day if its window passed
+  useEffect(() => {
+    if (dayPassed && bookingType === "day") setBookingType("night");
+  }, [dayPassed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-switch to first allowed type when room with restrictions is selected
   useEffect(() => {
@@ -531,7 +540,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </label>
                 <div className="flex gap-2">
                   {[
-                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: !typeAllowed("day")   },
+                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: dayPassed || !typeAllowed("day")   },
                     { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !typeAllowed("night") },
                     { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "6AM/6PM", disabled: !typeAllowed("24hr")  },
                   ].map(opt => {
