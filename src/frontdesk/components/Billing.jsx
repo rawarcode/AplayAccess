@@ -6,6 +6,15 @@ import Toast, { useToast } from '../../components/ui/Toast';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+
+function calcEntrance(b) {
+  // Use stored value if available (after check-in), otherwise compute from guests × rate
+  if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
+  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  return (b.guests ?? 1) * rate;
+}
+
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 function fmtMoney(n) {
@@ -183,21 +192,25 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                   </div>
                 )}
 
-                {/* Entrance fee */}
-                {Number(b.entranceFee ?? 0) > 0 && (
-                  <div className="flex justify-between px-4 py-2.5 border-t border-amber-100 bg-amber-50 text-amber-800 text-xs">
-                    <span className="flex items-center gap-1.5">
-                      <i className="fas fa-ticket-alt"></i>
-                      Entrance Fee ({b.guests} pax)
-                    </span>
-                    <span className="font-semibold">{fmtMoney(b.entranceFee)}</span>
-                  </div>
-                )}
+                {/* Entrance fee — always show (calculated from guests × rate if not yet stored) */}
+                {(() => {
+                  const ef = calcEntrance(b);
+                  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+                  return ef > 0 && (
+                    <div className="flex justify-between px-4 py-2.5 border-t border-amber-100 bg-amber-50 text-amber-800 text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <i className="fas fa-ticket-alt"></i>
+                        Entrance Fee ({b.guests} pax × ₱{rate})
+                      </span>
+                      <span className="font-semibold">{fmtMoney(ef)}</span>
+                    </div>
+                  );
+                })()}
 
                 {/* Grand total */}
                 <div className="flex justify-between px-4 py-3 bg-slate-800 text-white font-bold text-base">
                   <span>Grand Total</span>
-                  <span>{fmtMoney(Number(b.total ?? 0) + Number(b.entranceFee ?? 0))}</span>
+                  <span>{fmtMoney(Number(b.total ?? 0) + calcEntrance(b))}</span>
                 </div>
               </div>
             );
@@ -408,7 +421,7 @@ export default function Billing() {
                 const bAmenityTotal = (billing.amenities ?? []).reduce((s, a) => s + Number(a.total ?? (a.unitPrice * a.qty) ?? 0), 0);
                 const bDiscount     = Number(billing.discount ?? 0);
                 const bRoomRate     = Number(billing.total ?? 0) + bDiscount - bAmenityTotal;
-                const bEntrance     = Number(billing.entranceFee ?? 0);
+                const bEntrance     = calcEntrance(billing);
                 return (
                   <div className="border rounded mb-4 text-sm overflow-hidden">
                     <div className="flex justify-between px-4 py-2.5 border-b">
@@ -441,7 +454,7 @@ export default function Billing() {
                       <div className="flex justify-between px-4 py-2.5 border-b bg-amber-50 text-amber-800 text-xs">
                         <span className="flex items-center gap-1.5">
                           <i className="fas fa-ticket-alt"></i>
-                          Entrance Fee ({billing.guests} pax)
+                          Entrance Fee ({billing.guests} pax × ₱{ENTRANCE_RATES[billing.bookingType ?? 'day'] ?? 50})
                         </span>
                         <span className="font-semibold">{fmtMoney(bEntrance)}</span>
                       </div>
