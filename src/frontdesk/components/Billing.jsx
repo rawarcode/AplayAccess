@@ -185,14 +185,20 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
 
                 {/* Entrance fee */}
                 {Number(b.entranceFee ?? 0) > 0 && (
-                  <div className="flex justify-between px-4 py-3 bg-amber-50 border-t border-amber-100 text-amber-800 text-xs">
+                  <div className="flex justify-between px-4 py-2.5 border-t border-amber-100 bg-amber-50 text-amber-800 text-xs">
                     <span className="flex items-center gap-1.5">
                       <i className="fas fa-ticket-alt"></i>
-                      Entrance Fee ({b.guests} pax) — collected at gate
+                      Entrance Fee ({b.guests} pax)
                     </span>
                     <span className="font-semibold">{fmtMoney(b.entranceFee)}</span>
                   </div>
                 )}
+
+                {/* Grand total */}
+                <div className="flex justify-between px-4 py-3 bg-slate-800 text-white font-bold text-base">
+                  <span>Grand Total</span>
+                  <span>{fmtMoney(Number(b.total ?? 0) + Number(b.entranceFee ?? 0))}</span>
+                </div>
               </div>
             );
           })()}
@@ -398,20 +404,55 @@ export default function Billing() {
               </div>
 
               {/* Bill breakdown */}
-              <div className="border rounded mb-4 text-sm">
-                <div className="flex justify-between px-4 py-3 border-b">
-                  <span className="text-slate-600">Full Visit Rate</span>
-                  <span>{fmtMoney(billing.total)}</span>
-                </div>
-                <div className="flex justify-between px-4 py-3 border-b text-emerald-700">
-                  <span>Reservation Fee (paid online)</span>
-                  <span>− {fmtMoney(billing.reservationFee ?? 0)}</span>
-                </div>
-                <div className="flex justify-between px-4 py-3 font-semibold text-sky-800 text-base">
-                  <span>Balance Due Now</span>
-                  <span>{fmtMoney(balanceDue)}</span>
-                </div>
-              </div>
+              {(() => {
+                const bAmenityTotal = (billing.amenities ?? []).reduce((s, a) => s + Number(a.total ?? (a.unitPrice * a.qty) ?? 0), 0);
+                const bDiscount     = Number(billing.discount ?? 0);
+                const bRoomRate     = Number(billing.total ?? 0) + bDiscount - bAmenityTotal;
+                const bEntrance     = Number(billing.entranceFee ?? 0);
+                return (
+                  <div className="border rounded mb-4 text-sm overflow-hidden">
+                    <div className="flex justify-between px-4 py-2.5 border-b">
+                      <span className="text-slate-600">Room Rate</span>
+                      <span>{fmtMoney(bRoomRate)}</span>
+                    </div>
+                    {billing.amenities?.length > 0 && billing.amenities.map((a, i) => (
+                      <div key={i} className="flex justify-between px-4 py-2 border-b text-slate-600">
+                        <span>{a.name} × {a.qty}</span>
+                        <span>{fmtMoney(a.total ?? (a.unitPrice * a.qty))}</span>
+                      </div>
+                    ))}
+                    {bDiscount > 0 && (
+                      <div className="flex justify-between px-4 py-2 border-b text-emerald-700">
+                        <span><i className="fas fa-tag mr-1 text-xs"></i>Promo{billing.promoCode ? ` (${billing.promoCode})` : ''}</span>
+                        <span>− {fmtMoney(bDiscount)}</span>
+                      </div>
+                    )}
+                    {Number(billing.reservationFee ?? 0) > 0 && (
+                      <div className="flex justify-between px-4 py-2.5 border-b text-emerald-700">
+                        <span>Reservation Fee (paid online)</span>
+                        <span>− {fmtMoney(billing.reservationFee)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between px-4 py-3 border-b font-semibold text-sky-800 text-base">
+                      <span>Balance Due Now</span>
+                      <span>{fmtMoney(balanceDue)}</span>
+                    </div>
+                    {bEntrance > 0 && (
+                      <div className="flex justify-between px-4 py-2.5 border-b bg-amber-50 text-amber-800 text-xs">
+                        <span className="flex items-center gap-1.5">
+                          <i className="fas fa-ticket-alt"></i>
+                          Entrance Fee ({billing.guests} pax)
+                        </span>
+                        <span className="font-semibold">{fmtMoney(bEntrance)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between px-4 py-3 bg-slate-800 text-white font-bold text-base">
+                      <span>Grand Total</span>
+                      <span>{fmtMoney(balanceDue + bEntrance)}</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Payment method */}
               <div className="mb-6">
