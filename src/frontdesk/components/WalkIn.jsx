@@ -236,10 +236,8 @@ export default function WalkIn() {
     setPromoError('');
   }
 
-  // Step 2 — validate → show confirmation (guard: only from step 2)
-  function handleCreate(e) {
-    e.preventDefault();
-    if (wiStep !== 2) return;          // prevent Enter-key submission on step 1
+  // Step 2 — validate → show confirmation
+  function handleCreate() {
     setFormError('');
     if (!form.fullName.trim()) {
       setFormError('Guest name is required.'); return;
@@ -737,7 +735,7 @@ export default function WalkIn() {
                 ))}
               </div>
 
-              <form onSubmit={handleCreate} id="walkin-form">
+              <div id="walkin-form">
 
                 {/* ═══ STEP 1 — Guest & Booking Details ═══ */}
                 {wiStep === 1 && (<>
@@ -1136,7 +1134,7 @@ export default function WalkIn() {
                 })()}
 
                 </>)}
-              </form>
+              </div>
             </div>
 
             {/* Footer */}
@@ -1163,7 +1161,8 @@ export default function WalkIn() {
                   className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
                   <i className="fas fa-arrow-left mr-1"></i>Back
                 </button>
-                <button type="submit" form="walkin-form"
+                <button type="button"
+                  onClick={handleCreate}
                   disabled={submitting || nightUnavailable || (dayUnavailable && form.bookingType === 'day')}
                   className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                   <i className="fas fa-eye"></i>

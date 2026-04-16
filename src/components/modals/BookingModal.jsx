@@ -324,9 +324,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }
 
   // ── Step 1: validate → show confirmation ──────────────────────────────────
-  function submit(e) {
-    e.preventDefault();
-    if (step !== 2) return;            // prevent Enter-key submission on step 1
+  function submit() {
     setError("");
     // Guest mode: require contact info
     if (guestMode) {
@@ -453,7 +451,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           </div>
         )}
 
-        <form onSubmit={submit}>
+        <div>
           {/* Guest info — shown only in guest (no-account) mode, always visible outside steps */}
           {guestMode && (
             <div className="mb-5">
@@ -874,6 +872,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <i className="fas fa-arrow-left"></i> Back
                   </button>
                   <button
+                    type="button"
+                    onClick={submit}
                     disabled={submitting}
                     className="flex-[2] bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
                   >
@@ -992,7 +992,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
             )
           )}
-        </form>
+        </div>
 
         {/* ── Booking Confirmation ── */}
         {confirmOpen && (() => {
