@@ -40,7 +40,7 @@ export default function Navbar() {
     <nav className="fixed w-full z-40 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
+        <Link to="/resort" className="flex items-center gap-2">
           {brand.logoImage
             ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" />
             : <span className="text-2xl">🏖️</span>

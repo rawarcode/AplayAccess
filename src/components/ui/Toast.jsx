@@ -10,23 +10,23 @@ import { useState, useCallback, useEffect, useRef } from "react";
  *   <Toast message={toast} type={toastType} onClose={clearToast} />
  */
 export function useToast(duration = 4000) {
-  const [toast, setToast] = useState({ message: "", type: "error" });
+  const [toast, setToast] = useState({ message: "", type: "error", action: null });
   const timerRef = useRef(null);
 
-  const showToast = useCallback((message, type = "error") => {
-    setToast({ message, type });
+  const showToast = useCallback((message, type = "error", action = null) => {
+    setToast({ message, type, action });
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setToast({ message: "", type: "error" }), duration);
+    timerRef.current = setTimeout(() => setToast({ message: "", type: "error", action: null }), duration);
   }, [duration]);
 
   const clearToast = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
-    setToast({ message: "", type: "error" });
+    setToast({ message: "", type: "error", action: null });
   }, []);
 
   useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
-  return [toast.message, showToast, clearToast, toast.type];
+  return [toast.message, showToast, clearToast, toast.type, toast.action];
 }
 
 const TOAST_STYLES = {
@@ -36,7 +36,7 @@ const TOAST_STYLES = {
   info:    { bg: "bg-blue-600",    icon: "fa-circle-info"         },
 };
 
-export default function Toast({ message, type = "error", onClose }) {
+export default function Toast({ message, type = "error", onClose, action }) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -61,6 +61,12 @@ export default function Toast({ message, type = "error", onClose }) {
     >
       <i className={`fas ${s.icon} text-lg shrink-0`}></i>
       <span className="text-sm font-medium flex-1">{message}</span>
+      {action && (
+        <button onClick={() => { action.onClick(); onClose(); }}
+          className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wide shrink-0 transition">
+          {action.label}
+        </button>
+      )}
       <button onClick={onClose} className="opacity-70 hover:opacity-100 shrink-0 ml-1" aria-label="Dismiss">
         <i className="fas fa-times"></i>
       </button>

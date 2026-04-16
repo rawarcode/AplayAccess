@@ -39,3 +39,8 @@ export async function getAnnouncements() {
   const res = await api.get('/api/announcements');
   return res.data?.data ?? [];
 }
+
+export async function getAutoReplyKeywords() {
+  const res = await api.get('/api/auto-reply-keywords');
+  return res.data?.data ?? res.data ?? [];
+}

@@ -17,6 +17,7 @@ export const getAdminRooms     = ()         => api.get('/api/admin/rooms');
 export const createAdminRoom   = (data)     => api.post('/api/admin/rooms', data);
 export const updateAdminRoom   = (id, data) => api.patch(`/api/admin/rooms/${id}`, data);
 export const deleteAdminRoom   = (id)       => api.delete(`/api/admin/rooms/${id}`);
+export const updateRoomHousekeeping = (id, status) => api.patch(`/api/admin/rooms/${id}/housekeeping`, { status });
 
 // ── Guests ───────────────────────────────────────────────────────────────────
 export const getAdminGuests    = ()         => api.get('/api/admin/guests');
@@ -63,6 +64,12 @@ export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
 export const getAdminMessages       = ()           => api.get('/api/admin/messages');
 export const replyAdminMessage      = (id, body)   => api.post(`/api/admin/messages/${id}/reply`, { body });
 export const markAdminMessageRead   = (id)         => api.patch(`/api/admin/messages/${id}/read`);
+
+// ── Auto-Reply Rules ─────────────────────────────────────────────────────────
+export const getAutoReplies          = ()         => api.get('/api/admin/auto-replies');
+export const createAutoReply         = (data)     => api.post('/api/admin/auto-replies', data);
+export const updateAutoReply         = (id, data) => api.patch(`/api/admin/auto-replies/${id}`, data);
+export const deleteAutoReply         = (id)       => api.delete(`/api/admin/auto-replies/${id}`);
 
 // ── Analytics (owner only) ────────────────────────────────────────────────────
 export const getAnalyticsOverview  = ()              => api.get('/api/admin/analytics/overview');

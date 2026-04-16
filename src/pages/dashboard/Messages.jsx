@@ -14,155 +14,25 @@ function timeAgo(dateStr) {
   return new Date(dateStr).toLocaleDateString();
 }
 
-// ─── Compose Modal ───────────────────────────────────────────────────────────
-function ComposeModal({ open, onClose, onSent }) {
-  const [form, setForm] = useState({ subject: "", content: "" });
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (!open) return;
-    function handleKey(e) {
-      if (e.key === "Escape") {
-        if ((form.subject.trim() || form.content.trim()) && !confirm("Discard your draft?")) return;
-        setForm({ subject: "", content: "" });
-        setError("");
-        onClose?.();
-      }
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose, form]);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    if (!form.subject.trim() || !form.content.trim()) return;
-    setError("");
-    setSending(true);
-    try {
-      await sendMessage({ subject: form.subject, body: form.content });
-      setForm({ subject: "", content: "" });
-      onSent?.();
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
-        "Failed to send message.";
-      setError(msg);
-    } finally {
-      setSending(false);
-    }
-  }
-
-  if (!open) return null;
-
-  const hasDraft = form.subject.trim() || form.content.trim();
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={() => {
-          if (hasDraft) { if (!confirm("Discard your draft?")) return; }
-          setForm({ subject: "", content: "" });
-          setError("");
-          onClose();
-        }}
-      />
-      <div className="relative bg-white w-full max-w-lg rounded-xl shadow-xl animate-hero-fade-in opacity-0">
-        <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h3 className="text-lg font-semibold text-gray-900">
-            <i className="fas fa-pen-to-square mr-2 text-blue-600"></i>New Message
-          </h3>
-          <button onClick={() => {
-            if (hasDraft) { if (!confirm("Discard your draft?")) return; }
-            setForm({ subject: "", content: "" });
-            setError("");
-            onClose();
-          }} className="text-gray-400 hover:text-gray-600">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          {error && (
-            <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
-              <i className="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
-              <span>{error}</span>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-            <div className="relative">
-              <i className="fas fa-heading absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-              <input
-                value={form.subject}
-                onChange={(e) => setForm((p) => ({ ...p, subject: e.target.value }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="e.g. Question about amenities"
-                required
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-            <div className="relative">
-              <i className="fas fa-comment-alt absolute left-3 top-3 text-gray-400"></i>
-              <textarea
-                rows={4}
-                value={form.content}
-                onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Write your message to Aplaya Beach Resort..."
-                required
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => {
-              if (hasDraft) { if (!confirm("Discard your draft?")) return; }
-              setForm({ subject: "", content: "" });
-              setError("");
-              onClose();
-            }} className="px-4 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-sm font-medium text-gray-700">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={sending}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium text-sm transition"
-            >
-              <i className={`fas ${sending ? "fa-spinner fa-spin" : "fa-paper-plane"}`}></i>
-              {sending ? "Sending..." : "Send Message"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function Messages() {
   const [threads, setThreads]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [currentId, setCurrentId] = useState(null);
-  // Mobile: show chat view when a thread is selected
   const [mobileChat, setMobileChat] = useState(false);
 
   const [reply, setReply]         = useState("");
   const [sending, setSending]     = useState(false);
   const [replyError, setReplyError] = useState("");
 
+  // Quick-send (replaces compose modal)
+  const [quickMsg, setQuickMsg]   = useState("");
+  const [quickSending, setQuickSending] = useState(false);
+
   const bottomRef    = useRef(null);
   const textareaRef  = useRef(null);
   const [scrollTick, setScrollTick] = useState(0);
   const [toast, showToast, clearToast, toastType] = useToast();
-
-  const [composeOpen, setComposeOpen] = useState(false);
 
   // Load threads on mount
   useEffect(() => {
@@ -234,12 +104,27 @@ export default function Messages() {
     }
   }, [reply, current, sending]);
 
-  async function handleComposeSent() {
-    const data = await getMessages().catch(() => []);
-    setThreads(data);
-    if (data.length > 0) setCurrentId(data[0].id);
-    setComposeOpen(false);
-    showToast("Message sent to Aplaya Beach Resort!", "success");
+  // Quick-send: creates a thread directly — no modal
+  async function handleQuickSend(e) {
+    e.preventDefault();
+    const text = quickMsg.trim();
+    if (!text || quickSending) return;
+    setQuickSending(true);
+    try {
+      await sendMessage({ subject: text.slice(0, 100), body: text });
+      setQuickMsg("");
+      // Reload threads to pick up the new one + auto-reply
+      const data = await getMessages().catch(() => []);
+      setThreads(data);
+      if (data.length > 0) setCurrentId(data[0].id);
+      setMobileChat(true);
+      showToast("Message sent!", "success");
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to send message.";
+      showToast(msg, "error");
+    } finally {
+      setQuickSending(false);
+    }
   }
 
   function handleReplyKeyDown(e) {
@@ -264,28 +149,43 @@ export default function Messages() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
       <Helmet><title>Messages — Aplaya Beach Resort</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
-      {/* Header */}
-      <div className="p-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Header with inline quick-send */}
+      <div className="p-6 border-b space-y-4">
         <div className="flex items-center gap-3">
-          <i className="fas fa-envelope text-blue-600 text-lg"></i>
+          <i className="fas fa-envelope text-sky-600 text-lg"></i>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Messages</h1>
-            <p className="text-gray-500 text-sm">
+            <h1 className="text-2xl font-bold text-slate-900">Messages</h1>
+            <p className="text-slate-500 text-sm">
               {loading ? "Loading..." : totalUnread > 0 ? `${totalUnread} unread` : "No unread messages"}
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setComposeOpen(true)}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
-        >
-          <i className="fas fa-plus"></i>
-          New Message
-        </button>
+
+        {/* Quick-send bar — replaces "New Message" button + compose modal */}
+        <form onSubmit={handleQuickSend} className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <i className="fas fa-pen absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <input
+              type="text"
+              value={quickMsg}
+              onChange={e => setQuickMsg(e.target.value)}
+              placeholder="Type a new message to Aplaya Beach Resort..."
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 placeholder:text-slate-400 transition"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={!quickMsg.trim() || quickSending}
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shrink-0"
+          >
+            <i className={`fas ${quickSending ? "fa-spinner fa-spin" : "fa-paper-plane"} text-xs`}></i>
+            {quickSending ? "Sending..." : "Send"}
+          </button>
+        </form>
       </div>
 
       {/* Loading skeleton */}
@@ -294,15 +194,15 @@ export default function Messages() {
           <div className="border-r">
             {[1, 2, 3].map((i) => (
               <div key={i} className="p-3 border-b animate-pulse flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-200 shrink-0"></div>
+                <div className="w-10 h-10 rounded-full bg-slate-200 shrink-0"></div>
                 <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-32"></div>
-                  <div className="h-3 bg-gray-100 rounded w-48"></div>
+                  <div className="h-4 bg-slate-200 rounded w-32"></div>
+                  <div className="h-3 bg-slate-100 rounded w-48"></div>
                 </div>
               </div>
             ))}
           </div>
-          <div className="hidden lg:flex items-center justify-center min-h-[520px] text-gray-300">
+          <div className="hidden lg:flex items-center justify-center min-h-[520px] text-slate-300">
             <div className="text-center">
               <i className="fas fa-comments text-5xl mb-3"></i>
               <p className="text-sm">Loading conversations...</p>
@@ -312,18 +212,15 @@ export default function Messages() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr]">
 
-          {/* Thread list — hidden on mobile when viewing a chat */}
+          {/* Thread list */}
           <div className={`border-r ${mobileChat ? "hidden lg:block" : ""}`}>
             {threads.length === 0 ? (
               <div className="p-8 text-center">
-                <i className="fas fa-inbox text-gray-200 text-4xl mb-3 block"></i>
-                <p className="text-gray-400 text-sm">No messages yet.</p>
-                <button
-                  onClick={() => setComposeOpen(true)}
-                  className="mt-2 text-xs text-blue-600 hover:underline font-medium"
-                >
-                  <i className="fas fa-plus mr-1"></i>Send your first message
-                </button>
+                <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-slate-100 mb-3">
+                  <i className="fas fa-inbox text-slate-300 text-2xl"></i>
+                </div>
+                <p className="text-slate-500 font-medium text-sm">No messages yet</p>
+                <p className="text-xs text-slate-400 mt-1">Use the input above to send your first message.</p>
               </div>
             ) : (
               threads.map((thread) => (
@@ -331,30 +228,30 @@ export default function Messages() {
                   key={thread.id}
                   onClick={() => openThread(thread.id)}
                   className={[
-                    "w-full text-left p-3 border-b hover:bg-gray-50 flex items-center gap-3 transition-colors",
-                    currentId === thread.id ? "bg-blue-50" : "",
+                    "w-full text-left p-3 border-b hover:bg-slate-50 flex items-center gap-3 transition-colors",
+                    currentId === thread.id ? "bg-sky-50" : "",
                   ].join(" ")}
                 >
                   <img
                     src={avatarSrc(thread)}
                     alt={thread.name}
                     className="w-10 h-10 rounded-full object-cover shrink-0"
-                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(thread.name || "R")}&background=3b82f6&color=fff&size=80`; }}
+                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=R&background=3b82f6&color=fff&size=80`; }}
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
-                      <h4 className={`text-sm truncate ${thread.unread > 0 ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                      <h4 className={`text-sm truncate ${thread.unread > 0 ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
                         {thread.subject}
                       </h4>
-                      <span className="text-[11px] text-gray-400 shrink-0 ml-2">{timeAgo(thread.timestamp)}</span>
+                      <span className="text-[11px] text-slate-400 shrink-0 ml-2">{timeAgo(thread.timestamp)}</span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
-                      <p className="text-xs text-gray-500 truncate">
-                        {thread.lastSender === "user" && <span className="text-gray-400">You: </span>}
+                      <p className="text-xs text-slate-500 truncate">
+                        {thread.lastSender === "user" && <span className="text-slate-400">You: </span>}
                         {thread.lastMessage}
                       </p>
                       {thread.unread > 0 && (
-                        <span className="bg-blue-600 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1 shrink-0">
+                        <span className="bg-sky-600 text-white text-[10px] font-bold rounded-full h-5 min-w-[20px] flex items-center justify-center px-1 shrink-0">
                           {thread.unread > 9 ? "9+" : thread.unread}
                         </span>
                       )}
@@ -365,14 +262,13 @@ export default function Messages() {
             )}
           </div>
 
-          {/* Chat view — hidden on mobile when viewing thread list */}
+          {/* Chat view */}
           <div className={`flex flex-col min-h-[520px] ${!mobileChat ? "hidden lg:flex" : ""}`}>
             {/* Chat header */}
             <div className="p-4 border-b flex items-center gap-3">
-              {/* Mobile back button */}
               <button
                 onClick={() => setMobileChat(false)}
-                className="lg:hidden p-1.5 text-gray-500 hover:text-blue-600"
+                className="lg:hidden p-1.5 text-slate-500 hover:text-sky-600"
                 aria-label="Back to threads"
               >
                 <i className="fas fa-arrow-left"></i>
@@ -386,25 +282,27 @@ export default function Messages() {
                     onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=R&background=3b82f6&color=fff&size=80`; }}
                   />
                   <div className="min-w-0">
-                    <h3 className="font-semibold text-gray-900 text-sm truncate">{current.subject}</h3>
-                    <p className="text-xs text-gray-400">{current.name}</p>
+                    <h3 className="font-semibold text-slate-900 text-sm truncate">{current.subject}</h3>
+                    <p className="text-xs text-slate-400">{current.name}</p>
                   </div>
                 </div>
               ) : (
-                <h3 className="font-semibold text-gray-500 text-sm">Select a conversation</h3>
+                <h3 className="font-semibold text-slate-500 text-sm">Select a conversation</h3>
               )}
             </div>
 
             {/* Messages */}
-            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-50">
+            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-slate-50">
               {!current ? (
-                <div className="h-full flex flex-col items-center justify-center text-gray-300">
-                  <i className="fas fa-comments text-5xl mb-3"></i>
-                  <p className="text-sm font-medium">No conversation selected</p>
-                  <p className="text-xs text-gray-300 mt-1">Choose a thread or start a new message</p>
+                <div className="h-full flex flex-col items-center justify-center text-slate-300">
+                  <div className="h-16 w-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-3">
+                    <i className="fas fa-comments text-slate-300 text-2xl"></i>
+                  </div>
+                  <p className="text-sm font-medium text-slate-500">No conversation selected</p>
+                  <p className="text-xs text-slate-400 mt-1">Choose a thread or send a new message above</p>
                 </div>
               ) : current.messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                <div className="h-full flex flex-col items-center justify-center text-slate-300">
                   <i className="fas fa-comment-dots text-4xl mb-3"></i>
                   <p className="text-sm">No messages in this thread yet</p>
                 </div>
@@ -412,7 +310,7 @@ export default function Messages() {
                 current.messages.map((m) => (
                   <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
                     {m.sender !== "user" && (
-                      <div className="h-7 w-7 rounded-full bg-blue-100 flex items-center justify-center text-[10px] font-bold text-blue-600 shrink-0 mr-2 mt-1">
+                      <div className="h-7 w-7 rounded-full bg-sky-100 flex items-center justify-center text-[10px] font-bold text-sky-600 shrink-0 mr-2 mt-1">
                         <i className="fas fa-umbrella-beach text-xs"></i>
                       </div>
                     )}
@@ -420,15 +318,15 @@ export default function Messages() {
                       className={[
                         "max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-sm",
                         m.sender === "user"
-                          ? "bg-blue-600 text-white rounded-br-md"
-                          : "bg-white text-gray-800 border border-gray-100 rounded-bl-md",
+                          ? "bg-sky-600 text-white rounded-br-md"
+                          : "bg-white text-slate-800 border border-slate-100 rounded-bl-md",
                       ].join(" ")}
                     >
                       {m.sender !== "user" && (
-                        <p className="text-[10px] font-semibold text-blue-600 mb-0.5">Aplaya Beach Resort</p>
+                        <p className="text-[10px] font-semibold text-sky-600 mb-0.5">Aplaya Beach Resort</p>
                       )}
                       <div className="whitespace-pre-wrap">{m.text}</div>
-                      <div className={`mt-1 text-[10px] ${m.sender === "user" ? "text-blue-200" : "text-gray-400"}`}>
+                      <div className={`mt-1 text-[10px] ${m.sender === "user" ? "text-sky-200" : "text-slate-400"}`}>
                         {timeAgo(m.timestamp)}
                       </div>
                     </div>
@@ -452,16 +350,16 @@ export default function Messages() {
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
                   onKeyDown={handleReplyKeyDown}
-                  placeholder={current ? "Type your reply... (Enter to send, Shift+Enter for new line)" : "Select a conversation first"}
+                  placeholder={current ? "Type your reply... (Enter to send)" : "Select a conversation first"}
                   disabled={!current || sending}
                   rows={1}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-50 resize-none text-sm"
+                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-50 resize-none text-sm"
                   style={{ minHeight: 42, maxHeight: 120 }}
                 />
                 <button
                   onClick={sendReply}
                   disabled={!current || sending || !reply.trim()}
-                  className="h-[42px] w-[42px] shrink-0 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white flex items-center justify-center transition"
+                  className="h-[42px] w-[42px] shrink-0 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white flex items-center justify-center transition"
                   aria-label="Send reply"
                 >
                   <i className={`fas ${sending ? "fa-spinner fa-spin" : "fa-paper-plane"}`}></i>
@@ -472,13 +370,6 @@ export default function Messages() {
 
         </div>
       )}
-
-      {/* Compose modal */}
-      <ComposeModal
-        open={composeOpen}
-        onClose={() => setComposeOpen(false)}
-        onSent={handleComposeSent}
-      />
     </div>
   );
 }

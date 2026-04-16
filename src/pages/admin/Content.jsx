@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
 import { RESORT_ID } from "../../lib/config.js";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
 import { isVideoUrl } from "../../lib/uploadApi.js";
+import Modal from "../../components/modals/Modal.jsx";
+import Toast, { useToast } from "../../components/ui/Toast";
+import useDebounce from "../../hooks/useDebounce.js";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
-const CONTENT_KEY = "aplaya_page_content_v2"; // bumped to clear stale footer/navbar cache
+const CONTENT_KEY = "aplaya_page_content_v2";
 
 // ─── Default content (mirrors the actual hardcoded values in Home.jsx / Resort.jsx) ─
 const DEFAULT_CONTENT = {
@@ -35,6 +38,17 @@ const DEFAULT_CONTENT = {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
     title:      "Welcome to Paradise",
     subtitle:   "Choose your perfect getaway from our collection of stunning beach resorts.",
+    ctaText:    "Book Now",
+  },
+  home_why: {
+    sectionTitle: "Why Choose Aplaya?",
+    sectionSubtitle: "Everything you need for the perfect beach getaway, all in one place.",
+    features: [
+      { icon: "fa-umbrella-beach", title: "Beachfront Location", desc: "Direct access to pristine sandy beaches with crystal-clear waters." },
+      { icon: "fa-bed", title: "Luxury Rooms", desc: "Spacious, modern accommodations with stunning ocean views." },
+      { icon: "fa-utensils", title: "Fine Dining", desc: "Savor exquisite cuisine at our beachside restaurants." },
+      { icon: "fa-spa", title: "Relaxation", desc: "Unwind with our world-class spa and wellness facilities." },
+    ],
   },
   home_resorts: {
     sectionTitle:    "Our Beach Resorts",
@@ -60,6 +74,11 @@ const DEFAULT_CONTENT = {
       },
     ],
   },
+  home_cta: {
+    title: "Ready for Paradise?",
+    subtitle: "Book your dream beach vacation today and create memories that last a lifetime.",
+    buttonText: "Book Your Stay",
+  },
   // ── Resort page (/resort) ──────────────────────────────────────────────────
   resort_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
@@ -72,7 +91,6 @@ const DEFAULT_CONTENT = {
     paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.",
     paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.",
     image:      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
-    rating:     "4.9",
   },
   resort_rooms: {
     sectionTitle:    "Our Accommodations",
@@ -94,6 +112,18 @@ const DEFAULT_CONTENT = {
     title:    "Subscribe to Our Newsletter",
     subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!",
   },
+  // ── Rooms page (/rooms) ────────────────────────────────────────────────────
+  rooms_hero: {
+    background: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=2070&q=80",
+    title: "Our Luxurious Accommodations",
+    subtitle: "Discover the perfect room for your stay at Aplaya Beach Resort.",
+  },
+  // ── Gallery page (/gallery) ────────────────────────────────────────────────
+  gallery_hero: {
+    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
+    title: "Our Photo Gallery",
+    subtitle: "A visual journey through the beauty and luxury of Aplaya Beach Resort.",
+  },
 };
 
 function loadContent() {
@@ -110,7 +140,9 @@ function saveContent(content) {
   localStorage.setItem(CONTENT_KEY, JSON.stringify(content));
 }
 
-// ─── Small helpers ─────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 10;
+
 function ImagePreview({ url }) {
   if (!url) return null;
   if (isVideoUrl(url)) {
@@ -118,7 +150,7 @@ function ImagePreview({ url }) {
       <video
         src={url}
         muted playsInline
-        className="mt-2 w-full h-32 object-cover rounded-lg border border-gray-200"
+        className="mt-2 w-full h-32 object-cover rounded-lg border border-slate-200"
       />
     );
   }
@@ -126,30 +158,24 @@ function ImagePreview({ url }) {
     <img
       src={url}
       alt="preview"
-      className="mt-2 w-full h-32 object-cover rounded-lg border border-gray-200"
+      className="mt-2 w-full h-32 object-cover rounded-lg border border-slate-200"
       onError={e => { e.target.style.display = "none"; }}
     />
   );
 }
 
-function Field({ label, value, onChange, type = "text", rows }) {
+function Field({ label, value, onChange, type = "text", rows, placeholder, maxLength }) {
   return (
     <div>
-      <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">{label}</label>
+      <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">{label}</label>
       {rows ? (
-        <textarea
-          rows={rows}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-        />
+        <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} maxLength={maxLength}
+          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 resize-none" />
       ) : (
-        <input
-          type={type}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-        />
+        <input type={type} value={value} onChange={e => onChange(e.target.value)}
+          placeholder={placeholder} maxLength={maxLength}
+          className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400" />
       )}
     </div>
   );
@@ -160,20 +186,20 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
   const hideable = visible !== undefined;
 
   return (
-    <div className={`bg-white rounded-lg shadow border ${editing ? "border-[#1e3a8a]" : visible === false ? "border-gray-200 opacity-60" : "border-gray-200"} overflow-hidden`}>
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+    <div className={`bg-white rounded-lg shadow border ${editing ? "border-[#1e3a8a]" : visible === false ? "border-slate-200 opacity-60" : "border-slate-200"} overflow-hidden`}>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${visible === false ? "bg-gray-100 text-gray-400" : "bg-blue-50 text-[#1e3a8a]"}`}>
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${visible === false ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-[#1e3a8a]"}`}>
             <i className={`fas ${icon} text-sm`}></i>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <p className="font-semibold text-gray-800 text-sm">{title}</p>
+              <p className="font-semibold text-slate-800 text-sm">{title}</p>
               {hideable && visible === false && (
-                <span className="text-xs bg-gray-100 text-gray-400 px-2 py-0.5 rounded-full">Hidden</span>
+                <span className="text-xs bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">Hidden</span>
               )}
             </div>
-            {badge && <span className="text-xs text-gray-400">{badge}</span>}
+            {badge && <span className="text-xs text-slate-400">{badge}</span>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -183,7 +209,7 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
               title={visible ? "Hide section" : "Show section"}
               className={`text-xs px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
                 visible
-                  ? "bg-gray-100 hover:bg-yellow-50 hover:text-yellow-600 text-gray-500"
+                  ? "bg-slate-100 hover:bg-yellow-50 hover:text-yellow-600 text-slate-500"
                   : "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
               }`}
             >
@@ -194,7 +220,7 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
           {!editing && (
             <button
               onClick={onEdit}
-              className="text-xs bg-gray-100 hover:bg-[#1e3a8a] hover:text-white text-gray-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+              className="text-xs bg-slate-100 hover:bg-[#1e3a8a] hover:text-white text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
             >
               <i className="fas fa-pen text-xs"></i> Edit
             </button>
@@ -205,9 +231,9 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
       <div className="px-5 py-4">
         {children}
         {editing && (
-          <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-gray-100">
+          <div className="flex justify-end gap-2 mt-5 pt-4 border-t border-slate-100">
             <button onClick={onCancel}
-              className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">
+              className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
               Cancel
             </button>
             <button onClick={onSave}
@@ -225,7 +251,7 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
 
 function HeroPreview({ bg, title, subtitle, extra }) {
   return (
-    <div className="relative rounded-lg overflow-hidden h-36 bg-gray-200 mt-4 border border-gray-200">
+    <div className="relative rounded-lg overflow-hidden h-36 bg-slate-200 mt-4 border border-slate-200">
       {isVideoUrl(bg)
         ? <video src={bg} autoPlay muted loop playsInline className="w-full h-full object-cover" />
         : bg
@@ -266,33 +292,55 @@ function NavbarEditor({ content, onSave }) {
       ) : (
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Logo section — compact preview + upload */}
             <div>
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Logo Image</label>
-              <MediaPicker
-                value={form.logoImage}
-                onChange={url => setForm(p => ({ ...p, logoImage: url }))}
-                previousUrl={content.logoImage}
-                folder="logo"
-                accept="image/*"
-                label="Upload Logo"
-              />
-              <p className="text-xs text-gray-400 mt-1">PNG with transparent background recommended. Falls back to 🏖️ if empty.</p>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Logo Image</label>
+              <div className="flex items-start gap-4">
+                {/* Small logo preview */}
+                <div className="h-20 w-20 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                  {form.logoImage ? (
+                    <img src={form.logoImage} alt="Logo" className="h-full w-full object-contain p-1.5" onError={e => { e.target.style.display = "none"; }} />
+                  ) : (
+                    <div className="text-center">
+                      <i className="fas fa-image text-slate-300 text-lg"></i>
+                      <p className="text-[9px] text-slate-300 mt-0.5">No logo</p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <MediaPicker
+                    value={form.logoImage}
+                    onChange={url => setForm(p => ({ ...p, logoImage: url }))}
+                    previousUrl={content.logoImage}
+                    folder="logo"
+                    accept="image/*"
+                    label="Upload Logo"
+                  />
+                  <p className="text-[10px] text-slate-400">PNG with transparent background recommended.</p>
+                  {form.logoImage && (
+                    <button type="button" onClick={() => setForm(p => ({ ...p, logoImage: "" }))}
+                      className="text-[10px] text-red-400 hover:text-red-600 transition flex items-center gap-1">
+                      <i className="fas fa-times text-[8px]"></i> Remove logo
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <Field label="Site Name" value={form.siteName} onChange={f("siteName")} />
           </div>
           {/* Live preview */}
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
             <div className="bg-white px-4 h-14 flex items-center justify-between shadow-sm">
               <div className="flex items-center gap-2">
                 <LogoDisplay image={form.logoImage} name={form.siteName} size="h-7" />
                 <span className="text-base font-bold text-blue-600">{form.siteName}</span>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
+              <div className="flex items-center gap-4 text-sm text-slate-500">
                 <span>Resort</span><span>Rooms</span><span>Gallery</span>
                 <span className="bg-blue-600 text-white text-xs px-3 py-1 rounded-md">Book Now</span>
               </div>
             </div>
-            <p className="text-center text-[10px] text-gray-400 py-1 bg-gray-50">Live Preview</p>
+            <p className="text-center text-[10px] text-slate-400 py-1 bg-slate-50">Live Preview</p>
           </div>
         </div>
       )}
@@ -314,39 +362,101 @@ function FooterEditor({ content, onSave }) {
     <SectionCard icon="fa-shoe-prints" title="Footer" badge="Site-wide · all pages" editing={editing}
       onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="text-sm text-gray-500 space-y-1 py-1">
-          <p className="line-clamp-1 text-gray-700">{content.tagline}</p>
-          <p>{content.address}</p>
-          <p>{content.phone} · {content.email}</p>
-          <p className="text-gray-400">{content.copyright}</p>
+        <div className="space-y-3">
+          <p className="text-sm text-slate-700 italic line-clamp-2">&ldquo;{content.tagline}&rdquo;</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Contact card */}
+            <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-1.5">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Contact</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-map-marker-alt text-[#1e3a8a] w-3 text-center text-[10px]"></i>{content.address || <span className="text-slate-300 italic">Not set</span>}</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-phone text-[#1e3a8a] w-3 text-center text-[10px]"></i>{content.phone || <span className="text-slate-300 italic">Not set</span>}</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-envelope text-[#1e3a8a] w-3 text-center text-[10px]"></i>{content.email || <span className="text-slate-300 italic">Not set</span>}</p>
+            </div>
+            {/* Hours card */}
+            <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Hours</p>
+              {(content.hours || []).map((h, i) => (
+                <p key={i} className="text-xs text-slate-600"><span className="font-medium">{h.day}</span> · {h.time}</p>
+              ))}
+              {(!content.hours || content.hours.length === 0) && <p className="text-xs text-slate-300 italic">Not set</p>}
+            </div>
+            {/* Social card */}
+            <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Social</p>
+              <div className="flex items-center gap-2">
+                {[
+                  { key: "facebook", icon: "fa-facebook-f", color: "text-blue-600" },
+                  { key: "instagram", icon: "fa-instagram", color: "text-pink-500" },
+                  { key: "twitter", icon: "fa-twitter", color: "text-sky-400" },
+                  { key: "tiktok", icon: "fa-tiktok", color: "text-slate-800" },
+                ].map(s => (
+                  <span key={s.key} className={`h-7 w-7 rounded-full flex items-center justify-center text-xs ${content[s.key] ? `bg-slate-100 ${s.color}` : "bg-slate-50 text-slate-200"}`}>
+                    <i className={`fab ${s.icon}`}></i>
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1.5">{content.copyright}</p>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="space-y-5">
-          <Field label="Tagline" value={form.tagline} onChange={f("tagline")} rows={2} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Address"        value={form.address}   onChange={f("address")} />
-            <Field label="Phone"          value={form.phone}     onChange={f("phone")} />
-            <Field label="Email"          value={form.email}     onChange={f("email")} />
-            <Field label="Copyright Line" value={form.copyright} onChange={f("copyright")} />
+          {/* Basic Info */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
+              <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-blue-100 flex items-center justify-center">
+                  <i className="fas fa-quote-left text-blue-500 text-[10px]"></i>
+                </span>
+                Basic Info
+              </h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Tagline" value={form.tagline} onChange={f("tagline")} rows={2} />
+              <Field label="Copyright Line" value={form.copyright} onChange={f("copyright")} />
+            </div>
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">Opening Hours</label>
+          {/* Contact Details */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
+              <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-sky-100 flex items-center justify-center">
+                  <i className="fas fa-phone text-sky-500 text-[10px]"></i>
+                </span>
+                Contact Details
+              </h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Field label="Address" value={form.address} onChange={f("address")} />
+              <Field label="Phone" value={form.phone} onChange={f("phone")} />
+              <Field label="Email" value={form.email} onChange={f("email")} />
+            </div>
+          </div>
+
+          {/* Opening Hours */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-slate-200 bg-white flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center">
+                  <i className="fas fa-clock text-amber-500 text-[10px]"></i>
+                </span>
+                Opening Hours
+              </h3>
               <button type="button"
                 onClick={() => setForm(p => ({ ...p, hours: [...(p.hours || []), { day: "", time: "" }] }))}
                 className="text-xs text-[#1e3a8a] hover:underline flex items-center gap-1">
                 <i className="fas fa-plus text-[10px]"></i> Add Row
               </button>
             </div>
-            <div className="space-y-2">
+            <div className="p-4 space-y-2">
               {(form.hours || []).map((h, i) => (
                 <div key={i} className="flex gap-2 items-center">
                   <input value={h.day} onChange={e => updateHour(i, "day", e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+                    className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
                     placeholder="Day(s) e.g. Monday - Sunday" />
                   <input value={h.time} onChange={e => updateHour(i, "time", e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+                    className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400"
                     placeholder="Hours e.g. 7:00 AM - 9:00 PM" />
                   {(form.hours || []).length > 1 && (
                     <button type="button"
@@ -360,9 +470,17 @@ function FooterEditor({ content, onSave }) {
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Social Media Links</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Social Media */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
+              <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-pink-100 flex items-center justify-center">
+                  <i className="fas fa-share-alt text-pink-500 text-[10px]"></i>
+                </span>
+                Social Media Links
+              </h3>
+            </div>
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="Facebook URL"  value={form.facebook  || ""} onChange={f("facebook")} />
               <Field label="Instagram URL" value={form.instagram || ""} onChange={f("instagram")} />
               <Field label="Twitter URL"   value={form.twitter   || ""} onChange={f("twitter")} />
@@ -387,7 +505,7 @@ function HomeHeroEditor({ content, onSave }) {
     <SectionCard icon="fa-image" title="Hero Section" badge="Home page · /" editing={editing}
       onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="relative rounded-lg overflow-hidden h-28 bg-gray-100">
+        <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
           {isVideoUrl(content.background)
             ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
             : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
@@ -395,26 +513,163 @@ function HomeHeroEditor({ content, onSave }) {
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
             <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
+            {content.ctaText && <span className="mt-1.5 text-xs bg-blue-600 px-2 py-0.5 rounded">{content.ctaText}</span>}
           </div>
         </div>
       ) : (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Background Image / Video</label>
-            <MediaPicker
-              value={form.background}
-              onChange={url => setForm(p => ({ ...p, background: url }))}
-              previousUrl={content.background}
-              folder="hero"
-              accept="image/*,video/*"
-              label="Choose Background"
-            />
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Background Image / Video</label>
+            <div className="flex items-start gap-4">
+              <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {form.background ? (
+                  isVideoUrl(form.background)
+                    ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                ) : (
+                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <MediaPicker
+                  value={form.background}
+                  onChange={url => setForm(p => ({ ...p, background: url }))}
+                  previousUrl={content.background}
+                  folder="hero"
+                  accept="image/*,video/*"
+                  label="Choose Background"
+                />
+                <p className="text-[10px] text-slate-400">Recommended: 1920×1080 or wider. Supports images and videos.</p>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Title" value={form.title} onChange={f("title")} />
             <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+            <Field label="CTA Button Text" value={form.ctaText || ""} onChange={f("ctaText")} placeholder="e.g. Book Now" />
           </div>
-          <HeroPreview bg={form.background} title={form.title} subtitle={form.subtitle} />
+          <HeroPreview
+            bg={form.background}
+            title={form.title}
+            subtitle={form.subtitle}
+            extra={form.ctaText ? <span className="mt-1.5 text-xs bg-blue-600 px-2 py-0.5 rounded">{form.ctaText}</span> : null}
+          />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── HomeWhyEditor ───────────────────────────────────────────────────────────
+const WHY_ICON_OPTIONS = [
+  "fa-umbrella-beach", "fa-bed", "fa-utensils", "fa-spa", "fa-wifi",
+  "fa-swimming-pool", "fa-cocktail", "fa-sun", "fa-ship", "fa-mountain",
+  "fa-tree", "fa-car", "fa-plane", "fa-map-marked-alt", "fa-heart", "fa-star",
+];
+
+function HomeWhyEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  const updateFeature = (i, key, val) =>
+    setForm(p => ({ ...p, features: p.features.map((f, fi) => fi === i ? { ...f, [key]: val } : f) }));
+  const addFeature = () => {
+    if ((form.features || []).length >= 8) return;
+    setForm(p => ({ ...p, features: [...(p.features || []), { icon: "fa-star", title: "", desc: "" }] }));
+  };
+  const removeFeature = (i) => {
+    if ((form.features || []).length <= 1) return;
+    setForm(p => ({ ...p, features: p.features.filter((_, fi) => fi !== i) }));
+  };
+
+  return (
+    <SectionCard icon="fa-lightbulb" title="Why Choose Us" badge="Home page · /" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div>
+          <p className="font-semibold text-slate-800 text-sm">{content.sectionTitle}</p>
+          <p className="text-xs text-slate-500 mt-1 mb-3">{content.sectionSubtitle}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {(content.features || []).map((f, i) => (
+              <div key={i} className="rounded-xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/50 p-3 text-center hover:shadow-sm transition">
+                <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-1.5">
+                  <i className={`fas ${f.icon} text-[#1e3a8a] text-sm`}></i>
+                </div>
+                <p className="text-xs font-semibold text-slate-800 truncate">{f.title}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Section Title" value={form.sectionTitle} onChange={v => setForm(p => ({ ...p, sectionTitle: v }))} />
+            <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={v => setForm(p => ({ ...p, sectionSubtitle: v }))} rows={2} />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide">Features ({(form.features || []).length}/8)</label>
+              {(form.features || []).length < 8 && (
+                <button type="button" onClick={addFeature}
+                  className="text-xs text-[#1e3a8a] hover:underline flex items-center gap-1">
+                  <i className="fas fa-plus text-[10px]"></i> Add Feature
+                </button>
+              )}
+            </div>
+            <div className="space-y-3">
+              {(form.features || []).map((feat, i) => (
+                <div key={i} className="border border-slate-200 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-slate-600">Feature {i + 1}</span>
+                    {(form.features || []).length > 1 && (
+                      <button type="button" onClick={() => removeFeature(i)}
+                        className="text-red-400 hover:text-red-600 transition p-1">
+                        <i className="fas fa-trash text-xs"></i>
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Icon</label>
+                      <select value={feat.icon} onChange={e => updateFeature(i, "icon", e.target.value)}
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400">
+                        {WHY_ICON_OPTIONS.map(ico => (
+                          <option key={ico} value={ico}>{ico.replace("fa-", "")}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Field label="Title" value={feat.title} onChange={v => updateFeature(i, "title", v)} maxLength={50} />
+                    <Field label="Description" value={feat.desc} onChange={v => updateFeature(i, "desc", v)} maxLength={120} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <div className="text-center mb-3">
+              <p className="font-bold text-slate-900 text-sm">{form.sectionTitle || <span className="text-slate-300 italic">Title</span>}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{form.sectionSubtitle || <span className="text-slate-300 italic">Subtitle</span>}</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {(form.features || []).map((feat, i) => (
+                <div key={i} className="bg-white rounded-xl p-3 text-center shadow-sm border border-slate-100">
+                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2">
+                    <i className={`fas ${feat.icon} text-[#1e3a8a] text-sm`}></i>
+                  </div>
+                  <p className="text-xs font-bold text-slate-900 truncate">{feat.title || <span className="text-slate-300 italic">Title</span>}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{feat.desc || <span className="text-slate-300 italic">Desc</span>}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </SectionCard>
@@ -436,15 +691,15 @@ function HomeResortsEditor({ content, onSave }) {
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
       {!editing ? (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">{content.sectionTitle}</p>
-          <p className="text-xs text-gray-400 mb-3">{content.sectionSubtitle}</p>
+          <p className="text-sm font-medium text-slate-700">{content.sectionTitle}</p>
+          <p className="text-xs text-slate-400 mb-3">{content.sectionSubtitle}</p>
           <div className="grid grid-cols-3 gap-2">
             {content.cards.map((c, i) => (
-              <div key={i} className="rounded-lg overflow-hidden border border-gray-100">
+              <div key={i} className="rounded-lg overflow-hidden border border-slate-100">
                 <img src={c.image} alt={c.name}
                   className="w-full h-16 object-cover"
                   onError={e => { e.target.style.display = "none"; }} />
-                <p className="text-xs text-gray-600 px-2 py-1 truncate">{c.name}</p>
+                <p className="text-xs text-slate-600 px-2 py-1 truncate">{c.name}</p>
               </div>
             ))}
           </div>
@@ -456,22 +711,22 @@ function HomeResortsEditor({ content, onSave }) {
             <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={v => setForm(p => ({ ...p, sectionSubtitle: v }))} />
           </div>
           <div>
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Resort Cards</p>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Resort Cards</p>
             <div className="space-y-2">
               {form.cards.map((card, i) => (
-                <div key={i} className="border border-gray-200 rounded-lg overflow-hidden">
+                <div key={i} className="border border-slate-200 rounded-lg overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setExpandedCard(expandedCard === i ? null : i)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 text-left"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-blue-50/30 hover:from-slate-100 hover:to-blue-50/50 text-left transition"
                   >
                     <div className="flex items-center gap-3">
                       <img src={card.image} alt={card.name}
                         className="w-10 h-10 rounded object-cover"
                         onError={e => { e.target.style.display = "none"; }} />
-                      <span className="text-sm font-medium text-gray-700">{card.name}</span>
+                      <span className="text-sm font-medium text-slate-700">{card.name}</span>
                     </div>
-                    <i className={`fas fa-chevron-${expandedCard === i ? "up" : "down"} text-xs text-gray-400`}></i>
+                    <i className={`fas fa-chevron-${expandedCard === i ? "up" : "down"} text-xs text-slate-400`}></i>
                   </button>
                   {expandedCard === i && (
                     <div className="p-4 space-y-3">
@@ -479,36 +734,88 @@ function HomeResortsEditor({ content, onSave }) {
                       <Field label="Description" value={card.desc} onChange={v => updateCard(i, "desc", v)} rows={2} />
                       <Field label="Badge Text (leave empty for none)" value={card.badge} onChange={v => updateCard(i, "badge", v)} />
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Card Image</label>
-                        <MediaPicker
-                          value={card.image}
-                          onChange={url => updateCard(i, "image", url)}
-                          previousUrl={content.cards[i]?.image}
-                          folder="hero"
-                          accept="image/*"
-                          label="Choose Card Image"
-                        />
+                        <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Card Image</label>
+                        <div className="flex items-start gap-3">
+                          <div className="h-16 w-16 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                            {card.image ? (
+                              <img src={card.image} alt="Card" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                            ) : (
+                              <i className="fas fa-image text-slate-300"></i>
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <MediaPicker
+                              value={card.image}
+                              onChange={url => updateCard(i, "image", url)}
+                              previousUrl={content.cards[i]?.image}
+                              folder="hero"
+                              accept="image/*"
+                              label="Choose Card Image"
+                            />
+                            <p className="text-[10px] text-slate-400">Landscape orientation recommended.</p>
+                          </div>
+                        </div>
                       </div>
                       {/* Card preview */}
-                      <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm bg-white">
-                        <div className="relative h-24 bg-gray-100">
+                      <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white">
+                        <div className="relative h-24 bg-slate-100">
                           {card.image
                             ? <img src={card.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
-                            : <div className="w-full h-full flex items-center justify-center text-gray-300"><i className="fas fa-image text-2xl"></i></div>
+                            : <div className="w-full h-full flex items-center justify-center text-slate-300"><i className="fas fa-image text-2xl"></i></div>
                           }
                           {card.badge && (
                             <span className="absolute top-2 right-2 bg-blue-600 text-white text-[10px] px-2 py-0.5 rounded font-medium">{card.badge}</span>
                           )}
                         </div>
                         <div className="p-3">
-                          <p className="text-sm font-bold text-gray-900 truncate">{card.name || <span className="text-gray-300 italic">Name</span>}</p>
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{card.desc || <span className="text-gray-300 italic">Description</span>}</p>
+                          <p className="text-sm font-bold text-slate-900 truncate">{card.name || <span className="text-slate-300 italic">Name</span>}</p>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{card.desc || <span className="text-slate-300 italic">Description</span>}</p>
                         </div>
                       </div>
                     </div>
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── HomeCTAEditor ───────────────────────────────────────────────────────────
+function HomeCTAEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-bullhorn" title="CTA Banner" badge="Home page · /" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="rounded-xl overflow-hidden bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-center text-white">
+          <p className="font-bold text-sm">{content.title}</p>
+          <p className="text-xs text-white/70 mt-1 line-clamp-1">{content.subtitle}</p>
+          <span className="inline-block mt-2 text-xs bg-white text-blue-600 font-semibold px-3 py-1 rounded-lg">{content.buttonText}</span>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <Field label="Title" value={form.title} onChange={f("title")} />
+          <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+          <Field label="Button Text" value={form.buttonText} onChange={f("buttonText")} />
+          {/* Live preview */}
+          <div className="p-5 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl text-center text-white">
+            <p className="text-[10px] text-white/60 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <p className="font-bold text-base">{form.title || <span className="opacity-40 italic">Title</span>}</p>
+            <p className="text-xs text-white/75 mt-1">{form.subtitle || <span className="opacity-40 italic">Subtitle</span>}</p>
+            <div className="mt-3">
+              <span className="inline-block bg-white text-blue-600 text-xs font-semibold px-4 py-1.5 rounded-lg">
+                {form.buttonText || "Button"}
+              </span>
             </div>
           </div>
         </div>
@@ -529,7 +836,7 @@ function ResortHeroEditor({ content, onSave }) {
     <SectionCard icon="fa-image" title="Hero Section" badge="Resort page · /resort" editing={editing}
       onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="relative rounded-lg overflow-hidden h-28 bg-gray-100">
+        <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
           {isVideoUrl(content.background)
             ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
             : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
@@ -543,15 +850,29 @@ function ResortHeroEditor({ content, onSave }) {
       ) : (
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Background Image / Video</label>
-            <MediaPicker
-              value={form.background}
-              onChange={url => setForm(p => ({ ...p, background: url }))}
-              previousUrl={content.background}
-              folder="hero"
-              accept="image/*,video/*"
-              label="Choose Background"
-            />
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Background Image / Video</label>
+            <div className="flex items-start gap-4">
+              <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {form.background ? (
+                  isVideoUrl(form.background)
+                    ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                ) : (
+                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <MediaPicker
+                  value={form.background}
+                  onChange={url => setForm(p => ({ ...p, background: url }))}
+                  previousUrl={content.background}
+                  folder="hero"
+                  accept="image/*,video/*"
+                  label="Choose Background"
+                />
+                <p className="text-[10px] text-slate-400">Recommended: 1920×1080 or wider. Supports images and videos.</p>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Title" value={form.title} onChange={f("title")} />
@@ -582,13 +903,22 @@ function ResortAboutEditor({ content, onSave }) {
     <SectionCard icon="fa-info-circle" title="About Section" badge="Resort page · /resort" editing={editing}
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="flex gap-3">
-          <img src={content.image} alt="about"
-            className="w-24 h-20 object-cover rounded-lg flex-shrink-0"
-            onError={e => { e.target.style.display = "none"; }} />
-          <div>
-            <p className="font-semibold text-gray-800 text-sm">{content.title}</p>
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{content.paragraph1}</p>
+        <div className="rounded-xl border border-slate-100 bg-slate-50/50 overflow-hidden">
+          <div className="flex gap-4 p-3">
+            {content.image ? (
+              isVideoUrl(content.image)
+                ? <video src={content.image} muted playsInline className="w-28 h-20 object-cover rounded-lg shrink-0 border border-slate-200" />
+                : <img src={content.image} alt="about" className="w-28 h-20 object-cover rounded-lg shrink-0 border border-slate-200" onError={e => { e.target.style.display = "none"; }} />
+            ) : (
+              <div className="w-28 h-20 rounded-lg bg-slate-200 shrink-0 flex items-center justify-center text-slate-300">
+                <i className="fas fa-image text-lg"></i>
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="font-bold text-slate-800 text-sm">{content.title}</p>
+              <p className="text-xs text-slate-500 mt-1 line-clamp-2">{content.paragraph1}</p>
+              {content.paragraph2 && <p className="text-xs text-slate-400 mt-0.5 line-clamp-1">{content.paragraph2}</p>}
+            </div>
           </div>
         </div>
       ) : (
@@ -599,29 +929,43 @@ function ResortAboutEditor({ content, onSave }) {
             <Field label="Paragraph 2" value={form.paragraph2} onChange={f("paragraph2")} rows={3} />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Section Image</label>
-            <MediaPicker
-              value={form.image}
-              onChange={url => setForm(p => ({ ...p, image: url }))}
-              previousUrl={content.image}
-              folder="hero"
-              accept="image/*,video/*"
-              label="Choose Section Image / Video"
-            />
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Section Image / Video</label>
+            <div className="flex items-start gap-4">
+              <div className="h-20 w-28 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {form.image ? (
+                  isVideoUrl(form.image)
+                    ? <video src={form.image} muted playsInline className="h-full w-full object-cover" />
+                    : <img src={form.image} alt="Section" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                ) : (
+                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <MediaPicker
+                  value={form.image}
+                  onChange={url => setForm(p => ({ ...p, image: url }))}
+                  previousUrl={content.image}
+                  folder="hero"
+                  accept="image/*,video/*"
+                  label="Choose Section Image / Video"
+                />
+                <p className="text-[10px] text-slate-400">Landscape image or short video clip.</p>
+              </div>
+            </div>
           </div>
           {/* About preview */}
-          <div className="mt-2 p-4 bg-gray-50 rounded-xl border border-gray-100">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+          <div className="mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
             <div className="flex gap-4">
               {form.image
                 ? isVideoUrl(form.image)
-                  ? <video src={form.image} muted playsInline className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-200" />
-                  : <img src={form.image} alt="" className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-gray-200" onError={e => { e.target.style.display='none'; }} />
-                : <div className="w-28 h-24 rounded-lg bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-300"><i className="fas fa-image text-2xl"></i></div>
+                  ? <video src={form.image} muted playsInline className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-slate-200" />
+                  : <img src={form.image} alt="" className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-slate-200" onError={e => { e.target.style.display='none'; }} />
+                : <div className="w-28 h-24 rounded-lg bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-300"><i className="fas fa-image text-2xl"></i></div>
               }
               <div className="min-w-0">
-                <p className="font-bold text-gray-900 text-sm">{form.title || <span className="text-gray-300 italic">Title</span>}</p>
-                <p className="text-xs text-gray-500 mt-1 line-clamp-3">{form.paragraph1 || <span className="text-gray-300 italic">Paragraph 1</span>}</p>
+                <p className="font-bold text-slate-900 text-sm">{form.title || <span className="text-slate-300 italic">Title</span>}</p>
+                <p className="text-xs text-slate-500 mt-1 line-clamp-3">{form.paragraph1 || <span className="text-slate-300 italic">Paragraph 1</span>}</p>
               </div>
             </div>
           </div>
@@ -644,26 +988,39 @@ function ResortRoomsSectionEditor({ content, onSave }) {
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
       {!editing ? (
         <div>
-          <p className="font-semibold text-gray-800 text-sm">{content.sectionTitle}</p>
-          <p className="text-xs text-gray-500 mt-1">{content.sectionSubtitle}</p>
-          <p className="text-xs text-gray-300 mt-2 italic">Individual rooms are managed in Manage Rooms</p>
+          <p className="font-semibold text-slate-800 text-sm">{content.sectionTitle}</p>
+          <p className="text-xs text-slate-500 mt-1">{content.sectionSubtitle}</p>
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/50 overflow-hidden">
+                <div className="h-10 bg-gradient-to-br from-slate-100 to-slate-200"></div>
+                <div className="p-2 space-y-1">
+                  <div className="h-2.5 bg-slate-200 rounded w-3/4"></div>
+                  <div className="h-2 bg-slate-100 rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-300 mt-2 italic flex items-center gap-1">
+            <i className="fas fa-info-circle"></i>Individual rooms are managed in Manage Rooms
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           <Field label="Section Title" value={form.sectionTitle} onChange={f("sectionTitle")} />
           <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={f("sectionSubtitle")} rows={2} />
-          <p className="text-xs text-gray-400 italic">
+          <p className="text-xs text-slate-400 italic">
             <i className="fas fa-info-circle mr-1"></i>
             Individual rooms are managed in <strong>Manage Rooms</strong>.
           </p>
           {/* Preview */}
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 text-center">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
-            <p className="font-bold text-gray-900 text-base">{form.sectionTitle || <span className="text-gray-300 italic">Section Title</span>}</p>
-            <p className="text-xs text-gray-500 mt-1">{form.sectionSubtitle || <span className="text-gray-300 italic">Subtitle</span>}</p>
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 text-center">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
+            <p className="font-bold text-slate-900 text-base">{form.sectionTitle || <span className="text-slate-300 italic">Section Title</span>}</p>
+            <p className="text-xs text-slate-500 mt-1">{form.sectionSubtitle || <span className="text-slate-300 italic">Subtitle</span>}</p>
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[1,2,3].map(i => (
-                <div key={i} className="h-10 rounded-lg bg-gray-200 animate-pulse" />
+                <div key={i} className="h-10 rounded-lg bg-slate-200 animate-pulse" />
               ))}
             </div>
           </div>
@@ -732,15 +1089,15 @@ function AmenityForm({ initial = EMPTY_FORM, onSave, onCancel, saving, label = "
       </div>
 
       {/* Preview */}
-      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-        <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium mb-2">Preview</p>
+      <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
+        <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium mb-2">Preview</p>
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-lg shrink-0">
             {form.icon || "✨"}
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-900">{form.name || <span className="text-gray-300 italic">Amenity name</span>}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{form.description || <span className="text-gray-300 italic">Description</span>}</p>
+            <p className="text-sm font-bold text-slate-900">{form.name || <span className="text-slate-300 italic">Amenity name</span>}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{form.description || <span className="text-slate-300 italic">Description</span>}</p>
           </div>
         </div>
       </div>
@@ -765,14 +1122,15 @@ function ResortAmenitiesEditor() {
   const [editingId, setEditingId] = useState(null);
   const [adding,    setAdding]    = useState(false);
   const [saving,    setSaving]    = useState(false);
-  const [error,     setError]     = useState("");
+  const [toast, showToast, clearToast, toastType] = useToast();
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     getResortAmenities()
       .then(r => setAmenities(r.data.data ?? []))
-      .catch(() => setError("Failed to load amenities."))
+      .catch(() => showToast("Failed to load amenities.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast]);
 
   const handleSaveEdit = async (id, form) => {
     setSaving(true);
@@ -780,16 +1138,18 @@ function ResortAmenitiesEditor() {
       const res = await updateResortAmenity(id, form);
       setAmenities(prev => prev.map(a => a.id === id ? res.data.data : a));
       setEditingId(null);
-    } catch { setError("Failed to update."); }
+      showToast("Amenity updated!", "success");
+    } catch { showToast("Failed to update.", "error"); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm("Remove this amenity?")) return;
     try {
       await deleteResortAmenity(id);
       setAmenities(prev => prev.filter(a => a.id !== id));
-    } catch { setError("Failed to delete."); }
+      showToast("Amenity removed.", "success");
+    } catch { showToast("Failed to delete.", "error"); }
+    finally { setDeleteConfirm(null); }
   };
 
   const handleAdd = async (form) => {
@@ -798,12 +1158,14 @@ function ResortAmenitiesEditor() {
       const res = await createResortAmenity(form);
       setAmenities(prev => [...prev, res.data.data]);
       setAdding(false);
-    } catch { setError("Failed to add."); }
+      showToast("Amenity added!", "success");
+    } catch { showToast("Failed to add.", "error"); }
     finally { setSaving(false); }
   };
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
@@ -824,7 +1186,6 @@ function ResortAmenitiesEditor() {
       </div>
 
       <div className="p-5 space-y-3">
-        {error && <p className="text-xs text-red-500 mb-1">{error}</p>}
         {loading && <p className="text-xs text-slate-400">Loading...</p>}
 
         {/* Empty state */}
@@ -865,7 +1226,7 @@ function ResortAmenitiesEditor() {
                       className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition">
                       <i className="fas fa-pen text-xs"></i>
                     </button>
-                    <button onClick={() => handleDelete(a.id)}
+                    <button onClick={() => setDeleteConfirm(a.id)}
                       className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
                       <i className="fas fa-trash text-xs"></i>
                     </button>
@@ -889,6 +1250,29 @@ function ResortAmenitiesEditor() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <i className="fas fa-trash text-red-500"></i>
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Remove Amenity</h3>
+              <p className="text-sm text-slate-500">This action cannot be undone.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setDeleteConfirm(null)}
+              className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button onClick={() => handleDelete(deleteConfirm)}
+              className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg inline-flex items-center gap-2">
+              Remove
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -906,82 +1290,122 @@ function ResortContactEditor({ content, onSave }) {
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}>
       {!editing ? (
         <div className="space-y-3">
-          <div className="space-y-1.5 text-sm text-gray-600">
-            <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-1"></i>{content.address}</p>
-            <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-1"></i>{content.phone}</p>
-            <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-1"></i>{content.email}</p>
+          <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-2">
+            {[
+              { icon: "fa-map-marker-alt", label: "Address", value: content.address },
+              { icon: "fa-phone", label: "Phone", value: content.phone },
+              { icon: "fa-envelope", label: "Email", value: content.email },
+            ].map(item => (
+              <div key={item.icon} className="flex items-center gap-2.5">
+                <div className="h-7 w-7 rounded-md bg-blue-50 flex items-center justify-center shrink-0">
+                  <i className={`fas ${item.icon} text-[#1e3a8a] text-[10px]`}></i>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-wide">{item.label}</p>
+                  <p className="text-xs text-slate-700 truncate">{item.value || <span className="italic text-slate-300">Not set</span>}</p>
+                </div>
+              </div>
+            ))}
           </div>
-          {(content.osm_url || content.map_url) && (
-            <div className="rounded-xl overflow-hidden border border-gray-200 mt-2">
-              <iframe src={content.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`} width="100%" height="160" style={{ border: 0 }} loading="lazy" title="Resort location map" />
+          {(content.osm_url || content.map_url) ? (
+            <div className="rounded-xl overflow-hidden border border-slate-200">
+              <iframe src={content.osm_url || content.map_url} width="100%" height="120" style={{ border: 0 }} loading="lazy" title="Resort location map" />
             </div>
-          )}
-          {!content.osm_url && !content.map_url && (
-            <p className="text-xs text-gray-400 italic"><i className="fas fa-map mr-1"></i>No map set yet.</p>
+          ) : (
+            <div className="rounded-lg border-2 border-dashed border-slate-200 p-3 text-center">
+              <i className="fas fa-map-marked-alt text-slate-200 text-lg"></i>
+              <p className="text-[10px] text-slate-300 mt-1">No map configured</p>
+            </div>
           )}
         </div>
       ) : (
-        <div className="space-y-4">
-          <Field label="Address" value={form.address} onChange={f("address")} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Phone" value={form.phone} onChange={f("phone")} />
-            <Field label="Email" type="email" value={form.email} onChange={f("email")} />
-          </div>
-
-          {/* Map URL */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              Google Maps Embed URL
-            </label>
-            <input
-              type="url"
-              value={form.map_url || ""}
-              onChange={e => f("map_url")(e.target.value)}
-              placeholder="https://maps.google.com/maps?q=...&output=embed"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-            />
-            <div className="mt-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 space-y-1">
-              <p className="font-semibold"><i className="fas fa-info-circle mr-1"></i>How to get your embed URL:</p>
-              <ol className="list-decimal ml-4 space-y-0.5">
-                <li>Go to <span className="font-medium">Google Maps</span> and search your resort</li>
-                <li>Click <span className="font-medium">Share</span> → <span className="font-medium">Embed a map</span></li>
-                <li>Copy only the <span className="font-medium">src="..."</span> URL from the iframe code</li>
-                <li>Paste it here</li>
-              </ol>
+        <div className="space-y-5">
+          {/* Contact Details */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
+              <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-sky-100 flex items-center justify-center">
+                  <i className="fas fa-phone text-sky-500 text-[10px]"></i>
+                </span>
+                Contact Details
+              </h3>
+            </div>
+            <div className="p-4 space-y-4">
+              <Field label="Address" value={form.address} onChange={f("address")} />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Phone" value={form.phone} onChange={f("phone")} />
+                <Field label="Email" type="email" value={form.email} onChange={f("email")} />
+              </div>
             </div>
           </div>
 
-          {/* Directions URL */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">
-              "Get Directions" Link <span className="text-gray-400 font-normal">(plain Google Maps URL shown on the map)</span>
-            </label>
-            <input
-              type="url"
-              value={form.directions_url || ""}
-              onChange={e => f("directions_url")(e.target.value)}
-              placeholder="https://www.google.com/maps/place/Aplaya+Beach+Resort/@14.33237,120.76971,17z"
-              className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              On Google Maps, search your resort → copy the URL from the browser address bar → paste here.
-            </p>
+          {/* Map Settings */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
+              <h3 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
+                <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center">
+                  <i className="fas fa-map-marked-alt text-emerald-500 text-[10px]"></i>
+                </span>
+                Map Settings
+              </h3>
+            </div>
+            <div className="p-4 space-y-4">
+              {/* Map URL */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Google Maps Embed URL
+                </label>
+                <input
+                  type="url"
+                  value={form.map_url || ""}
+                  onChange={e => f("map_url")(e.target.value)}
+                  placeholder="https://maps.google.com/maps?q=...&output=embed"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                />
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 space-y-1">
+                  <p className="font-semibold"><i className="fas fa-info-circle mr-1"></i>How to get your embed URL:</p>
+                  <ol className="list-decimal ml-4 space-y-0.5">
+                    <li>Go to <span className="font-medium">Google Maps</span> and search your resort</li>
+                    <li>Click <span className="font-medium">Share</span> → <span className="font-medium">Embed a map</span></li>
+                    <li>Copy only the <span className="font-medium">src="..."</span> URL from the iframe code</li>
+                    <li>Paste it here</li>
+                  </ol>
+                </div>
+              </div>
+
+              {/* Directions URL */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  "Get Directions" Link <span className="text-slate-400 font-normal">(plain Google Maps URL shown on the map)</span>
+                </label>
+                <input
+                  type="url"
+                  value={form.directions_url || ""}
+                  onChange={e => f("directions_url")(e.target.value)}
+                  placeholder="https://www.google.com/maps/place/Aplaya+Beach+Resort/@14.33237,120.76971,17z"
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                />
+                <p className="text-xs text-slate-400 mt-1">
+                  On Google Maps, search your resort → copy the URL from the browser address bar → paste here.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Preview */}
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-3">
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-medium">Live Preview</p>
-            <div className="space-y-1.5 text-sm text-gray-700">
-              <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-2"></i>{form.address || <span className="text-gray-300 italic">Address</span>}</p>
-              <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-2"></i>{form.phone || <span className="text-gray-300 italic">Phone</span>}</p>
-              <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-2"></i>{form.email || <span className="text-gray-300 italic">Email</span>}</p>
+          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Live Preview</p>
+            <div className="space-y-1.5 text-sm text-slate-700">
+              <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-2"></i>{form.address || <span className="text-slate-300 italic">Address</span>}</p>
+              <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-2"></i>{form.phone || <span className="text-slate-300 italic">Phone</span>}</p>
+              <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-2"></i>{form.email || <span className="text-slate-300 italic">Email</span>}</p>
             </div>
             {(form.osm_url || form.map_url) ? (
-              <div className="rounded-xl overflow-hidden border border-gray-200">
-                <iframe src={form.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`} width="100%" height="200" style={{ border: 0 }} loading="lazy" title="Map preview" />
+              <div className="rounded-xl overflow-hidden border border-slate-200">
+                <iframe src={form.osm_url || form.map_url} width="100%" height="200" style={{ border: 0 }} loading="lazy" title="Map preview" />
               </div>
             ) : (
-              <div className="h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 text-sm">
+              <div className="h-24 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 text-sm">
                 <i className="fas fa-map-marked-alt mr-2"></i>Map preview will appear here
               </div>
             )}
@@ -1007,15 +1431,24 @@ function ResortReviewsEditor({ content, onSave }) {
       visible={content.visible} onToggleVisible={toggleVisible}>
       {!editing ? (
         <div>
-          <p className="font-semibold text-gray-800 text-sm">{content.sectionTitle}</p>
-          <p className="text-xs text-gray-500 mt-1">{content.sectionSubtitle}</p>
-          <p className="text-xs text-gray-300 mt-2 italic">Individual reviews come from guest submissions.</p>
+          <p className="font-semibold text-slate-800 text-sm">{content.sectionTitle}</p>
+          <p className="text-xs text-slate-500 mt-1">{content.sectionSubtitle}</p>
+          <div className="flex items-center gap-3 mt-3">
+            <div className="flex -space-x-1">
+              {["bg-sky-400", "bg-emerald-400", "bg-amber-400"].map((c, i) => (
+                <div key={i} className={`h-6 w-6 rounded-full ${c} border-2 border-white flex items-center justify-center`}>
+                  <i className="fas fa-user text-white text-[8px]"></i>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-400 italic">Reviews from guests · only featured ones show on resort page</p>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
           <Field label="Section Title" value={form.sectionTitle} onChange={f("sectionTitle")} />
           <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={f("sectionSubtitle")} rows={2} />
-          <p className="text-xs text-gray-400 italic">
+          <p className="text-xs text-slate-400 italic">
             <i className="fas fa-info-circle mr-1"></i>
             Individual reviews come from guest submissions via the Reviews page.
           </p>
@@ -1039,9 +1472,13 @@ function ResortNewsletterEditor({ content, onSave }) {
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}
       visible={content.visible} onToggleVisible={toggleVisible}>
       {!editing ? (
-        <div>
-          <p className="font-semibold text-gray-800 text-sm">{content.title}</p>
-          <p className="text-xs text-gray-500 mt-1">{content.subtitle}</p>
+        <div className="rounded-xl overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 p-3.5 text-white">
+          <p className="font-bold text-sm">{content.title}</p>
+          <p className="text-[11px] text-white/70 mt-0.5 line-clamp-1">{content.subtitle}</p>
+          <div className="flex items-center gap-2 mt-2.5">
+            <div className="flex-1 h-6 bg-white/20 rounded max-w-[140px]"></div>
+            <div className="h-6 px-2.5 bg-white text-blue-600 text-[10px] font-semibold rounded flex items-center">Subscribe</div>
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -1063,6 +1500,128 @@ function ResortNewsletterEditor({ content, onSave }) {
   );
 }
 
+// ─── RoomsHeroEditor ─────────────────────────────────────────────────────────
+function RoomsHeroEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-image" title="Hero Section" badge="Rooms page · /rooms" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
+          {isVideoUrl(content.background)
+            ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+          }
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
+            <p className="font-bold text-sm leading-tight">{content.title}</p>
+            <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Background Image / Video</label>
+            <div className="flex items-start gap-4">
+              <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {form.background ? (
+                  isVideoUrl(form.background)
+                    ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                ) : (
+                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <MediaPicker
+                  value={form.background}
+                  onChange={url => setForm(p => ({ ...p, background: url }))}
+                  previousUrl={content.background}
+                  folder="hero"
+                  accept="image/*,video/*"
+                  label="Choose Background"
+                />
+                <p className="text-[10px] text-slate-400">Recommended: 1920×1080 or wider. Supports images and videos.</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Title" value={form.title} onChange={f("title")} />
+            <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+          </div>
+          <HeroPreview bg={form.background} title={form.title} subtitle={form.subtitle} />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── GalleryHeroEditor ───────────────────────────────────────────────────────
+function GalleryHeroEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-image" title="Hero Section" badge="Gallery page · /gallery" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
+          {isVideoUrl(content.background)
+            ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+          }
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
+            <p className="font-bold text-sm leading-tight">{content.title}</p>
+            <p className="text-xs text-white/80 mt-1 line-clamp-1">{content.subtitle}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Background Image / Video</label>
+            <div className="flex items-start gap-4">
+              <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {form.background ? (
+                  isVideoUrl(form.background)
+                    ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                ) : (
+                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <MediaPicker
+                  value={form.background}
+                  onChange={url => setForm(p => ({ ...p, background: url }))}
+                  previousUrl={content.background}
+                  folder="hero"
+                  accept="image/*,video/*"
+                  label="Choose Background"
+                />
+                <p className="text-[10px] text-slate-400">Recommended: 1920×1080 or wider. Supports images and videos.</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Title" value={form.title} onChange={f("title")} />
+            <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
+          </div>
+          <HeroPreview bg={form.background} title={form.title} subtitle={form.subtitle} />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
 // ─── Gallery categories ───────────────────────────────────────────────────────
 
 const CATEGORIES = ["beach", "rooms", "amenities", "dining", "events", "other"];
@@ -1072,12 +1631,10 @@ function formatDate(iso) {
 }
 
 // ─── Gallery Tab ──────────────────────────────────────────────────────────────
-function GalleryTab() {
+function GalleryTab({ imageCount, setImageCount }) {
   const [images,      setImages]      = useState([]);
   const [loading,     setLoading]     = useState(true);
-  // selectedIds: Set of image IDs the admin wants on /resort (working copy)
   const [selectedIds, setSelectedIds] = useState(new Set());
-  // savedIds: what's actually saved in the DB (for dirty detection)
   const savedIdsRef                   = useRef(new Set());
   const [showForm,    setShowForm]    = useState(false);
   const [filterCat,   setFilterCat]   = useState("all");
@@ -1085,8 +1642,7 @@ function GalleryTab() {
   const [deleting,    setDeleting]    = useState(false);
   const [saving,      setSaving]      = useState(false);
   const [addSaving,   setAddSaving]   = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [apiError,    setApiError]    = useState("");
+  const [toast, showToast, clearToast, toastType] = useToast();
   const [form, setForm] = useState({ image_url: "", caption: "", category: "beach", sort_order: "" });
 
   useEffect(() => {
@@ -1095,16 +1651,15 @@ function GalleryTab() {
       .then(r => {
         const imgs = r.data.data || [];
         setImages(imgs);
+        setImageCount(imgs.length);
         const ids = new Set(imgs.reduce((acc, i) => { if (i.is_featured) acc.push(i.id); return acc; }, []));
         setSelectedIds(ids);
         savedIdsRef.current = new Set(ids);
       })
-      .catch(() => setApiError("Failed to load gallery images."))
+      .catch(() => showToast("Failed to load gallery images.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast, setImageCount]);
 
-  // Filter by category, then sort: saved-featured images first, rest by sort_order.
-  // Uses savedIdsRef (not selectedIds) so the order only changes after clicking Save.
   const filtered = (filterCat === "all" ? images : images.filter(i => i.category === filterCat))
     .slice()
     .sort((a, b) => {
@@ -1114,7 +1669,6 @@ function GalleryTab() {
       return (a.sort_order ?? 0) - (b.sort_order ?? 0);
     });
 
-  // dirty = selectedIds differs from savedIds
   const isDirty = (() => {
     const saved = savedIdsRef.current;
     if (saved.size !== selectedIds.size) return true;
@@ -1128,13 +1682,10 @@ function GalleryTab() {
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-    setSaveSuccess(false);
   }
 
   async function handleSave() {
     setSaving(true);
-    setApiError("");
-    setSaveSuccess(false);
     try {
       const r = await batchFeaturedGallery([...selectedIds]);
       const imgs = r.data.data || [];
@@ -1142,10 +1693,9 @@ function GalleryTab() {
       const ids = new Set(imgs.filter(i => i.is_featured).map(i => i.id));
       setSelectedIds(ids);
       savedIdsRef.current = new Set(ids);
-      setSaveSuccess(true);
-      setTimeout(() => setSaveSuccess(false), 3000);
+      showToast("Resort gallery saved!", "success");
     } catch (err) {
-      setApiError(err?.response?.data?.message || "Failed to save resort gallery.");
+      showToast(err?.response?.data?.message || "Failed to save resort gallery.", "error");
     } finally {
       setSaving(false);
     }
@@ -1153,14 +1703,12 @@ function GalleryTab() {
 
   function handleDiscard() {
     setSelectedIds(new Set(savedIdsRef.current));
-    setSaveSuccess(false);
   }
 
   const handleAdd = async (e) => {
     e.preventDefault();
-    if (!form.image_url) { setApiError("Please upload an image or video first."); return; }
+    if (!form.image_url) { showToast("Please upload an image or video first.", "error"); return; }
     setAddSaving(true);
-    setApiError("");
     try {
       const payload = {
         resort_id:  RESORT_ID,
@@ -1170,20 +1718,33 @@ function GalleryTab() {
         sort_order: parseInt(form.sort_order) || images.length + 1,
       };
       const r = await createAdminGallery(payload);
-      setImages(prev => [...prev, r.data.data]);
+      const newImages = [...images, r.data.data];
+      setImages(newImages);
+      setImageCount(newImages.length);
       setForm({ image_url: "", caption: "", category: "beach", sort_order: "" });
       setShowForm(false);
+      showToast("Image added to gallery!", "success");
     } catch (err) {
-      setApiError(err?.response?.data?.message || "Failed to add image.");
+      showToast(err?.response?.data?.message || "Failed to add image.", "error");
     } finally {
       setAddSaving(false);
     }
   };
 
+  // Skeleton shimmer grid
+  const GallerySkeleton = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <div key={i} className="rounded-xl bg-slate-200 animate-pulse h-60" />
+      ))}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
+      <Toast message={toast} type={toastType} onClose={clearToast} />
 
-      {/* Resort gallery save bar — sticky so it follows the viewport while scrolling */}
+      {/* Resort gallery save bar */}
       <div className={`sticky top-0 z-20 rounded-xl border px-5 py-4 flex flex-wrap items-center gap-3 transition-colors shadow-sm ${
         isDirty ? "bg-amber-50 border-amber-300" : "bg-slate-50 border-slate-200"
       }`}>
@@ -1196,11 +1757,6 @@ function GalleryTab() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          {saveSuccess && (
-            <span className="text-sm text-green-600 font-medium flex items-center gap-1">
-              <i className="fas fa-check-circle"></i> Saved!
-            </span>
-          )}
           {isDirty && (
             <button onClick={handleDiscard}
               className="px-3 py-1.5 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-100">
@@ -1219,18 +1775,12 @@ function GalleryTab() {
         </div>
       </div>
 
-      {apiError && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
-        </div>
-      )}
-
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-gray-500">Filter:</span>
+          <span className="text-sm text-slate-500">Filter:</span>
           {["all", ...CATEGORIES].map(cat => (
             <button key={cat} onClick={() => setFilterCat(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterCat === cat ? "bg-[#1e3a8a] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+              className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterCat === cat ? "bg-[#1e3a8a] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
               {cat.charAt(0).toUpperCase() + cat.slice(1)}
             </button>
           ))}
@@ -1243,37 +1793,56 @@ function GalleryTab() {
 
       {showForm ? (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
-          <h3 className="font-semibold text-gray-800 mb-4">Add New Gallery Image</h3>
+          <h3 className="font-semibold text-slate-800 mb-4">Add New Gallery Image</h3>
           <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Image / Video <span className="text-red-500">*</span></label>
-              <ImageUpload
-                value={form.image_url}
-                onChange={url => setForm(f => ({ ...f, image_url: url }))}
-                folder="gallery"
-                accept="image/*,video/*"
-                label="Upload Image or Video"
-              />
-              {!form.image_url && (
-                <p className="text-xs text-red-500 mt-1">Please upload an image or video before adding.</p>
-              )}
+              <label className="block text-sm font-medium text-slate-700 mb-2">Image / Video <span className="text-red-500">*</span></label>
+              <div className="flex items-start gap-4">
+                <div className="h-24 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                  {form.image_url ? (
+                    isVideoUrl(form.image_url)
+                      ? <video src={form.image_url} muted playsInline className="h-full w-full object-cover" />
+                      : <img src={form.image_url} alt="Gallery" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                  ) : (
+                    <div className="text-center"><i className="fas fa-cloud-upload-alt text-slate-300 text-xl"></i><p className="text-[9px] text-slate-300 mt-1">Upload</p></div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <ImageUpload
+                    value={form.image_url}
+                    onChange={url => setForm(f => ({ ...f, image_url: url }))}
+                    folder="gallery"
+                    accept="image/*,video/*"
+                    label="Upload Image or Video"
+                  />
+                  {!form.image_url && (
+                    <p className="text-[10px] text-red-400">Please upload an image or video before adding.</p>
+                  )}
+                  {form.image_url && (
+                    <button type="button" onClick={() => setForm(f => ({ ...f, image_url: "" }))}
+                      className="text-[10px] text-red-400 hover:text-red-600 transition flex items-center gap-1">
+                      <i className="fas fa-times text-[8px]"></i> Remove
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Caption <span className="text-gray-400 font-normal">(optional)</span></label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Caption <span className="text-slate-400 font-normal">(optional)</span></label>
               <input type="text" placeholder="Short description" value={form.caption}
                 onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Category <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Category <span className="text-red-500">*</span></label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]">
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400">
                 {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
               </select>
             </div>
             <div className="md:col-span-2 flex justify-end gap-2">
-              <button type="button" onClick={() => { setShowForm(false); setApiError(""); }}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Cancel</button>
+              <button type="button" onClick={() => setShowForm(false)}
+                className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
               <button type="submit" disabled={addSaving}
                 className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
                 {addSaving ? <><i className="fas fa-spinner fa-spin text-xs"></i> Adding…</> : "Add Image"}
@@ -1284,12 +1853,14 @@ function GalleryTab() {
       ) : null}
 
       {loading ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">
-          <i className="fas fa-spinner fa-spin text-2xl mb-3"></i><p>Loading gallery…</p>
-        </div>
+        <GallerySkeleton />
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center text-gray-400">
-          <i className="fas fa-images text-4xl mb-3"></i><p>No images in this category.</p>
+        <div className="bg-white rounded-xl shadow-sm px-6 py-16 text-center">
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
+            <i className="fas fa-images text-slate-300 text-2xl"></i>
+          </div>
+          <p className="text-slate-500 font-medium">No images in this category.</p>
+          <p className="text-sm text-slate-400 mt-1">Upload some images to get started.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1299,13 +1870,13 @@ function GalleryTab() {
               <div
                 key={img.id}
                 onClick={() => toggleSelect(img.id)}
-                className={`bg-white rounded-lg shadow overflow-hidden cursor-pointer relative transition-all ${
+                className={`group bg-white rounded-lg shadow overflow-hidden cursor-pointer relative transition-all ${
                   isSelected
                     ? "ring-3 ring-[#1e3a8a] ring-offset-2"
                     : "opacity-70 hover:opacity-90 hover:shadow-md"
                 }`}
               >
-                <div className="relative h-48 bg-gray-100">
+                <div className="relative h-48 bg-slate-100">
                   {isVideoUrl(img.image_url) ? (
                     <video src={img.image_url} className="w-full h-full object-cover" muted playsInline />
                   ) : (
@@ -1322,10 +1893,10 @@ function GalleryTab() {
                     {isSelected && <i className="fas fa-check text-white text-xs"></i>}
                   </div>
 
-                  {/* Delete button — stop propagation so clicking it doesn't toggle selection */}
+                  {/* Delete button */}
                   <button
                     onClick={e => { e.stopPropagation(); setDeleteId(img.id); }}
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 group-hover:opacity-100 shadow transition"
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow transition"
                     title="Delete image"
                   >
                     <i className="fas fa-trash text-xs"></i>
@@ -1333,7 +1904,7 @@ function GalleryTab() {
                 </div>
 
                 <div className="p-3">
-                  <p className="text-sm font-medium text-gray-800 truncate">{img.caption || <span className="text-gray-400 italic">No caption</span>}</p>
+                  <p className="text-sm font-medium text-slate-800 truncate">{img.caption || <span className="text-slate-400 italic">No caption</span>}</p>
                   <div className="flex items-center justify-between mt-1">
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{img.category}</span>
                     {isSelected && (
@@ -1349,133 +1920,236 @@ function GalleryTab() {
         </div>
       )}
 
-      {deleteId && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <i className="fas fa-trash text-red-500"></i>
-              </div>
-              <div>
-                <h3 className="font-semibold text-gray-900">Delete Image</h3>
-                <p className="text-sm text-gray-500">This action cannot be undone.</p>
-              </div>
+      {/* Delete modal using shared Modal */}
+      <Modal open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <i className="fas fa-trash text-red-500"></i>
             </div>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteId(null)} disabled={deleting}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 disabled:opacity-60">Cancel</button>
-              <button
-                disabled={deleting}
-                onClick={async () => {
-                  setDeleting(true);
-                  setApiError("");
-                  try {
-                    await deleteAdminGallery(deleteId);
-                    setImages(p => p.filter(i => i.id !== deleteId));
-                    setDeleteId(null);
-                  } catch {
-                    setApiError("Failed to delete image. Please try again.");
-                    setDeleteId(null);
-                  } finally {
-                    setDeleting(false);
-                  }
-                }}
-                className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
-                {deleting ? <><i className="fas fa-spinner fa-spin text-xs"></i> Deleting…</> : "Delete"}
-              </button>
+            <div>
+              <h3 className="font-semibold text-slate-900">Delete Image</h3>
+              <p className="text-sm text-slate-500">This action cannot be undone.</p>
             </div>
           </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setDeleteId(null)} disabled={deleting}
+              className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 disabled:opacity-60">Cancel</button>
+            <button
+              disabled={deleting}
+              onClick={async () => {
+                setDeleting(true);
+                try {
+                  await deleteAdminGallery(deleteId);
+                  const newImages = images.filter(i => i.id !== deleteId);
+                  setImages(newImages);
+                  setImageCount(newImages.length);
+                  setDeleteId(null);
+                  showToast("Image deleted.", "success");
+                } catch {
+                  showToast("Failed to delete image. Please try again.", "error");
+                  setDeleteId(null);
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+              className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
+              {deleting ? <><i className="fas fa-spinner fa-spin text-xs"></i> Deleting…</> : "Delete"}
+            </button>
+          </div>
         </div>
-      )}
+      </Modal>
     </div>
   );
 }
 
 // ─── Contact Submissions Tab ──────────────────────────────────────────────────
-function ContactSubmissionsTab() {
+function ContactSubmissionsTab({ contactCount, setContactCount }) {
   const [contacts, setContacts] = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [apiError, setApiError] = useState("");
+  const [toast, showToast, clearToast, toastType] = useToast();
   const [selected, setSelected] = useState(null);
   const [search,   setSearch]   = useState("");
+  const [page,     setPage]     = useState(1);
+  const searchRef = useRef(null);
+  const debouncedSearch = useDebounce(search, 300);
 
   useEffect(() => {
     setLoading(true);
     getAdminContacts()
-      .then(r => setContacts(r.data.data || []))
-      .catch(() => setApiError("Failed to load contact submissions."))
+      .then(r => {
+        const data = r.data.data || [];
+        setContacts(data);
+        setContactCount(data.length);
+      })
+      .catch(() => showToast("Failed to load contact submissions.", "error"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [showToast, setContactCount]);
 
   const filtered = contacts.filter(c =>
-    [c.name, c.email, c.subject].some(v => v && v.toLowerCase().includes(search.toLowerCase()))
+    [c.name, c.email, c.subject].some(v => v && v.toLowerCase().includes(debouncedSearch.toLowerCase()))
   );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [debouncedSearch]);
+
+  const startIdx = (safePage - 1) * PAGE_SIZE + 1;
+  const endIdx = Math.min(safePage * PAGE_SIZE, filtered.length);
+
+  // Skeleton rows
+  const SkeletonRows = () =>
+    Array.from({ length: 5 }).map((_, i) => (
+      <tr key={i} className="animate-pulse">
+        <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-28"></div></td>
+        <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-36"></div></td>
+        <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-32"></div></td>
+        <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-24"></div></td>
+        <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-12"></div></td>
+      </tr>
+    ));
 
   return (
     <div className="space-y-4">
-      {apiError && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
+      <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* Search */}
+      <div className="bg-white rounded-xl shadow-sm p-4">
+        <div className="relative">
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input ref={searchRef} type="text" placeholder="Search by name, email or subject..." value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
+          {search && (
+            <button onClick={() => { setSearch(""); searchRef.current?.focus(); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i className="fas fa-times-circle text-sm"></i>
+            </button>
+          )}
         </div>
-      )}
-      <div className="relative">
-        <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
-        <input type="text" placeholder="Search by name, email or subject..." value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]" />
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {/* Table card */}
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+        {/* Stats header */}
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <i className="fas fa-envelope text-sm text-[#1e3a8a]"></i>
+            <div>
+              <p className="font-semibold text-slate-800 text-sm">All Contact Submissions</p>
+              <p className="text-xs text-slate-400">{contacts.length} total</p>
+            </div>
+          </div>
+          {filtered.length > 0 && (
+            <span className="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200">
+              Showing {startIdx}–{endIdx} of {filtered.length}
+            </span>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-gray-700">
-            <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-              <tr>
-                <th className="px-6 py-3 text-left">Name</th>
-                <th className="px-6 py-3 text-left">Email</th>
-                <th className="px-6 py-3 text-left">Subject</th>
-                <th className="px-6 py-3 text-left">Date</th>
-                <th className="px-6 py-3 text-left">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {loading ? (
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400"><i className="fas fa-spinner fa-spin mr-2"></i>Loading submissions…</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400">No submissions found.</td></tr>
-              ) : filtered.map(c => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-900">{c.name}</td>
-                  <td className="px-6 py-4 text-gray-500">{c.email}</td>
-                  <td className="px-6 py-4">{c.subject}</td>
-                  <td className="px-6 py-4 text-gray-400 whitespace-nowrap">{formatDate(c.created_at)}</td>
-                  <td className="px-6 py-4">
-                    <button onClick={() => setSelected(c)}
-                      className="text-[#1e3a8a] hover:underline text-sm font-medium">View</button>
-                  </td>
+          {loading ? (
+            <table className="min-w-full text-sm">
+              <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3 text-left">Name</th>
+                  <th className="px-6 py-3 text-left">Email</th>
+                  <th className="px-6 py-3 text-left">Subject</th>
+                  <th className="px-6 py-3 text-left">Date</th>
+                  <th className="px-6 py-3 text-left">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100"><SkeletonRows /></tbody>
+            </table>
+          ) : filtered.length === 0 ? (
+            <div className="px-6 py-16 text-center">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
+                <i className="fas fa-envelope text-slate-300 text-2xl"></i>
+              </div>
+              <p className="text-slate-500 font-medium">
+                {debouncedSearch ? "No submissions match your search." : "No contact submissions yet."}
+              </p>
+              <p className="text-sm text-slate-400 mt-1">
+                {debouncedSearch
+                  ? "Try adjusting your search."
+                  : "Submissions from the contact form will appear here."}
+              </p>
+              {debouncedSearch && (
+                <button onClick={() => setSearch("")}
+                  className="mt-4 text-sm text-sky-600 hover:text-sky-700 font-medium">
+                  <i className="fas fa-times mr-1.5"></i>Clear search
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <table className="min-w-full text-sm text-slate-700">
+                <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-3 text-left">Name</th>
+                    <th className="px-6 py-3 text-left">Email</th>
+                    <th className="px-6 py-3 text-left">Subject</th>
+                    <th className="px-6 py-3 text-left">Date</th>
+                    <th className="px-6 py-3 text-left">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {paginated.map((c, idx) => (
+                    <tr key={c.id} className={`hover:bg-sky-50/40 transition ${idx % 2 === 1 ? "bg-slate-50/50" : ""}`}>
+                      <td className="px-6 py-4 font-medium text-slate-900">{c.name}</td>
+                      <td className="px-6 py-4 text-slate-500">{c.email}</td>
+                      <td className="px-6 py-4">{c.subject}</td>
+                      <td className="px-6 py-4 text-slate-400 whitespace-nowrap">{formatDate(c.created_at)}</td>
+                      <td className="px-6 py-4">
+                        <button onClick={() => setSelected(c)}
+                          className="text-[#1e3a8a] hover:underline text-sm font-medium">View</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                  <p className="text-xs text-slate-500">Page {safePage} of {totalPages}</p>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                      <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
+                    </button>
+                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                      Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 
-      {selected ? (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-lg w-full mx-4">
+      {/* View modal using shared Modal */}
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-lg">
+        {selected && (
+          <div className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-gray-900 text-lg">Contact Submission</h3>
-              <button onClick={() => setSelected(null)} className="text-gray-400 hover:text-gray-600" aria-label="Close"><i className="fas fa-times"></i></button>
+              <h3 className="font-semibold text-slate-900 text-lg">Contact Submission</h3>
+              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close"><i className="fas fa-times"></i></button>
             </div>
             <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded-lg">
-                <div><p className="text-xs text-gray-400">Name</p><p className="font-medium">{selected.name}</p></div>
-                <div><p className="text-xs text-gray-400">Email</p><p className="font-medium">{selected.email}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400">Subject</p><p className="font-medium">{selected.subject}</p></div>
-                <div className="col-span-2"><p className="text-xs text-gray-400">Date</p><p className="font-medium">{formatDate(selected.created_at)}</p></div>
+              <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-lg">
+                <div><p className="text-xs text-slate-400">Name</p><p className="font-medium">{selected.name}</p></div>
+                <div><p className="text-xs text-slate-400">Email</p><p className="font-medium">{selected.email}</p></div>
+                <div className="col-span-2"><p className="text-xs text-slate-400">Subject</p><p className="font-medium">{selected.subject}</p></div>
+                <div className="col-span-2"><p className="text-xs text-slate-400">Date</p><p className="font-medium">{formatDate(selected.created_at)}</p></div>
               </div>
               <div>
-                <p className="text-xs text-gray-400 mb-1">Message</p>
-                <p className="text-gray-700 bg-gray-50 rounded-lg p-4 leading-relaxed">{selected.message}</p>
+                <p className="text-xs text-slate-400 mb-1">Message</p>
+                <p className="text-slate-700 bg-slate-50 rounded-lg p-4 leading-relaxed">{selected.message}</p>
               </div>
             </div>
             <div className="flex justify-end mt-5 gap-2">
@@ -1484,11 +2158,11 @@ function ContactSubmissionsTab() {
                 <i className="fas fa-reply"></i> Reply via Email
               </a>
               <button onClick={() => setSelected(null)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50">Close</button>
+                className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Close</button>
             </div>
           </div>
-        </div>
-      ) : null}
+        )}
+      </Modal>
     </div>
   );
 }
@@ -1501,11 +2175,20 @@ const STATUS_COLORS = {
   Pending:  "bg-amber-100 text-amber-700",
 };
 
-function ReviewsTab({ content, onSave }) {
+const REVIEW_FILTERS = [
+  { key: "all",      label: "All" },
+  { key: "Pending",  label: "Pending" },
+  { key: "Approved", label: "Approved" },
+  { key: "Rejected", label: "Rejected" },
+  { key: "featured", label: "Featured" },
+];
+
+function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
   const [reviews,  setReviews]  = useState([]);
   const [loading,  setLoading]  = useState(true);
-  const [apiError, setApiError] = useState("");
-  const [saving,   setSaving]   = useState(null); // id being saved
+  const [toast, showToast, clearToast, toastType] = useToast();
+  const [saving,   setSaving]   = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   // Section settings editing
   const [editing,  setEditing]  = useState(false);
@@ -1515,45 +2198,94 @@ function ReviewsTab({ content, onSave }) {
   const saveEdit   = () => { onSave(form); setEditing(false); };
   const toggleVisible = () => onSave({ ...content, visible: !content.visible });
 
-  const load = () => {
+  // Filters, search, pagination
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [search,       setSearch]       = useState("");
+  const [page,         setPage]         = useState(1);
+  const searchRef = useRef(null);
+  const debouncedSearch = useDebounce(search, 300);
+
+  const load = useCallback(() => {
     setLoading(true);
     getAdminReviews()
-      .then(r => setReviews(r.data.data || []))
-      .catch(() => setApiError("Failed to load reviews."))
+      .then(r => {
+        const data = r.data.data || [];
+        setReviews(data);
+        setReviewCount(data.length);
+      })
+      .catch(() => showToast("Failed to load reviews.", "error"))
       .finally(() => setLoading(false));
-  };
-  useEffect(() => { load(); }, []);
+  }, [showToast, setReviewCount]);
+
+  useEffect(() => { load(); }, [load]);
 
   async function patch(id, data) {
     setSaving(id);
     try {
       await updateAdminReview(id, data);
       setReviews(rs => rs.map(r => r.id === id ? { ...r, ...data } : r));
+      showToast("Review updated!", "success");
     } catch {
-      setApiError("Failed to update review.");
+      showToast("Failed to update review.", "error");
     } finally {
       setSaving(null);
     }
   }
 
   async function remove(id) {
-    if (!window.confirm("Delete this review? This cannot be undone.")) return;
     setSaving(id);
     try {
       await deleteAdminReview(id);
-      setReviews(rs => rs.filter(r => r.id !== id));
+      const newReviews = reviews.filter(r => r.id !== id);
+      setReviews(newReviews);
+      setReviewCount(newReviews.length);
+      showToast("Review deleted.", "success");
     } catch {
-      setApiError("Failed to delete review.");
+      showToast("Failed to delete review.", "error");
     } finally {
       setSaving(null);
+      setDeleteConfirm(null);
     }
   }
 
   const featured  = reviews.filter(r => r.featured).length;
   const pending   = reviews.filter(r => r.status === "Pending").length;
 
+  // Filter + search
+  const filtered = reviews.filter(r => {
+    if (filterStatus === "featured" && !r.featured) return false;
+    if (filterStatus !== "all" && filterStatus !== "featured" && r.status !== filterStatus) return false;
+    if (debouncedSearch) {
+      const q = debouncedSearch.toLowerCase();
+      return [r.guestName, r.comment, r.room].some(v => v && v.toLowerCase().includes(q));
+    }
+    return true;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  useEffect(() => { setPage(1); }, [debouncedSearch, filterStatus]);
+
+  // Skeleton
+  const SkeletonRows = () =>
+    Array.from({ length: 5 }).map((_, i) => (
+      <div key={i} className="px-5 py-4 animate-pulse flex items-start gap-4">
+        <div className="flex-1 space-y-2">
+          <div className="h-4 bg-slate-200 rounded w-40"></div>
+          <div className="h-3 bg-slate-200 rounded w-64"></div>
+        </div>
+        <div className="flex gap-2">
+          <div className="h-7 bg-slate-200 rounded w-16"></div>
+          <div className="h-7 bg-slate-200 rounded w-16"></div>
+        </div>
+      </div>
+    ));
+
   return (
     <div className="space-y-5">
+      <Toast message={toast} type={toastType} onClose={clearToast} />
 
       {/* Section settings card */}
       <SectionCard
@@ -1563,9 +2295,9 @@ function ReviewsTab({ content, onSave }) {
       >
         {!editing ? (
           <div>
-            <p className="font-semibold text-gray-800 text-sm">{content.sectionTitle}</p>
-            <p className="text-xs text-gray-500 mt-1">{content.sectionSubtitle}</p>
-            <p className="text-xs text-gray-300 mt-2 italic">Only featured reviews appear on the resort page.</p>
+            <p className="font-semibold text-slate-800 text-sm">{content.sectionTitle}</p>
+            <p className="text-xs text-slate-500 mt-1">{content.sectionSubtitle}</p>
+            <p className="text-xs text-slate-300 mt-2 italic">Only featured reviews appear on the resort page.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -1575,106 +2307,184 @@ function ReviewsTab({ content, onSave }) {
         )}
       </SectionCard>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Total Reviews", value: reviews.length, color: "text-slate-700", icon: "fa-comments" },
-          { label: "Featured",      value: featured,       color: "text-emerald-600", icon: "fa-heart" },
-          { label: "Pending",       value: pending,        color: "text-amber-600",   icon: "fa-clock" },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-lg shadow border border-gray-100 px-5 py-4 flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center ${s.color}`}>
-              <i className={`fas ${s.icon} text-sm`}></i>
-            </div>
-            <div>
-              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-xs text-gray-400">{s.label}</p>
-            </div>
-          </div>
-        ))}
+      {/* Search + filter */}
+      <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="relative flex-1">
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input ref={searchRef} type="text" placeholder="Search by guest name, comment, or room..."
+            value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
+          {search && (
+            <button onClick={() => { setSearch(""); searchRef.current?.focus(); }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              <i className="fas fa-times-circle text-sm"></i>
+            </button>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {REVIEW_FILTERS.map(rf => (
+            <button key={rf.key} onClick={() => setFilterStatus(rf.key)}
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
+                filterStatus === rf.key
+                  ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200"
+                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+              }`}>
+              {rf.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {apiError && (
-        <div className="rounded-md bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          <i className="fas fa-exclamation-circle mr-2"></i>{apiError}
-        </div>
-      )}
-
       {/* Reviews list */}
-      <div className="bg-white rounded-lg shadow border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-2">
-          <i className="fas fa-star text-sm text-[#1e3a8a]"></i>
-          <h3 className="font-semibold text-gray-800 text-sm">All Reviews</h3>
+      <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
+        {/* Stats header bar */}
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div>
+              <p className="text-sm text-slate-600">Total</p>
+              <p className="text-2xl font-semibold text-slate-900">{reviews.length}</p>
+            </div>
+            <div className="h-8 w-px bg-slate-200"></div>
+            <div>
+              <p className="text-sm text-slate-600">Featured</p>
+              <p className="text-2xl font-semibold text-emerald-600">{featured}</p>
+            </div>
+            <div className="h-8 w-px bg-slate-200"></div>
+            <div>
+              <p className="text-sm text-slate-600">Pending</p>
+              <p className="text-2xl font-semibold text-amber-600">{pending}</p>
+            </div>
+          </div>
+          {(debouncedSearch || filterStatus !== "all") && (
+            <span className="text-xs text-slate-500 bg-white px-3 py-1.5 rounded-full border border-slate-200">
+              Showing {filtered.length} of {reviews.length}
+            </span>
+          )}
         </div>
 
         {loading ? (
-          <div className="p-12 text-center text-gray-400">
-            <i className="fas fa-spinner fa-spin text-2xl mb-3"></i><p>Loading reviews…</p>
-          </div>
-        ) : reviews.length === 0 ? (
-          <div className="p-12 text-center text-gray-400">
-            <i className="fas fa-star text-4xl mb-3"></i><p>No reviews yet.</p>
+          <div className="divide-y divide-slate-100"><SkeletonRows /></div>
+        ) : filtered.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
+              <i className="fas fa-star text-slate-300 text-2xl"></i>
+            </div>
+            <p className="text-slate-500 font-medium">
+              {debouncedSearch || filterStatus !== "all" ? "No reviews match your filter." : "No reviews yet."}
+            </p>
+            <p className="text-sm text-slate-400 mt-1">
+              {debouncedSearch || filterStatus !== "all"
+                ? "Try adjusting your search or filter."
+                : "Guest reviews will appear here once submitted."}
+            </p>
+            {(debouncedSearch || filterStatus !== "all") && (
+              <button onClick={() => { setSearch(""); setFilterStatus("all"); }}
+                className="mt-4 text-sm text-sky-600 hover:text-sky-700 font-medium">
+                <i className="fas fa-times mr-1.5"></i>Clear filters
+              </button>
+            )}
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {reviews.map(r => (
-              <div key={r.id} className={`px-5 py-4 flex flex-col md:flex-row md:items-start gap-4 ${saving === r.id ? "opacity-50 pointer-events-none" : ""}`}>
-
-                {/* Left: guest info + review */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <span className="font-semibold text-gray-900 text-sm">{r.guestName}</span>
-                    <span className="text-yellow-400 text-xs">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600"}`}>
-                      {r.status}
-                    </span>
-                    {r.featured && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium flex items-center gap-1">
-                        <i className="fas fa-heart text-[10px]"></i> Featured
+          <>
+            <div className="divide-y divide-slate-200">
+              {paginated.map(r => (
+                <div key={r.id} className={`px-5 py-4 flex flex-col md:flex-row md:items-start gap-4 ${saving === r.id ? "opacity-50 pointer-events-none" : ""}`}>
+                  {/* Left: guest info + review */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-slate-900 text-sm">{r.guestName}</span>
+                      <span className="text-yellow-400 text-xs">{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[r.status] ?? "bg-slate-100 text-slate-600"}`}>
+                        {r.status}
                       </span>
+                      {r.featured && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-medium flex items-center gap-1">
+                          <i className="fas fa-heart text-[10px]"></i> Featured
+                        </span>
+                      )}
+                      {r.room && <span className="text-xs text-slate-400">{r.room}</span>}
+                      <span className="text-xs text-slate-300 ml-auto">{r.date}</span>
+                    </div>
+                    {r.comment && (
+                      <p className="text-sm text-slate-600 leading-relaxed line-clamp-2">&ldquo;{r.comment}&rdquo;</p>
                     )}
-                    {r.room && <span className="text-xs text-gray-400">{r.room}</span>}
-                    <span className="text-xs text-gray-300 ml-auto">{r.date}</span>
                   </div>
-                  {r.comment && (
-                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">&ldquo;{r.comment}&rdquo;</p>
-                  )}
-                </div>
 
-                {/* Right: actions */}
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  {r.status === "Pending" && (
-                    <>
-                      <button onClick={() => patch(r.id, { status: "Approved" })}
-                        className="text-xs px-3 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-lg font-medium">
-                        Approve
+                  {/* Right: actions */}
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    {r.status === "Pending" && (
+                      <>
+                        <button onClick={() => patch(r.id, { status: "Approved" })}
+                          className="text-xs px-3 py-1.5 bg-sky-50 text-sky-700 hover:bg-sky-100 rounded-lg font-medium">
+                          Approve
+                        </button>
+                        <button onClick={() => patch(r.id, { status: "Rejected" })}
+                          className="text-xs px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg font-medium">
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {r.status === "Approved" && (
+                      <button onClick={() => patch(r.id, { featured: !r.featured })}
+                        className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
+                          r.featured
+                            ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                            : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        }`}>
+                        {r.featured ? "Unfeature" : "Feature"}
                       </button>
-                      <button onClick={() => patch(r.id, { status: "Rejected" })}
-                        className="text-xs px-3 py-1.5 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded-lg font-medium">
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  {r.status === "Approved" && (
-                    <button onClick={() => patch(r.id, { featured: !r.featured })}
-                      className={`text-xs px-3 py-1.5 rounded-lg font-medium ${
-                        r.featured
-                          ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
-                          : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                      }`}>
-                      {r.featured ? "Unfeature" : "Feature"}
+                    )}
+                    <button onClick={() => setDeleteConfirm(r.id)}
+                      className="text-xs px-3 py-1.5 bg-slate-50 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium">
+                      Delete
                     </button>
-                  )}
-                  <button onClick={() => remove(r.id)}
-                    className="text-xs px-3 py-1.5 bg-gray-50 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium">
-                    Delete
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                <p className="text-xs text-slate-500">Page {safePage} of {totalPages}</p>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                    <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
+                  </button>
+                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                    Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
                   </button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
+
+      {/* Delete confirmation modal */}
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+              <i className="fas fa-trash text-red-500"></i>
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Delete Review</h3>
+              <p className="text-sm text-slate-500">This action cannot be undone.</p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setDeleteConfirm(null)}
+              className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button onClick={() => remove(deleteConfirm)}
+              className="px-4 py-2 text-sm bg-red-500 hover:bg-red-600 text-white rounded-lg inline-flex items-center gap-2">
+              Delete
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1695,7 +2505,7 @@ function SitePreviewModal({ open, onClose }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-gray-900">
+    <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
       {/* Toolbar */}
       <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e3a8a] text-white flex-shrink-0">
         <div className="flex items-center gap-2">
@@ -1739,7 +2549,8 @@ function SitePreviewModal({ open, onClose }) {
           onClick={onClose}
           className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition"
           title="Close preview"
-         aria-label="Close" aria-label="Close">
+          aria-label="Close"
+        >
           <i className="fas fa-times"></i>
         </button>
       </div>
@@ -1757,14 +2568,23 @@ function SitePreviewModal({ open, onClose }) {
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const TABS = ["Page Editor", "Gallery", "Contact Submissions", "Reviews"];
-
 export default function AdminContent() {
   const [activeTab,   setActiveTab]   = useState(0);
   const [content,     setContent]     = useState(loadContent);
-  const [saving,      setSaving]      = useState(false);
-  const [saveMsg,     setSaveMsg]     = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [toast, showToast, clearToast, toastType] = useToast();
+
+  // Counts for tab badges
+  const [imageCount,   setImageCount]   = useState(0);
+  const [contactCount, setContactCount] = useState(0);
+  const [reviewCount,  setReviewCount]  = useState(0);
+
+  const TABS = [
+    { label: "Page Editor", icon: "fa-pen-fancy" },
+    { label: "Gallery",     icon: "fa-images",   count: imageCount },
+    { label: "Contact",     icon: "fa-envelope",  count: contactCount },
+    { label: "Reviews",     icon: "fa-star",      count: reviewCount },
+  ];
 
   // On mount: pull the real values from the backend (overrides localStorage defaults)
   useEffect(() => {
@@ -1786,37 +2606,52 @@ export default function AdminContent() {
   const update = (key) => (val) => {
     const next = { ...content, [key]: val };
     setContent(next);
-    saveContent(next); // local cache
-    // Push to backend with page_ prefix so public pages can read it
-    setSaving(true);
+    saveContent(next);
+    showToast("Publishing to website...", "info");
     updateAdminContent({ [`page_${key}`]: val })
-      .then(() => { setSaveMsg('Published!'); setTimeout(() => setSaveMsg(''), 3000); })
-      .catch(() => { setSaveMsg('Failed to publish'); setTimeout(() => setSaveMsg(''), 3000); })
-      .finally(() => setSaving(false));
+      .then(() => { showToast("Published! Changes are now live.", "success"); })
+      .catch(() => { showToast("Failed to publish.", "error"); });
   };
 
   return (
     <div className="p-6 space-y-6">
-      {/* Tabs + Preview button */}
-      <div className="border-b border-gray-200 flex items-end justify-between">
-        <nav className="-mb-px flex gap-1">
-          {TABS.map((tab, i) => (
-            <button key={tab} onClick={() => setActiveTab(i)}
-              className={`px-5 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap ${
-                activeTab === i
-                  ? "border-[#1e3a8a] text-[#1e3a8a]"
-                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-              }`}>
-              {tab}
-            </button>
-          ))}
-        </nav>
-        <button
-          onClick={() => setPreviewOpen(true)}
-          className="mb-1 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e3a8a] hover:bg-[#152c6e] text-white text-sm font-medium transition"
-        >
+      <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* Page header */}
+      <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+            <span className="h-9 w-9 rounded-lg bg-indigo-100 flex items-center justify-center">
+              <i className="fas fa-palette text-indigo-600"></i>
+            </span>
+            Content Management
+          </h1>
+          <p className="text-sm text-slate-500 mt-1 ml-[46px]">Manage your website content, gallery, reviews, and contact submissions.</p>
+        </div>
+        <button onClick={() => setPreviewOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1e3a8a] hover:bg-[#152c6e] text-white text-sm font-semibold transition shadow-sm">
           <i className="fas fa-eye text-xs"></i> Preview Site
         </button>
+      </div>
+
+      {/* Tab bar */}
+      <div className="bg-white rounded-xl shadow-sm p-2 flex items-center gap-1 overflow-x-auto">
+        {TABS.map((tab, i) => (
+          <button key={tab.label} onClick={() => setActiveTab(i)}
+            className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition whitespace-nowrap flex items-center gap-2 ${
+              activeTab === i
+                ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+            }`}>
+            <i className={`fas ${tab.icon} text-xs`}></i>
+            {tab.label}
+            {tab.count !== undefined && tab.count > 0 && (
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                activeTab === i ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-600"
+              }`}>{tab.count}</span>
+            )}
+          </button>
+        ))}
       </div>
 
       <SitePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)} />
@@ -1824,63 +2659,101 @@ export default function AdminContent() {
       {/* Page Editor */}
       {activeTab === 0 && (
         <div className="space-y-6">
-          {/* Site-wide */}
+
+          {/* ── Navbar (top of every page) ── */}
           <div>
             <div className="flex items-center gap-2 mb-3">
-              <i className="fas fa-globe text-[#1e3a8a]"></i>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Site-wide</h2>
+              <span className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center">
+                <i className="fas fa-bars text-[#1e3a8a] text-[10px]"></i>
+              </span>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Navigation Bar</h2>
+              <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">top of every page</span>
             </div>
-            <div className="space-y-3">
-              <NavbarEditor content={content.navbar} onSave={update("navbar")} />
-              <FooterEditor content={content.footer} onSave={update("footer")} />
-            </div>
+            <NavbarEditor content={content.navbar} onSave={update("navbar")} />
           </div>
 
-          <div className="border-t border-dashed border-gray-200 pt-6">
-          {/* Home page */}
-          <div>
+          {/* ── Home Page ── */}
+          <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
-              <i className="fas fa-home text-[#1e3a8a]"></i>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Home Page <span className="text-gray-300 font-normal normal-case">/</span></h2>
+              <span className="h-6 w-6 rounded-md bg-blue-50 flex items-center justify-center">
+                <i className="fas fa-home text-[#1e3a8a] text-[10px]"></i>
+              </span>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Home Page</h2>
+              <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/</span>
             </div>
             <div className="space-y-3">
               <HomeHeroEditor    content={content.home_hero}    onSave={update("home_hero")} />
               <HomeResortsEditor content={content.home_resorts} onSave={update("home_resorts")} />
+              <HomeWhyEditor     content={content.home_why}     onSave={update("home_why")} />
+              <HomeCTAEditor     content={content.home_cta}     onSave={update("home_cta")} />
             </div>
           </div>
-          </div>
 
-          <div className="border-t border-dashed border-gray-200 pt-6">
+          {/* ── Resort Page ── */}
+          <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
-              <i className="fas fa-umbrella-beach text-[#1e3a8a]"></i>
-              <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Resort Page <span className="text-gray-300 font-normal normal-case">/resort</span></h2>
+              <span className="h-6 w-6 rounded-md bg-sky-50 flex items-center justify-center">
+                <i className="fas fa-umbrella-beach text-[#1e3a8a] text-[10px]"></i>
+              </span>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Resort Page</h2>
+              <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/resort</span>
             </div>
             <div className="space-y-3">
               <ResortHeroEditor          content={content.resort_hero}       onSave={update("resort_hero")} />
               <ResortAboutEditor         content={content.resort_about}      onSave={update("resort_about")} />
               <ResortRoomsSectionEditor  content={content.resort_rooms}      onSave={update("resort_rooms")} />
               <ResortAmenitiesEditor />
+              <ResortReviewsEditor       content={content.resort_reviews}    onSave={update("resort_reviews")} />
               <ResortContactEditor       content={content.resort_contact}    onSave={update("resort_contact")} />
               <ResortNewsletterEditor    content={content.resort_newsletter} onSave={update("resort_newsletter")} />
             </div>
           </div>
 
-          {(saving || saveMsg) && (
-            <div className={`flex items-center gap-2 text-sm font-medium ${
-              saveMsg === 'Failed to publish' ? 'text-red-500' : 'text-emerald-600'
-            }`}>
-              {saving
-                ? <><i className="fas fa-spinner fa-spin text-xs"></i> Publishing to website…</>
-                : <><i className="fas fa-check-circle"></i> {saveMsg} Changes are now live.</>
-              }
+          {/* ── Rooms Page ── */}
+          <div className="border-t border-dashed border-slate-200 pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-6 w-6 rounded-md bg-indigo-50 flex items-center justify-center">
+                <i className="fas fa-bed text-[#1e3a8a] text-[10px]"></i>
+              </span>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Rooms Page</h2>
+              <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/rooms</span>
             </div>
-          )}
+            <div className="space-y-3">
+              <RoomsHeroEditor content={content.rooms_hero} onSave={update("rooms_hero")} />
+            </div>
+          </div>
+
+          {/* ── Gallery Page ── */}
+          <div className="border-t border-dashed border-slate-200 pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-6 w-6 rounded-md bg-amber-50 flex items-center justify-center">
+                <i className="fas fa-images text-[#1e3a8a] text-[10px]"></i>
+              </span>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Gallery Page</h2>
+              <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/gallery</span>
+            </div>
+            <div className="space-y-3">
+              <GalleryHeroEditor content={content.gallery_hero} onSave={update("gallery_hero")} />
+            </div>
+          </div>
+
+          {/* ── Footer (bottom of every page) ── */}
+          <div className="border-t border-dashed border-slate-200 pt-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center">
+                <i className="fas fa-shoe-prints text-[#1e3a8a] text-[10px]"></i>
+              </span>
+              <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Footer</h2>
+              <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">bottom of every page</span>
+            </div>
+            <FooterEditor content={content.footer} onSave={update("footer")} />
+          </div>
         </div>
       )}
 
-      {activeTab === 1 && <GalleryTab />}
-      {activeTab === 2 && <ContactSubmissionsTab />}
-      {activeTab === 3 && <ReviewsTab content={content.resort_reviews} onSave={update("resort_reviews")} />}
+      {activeTab === 1 && <GalleryTab imageCount={imageCount} setImageCount={setImageCount} />}
+      {activeTab === 2 && <ContactSubmissionsTab contactCount={contactCount} setContactCount={setContactCount} />}
+      {activeTab === 3 && <ReviewsTab content={content.resort_reviews} onSave={update("resort_reviews")} reviewCount={reviewCount} setReviewCount={setReviewCount} />}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Navbar from "./Navbar.jsx";
 import Footer from "./Footer.jsx";
+import ChatWidget from "./ChatWidget.jsx";
 
 export default function Layout() {
   return (
@@ -8,6 +9,7 @@ export default function Layout() {
       <Navbar />
       <main className="flex-1">{/* pages handle their own top padding if nav is fixed */}<Outlet /></main>
       <Footer />
+      <ChatWidget />
     </div>
   );
 }
