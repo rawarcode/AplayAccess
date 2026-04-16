@@ -402,31 +402,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             <div><p className="text-xs text-slate-500">Room Type</p><p className="font-medium">{booking.roomType}</p></div>
             <div>
               <p className="text-xs text-slate-500">Guests</p>
-              {guestEdit ? (
-                <div className="flex items-center gap-1 mt-0.5">
-                  <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
-                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-sm font-bold">−</button>
-                  <span className="w-6 text-center font-medium">{guestCount}</span>
-                  <button onClick={() => setGuestCount(g => g + 1)}
-                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-sm font-bold">+</button>
-                  <button onClick={handleUpdateGuests} disabled={guestLoading}
-                    className="ml-1 px-2 py-0.5 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
-                    {guestLoading ? '…' : 'Save'}
-                  </button>
-                  <button onClick={() => { setGuestEdit(false); setGuestCount(booking.guests); }}
-                    className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs hover:bg-slate-200">✕</button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <p>{booking.guests} pax</p>
-                  {['Confirmed', 'Checked In'].includes(booking.status) && (
-                    <button onClick={() => { setGuestEdit(true); setGuestCount(booking.guests); }}
-                      className="text-xs text-sky-600 hover:underline">
-                      <i className="fas fa-user-plus mr-0.5"></i>Edit
-                    </button>
-                  )}
-                </div>
-              )}
+              <p>{booking.guests} pax</p>
             </div>
             <div><p className="text-xs text-slate-500">Check-in</p><p>{fmtDateTime(booking.checkIn)}</p></div>
             <div><p className="text-xs text-slate-500">Check-out</p><p>{fmtDateTime(booking.checkOut)}</p></div>
@@ -494,19 +470,55 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             </div>
           </div>
 
-          {/* Entrance Fee Info — shown for active bookings */}
+          {/* Guest Count + Entrance Fee — shown for active bookings */}
           {['Pending', 'Confirmed', 'Checked In'].includes(booking.status) && (() => {
             const { rate, amount } = entranceFeeForBooking(booking);
             return (
-              <div className="mb-4 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm">
-                <i className="fas fa-ticket-alt text-amber-500 mt-0.5 shrink-0"></i>
-                <div className="flex-1">
-                  <p className="font-semibold text-amber-800">Entrance Fee to Collect at Gate</p>
-                  <p className="text-amber-700 text-xs mt-0.5">
-                    {booking.guests ?? 1} adult{(booking.guests ?? 1) !== 1 ? 's' : ''} × ₱{rate}/pax
-                  </p>
+              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
+                {/* Guest count editor */}
+                {['Confirmed', 'Checked In'].includes(booking.status) && (
+                  <div className="px-4 py-3 flex items-center justify-between border-b border-amber-200">
+                    <div className="flex items-center gap-2">
+                      <i className="fas fa-users text-amber-600"></i>
+                      <span className="text-sm font-semibold text-amber-900">Number of Guests</span>
+                    </div>
+                    {guestEdit ? (
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
+                          className="w-8 h-8 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">−</button>
+                        <span className="w-8 text-center font-bold text-lg text-amber-900">{guestCount}</span>
+                        <button onClick={() => setGuestCount(g => g + 1)}
+                          className="w-8 h-8 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">+</button>
+                        <button onClick={handleUpdateGuests} disabled={guestLoading}
+                          className="ml-2 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 disabled:opacity-50">
+                          {guestLoading ? '…' : 'Save'}
+                        </button>
+                        <button onClick={() => { setGuestEdit(false); setGuestCount(booking.guests); }}
+                          className="px-2 py-1.5 bg-white border border-amber-300 text-amber-700 rounded-lg text-xs hover:bg-amber-100">✕</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => { setGuestEdit(true); setGuestCount(booking.guests); }}
+                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm font-medium text-amber-800 hover:bg-amber-100 transition">
+                        <span className="font-bold text-lg">{booking.guests}</span>
+                        <span className="text-xs">pax</span>
+                        <i className="fas fa-pen text-xs text-amber-500 ml-1"></i>
+                      </button>
+                    )}
+                  </div>
+                )}
+                {/* Entrance fee display */}
+                <div className="px-4 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <i className="fas fa-ticket-alt text-amber-500"></i>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-800">Entrance Fee at Gate</p>
+                      <p className="text-amber-700 text-xs">
+                        {booking.guests ?? 1} pax × ₱{rate}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-bold text-amber-800 text-lg">{fmtMoney(amount)}</p>
                 </div>
-                <p className="font-bold text-amber-800 text-base shrink-0">{fmtMoney(amount)}</p>
               </div>
             );
           })()}
