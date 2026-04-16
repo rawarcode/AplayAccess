@@ -561,13 +561,16 @@ export default function Billing() {
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        {b.status === 'Confirmed' && (
+                        {b.status === 'Confirmed' && !b.fullyPaid && (
                           <button
                             onClick={() => openCollect(b)}
                             className="px-3 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700"
                           >
                             Collect
                           </button>
+                        )}
+                        {b.status === 'Confirmed' && b.fullyPaid && (
+                          <span className="text-xs text-emerald-600 font-medium"><i className="fas fa-check-circle mr-1"></i>Paid</span>
                         )}
                         {b.status === 'Completed' && (
                           <button
