@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
+import Modal from '../../components/modals/Modal';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
@@ -187,10 +189,10 @@ function getMultiNightStatus(roomName, quantity, bookings) {
 
 // ─── status card config ───────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-  vacant:   { bg: 'bg-green-500',  border: 'border-green-600',  text: 'text-white',      label: 'VACANT',   icon: 'fa-check-circle'  },
-  occupied: { bg: 'bg-red-500',    border: 'border-red-600',    text: 'text-white',      label: 'OCCUPIED', icon: 'fa-door-closed'   },
-  incoming: { bg: 'bg-blue-500',   border: 'border-blue-600',   text: 'text-white',      label: 'ARRIVING', icon: 'fa-person-walking' },
-  pending:  { bg: 'bg-yellow-400', border: 'border-yellow-500', text: 'text-gray-900',   label: 'PENDING',  icon: 'fa-clock'         },
+  vacant:   { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-white',      label: 'VACANT',   icon: 'fa-check-circle'  },
+  occupied: { bg: 'bg-rose-500',    border: 'border-rose-600',    text: 'text-white',      label: 'OCCUPIED', icon: 'fa-door-closed'   },
+  incoming: { bg: 'bg-sky-500',     border: 'border-sky-600',     text: 'text-white',      label: 'ARRIVING', icon: 'fa-person-walking' },
+  pending:  { bg: 'bg-amber-400',   border: 'border-amber-500',   text: 'text-slate-900',  label: 'PENDING',  icon: 'fa-clock'         },
 };
 
 // ─── Housekeeping badge ───────────────────────────────────────────────────────
@@ -204,55 +206,45 @@ const HK_NEXT = { clean: 'dirty', dirty: 'cleaning', cleaning: 'clean' };
 // ─── HousekeepingModal — shown when card has no active booking (vacant) ───────
 function HousekeepingModal({ room, onClose, onHousekeepingChange, onWalkIn }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-         onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-xl w-full max-w-sm shadow-2xl">
-        <div className="bg-green-500 rounded-t-xl p-5 flex items-center justify-between">
-          <div>
-            <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-2 py-1 rounded-full bg-black bg-opacity-25 text-white mb-2">
-              <i className="fas fa-check-circle text-xs"></i> VACANT
-            </span>
-            <h2 className="text-xl font-bold text-white leading-tight">{room.name}</h2>
-            {room.type && <p className="text-sm opacity-80 text-white mt-0.5">{room.type}</p>}
-          </div>
-          <button onClick={onClose} className="text-white opacity-70 hover:opacity-100 text-xl font-bold" aria-label="Close">
-            <i className="fas fa-times"></i>
-          </button>
-        </div>
-        <div className="p-5">
-          {/* Walk-in button */}
-          <button
-            onClick={onWalkIn}
-            className="w-full mb-4 flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-          >
-            <i className="fas fa-person-walking"></i>
-            Walk-in Booking for {room.name}
-          </button>
-
-          <p className="text-xs font-semibold text-gray-500 uppercase mb-3">Housekeeping Status</p>
-          <div className="flex gap-2">
-            {['clean', 'dirty', 'cleaning'].map(status => {
-              const hk = HK_CONFIG[status];
-              const active = (room.housekeeping_status ?? 'clean') === status;
-              return (
-                <button
-                  key={status}
-                  onClick={() => { onHousekeepingChange(room.id, status); onClose(); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border-2 transition-all
-                    ${active ? `${hk.bg} ${hk.text} border-current` : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}
-                >
-                  <i className={`fas ${hk.icon}`}></i>{hk.label}
-                  {active && <i className="fas fa-check text-[10px]"></i>}
-                </button>
-              );
-            })}
-          </div>
-          <button onClick={onClose} className="mt-4 w-full py-2 border rounded text-sm text-gray-600 hover:bg-gray-50">
-            Close
-          </button>
-        </div>
+    <Modal open onClose={onClose} title={room.name} maxWidth="max-w-sm">
+      <div className="bg-emerald-500 rounded-lg p-4 mb-4 flex items-center gap-3">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-2 py-1 rounded-full bg-black/25 text-white">
+          <i className="fas fa-check-circle text-xs"></i> VACANT
+        </span>
+        {room.type && <span className="text-sm text-white/80">{room.type}</span>}
       </div>
-    </div>
+
+      {/* Walk-in button */}
+      <button
+        onClick={onWalkIn}
+        className="w-full mb-4 flex items-center justify-center gap-2 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg transition-colors"
+      >
+        <i className="fas fa-person-walking"></i>
+        Walk-in Booking for {room.name}
+      </button>
+
+      <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Housekeeping Status</p>
+      <div className="flex gap-2">
+        {['clean', 'dirty', 'cleaning'].map(status => {
+          const hk = HK_CONFIG[status];
+          const active = (room.housekeeping_status ?? 'clean') === status;
+          return (
+            <button
+              key={status}
+              onClick={() => { onHousekeepingChange(room.id, status); onClose(); }}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border-2 transition-all
+                ${active ? `${hk.bg} ${hk.text} border-current` : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
+            >
+              <i className={`fas ${hk.icon}`}></i>{hk.label}
+              {active && <i className="fas fa-check text-[10px]"></i>}
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={onClose} className="mt-4 w-full py-2 border rounded text-sm text-slate-600 hover:bg-slate-50">
+        Close
+      </button>
+    </Modal>
   );
 }
 
@@ -280,10 +272,10 @@ function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
 
   const dots = [];
   for (let i = 0; i < quantity; i++) {
-    if (i < occupied)                         dots.push('bg-red-500');
-    else if (i < occupied + incoming)         dots.push('bg-blue-500');
-    else if (i < occupied + incoming + pending) dots.push('bg-yellow-400');
-    else                                      dots.push('bg-green-400');
+    if (i < occupied)                         dots.push('bg-rose-500');
+    else if (i < occupied + incoming)         dots.push('bg-sky-500');
+    else if (i < occupied + incoming + pending) dots.push('bg-amber-400');
+    else                                      dots.push('bg-emerald-400');
   }
 
   return (
@@ -303,10 +295,10 @@ function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
       {/* Counts — compact inline */}
       <div className="flex flex-wrap gap-1">
         {[
-          occupied  > 0 && { n: occupied,  label: 'Occ',      cls: 'bg-red-100 text-red-700'    },
-          incoming  > 0 && { n: incoming,  label: 'Arr',      cls: 'bg-blue-100 text-blue-700'  },
-          pending   > 0 && { n: pending,   label: 'Pend',     cls: 'bg-yellow-100 text-yellow-700' },
-          vacant    > 0 && { n: vacant,    label: 'Free',     cls: 'bg-green-100 text-green-700' },
+          occupied  > 0 && { n: occupied,  label: 'Occ',      cls: 'bg-rose-100 text-rose-700'    },
+          incoming  > 0 && { n: incoming,  label: 'Arr',      cls: 'bg-sky-100 text-sky-700'  },
+          pending   > 0 && { n: pending,   label: 'Pend',     cls: 'bg-amber-100 text-amber-700' },
+          vacant    > 0 && { n: vacant,    label: 'Free',     cls: 'bg-emerald-100 text-emerald-700' },
         ].filter(Boolean).map(({ n, label, cls }) => (
           <span key={label} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cls}`}>{n} {label}</span>
         ))}
@@ -320,10 +312,10 @@ function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
           <i className={`fas ${hk.icon} text-[9px]`}></i>{hk.label}
         </button>
         {vacant > 0
-          ? <button onClick={onWalkIn} className="text-[10px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-0.5">
+          ? <button onClick={onWalkIn} className="text-[10px] font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-0.5">
               <i className="fas fa-person-walking text-[9px]"></i> Walk-in
             </button>
-          : <span className="text-[10px] text-red-500 font-semibold">Full</span>
+          : <span className="text-[10px] text-rose-500 font-semibold">Full</span>
         }
       </div>
     </div>
@@ -349,7 +341,7 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
       {/* Top row: status badge + ⚡ */}
       <div className="flex items-center justify-between">
         <span className={`flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full
-          ${info.status === 'pending' ? 'bg-yellow-500 text-gray-900' : 'bg-black/20 text-white'}`}>
+          ${info.status === 'pending' ? 'bg-amber-500 text-slate-900' : 'bg-black/20 text-white'}`}>
           <i className={`fas ${config.icon} text-[9px]`}></i>{config.label}
         </span>
         {info.status === 'occupied' && info.urgency === 'soon' && (
@@ -361,7 +353,7 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
       <div>
         <p className="text-sm font-bold leading-tight">{room.name}</p>
         {guest && (
-          <p className={`text-[11px] font-medium truncate mt-0.5 ${info.status === 'pending' ? 'text-gray-800' : 'opacity-85'}`}>
+          <p className={`text-[11px] font-medium truncate mt-0.5 ${info.status === 'pending' ? 'text-slate-800' : 'opacity-85'}`}>
             <i className="fas fa-user mr-1 opacity-60 text-[9px]"></i>{guest}
           </p>
         )}
@@ -383,7 +375,7 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
           </span>
         )}
         {info.status === 'pending'  && (
-          <span className="text-gray-800">
+          <span className="text-slate-800">
             <i className="fas fa-exclamation-circle mr-1 text-[9px]"></i>Pending {info.booking ? fmtTime(info.booking.checkIn) : ''}
           </span>
         )}
@@ -476,15 +468,16 @@ export default function FDRooms() {
   }, [roomInfos, filter]);
 
   const FILTERS = [
-    { key: 'all',      label: 'All Rooms',  color: 'bg-gray-700 text-white'       },
-    { key: 'vacant',   label: 'Vacant',     color: 'bg-green-500 text-white'      },
-    { key: 'occupied', label: 'Occupied',   color: 'bg-red-500 text-white'        },
-    { key: 'incoming', label: 'Arriving',   color: 'bg-blue-500 text-white'       },
-    { key: 'pending',  label: 'Pending',    color: 'bg-yellow-400 text-gray-900'  },
+    { key: 'all',      label: 'All Rooms',  color: 'bg-slate-700 text-white'       },
+    { key: 'vacant',   label: 'Vacant',     color: 'bg-emerald-500 text-white'     },
+    { key: 'occupied', label: 'Occupied',   color: 'bg-rose-500 text-white'        },
+    { key: 'incoming', label: 'Arriving',   color: 'bg-sky-500 text-white'         },
+    { key: 'pending',  label: 'Pending',    color: 'bg-amber-400 text-slate-900'   },
   ];
 
   return (
     <Sidebar>
+      <Helmet><title>Rooms — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
       {selectedSlot && (
         selectedSlot.info.booking ? (
@@ -509,11 +502,11 @@ export default function FDRooms() {
         <div className="flex-1 min-w-0">
           {/* Toolbar */}
           <div className="flex items-center justify-between mb-4">
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-400">
               Last updated: {lastRefresh.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true })}
-              <span className="ml-2 text-gray-300">· Auto-refreshes every 10s</span>
+              <span className="ml-2 text-slate-300">· Auto-refreshes every 10s</span>
             </p>
-            <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg text-sm hover:bg-sky-700">
               <i className="fas fa-sync-alt"></i> Refresh
             </button>
           </div>
@@ -521,10 +514,10 @@ export default function FDRooms() {
           {/* Summary bar */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
             {[
-              { label: 'Vacant',   count: counts.vacant,   bg: 'bg-green-500',                icon: 'fa-check-circle'   },
-              { label: 'Occupied', count: counts.occupied,  bg: 'bg-red-500',                  icon: 'fa-door-closed'    },
-              { label: 'Arriving', count: counts.incoming,  bg: 'bg-blue-500',                 icon: 'fa-person-walking' },
-              { label: 'Pending',  count: counts.pending,   bg: 'bg-yellow-400 text-gray-900', icon: 'fa-clock'          },
+              { label: 'Vacant',   count: counts.vacant,   bg: 'bg-emerald-500',                icon: 'fa-check-circle'   },
+              { label: 'Occupied', count: counts.occupied,  bg: 'bg-rose-500',                  icon: 'fa-door-closed'    },
+              { label: 'Arriving', count: counts.incoming,  bg: 'bg-sky-500',                   icon: 'fa-person-walking' },
+              { label: 'Pending',  count: counts.pending,   bg: 'bg-amber-400 text-slate-900',  icon: 'fa-clock'          },
             ].map(s => (
               <div key={s.label} className={`${s.bg} rounded-xl p-4 flex items-center gap-3 text-white shadow`}>
                 <i className={`fas ${s.icon} text-2xl opacity-80`}></i>
@@ -545,7 +538,7 @@ export default function FDRooms() {
                 className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border-2 ${
                   filter === f.key
                     ? `${f.color} border-transparent shadow`
-                    : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                    : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
                 }`}
               >
                 {f.label}
@@ -554,11 +547,11 @@ export default function FDRooms() {
           </div>
 
           {loading ? (
-            <div className="py-16 text-center text-gray-400">
+            <div className="py-16 text-center text-slate-400">
               <i className="fas fa-spinner fa-spin text-3xl mb-3 block"></i>Loading room status...
             </div>
           ) : filteredInfos.length === 0 ? (
-            <div className="py-16 text-center text-gray-400">
+            <div className="py-16 text-center text-slate-400">
               <i className="fas fa-door-open text-3xl mb-3 block"></i>No rooms match this filter.
             </div>
           ) : (
@@ -574,7 +567,7 @@ export default function FDRooms() {
                 </div>
                 {(() => {
                   const dayItems = filteredInfos.filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter);
-                  if (dayItems.length === 0) return <p className="text-gray-400 text-sm py-4">No rooms match this filter.</p>;
+                  if (dayItems.length === 0) return <p className="text-slate-400 text-sm py-4">No rooms match this filter.</p>;
                   return (
                     <div className="space-y-5">
                       {CATEGORY_GROUPS.map(grp => {
@@ -582,7 +575,7 @@ export default function FDRooms() {
                         if (!items.length) return null;
                         return (
                           <div key={grp.key}>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                               <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
                             </p>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -614,7 +607,7 @@ export default function FDRooms() {
                 </div>
                 {(() => {
                   const nightItems = filteredInfos.filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter);
-                  if (nightItems.length === 0) return <p className="text-gray-400 text-sm py-4">No rooms match this filter.</p>;
+                  if (nightItems.length === 0) return <p className="text-slate-400 text-sm py-4">No rooms match this filter.</p>;
                   return (
                     <div className="space-y-5">
                       {CATEGORY_GROUPS.map(grp => {
@@ -622,7 +615,7 @@ export default function FDRooms() {
                         if (!items.length) return null;
                         return (
                           <div key={grp.key}>
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
                               <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
                             </p>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -647,15 +640,15 @@ export default function FDRooms() {
 
           {/* Legend */}
           <div className="mt-8 space-y-2">
-            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-green-500 inline-block"></span> Vacant — ready for guests</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Occupied — shows time until vacant</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Arriving — confirmed, not yet checked in</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-yellow-400 inline-block"></span> Pending — booking not yet confirmed</span>
+            <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Vacant — ready for guests</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Occupied — shows time until vacant</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-sky-500 inline-block"></span> Arriving — confirmed, not yet checked in</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Pending — booking not yet confirmed</span>
               <span className="flex items-center gap-1.5"><span className="text-base">⚡</span> Soon — vacating within 30 minutes</span>
             </div>
-            <div className="flex flex-wrap gap-4 text-xs text-gray-500">
-              <span className="font-medium text-gray-400">Housekeeping badge (tap to update):</span>
+            <div className="flex flex-wrap gap-4 text-xs text-slate-500">
+              <span className="font-medium text-slate-400">Housekeeping badge (tap to update):</span>
               <span><span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs">Clean</span></span>
               <span><span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs">Dirty</span></span>
               <span><span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs">Cleaning</span></span>
@@ -667,13 +660,13 @@ export default function FDRooms() {
         <div className="w-80 xl:w-96 shrink-0 flex flex-col">
           {/* Panel header */}
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-              <i className="fas fa-calendar-alt text-blue-500"></i>
+            <h2 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+              <i className="fas fa-calendar-alt text-sky-500"></i>
               Upcoming Bookings
             </h2>
             {!loading && (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                upcomingBookings.length > 0 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'
+                upcomingBookings.length > 0 ? 'bg-sky-100 text-sky-700' : 'bg-slate-100 text-slate-500'
               }`}>
                 {upcomingBookings.length}
               </span>
@@ -683,12 +676,12 @@ export default function FDRooms() {
           {/* Scrollable list */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-1" style={{ maxHeight: 'calc(100vh - 180px)' }}>
             {loading ? (
-              <div className="py-12 text-center text-gray-400 text-sm">
+              <div className="py-12 text-center text-slate-400 text-sm">
                 <i className="fas fa-spinner fa-spin block text-2xl mb-2"></i>Loading…
               </div>
             ) : upcomingBookings.length === 0 ? (
-              <div className="py-12 text-center text-gray-400">
-                <i className="fas fa-calendar-check block text-3xl mb-3 text-gray-300"></i>
+              <div className="py-12 text-center text-slate-400">
+                <i className="fas fa-calendar-check block text-3xl mb-3 text-slate-300"></i>
                 <p className="text-sm font-medium">No upcoming bookings</p>
                 <p className="text-xs mt-1">All clear for now</p>
               </div>
@@ -704,16 +697,16 @@ export default function FDRooms() {
                   onClick={() => setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info: { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' } })}
                   className={`w-full text-left rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.99] ${
                     isToday
-                      ? 'border-blue-200 bg-blue-50 hover:bg-blue-100'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
+                      ? 'border-sky-200 bg-sky-50 hover:bg-sky-100'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
                   }`}
                 >
                   {/* Top row: status badge + booking type */}
                   <div className="flex items-center justify-between mb-1.5">
                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
                       isPending
-                        ? 'bg-yellow-100 text-yellow-700'
-                        : 'bg-blue-100 text-blue-700'
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-sky-100 text-sky-700'
                     }`}>
                       <i className={`fas ${isPending ? 'fa-clock' : 'fa-check-circle'} text-[9px]`}></i>
                       {b.status}
@@ -729,30 +722,30 @@ export default function FDRooms() {
                   </div>
 
                   {/* Guest name */}
-                  <p className="font-semibold text-gray-900 text-sm truncate leading-tight">
-                    <i className="fas fa-user text-gray-400 text-xs mr-1"></i>
+                  <p className="font-semibold text-slate-900 text-sm truncate leading-tight">
+                    <i className="fas fa-user text-slate-400 text-xs mr-1"></i>
                     {name}
                   </p>
 
                   {/* Room */}
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
-                    <i className="fas fa-door-open text-gray-300 mr-1"></i>
+                  <p className="text-xs text-slate-500 mt-0.5 truncate">
+                    <i className="fas fa-door-open text-slate-300 mr-1"></i>
                     {b.roomType}
                   </p>
 
                   {/* Check-in time */}
-                  <p className={`text-xs font-semibold mt-1.5 ${isToday ? 'text-blue-600' : 'text-gray-600'}`}>
+                  <p className={`text-xs font-semibold mt-1.5 ${isToday ? 'text-sky-600' : 'text-slate-600'}`}>
                     <i className="fas fa-clock mr-1 opacity-60"></i>
                     {fmtDateLabel(b.checkIn)}
                   </p>
 
                   {/* Bottom row: guests + ref */}
                   <div className="flex items-center justify-between mt-1.5">
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-slate-400">
                       <i className="fas fa-users mr-1"></i>
                       {b.guests} guest{b.guests !== 1 ? 's' : ''}
                     </span>
-                    <span className="text-[10px] text-gray-400 font-mono">{b.id}</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{b.id}</span>
                   </div>
                 </button>
               );
