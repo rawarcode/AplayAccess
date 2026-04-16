@@ -1,10 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { getAdminGallery, createAdminGallery, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { getAdminGallery, updateAdminGallery, batchCreateGallery, renameCategoryGallery, toggleCategoryHidden, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
 import { RESORT_ID } from "../../lib/config.js";
-import ImageUpload from "../../components/ui/ImageUpload.jsx";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
-import { isVideoUrl } from "../../lib/uploadApi.js";
+import { isVideoUrl, uploadFile } from "../../lib/uploadApi.js";
 import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
@@ -1624,8 +1623,6 @@ function GalleryHeroEditor({ content, onSave }) {
 
 // ─── Gallery categories ───────────────────────────────────────────────────────
 
-const CATEGORIES = ["beach", "rooms", "amenities", "dining", "events", "other"];
-
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 }
@@ -1636,14 +1633,31 @@ function GalleryTab({ imageCount, setImageCount }) {
   const [loading,     setLoading]     = useState(true);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const savedIdsRef                   = useRef(new Set());
-  const [showForm,    setShowForm]    = useState(false);
   const [filterCat,   setFilterCat]   = useState("all");
   const [deleteId,    setDeleteId]    = useState(null);
   const [deleting,    setDeleting]    = useState(false);
   const [saving,      setSaving]      = useState(false);
-  const [addSaving,   setAddSaving]   = useState(false);
   const [toast, showToast, clearToast, toastType] = useToast();
-  const [form, setForm] = useState({ image_url: "", caption: "", category: "beach", sort_order: "" });
+
+  // ── Category management ──
+  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [renamingCat,   setRenamingCat]   = useState(null); // { old: string }
+  const [renameValue,   setRenameValue]   = useState("");
+  const [renaming,      setRenaming]      = useState(false);
+  const [deleteCat,     setDeleteCat]     = useState(null); // category name to confirm delete
+  const [deletingCat,   setDeletingCat]   = useState(false);
+  const [hideCat,       setHideCat]       = useState(null); // category name to confirm hide/show
+  const [movingImage,   setMovingImage]   = useState(null); // { id, currentCat }
+  const [moveToCat,     setMoveToCat]     = useState("");
+  const [previewImg,    setPreviewImg]    = useState(null); // image object for lightbox preview
+
+  // ── Batch upload ──
+  const [batchFolder,   setBatchFolder]   = useState(null);  // category name to upload into
+  const [batchFiles,    setBatchFiles]    = useState([]);     // { file, preview, status: 'pending'|'uploading'|'done'|'error', url? }
+  const [batchUploading, setBatchUploading] = useState(false);
+  const batchInputRef = useRef(null);
+
 
   useEffect(() => {
     setLoading(true);
@@ -1660,7 +1674,19 @@ function GalleryTab({ imageCount, setImageCount }) {
       .finally(() => setLoading(false));
   }, [showToast, setImageCount]);
 
-  const filtered = (filterCat === "all" ? images : images.filter(i => i.category === filterCat))
+  // Derive categories dynamically from actual gallery data (case-insensitive)
+  const categories = useMemo(() => {
+    const map = new Map();
+    images.forEach(i => {
+      const cat = (i.category || "").trim();
+      if (!cat) return;
+      const key = cat.toLowerCase();
+      if (!map.has(key)) map.set(key, cat);
+    });
+    return [...map.values()].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  }, [images]);
+
+  const filtered = (filterCat === "all" ? images : images.filter(i => (i.category || "").toLowerCase() === filterCat.toLowerCase()))
     .slice()
     .sort((a, b) => {
       const aSaved = savedIdsRef.current.has(a.id) ? 0 : 1;
@@ -1705,31 +1731,180 @@ function GalleryTab({ imageCount, setImageCount }) {
     setSelectedIds(new Set(savedIdsRef.current));
   }
 
-  const handleAdd = async (e) => {
-    e.preventDefault();
-    if (!form.image_url) { showToast("Please upload an image or video first.", "error"); return; }
-    setAddSaving(true);
+  // ── Folder: create ──
+  function handleCreateFolder() {
+    const name = newFolderName.trim();
+    if (!name) return;
+    const exists = categories.some(c => c.toLowerCase() === name.toLowerCase());
+    if (exists) { showToast("Folder already exists.", "error"); return; }
+    // Set filter to this new folder so user sees it immediately
+    setFilterCat(name);
+    setNewFolderName("");
+    setShowNewFolder(false);
+    showToast(`Folder "${name}" created. Add images to it.`, "success");
+  }
+
+  // ── Folder: rename ──
+  async function handleRenameFolder() {
+    if (!renamingCat || !renameValue.trim()) return;
+    if (renameValue.trim().toLowerCase() === renamingCat.old.toLowerCase()) { setRenamingCat(null); return; }
+    setRenaming(true);
     try {
-      const payload = {
-        resort_id:  RESORT_ID,
-        image_url:  form.image_url,
-        caption:    form.caption || null,
-        category:   form.category,
-        sort_order: parseInt(form.sort_order) || images.length + 1,
-      };
-      const r = await createAdminGallery(payload);
-      const newImages = [...images, r.data.data];
-      setImages(newImages);
-      setImageCount(newImages.length);
-      setForm({ image_url: "", caption: "", category: "beach", sort_order: "" });
-      setShowForm(false);
-      showToast("Image added to gallery!", "success");
+      const r = await renameCategoryGallery(renamingCat.old, renameValue.trim());
+      // Update images in state
+      setImages(prev => prev.map(img =>
+        (img.category || "").toLowerCase() === renamingCat.old.toLowerCase()
+          ? { ...img, category: renameValue.trim() }
+          : img
+      ));
+      if (filterCat.toLowerCase() === renamingCat.old.toLowerCase()) setFilterCat(renameValue.trim());
+      showToast(`Renamed to "${renameValue.trim()}" (${r.data.count} images updated).`, "success");
+      setRenamingCat(null);
     } catch (err) {
-      showToast(err?.response?.data?.message || "Failed to add image.", "error");
+      showToast(err?.response?.data?.message || "Failed to rename folder.", "error");
     } finally {
-      setAddSaving(false);
+      setRenaming(false);
     }
-  };
+  }
+
+
+  // ── Category: delete (removes all images in category) ──
+  async function handleDeleteCategory() {
+    if (!deleteCat) return;
+    const catImages = images.filter(i => (i.category || "").toLowerCase() === deleteCat.toLowerCase());
+    if (!catImages.length) {
+      // Empty folder — just reset filter
+      if (filterCat.toLowerCase() === deleteCat.toLowerCase()) setFilterCat("all");
+      setDeleteCat(null);
+      showToast(`Category "${deleteCat}" removed.`, "success");
+      return;
+    }
+    setDeletingCat(true);
+    try {
+      for (const img of catImages) {
+        await deleteAdminGallery(img.id);
+      }
+      const remaining = images.filter(i => (i.category || "").toLowerCase() !== deleteCat.toLowerCase());
+      setImages(remaining);
+      setImageCount(remaining.length);
+      if (filterCat.toLowerCase() === deleteCat.toLowerCase()) setFilterCat("all");
+      showToast(`Deleted "${deleteCat}" category and ${catImages.length} image${catImages.length !== 1 ? "s" : ""}.`, "success");
+    } catch (err) {
+      showToast(err?.response?.data?.message || "Failed to delete some images.", "error");
+    } finally {
+      setDeletingCat(false);
+      setDeleteCat(null);
+    }
+  }
+
+  // ── Category: confirm then toggle hide/show ──
+  async function handleConfirmToggleHidden() {
+    if (!hideCat) return;
+    const catImages = images.filter(i => (i.category || "").toLowerCase() === hideCat.toLowerCase());
+    if (!catImages.length) { setHideCat(null); return; }
+    const allHidden = catImages.every(i => i.is_hidden);
+    const newVal = !allHidden;
+    try {
+      await toggleCategoryHidden(hideCat, newVal);
+      setImages(prev => prev.map(img =>
+        (img.category || "").toLowerCase() === hideCat.toLowerCase()
+          ? { ...img, is_hidden: newVal }
+          : img
+      ));
+      showToast(`"${hideCat}" is now ${newVal ? "hidden from public" : "visible to public"}.`, "success");
+    } catch (err) {
+      showToast(err?.response?.data?.message || "Failed to update visibility.", "error");
+    } finally {
+      setHideCat(null);
+    }
+  }
+
+  // ── Move image to different category ──
+  async function handleMoveImage() {
+    if (!movingImage || !moveToCat) return;
+    try {
+      await updateAdminGallery(movingImage.id, { category: moveToCat });
+      setImages(prev => prev.map(img => img.id === movingImage.id ? { ...img, category: moveToCat } : img));
+      showToast(`Image moved to "${moveToCat}".`, "success");
+    } catch (err) {
+      showToast(err?.response?.data?.message || "Failed to move image.", "error");
+    } finally {
+      setMovingImage(null);
+      setMoveToCat("");
+    }
+  }
+
+  // ── Batch upload ──
+  function handleBatchSelect(e) {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setBatchFiles(files.map(f => ({
+      file: f,
+      preview: URL.createObjectURL(f),
+      status: "pending",
+      url: null,
+    })));
+    e.target.value = "";
+  }
+
+  function removeBatchFile(idx) {
+    setBatchFiles(prev => {
+      const next = [...prev];
+      URL.revokeObjectURL(next[idx].preview);
+      next.splice(idx, 1);
+      return next;
+    });
+  }
+
+  async function handleBatchUpload() {
+    if (!batchFolder || !batchFiles.length) return;
+    setBatchUploading(true);
+
+    // Upload each file to Cloudinary
+    const results = [...batchFiles];
+    for (let i = 0; i < results.length; i++) {
+      if (results[i].status === "done") continue;
+      results[i] = { ...results[i], status: "uploading" };
+      setBatchFiles([...results]);
+      try {
+        const url = await uploadFile(results[i].file, "gallery");
+        results[i] = { ...results[i], status: "done", url };
+      } catch {
+        results[i] = { ...results[i], status: "error" };
+      }
+      setBatchFiles([...results]);
+    }
+
+    // Batch create in DB
+    const successful = results.filter(f => f.status === "done" && f.url);
+    if (successful.length) {
+      try {
+        const payload = successful.map(f => ({
+          resort_id: RESORT_ID,
+          image_url: f.url,
+          caption: null,
+          category: batchFolder,
+        }));
+        const r = await batchCreateGallery(payload);
+        const created = r.data.data || [];
+        const newImages = [...images, ...created];
+        setImages(newImages);
+        setImageCount(newImages.length);
+        showToast(`${created.length} image${created.length !== 1 ? "s" : ""} added to "${batchFolder}".`, "success");
+      } catch (err) {
+        showToast(err?.response?.data?.message || "Failed to save batch to database.", "error");
+      }
+    }
+
+    const failed = results.filter(f => f.status === "error").length;
+    if (failed) showToast(`${failed} file${failed !== 1 ? "s" : ""} failed to upload.`, "error");
+
+    // Cleanup
+    results.forEach(f => URL.revokeObjectURL(f.preview));
+    setBatchFiles([]);
+    setBatchFolder(null);
+    setBatchUploading(false);
+  }
 
   // Skeleton shimmer grid
   const GallerySkeleton = () => (
@@ -1751,7 +1926,7 @@ function GalleryTab({ imageCount, setImageCount }) {
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-slate-800 text-sm">Resort Gallery Selection</p>
           <p className="text-xs text-slate-500 mt-0.5">
-            Click images below to select or deselect them.
+            Use the <i className="fas fa-heart text-rose-500 text-[10px] mx-0.5"></i> button to feature images on the Resort page.
             {" "}<strong>{selectedIds.size}</strong> image{selectedIds.size !== 1 ? "s" : ""} selected for <strong>/resort</strong>.
             {isDirty && <span className="text-amber-600 ml-1">— unsaved changes</span>}
           </p>
@@ -1775,83 +1950,229 @@ function GalleryTab({ imageCount, setImageCount }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-slate-500">Filter:</span>
-          {["all", ...CATEGORIES].map(cat => (
-            <button key={cat} onClick={() => setFilterCat(cat)}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition ${filterCat === cat ? "bg-[#1e3a8a] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
-              {cat.charAt(0).toUpperCase() + cat.slice(1)}
+      {/* ── Folder bar ── */}
+      <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
+            <i className="fas fa-folder text-amber-500" /> Categories
+          </h3>
+          <div className="flex items-center gap-2">
+            <button onClick={() => setShowNewFolder(v => !v)}
+              className="text-xs text-[#1e3a8a] hover:text-[#152c6e] font-medium flex items-center gap-1">
+              <i className="fas fa-plus text-[10px]" /> New Category
             </button>
-          ))}
+          </div>
         </div>
-        <button onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm">
-          <i className="fas fa-plus"></i> Add Image
-        </button>
-      </div>
 
-      {showForm ? (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-5">
-          <h3 className="font-semibold text-slate-800 mb-4">Add New Gallery Image</h3>
-          <form onSubmit={handleAdd} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Image / Video <span className="text-red-500">*</span></label>
-              <div className="flex items-start gap-4">
-                <div className="h-24 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
-                  {form.image_url ? (
-                    isVideoUrl(form.image_url)
-                      ? <video src={form.image_url} muted playsInline className="h-full w-full object-cover" />
-                      : <img src={form.image_url} alt="Gallery" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
-                  ) : (
-                    <div className="text-center"><i className="fas fa-cloud-upload-alt text-slate-300 text-xl"></i><p className="text-[9px] text-slate-300 mt-1">Upload</p></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <ImageUpload
-                    value={form.image_url}
-                    onChange={url => setForm(f => ({ ...f, image_url: url }))}
-                    folder="gallery"
-                    accept="image/*,video/*"
-                    label="Upload Image or Video"
-                  />
-                  {!form.image_url && (
-                    <p className="text-[10px] text-red-400">Please upload an image or video before adding.</p>
-                  )}
-                  {form.image_url && (
-                    <button type="button" onClick={() => setForm(f => ({ ...f, image_url: "" }))}
-                      className="text-[10px] text-red-400 hover:text-red-600 transition flex items-center gap-1">
-                      <i className="fas fa-times text-[8px]"></i> Remove
-                    </button>
-                  )}
+        {/* Create new folder inline */}
+        {showNewFolder && (
+          <div className="flex items-center gap-2">
+            <input type="text" value={newFolderName} onChange={e => setNewFolderName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleCreateFolder()}
+              placeholder="Category name" autoFocus
+              className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            <button onClick={handleCreateFolder}
+              className="px-3 py-1.5 bg-[#1e3a8a] text-white text-sm rounded-lg hover:bg-[#152c6e]">Create</button>
+            <button onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}
+              className="px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700">Cancel</button>
+          </div>
+        )}
+
+        {/* Folder pills */}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setFilterCat("all")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+              filterCat === "all" ? "bg-[#1e3a8a] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+            <i className="fas fa-th-large text-[10px]" /> All
+            <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${filterCat === "all" ? "bg-white/20" : "bg-slate-200 text-slate-500"}`}>
+              {images.length}
+            </span>
+          </button>
+          {categories.map(cat => {
+            const catImgs = images.filter(i => (i.category || "").toLowerCase() === cat.toLowerCase());
+            const count = catImgs.length;
+            const isHidden = catImgs.length > 0 && catImgs.every(i => i.is_hidden);
+            const isActive = filterCat.toLowerCase() === cat.toLowerCase();
+            return (
+              <div key={cat} className="relative group">
+                <button onClick={() => setFilterCat(cat)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    isActive ? "bg-[#1e3a8a] text-white" : isHidden ? "bg-slate-100 text-slate-400 hover:bg-slate-200 line-through" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                  <i className={`fas ${isHidden ? "fa-eye-slash" : "fa-folder"} text-[10px]`} />
+                  {cat}
+                  <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? "bg-white/20" : "bg-slate-200 text-slate-500"}`}>
+                    {count}
+                  </span>
+                </button>
+                {/* Hover actions: hide/show · rename · delete */}
+                <div className="absolute -top-1 -right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+                  <button onClick={(e) => { e.stopPropagation(); setHideCat(cat); }}
+                    className={`w-5 h-5 rounded-full text-white text-[8px] flex items-center justify-center ${isHidden ? "bg-amber-500 hover:bg-amber-600" : "bg-slate-400 hover:bg-slate-600"}`}
+                    title={isHidden ? "Show category" : "Hide category"}>
+                    <i className={`fas ${isHidden ? "fa-eye" : "fa-eye-slash"}`} />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); setRenamingCat({ old: cat }); setRenameValue(cat); }}
+                    className="w-5 h-5 rounded-full bg-slate-500 text-white text-[8px] flex items-center justify-center hover:bg-slate-700"
+                    title="Rename category">
+                    <i className="fas fa-pen" />
+                  </button>
+                  <button onClick={(e) => { e.stopPropagation(); setDeleteCat(cat); }}
+                    className="w-5 h-5 rounded-full bg-rose-500 text-white text-[8px] flex items-center justify-center hover:bg-rose-700"
+                    title="Delete category">
+                    <i className="fas fa-trash" />
+                  </button>
                 </div>
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Caption <span className="text-slate-400 font-normal">(optional)</span></label>
-              <input type="text" placeholder="Short description" value={form.caption}
-                onChange={e => setForm(f => ({ ...f, caption: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Category <span className="text-red-500">*</span></label>
-              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400">
-                {CATEGORIES.map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>)}
-              </select>
-            </div>
-            <div className="md:col-span-2 flex justify-end gap-2">
-              <button type="button" onClick={() => setShowForm(false)}
-                className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
-              <button type="submit" disabled={addSaving}
-                className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
-                {addSaving ? <><i className="fas fa-spinner fa-spin text-xs"></i> Adding…</> : "Add Image"}
-              </button>
-            </div>
-          </form>
+            );
+          })}
         </div>
-      ) : null}
 
+        {/* Rename inline */}
+        {renamingCat && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <span className="text-xs text-slate-600">Rename "{renamingCat.old}" to:</span>
+            <input type="text" value={renameValue} onChange={e => setRenameValue(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleRenameFolder()}
+              autoFocus
+              className="flex-1 border border-slate-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            <button onClick={handleRenameFolder} disabled={renaming}
+              className="px-3 py-1 bg-[#1e3a8a] text-white text-xs rounded-lg hover:bg-[#152c6e] disabled:opacity-60">
+              {renaming ? "Saving..." : "Rename"}
+            </button>
+            <button onClick={() => setRenamingCat(null)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+          </div>
+        )}
+
+        {/* Hide/show category confirm */}
+        {hideCat && (() => {
+          const catImgs = images.filter(i => (i.category || "").toLowerCase() === hideCat.toLowerCase());
+          const allHidden = catImgs.length > 0 && catImgs.every(i => i.is_hidden);
+          return (
+            <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${allHidden ? "bg-emerald-50 border border-emerald-200" : "bg-amber-50 border border-amber-200"}`}>
+              <i className={`fas ${allHidden ? "fa-eye text-emerald-500" : "fa-eye-slash text-amber-500"} text-xs`} />
+              <span className="text-xs text-slate-700 flex-1">
+                {allHidden
+                  ? <>Show <strong>"{hideCat}"</strong> ({catImgs.length} image{catImgs.length !== 1 ? "s" : ""}) on the public gallery?</>
+                  : <>Hide <strong>"{hideCat}"</strong> ({catImgs.length} image{catImgs.length !== 1 ? "s" : ""}) from the public gallery?</>}
+              </span>
+              <button onClick={handleConfirmToggleHidden}
+                className={`px-3 py-1 text-white text-xs rounded-lg ${allHidden ? "bg-emerald-600 hover:bg-emerald-700" : "bg-amber-600 hover:bg-amber-700"}`}>
+                {allHidden ? "Show" : "Hide"}
+              </button>
+              <button onClick={() => setHideCat(null)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
+            </div>
+          );
+        })()}
+
+        {/* Delete category confirm */}
+        {deleteCat && (
+          <div className="flex items-center gap-2 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+            <i className="fas fa-exclamation-triangle text-rose-500 text-xs" />
+            <span className="text-xs text-slate-700 flex-1">
+              Delete <strong>"{deleteCat}"</strong> and all {images.filter(i => (i.category || "").toLowerCase() === deleteCat.toLowerCase()).length} image{images.filter(i => (i.category || "").toLowerCase() === deleteCat.toLowerCase()).length !== 1 ? "s" : ""} in it? This cannot be undone.
+            </span>
+            <button onClick={handleDeleteCategory} disabled={deletingCat}
+              className="px-3 py-1 bg-rose-600 text-white text-xs rounded-lg hover:bg-rose-700 disabled:opacity-60">
+              {deletingCat ? "Deleting..." : "Delete"}
+            </button>
+            <button onClick={() => setDeleteCat(null)} disabled={deletingCat}
+              className="text-xs text-slate-500 hover:text-slate-700 disabled:opacity-60">Cancel</button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Action buttons ── */}
+      <div className="flex flex-wrap items-center gap-2">
+        {categories.length > 0 && (
+          <button onClick={() => { setBatchFolder(filterCat !== "all" ? filterCat : categories[0]); setBatchFiles([]); }}
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm">
+            <i className="fas fa-images" /> Batch Upload
+          </button>
+        )}
+        <input ref={batchInputRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleBatchSelect} />
+      </div>
+
+      {/* ── Batch upload panel ── */}
+      {batchFolder && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-800 text-sm flex items-center gap-2">
+              <i className="fas fa-images text-emerald-600" /> Batch Upload to "{batchFolder}"
+            </h3>
+            <button onClick={() => { setBatchFolder(null); setBatchFiles([]); }}
+              className="text-slate-400 hover:text-slate-600"><i className="fas fa-times" /></button>
+          </div>
+
+          {/* Folder picker */}
+          <div className="flex items-center gap-2">
+            <label className="text-xs text-slate-600 font-medium">Category:</label>
+            <select value={batchFolder} onChange={e => setBatchFolder(e.target.value)}
+              className="border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+
+          {/* File picker */}
+          <button onClick={() => batchInputRef.current?.click()} disabled={batchUploading}
+            className="w-full border-2 border-dashed border-emerald-300 rounded-xl py-8 flex flex-col items-center gap-2 text-emerald-600 hover:bg-emerald-100/50 transition disabled:opacity-50">
+            <i className="fas fa-cloud-upload-alt text-2xl" />
+            <span className="text-sm font-medium">Click to select multiple files</span>
+            <span className="text-xs text-slate-400">Images and videos supported</span>
+          </button>
+
+          {/* Preview grid */}
+          {batchFiles.length > 0 && (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                {batchFiles.map((f, i) => (
+                  <div key={i} className="relative rounded-lg overflow-hidden bg-slate-100 aspect-square">
+                    {f.file.type.startsWith("video/") ? (
+                      <video src={f.preview} muted playsInline className="w-full h-full object-cover" />
+                    ) : (
+                      <img src={f.preview} alt="" className="w-full h-full object-cover" />
+                    )}
+                    {/* Status overlay */}
+                    {f.status === "uploading" && (
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                        <i className="fas fa-spinner fa-spin text-white text-lg" />
+                      </div>
+                    )}
+                    {f.status === "done" && (
+                      <div className="absolute inset-0 bg-emerald-500/30 flex items-center justify-center">
+                        <i className="fas fa-check-circle text-white text-xl" />
+                      </div>
+                    )}
+                    {f.status === "error" && (
+                      <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center">
+                        <i className="fas fa-times-circle text-white text-xl" />
+                      </div>
+                    )}
+                    {/* Remove */}
+                    {f.status === "pending" && (
+                      <button onClick={() => removeBatchFile(i)}
+                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center hover:bg-red-600">
+                        <i className="fas fa-times" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-500">{batchFiles.length} file{batchFiles.length !== 1 ? "s" : ""} selected</span>
+                <button onClick={handleBatchUpload} disabled={batchUploading || batchFiles.every(f => f.status === "done")}
+                  className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-5 py-2 rounded-lg text-sm font-medium">
+                  {batchUploading
+                    ? <><i className="fas fa-spinner fa-spin text-xs" /> Uploading...</>
+                    : <><i className="fas fa-upload text-xs" /> Upload {batchFiles.filter(f => f.status === "pending").length} Files</>}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+
+      {/* ── Image grid ── */}
       {loading ? (
         <GallerySkeleton />
       ) : filtered.length === 0 ? (
@@ -1859,8 +2180,16 @@ function GalleryTab({ imageCount, setImageCount }) {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
             <i className="fas fa-images text-slate-300 text-2xl"></i>
           </div>
-          <p className="text-slate-500 font-medium">No images in this category.</p>
+          <p className="text-slate-500 font-medium">
+            {filterCat === "all" ? "No images yet." : `No images in "${filterCat}".`}
+          </p>
           <p className="text-sm text-slate-400 mt-1">Upload some images to get started.</p>
+          {filterCat !== "all" && (
+            <button onClick={() => { setBatchFolder(filterCat); setBatchFiles([]); }}
+              className="mt-3 text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+              <i className="fas fa-upload mr-1" /> Batch upload to this folder
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -1869,12 +2198,8 @@ function GalleryTab({ imageCount, setImageCount }) {
             return (
               <div
                 key={img.id}
-                onClick={() => toggleSelect(img.id)}
-                className={`group bg-white rounded-lg shadow overflow-hidden cursor-pointer relative transition-all ${
-                  isSelected
-                    ? "ring-3 ring-[#1e3a8a] ring-offset-2"
-                    : "opacity-70 hover:opacity-90 hover:shadow-md"
-                }`}
+                onClick={() => setPreviewImg(img)}
+                className="group bg-white rounded-lg shadow overflow-hidden cursor-pointer relative transition-all hover:shadow-md"
               >
                 <div className="relative h-48 bg-slate-100">
                   {isVideoUrl(img.image_url) ? (
@@ -1884,32 +2209,45 @@ function GalleryTab({ imageCount, setImageCount }) {
                       onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
                   )}
 
-                  {/* Checkmark overlay */}
-                  <div className={`absolute top-2 left-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                    isSelected
-                      ? "bg-[#1e3a8a] border-[#1e3a8a]"
-                      : "bg-white/70 border-white"
-                  }`}>
-                    {isSelected && <i className="fas fa-check text-white text-xs"></i>}
-                  </div>
-
-                  {/* Delete button */}
+                  {/* Featured heart toggle */}
                   <button
-                    onClick={e => { e.stopPropagation(); setDeleteId(img.id); }}
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 shadow transition"
-                    title="Delete image"
+                    onClick={e => { e.stopPropagation(); toggleSelect(img.id); }}
+                    className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow ${
+                      isSelected
+                        ? "bg-rose-500 text-white scale-110"
+                        : "bg-white/80 text-slate-400 hover:text-rose-500 hover:bg-white"
+                    }`}
+                    title={isSelected ? "Remove from Resort page" : "Add to Resort page"}
                   >
-                    <i className="fas fa-trash text-xs"></i>
+                    <i className={`fas fa-heart text-sm ${isSelected ? "animate-pulse" : ""}`}></i>
                   </button>
+
+                  {/* Move & Delete buttons */}
+                  <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                    <button
+                      onClick={e => { e.stopPropagation(); setMovingImage({ id: img.id, currentCat: img.category }); setMoveToCat(""); }}
+                      className="bg-sky-500 hover:bg-sky-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow"
+                      title="Move to another category"
+                    >
+                      <i className="fas fa-arrows-alt text-xs"></i>
+                    </button>
+                    <button
+                      onClick={e => { e.stopPropagation(); setDeleteId(img.id); }}
+                      className="bg-red-500 hover:bg-red-600 text-white w-7 h-7 rounded-full flex items-center justify-center shadow"
+                      title="Delete image"
+                    >
+                      <i className="fas fa-trash text-xs"></i>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-3">
                   <p className="text-sm font-medium text-slate-800 truncate">{img.caption || <span className="text-slate-400 italic">No caption</span>}</p>
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{img.category}</span>
+                    <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full">{img.category}</span>
                     {isSelected && (
-                      <span className="text-xs text-[#1e3a8a] font-medium flex items-center gap-1">
-                        <i className="fas fa-check-circle text-xs"></i> On resort
+                      <span className="text-xs text-rose-500 font-medium flex items-center gap-1">
+                        <i className="fas fa-heart text-[10px]"></i> Resort
                       </span>
                     )}
                   </div>
@@ -1920,7 +2258,7 @@ function GalleryTab({ imageCount, setImageCount }) {
         </div>
       )}
 
-      {/* Delete modal using shared Modal */}
+      {/* Delete modal */}
       <Modal open={!!deleteId} onClose={() => setDeleteId(null)}>
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
@@ -1958,6 +2296,72 @@ function GalleryTab({ imageCount, setImageCount }) {
             </button>
           </div>
         </div>
+      </Modal>
+
+      {/* Move image modal */}
+      <Modal open={!!movingImage} onClose={() => setMovingImage(null)} maxWidth="max-w-sm">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
+              <i className="fas fa-arrows-alt text-sky-500"></i>
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Move Image</h3>
+              <p className="text-sm text-slate-500">Currently in "{movingImage?.currentCat}"</p>
+            </div>
+          </div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Move to category:</label>
+          <select value={moveToCat} onChange={e => setMoveToCat(e.target.value)}
+            className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 mb-4">
+            <option value="">Select category…</option>
+            {categories.filter(c => c.toLowerCase() !== (movingImage?.currentCat || "").toLowerCase()).map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setMovingImage(null)}
+              className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Cancel</button>
+            <button onClick={handleMoveImage} disabled={!moveToCat}
+              className="px-4 py-2 text-sm bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white rounded-lg inline-flex items-center gap-2">
+              <i className="fas fa-arrows-alt text-xs" /> Move
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Image preview modal */}
+      <Modal open={!!previewImg} onClose={() => setPreviewImg(null)} maxWidth="max-w-3xl">
+        {previewImg && (
+          <div className="relative">
+            {isVideoUrl(previewImg.image_url) ? (
+              <video src={previewImg.image_url} controls autoPlay className="w-full max-h-[75vh] object-contain bg-black rounded-t-lg" />
+            ) : (
+              <img src={previewImg.image_url} alt={previewImg.caption || "Preview"} className="w-full max-h-[75vh] object-contain bg-black rounded-t-lg" />
+            )}
+            <div className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-800">{previewImg.caption || <span className="text-slate-400 italic">No caption</span>}</p>
+                <span className="text-xs bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full mt-1 inline-block">{previewImg.category}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => { toggleSelect(previewImg.id); }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    selectedIds.has(previewImg.id) ? "bg-rose-500 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                  <i className="fas fa-heart text-[10px]" />
+                  {selectedIds.has(previewImg.id) ? "On Resort" : "Add to Resort"}
+                </button>
+                <button onClick={() => { setMovingImage({ id: previewImg.id, currentCat: previewImg.category }); setMoveToCat(""); setPreviewImg(null); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200">
+                  <i className="fas fa-arrows-alt text-[10px]" /> Move
+                </button>
+                <button onClick={() => { setDeleteId(previewImg.id); setPreviewImg(null); }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-100 text-rose-600 hover:bg-rose-200">
+                  <i className="fas fa-trash text-[10px]" /> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getAutoReplyKeywords } from "../lib/resortApi.js";
-import { sendMessage } from "../lib/messageApi.js";
+import { sendMessage, replyMessage } from "../lib/messageApi.js";
 
 /** Render bot text with route links (/rooms, /resort, etc.) as clickable Link components */
 function BotText({ text }) {
@@ -37,6 +37,7 @@ export default function ChatWidget() {
   const [sending, setSending]       = useState(false);
   const [loadingKw, setLoadingKw]   = useState(true);
   const bottomRef = useRef(null);
+  const threadIdRef = useRef(null); // reuse one thread per session
 
   // Load keywords once
   useEffect(() => {
@@ -96,13 +97,19 @@ export default function ChatWidget() {
       }, 400); // slight delay for natural feel
     }
 
-    // If logged in, also send as a real message thread
+    // If logged in, also send as a real message thread (reuse one thread)
     if (user) {
       setSending(true);
       try {
-        await sendMessage({ subject: body.slice(0, 100), body });
+        if (threadIdRef.current) {
+          // Reply in the existing thread
+          await replyMessage(threadIdRef.current, body);
+        } else {
+          // First message — create thread, store its ID
+          const res = await sendMessage({ subject: "Chat Inquiry", body });
+          threadIdRef.current = res.data?.id ?? res.id ?? null;
+        }
         if (!match) {
-          // No keyword match — let them know staff will reply
           setTimeout(() => {
             setMessages(prev => [...prev, {
               id: Date.now() + 2,
@@ -259,7 +266,7 @@ export default function ChatWidget() {
             </div>
             {!user && (
               <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-                <a href="/login" className="text-sky-600 hover:text-sky-700 font-medium">Log in</a> to send messages to our team
+                <a href="/resort" className="text-sky-600 hover:text-sky-700 font-medium">Log in</a> to send messages to our team
               </p>
             )}
           </div>

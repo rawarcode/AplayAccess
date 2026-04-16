@@ -21,29 +21,25 @@ import Messages from "./pages/dashboard/Messages.jsx";
 // Shared staff login
 import StaffLogin from "./pages/StaffLogin.jsx";
 
-// Admin portal
-import RequireAdmin from "./components/admin/RequireAdmin.jsx";
-import AdminShell from "./components/admin/AdminShell.jsx";
-import AdminDashboard from "./pages/admin/Dashboard.jsx";
-import AdminRooms from "./pages/admin/Rooms.jsx";
-import AdminHistory from "./pages/admin/History.jsx";
-import AdminContent from "./pages/admin/Content.jsx";
-import AdminReviews from "./pages/admin/Reviews.jsx";
-import AdminGuests from "./pages/admin/Guests.jsx";
-import AdminMessages from "./pages/admin/Messages.jsx";
-import AdminAnnouncements from "./pages/admin/Announcements.jsx";
-
-// Owner portal
+// Owner portal (consolidated — includes all admin pages)
 import RequireOwner from "./components/auth/RequireOwner.jsx";
 import OwnerShell from "./components/owner/OwnerShell.jsx";
 import OwnerDashboard from "./pages/owner/Dashboard.jsx";
 import OwnerTransactions from "./pages/owner/Transactions.jsx";
 import OwnerReports from "./pages/owner/Reports.jsx";
-import OwnerPromoCodes  from "./pages/owner/PromoCodes.jsx";
-import OwnerNewsletter  from "./pages/owner/Newsletter.jsx";
-import OwnerAddons    from "./pages/admin/Addons.jsx";
-import OwnerUsers     from "./pages/owner/Users.jsx";
-import OwnerSettings  from "./pages/owner/Settings.jsx";
+import OwnerPromoCodes from "./pages/owner/PromoCodes.jsx";
+import OwnerNewsletter from "./pages/owner/Newsletter.jsx";
+import OwnerUsers from "./pages/owner/Users.jsx";
+import OwnerSettings from "./pages/owner/Settings.jsx";
+// Pages absorbed from admin portal
+import OwnerActivityLog from "./pages/admin/History.jsx";
+import OwnerRooms from "./pages/admin/Rooms.jsx";
+import OwnerContent from "./pages/admin/Content.jsx";
+import OwnerReviews from "./pages/admin/Reviews.jsx";
+import OwnerGuests from "./pages/admin/Guests.jsx";
+import OwnerMessages from "./pages/admin/Messages.jsx";
+import OwnerAnnouncements from "./pages/admin/Announcements.jsx";
+import OwnerAddons from "./pages/admin/Addons.jsx";
 
 // Frontdesk portal
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
@@ -65,7 +61,6 @@ export default function App() {
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/announcements" element={<Announcements />} />
-        <Route path="/login" element={<Navigate to="/staff-login" replace />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
 
@@ -73,7 +68,7 @@ export default function App() {
         <Route path="/payment/success" element={<PaymentReturn outcome="success" />} />
         <Route path="/payment/failed"  element={<PaymentReturn outcome="failed" />} />
 
-        {/* ✅ Dashboard routes (protected), still inside Layout */}
+        {/* Guest dashboard (protected), still inside Layout */}
         <Route
           path="/dashboard"
           element={
@@ -92,26 +87,7 @@ export default function App() {
       {/* ── Shared staff login ── */}
       <Route path="/staff-login" element={<StaffLogin />} />
 
-      {/* ── Admin portal (outside guest Layout, nested routes) ── */}
-      <Route
-        path="/admin"
-        element={
-          <RequireAdmin>
-            <AdminShell />
-          </RequireAdmin>
-        }
-      >
-        <Route index element={<AdminDashboard />} />
-        <Route path="rooms" element={<AdminRooms />} />
-        <Route path="history" element={<AdminHistory />} />
-        <Route path="content" element={<AdminContent />} />
-        <Route path="reviews" element={<AdminReviews />} />
-        <Route path="guests" element={<AdminGuests />} />
-        <Route path="messages" element={<AdminMessages />} />
-        <Route path="announcements" element={<AdminAnnouncements />} />
-      </Route>
-
-      {/* ── Owner portal ── */}
+      {/* ── Owner portal (consolidated — all management in one place) ── */}
       <Route
         path="/owner"
         element={
@@ -121,14 +97,30 @@ export default function App() {
         }
       >
         <Route index element={<OwnerDashboard />} />
-        <Route path="transactions" element={<OwnerTransactions />} />
-        <Route path="reports"      element={<OwnerReports />} />
-        <Route path="promo-codes"  element={<OwnerPromoCodes />} />
-        <Route path="newsletter"   element={<OwnerNewsletter />} />
-        <Route path="addons"       element={<OwnerAddons />} />
-        <Route path="users"        element={<OwnerUsers />} />
-        <Route path="settings"     element={<OwnerSettings />} />
+        {/* Management */}
+        <Route path="rooms"         element={<OwnerRooms />} />
+        <Route path="guests"        element={<OwnerGuests />} />
+        {/* Website */}
+        <Route path="content"       element={<OwnerContent />} />
+        <Route path="announcements" element={<OwnerAnnouncements />} />
+        <Route path="reviews"       element={<OwnerReviews />} />
+        <Route path="addons"        element={<OwnerAddons />} />
+        {/* Marketing */}
+        <Route path="promo-codes"   element={<OwnerPromoCodes />} />
+        <Route path="newsletter"    element={<OwnerNewsletter />} />
+        {/* Analytics */}
+        <Route path="transactions"  element={<OwnerTransactions />} />
+        <Route path="reports"       element={<OwnerReports />} />
+        <Route path="activity-log"  element={<OwnerActivityLog />} />
+        {/* System */}
+        <Route path="users"         element={<OwnerUsers />} />
+        <Route path="messages"      element={<OwnerMessages />} />
+        <Route path="settings"      element={<OwnerSettings />} />
       </Route>
+
+      {/* ── Legacy admin redirects → owner portal ── */}
+      <Route path="/admin" element={<Navigate to="/owner" replace />} />
+      <Route path="/admin/*" element={<Navigate to="/owner" replace />} />
 
       {/* ── Frontdesk portal (outside guest Layout) ── */}
       <Route

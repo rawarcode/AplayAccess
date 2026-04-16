@@ -9,6 +9,7 @@ const HOME_DEFAULTS = {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
     title:    "Welcome to Paradise",
     subtitle: "Experience luxury and breathtaking ocean views at Aplaya Beach Resort.",
+    ctaText:  "Book Now",
   },
   resort: {
     sectionTitle:    "Our Beach Resort",
@@ -16,6 +17,21 @@ const HOME_DEFAULTS = {
     name:  "Aplaya Beach Resort Cavite",
     desc:  "Experience luxury and breathtaking ocean views at our flagship resort. Enjoy pristine white sand beaches, world-class amenities, and unforgettable sunsets.",
     image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2070&q=80",
+  },
+  why: {
+    sectionTitle:    "Why Choose Aplaya?",
+    sectionSubtitle: "Everything you need for the perfect beach getaway — all in one place.",
+    features: [
+      { icon: "fa-umbrella-beach", title: "Beachfront Location",  desc: "Steps away from pristine white sand and crystal-clear waters." },
+      { icon: "fa-tags",           title: "Affordable Rates",     desc: "Premium resort experience without the premium price tag." },
+      { icon: "fa-moon",           title: "Day & Night Packages", desc: "Flexible booking — day use, overnight, or full 24-hour stays." },
+      { icon: "fa-laptop",         title: "Easy Online Booking",  desc: "Reserve in minutes with our hassle-free online system." },
+    ],
+  },
+  cta: {
+    title:      "Ready for Paradise?",
+    subtitle:   "Book your beach getaway today and create memories that last a lifetime.",
+    buttonText: "Book Your Stay",
   },
 };
 
@@ -79,26 +95,34 @@ function WaveDivider({ flip = false, color = "#ffffff" }) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  #6 — Why Choose Us features                                      */
+/*  #6 — Why Choose Us features (now CMS-driven; see useMemo below)  */
 /* ------------------------------------------------------------------ */
-const WHY_FEATURES = [
-  { icon: "fas fa-umbrella-beach", title: "Beachfront Location",   desc: "Steps away from pristine white sand and crystal-clear waters." },
-  { icon: "fas fa-tags",           title: "Affordable Rates",      desc: "Premium resort experience without the premium price tag." },
-  { icon: "fas fa-moon",           title: "Day & Night Packages",  desc: "Flexible booking — day use, overnight, or full 24-hour stays." },
-  { icon: "fas fa-laptop",         title: "Easy Online Booking",   desc: "Reserve in minutes with our hassle-free online system." },
-];
 
 export default function Home() {
   const siteContent = useContent();
 
   // Derived synchronously — no useEffect, no painted frame of wrong defaults
-  const { hero, resort } = useMemo(() => {
+  const { hero, resort, why, cta } = useMemo(() => {
     const d = siteContent ?? {};
     const homeHero   = d.page_home_hero   ?? {};
     const homeResort = d.page_home_resort ?? {};
+    const homeWhy    = d.page_home_why    ?? {};
+    const homeCta    = d.page_home_cta    ?? {};
     return {
-      hero:   { ...HOME_DEFAULTS.hero, ...homeHero },
+      hero:   { ...HOME_DEFAULTS.hero,   ...homeHero },
       resort: { ...HOME_DEFAULTS.resort, ...homeResort },
+      why: {
+        sectionTitle:    homeWhy.sectionTitle    ?? HOME_DEFAULTS.why.sectionTitle,
+        sectionSubtitle: homeWhy.sectionSubtitle ?? HOME_DEFAULTS.why.sectionSubtitle,
+        features:        Array.isArray(homeWhy.features) && homeWhy.features.length
+                           ? homeWhy.features
+                           : HOME_DEFAULTS.why.features,
+      },
+      cta: {
+        title:      homeCta.title      ?? HOME_DEFAULTS.cta.title,
+        subtitle:   homeCta.subtitle   ?? HOME_DEFAULTS.cta.subtitle,
+        buttonText: homeCta.buttonText ?? HOME_DEFAULTS.cta.buttonText,
+      },
     };
   }, [siteContent]);
 
@@ -112,6 +136,9 @@ export default function Home() {
       <Helmet>
         <title>Aplaya Beach Resort — Book Your Stay</title>
         <meta name="description" content="Book rooms at Aplaya Beach Resort Cavite. Day visits, night stays, and 24-hour beach getaway packages." />
+        {!isVideoUrl(hero.background) && (
+          <link rel="preload" as="image" href={hero.background} />
+        )}
       </Helmet>
 
       {/* ============================================================ */}
@@ -150,9 +177,9 @@ export default function Home() {
           </p>
           <Link
             to="/resort"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl animate-hero-fade-in [animation-delay:1s] opacity-0"
+            className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-lg font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl animate-hero-fade-in [animation-delay:1s] opacity-0"
           >
-            Book Now
+            {hero.ctaText}
           </Link>
         </div>
 
@@ -178,14 +205,14 @@ export default function Home() {
           className="reveal-section max-w-5xl mx-auto px-4 sm:px-6 lg:px-8"
         >
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">{resort.sectionTitle}</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">{resort.sectionSubtitle}</p>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4">{resort.sectionTitle}</h2>
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">{resort.sectionSubtitle}</p>
           </div>
 
           {/* #5 — hover glow ring */}
-          <div className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-gray-200 hover:ring-blue-400/50">
+          <div className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50">
             {/* Glow effect behind card */}
-            <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
+            <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
 
             <img
               src={resort.image}
@@ -194,14 +221,14 @@ export default function Home() {
               loading="lazy"
             />
             <div className="p-8 md:p-10 flex flex-col justify-center">
-              <span className="inline-block bg-blue-100 text-blue-700 text-xs font-semibold px-3 py-1 rounded-full mb-4 w-fit">
+              <span className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full mb-4 w-fit">
                 Now Open
               </span>
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">{resort.name}</h3>
-              <p className="text-gray-600 mb-6 leading-relaxed">{resort.desc}</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">{resort.name}</h3>
+              <p className="text-slate-600 mb-6 leading-relaxed">{resort.desc}</p>
               <Link
                 to="/resort"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
+                className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
               >
                 Explore &amp; Book Now
               </Link>
@@ -213,10 +240,10 @@ export default function Home() {
       {/* ============================================================ */}
       {/*  #6 — WHY CHOOSE US  (#8 scroll reveal)                     */}
       {/* ============================================================ */}
-      <section className="py-20 bg-gradient-to-br from-sky-50 via-white to-blue-50 relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-br from-sky-50 via-white to-sky-50 relative overflow-hidden">
         {/* Decorative blobs */}
         <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-blue-200 opacity-20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
 
         <div
           ref={whyRef}
@@ -224,25 +251,25 @@ export default function Home() {
         >
           <div className="text-center mb-14">
             <span className="text-4xl mb-3 block">✨</span>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Why Choose Aplaya?</h2>
-            <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
-            <p className="text-lg text-gray-500 max-w-2xl mx-auto">
-              Everything you need for the perfect beach getaway — all in one place.
+            <h2 className="text-3xl font-bold text-slate-900 mb-2">{why.sectionTitle}</h2>
+            <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
+            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              {why.sectionSubtitle}
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {WHY_FEATURES.map((f, i) => (
+            {why.features.map((f, i) => (
               <div
                 key={f.title}
-                className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center border border-gray-100"
+                className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center border border-slate-100"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div className="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                  <i className={`${f.icon} text-xl`}></i>
+                <div className="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-sky-600 group-hover:text-white transition-all duration-300">
+                  <i className={`fas ${f.icon.startsWith("fa-") ? f.icon : `fa-${f.icon}`} text-xl`}></i>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{f.desc}</p>
+                <h3 className="text-base font-bold text-slate-900 mb-2">{f.title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -254,7 +281,7 @@ export default function Home() {
       {/* ============================================================ */}
       <section className="relative overflow-hidden">
         {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700" />
+        <div className="absolute inset-0 bg-gradient-to-r from-sky-600 via-sky-700 to-indigo-700" />
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
@@ -263,17 +290,17 @@ export default function Home() {
           className="reveal-section relative py-20 px-4 sm:px-6 lg:px-8 text-center"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Ready for Paradise?
+            {cta.title}
           </h2>
-          <p className="text-lg text-blue-100 max-w-xl mx-auto mb-8">
-            Book your beach getaway today and create memories that last a lifetime.
+          <p className="text-lg text-sky-100 max-w-xl mx-auto mb-8">
+            {cta.subtitle}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/resort"
-              className="inline-block bg-white text-blue-700 hover:bg-blue-50 font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl"
+              className="inline-block bg-white text-sky-700 hover:bg-sky-50 font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl"
             >
-              Book Now
+              {cta.buttonText}
             </Link>
             <Link
               to="/resort#rooms"

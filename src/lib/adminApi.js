@@ -56,6 +56,9 @@ export const createAdminGallery       = (data)       => api.post('/api/admin/gal
 export const updateAdminGallery       = (id, data)   => api.patch(`/api/admin/gallery/${id}`, data);
 export const batchFeaturedGallery     = (featuredIds) => api.put('/api/admin/gallery/featured', { featured_ids: featuredIds });
 export const deleteAdminGallery       = (id)         => api.delete(`/api/admin/gallery/${id}`);
+export const batchCreateGallery      = (images)     => api.post('/api/admin/gallery/batch', { images });
+export const renameCategoryGallery   = (oldName, newName) => api.patch('/api/admin/gallery/rename-category', { old_name: oldName, new_name: newName });
+export const toggleCategoryHidden    = (category, isHidden) => api.patch('/api/admin/gallery/toggle-category-hidden', { category, is_hidden: isHidden });
 
 // ── Contact Submissions ───────────────────────────────────────────────────────
 export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
@@ -64,6 +67,7 @@ export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
 export const getAdminMessages       = ()           => api.get('/api/admin/messages');
 export const replyAdminMessage      = (id, body)   => api.post(`/api/admin/messages/${id}/reply`, { body });
 export const markAdminMessageRead   = (id)         => api.patch(`/api/admin/messages/${id}/read`);
+export const deleteAdminMessage     = (id)         => api.delete(`/api/admin/messages/${id}`);
 
 // ── Auto-Reply Rules ─────────────────────────────────────────────────────────
 export const getAutoReplies          = ()         => api.get('/api/admin/auto-replies');

@@ -15,6 +15,7 @@ import { rooms as roomsFallback } from "../data/rooms.js";
 import { amenities as amenitiesFallback } from "../data/amenities.js";
 import { gallery as galleryFallback } from "../data/gallery.js";
 
+import Modal from "../components/modals/Modal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
 import SignupModal from "../components/modals/SignupModal.jsx";
 import BookingModal from "../components/modals/BookingModal.jsx";
@@ -137,7 +138,7 @@ export default function Resort() {
   const { user, login } = useAuth();
   const isLoggedIn = !!user;
   const siteContent = useContent();
-  const [toast, showToast, clearToast, toastType] = useToast();
+  const [toast, showToast, clearToast, toastType, toastAction] = useToast();
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -188,7 +189,7 @@ export default function Resort() {
   const [announcementModal, setAnnouncementModal] = useState(null); // selected item
 
   const anyOverlayOpen =
-    bookingOpen || loginOpen || guestWarningOpen || successOpen || contactAlert.open || !!announcementModal;
+    bookingOpen || loginOpen || signupOpen || guestWarningOpen || successOpen || contactAlert.open || lightboxIdx !== null;
   useLockBodyScroll(anyOverlayOpen);
 
   // UI cards
@@ -474,7 +475,11 @@ export default function Resort() {
       <Helmet>
         <title>Aplaya Beach Resort Cavite — Rooms, Amenities & Reviews</title>
         <meta name="description" content="Explore rooms, amenities, gallery, and guest reviews at Aplaya Beach Resort in Cavite, Philippines." />
+        {!isVideoUrl(pc.hero.background) && (
+          <link rel="preload" as="image" href={pc.hero.background} />
+        )}
       </Helmet>
+      <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
       <div className="pt-16">
         {/* HERO */}
         <section
@@ -509,7 +514,7 @@ export default function Resort() {
             <div className="flex flex-col sm:flex-row justify-center gap-4 animate-hero-fade-in [animation-delay:1s] opacity-0">
               <button
                 onClick={() => requestBooking("")}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md text-lg font-medium transition shadow-lg hover:shadow-xl"
+                className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl text-lg font-medium transition shadow-lg hover:shadow-xl"
               >
                 {pc.hero.ctaText}
               </button>
@@ -537,6 +542,15 @@ export default function Resort() {
               </p>
             ) : null}
           </div>
+
+          {/* Scroll-down cue */}
+          <button
+            onClick={() => document.getElementById(announcements?.length ? "announcements" : "about")?.scrollIntoView({ behavior: "smooth" })}
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-bounce"
+            aria-label="Scroll down"
+          >
+            <i className="fas fa-chevron-down text-2xl" />
+          </button>
         </section>
 
         {/* Wave divider */}
@@ -544,24 +558,24 @@ export default function Resort() {
 
         {/* WHAT'S NEW — Announcements preview (hidden if no announcements or still loading) */}
         {announcements !== null && announcements.length > 0 && (
-          <section className="py-16 bg-sky-50 relative overflow-hidden">
+          <section id="announcements" className="py-16 bg-sky-50 relative overflow-hidden">
             {/* Decorative blobs */}
             <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-blue-200 opacity-20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
 
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Section header */}
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
                 <div>
-                  <h2 className="text-3xl font-bold text-gray-900 mb-1">
+                  <h2 className="text-3xl font-bold text-slate-900 mb-1">
                     📢 What's New
                   </h2>
-                  <div className="w-12 h-1.5 rounded-full bg-blue-400 mb-2" />
-                  <p className="text-gray-500 text-sm">Latest updates, events & promos</p>
+                  <div className="w-12 h-1.5 rounded-full bg-sky-400 mb-2" />
+                  <p className="text-slate-500 text-sm">Latest updates, events & promos</p>
                 </div>
                 <Link
                   to="/announcements"
-                  className="text-sm font-semibold text-blue-600 hover:text-blue-800 whitespace-nowrap transition"
+                  className="text-sm font-semibold text-sky-600 hover:text-sky-800 whitespace-nowrap transition"
                 >
                   See All Announcements →
                 </Link>
@@ -576,7 +590,7 @@ export default function Resort() {
                   >
                     {/* Media */}
                     {item.media_url && (
-                      <div className="bg-gray-900 flex items-center justify-center rounded-t-2xl overflow-hidden min-h-52">
+                      <div className="bg-slate-900 flex items-center justify-center rounded-t-2xl overflow-hidden min-h-52">
                         {isVideoUrl(item.media_url) ? (
                           <video
                             src={item.media_url}
@@ -604,16 +618,16 @@ export default function Resort() {
                           </span>
                         )}
                         {item.published_at && (
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-slate-400">
                             {new Date(item.published_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
                           </span>
                         )}
                       </div>
-                      <h3 className="font-bold text-gray-900 text-base leading-snug mb-2">{item.title}</h3>
-                      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 flex-1">{item.body}</p>
+                      <h3 className="font-bold text-slate-900 text-base leading-snug mb-2">{item.title}</h3>
+                      <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 flex-1">{item.body}</p>
                       <button
                         onClick={() => setAnnouncementModal(item)}
-                        className="mt-4 self-start text-sm font-semibold text-blue-600 hover:text-blue-800 transition"
+                        className="mt-4 self-start text-sm font-semibold text-sky-600 hover:text-sky-800 transition"
                       >
                         Read More →
                       </button>
@@ -626,14 +640,11 @@ export default function Resort() {
         )}
 
         {/* Announcement detail modal */}
-        {announcementModal && (
-          <div
-            className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
-            onClick={(e) => { if (e.target === e.currentTarget) setAnnouncementModal(null); }}
-          >
-            <div className="bg-white rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <Modal open={!!announcementModal} onClose={() => setAnnouncementModal(null)} maxWidth="max-w-xl">
+          {announcementModal && (
+            <>
               {announcementModal.media_url && (
-                <div className="rounded-t-2xl overflow-hidden bg-gray-900 flex items-center justify-center">
+                <div className="rounded-t-xl overflow-hidden bg-slate-900 flex items-center justify-center">
                   {isVideoUrl(announcementModal.media_url) ? (
                     <video
                       src={announcementModal.media_url}
@@ -660,37 +671,37 @@ export default function Resort() {
                         </span>
                       )}
                       {announcementModal.published_at && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-slate-400">
                           {new Date(announcementModal.published_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}
                         </span>
                       )}
                     </div>
-                    <h2 className="text-xl font-bold text-gray-900">{announcementModal.title}</h2>
+                    <h2 className="text-xl font-bold text-slate-900">{announcementModal.title}</h2>
                   </div>
                   <button
                     onClick={() => setAnnouncementModal(null)}
-                    className="text-gray-400 hover:text-gray-700 transition flex-shrink-0"
+                    className="text-slate-400 hover:text-slate-700 transition flex-shrink-0"
                     aria-label="Close"
                   >
-                    <i className="fas fa-times text-xl"></i>
+                    <i className="fas fa-times text-xl" />
                   </button>
                 </div>
-                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-wrap">{announcementModal.body}</p>
+                <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{announcementModal.body}</p>
                 <div className="mt-5 text-right">
                   <Link
                     to="/announcements"
-                    className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition"
+                    className="text-sm font-semibold text-sky-600 hover:text-sky-800 transition"
                   >
                     View all announcements →
                   </Link>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </Modal>
 
         {/* ABOUT */}
-        <section className="py-24 bg-white relative overflow-hidden">
+        <section id="about" className="py-24 bg-white relative overflow-hidden">
           <div className="pointer-events-none absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-10"
                style={{ background: "radial-gradient(circle, #38bdf8, transparent 70%)" }} />
           <div className="pointer-events-none absolute -bottom-32 -left-32 w-96 h-96 rounded-full opacity-10"
@@ -698,15 +709,15 @@ export default function Resort() {
           <div ref={aboutRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="lg:flex lg:items-center lg:justify-between gap-16">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
-                <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">{pc.about.title}</h2>
-                <div className="w-12 h-1.5 rounded-full bg-blue-400 mb-6" />
-                <p className="text-gray-600 mb-4 leading-relaxed">{pc.about.paragraph1}</p>
-                <p className="text-gray-600 mb-8 leading-relaxed">{pc.about.paragraph2}</p>
+                <h2 className="text-4xl font-bold text-slate-900 mb-3 leading-tight">{pc.about.title}</h2>
+                <div className="w-12 h-1.5 rounded-full bg-sky-400 mb-6" />
+                <p className="text-slate-600 mb-4 leading-relaxed">{pc.about.paragraph1}</p>
+                <p className="text-slate-600 mb-8 leading-relaxed">{pc.about.paragraph2}</p>
 
                 {amenityCards.length > 0 && (
                   <div className="flex flex-wrap gap-3">
                     {amenityCards.slice(0, 4).map((a) => (
-                      <span key={a.title} className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 text-gray-700 text-sm px-3 py-1.5 rounded-full">
+                      <span key={a.title} className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-sm px-3 py-1.5 rounded-full">
                         {a.icon} {a.title}
                       </span>
                     ))}
@@ -715,7 +726,7 @@ export default function Resort() {
               </div>
 
               <div className="lg:w-1/2 relative">
-                <div className="absolute -inset-4 bg-blue-100 rounded-3xl rotate-2 opacity-40" />
+                <div className="absolute -inset-4 bg-sky-100 rounded-3xl rotate-2 opacity-40" />
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                   {isVideoUrl(pc.about.image) ? (
                     <video
@@ -742,25 +753,25 @@ export default function Resort() {
           <div ref={roomsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="text-4xl mb-3 block">🛏️</span>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">{pc.rooms.sectionTitle}</h2>
-              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
-              <p className="text-lg text-gray-500 max-w-2xl mx-auto">{pc.rooms.sectionSubtitle}</p>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">{pc.rooms.sectionTitle}</h2>
+              <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
+              <p className="text-lg text-slate-500 max-w-2xl mx-auto">{pc.rooms.sectionSubtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {roomCards.slice(0, 3).map((r) => (
                 <div
                   key={r.id ?? r.name}
-                  className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ring-1 ring-gray-200 hover:ring-blue-400/50"
+                  className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ring-1 ring-slate-200 hover:ring-sky-400/50"
                 >
                   {/* Hover glow */}
-                  <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
+                  <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
 
                   <div className="relative overflow-hidden">
                     <img src={r.img} alt={r.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute top-3 left-3 flex gap-2">
-                      <span className="bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                      <span className="bg-white/90 backdrop-blur-sm text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
                         Day Use
                       </span>
                       {r.overnight_rate > 0 && (
@@ -782,8 +793,8 @@ export default function Resort() {
                   </div>
 
                   <div className="p-5">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1">{r.name}</h3>
-                    <p className="text-gray-500 text-sm mb-4 line-clamp-2">{r.desc}</p>
+                    <h3 className="text-lg font-bold text-slate-900 mb-1">{r.name}</h3>
+                    <p className="text-slate-500 text-sm mb-4 line-clamp-2">{r.desc}</p>
                     <div className="flex flex-wrap gap-2 mb-4">
                       <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
                         <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day</p>
@@ -804,7 +815,7 @@ export default function Resort() {
                     </div>
                     <button
                       onClick={() => requestBooking(r.name)}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all"
+                      className="w-full bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all"
                     >
                       Book Now
                     </button>
@@ -816,7 +827,7 @@ export default function Resort() {
             <div className="text-center mt-12">
               <Link
                 to="/rooms"
-                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
+                className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
               >
                 View All Rooms →
               </Link>
@@ -836,9 +847,9 @@ export default function Resort() {
           <div ref={amenitiesRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="text-4xl mb-3 block">🌴</span>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Resort Amenities</h2>
-              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
-              <p className="text-lg text-gray-500 max-w-2xl mx-auto">
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Resort Amenities</h2>
+              <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
+              <p className="text-lg text-slate-500 max-w-2xl mx-auto">
                 Everything you need for a perfect vacation experience.
               </p>
             </div>
@@ -846,7 +857,7 @@ export default function Resort() {
             <div className="flex flex-wrap justify-center gap-6">
               {amenityCards.map((a, i) => {
                 const accents = [
-                  "from-blue-400 to-cyan-400",
+                  "from-sky-400 to-cyan-400",
                   "from-amber-400 to-orange-400",
                   "from-emerald-400 to-teal-400",
                   "from-violet-400 to-purple-400",
@@ -865,8 +876,8 @@ export default function Resort() {
                       <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${accent} flex items-center justify-center mb-4 shadow-md text-3xl group-hover:scale-110 transition-transform duration-300`}>
                         {a.icon}
                       </div>
-                      <h3 className="text-base font-bold text-gray-800 leading-tight mb-1">{a.title}</h3>
-                      {a.desc && <p className="text-xs text-gray-500 leading-snug">{a.desc}</p>}
+                      <h3 className="text-base font-bold text-slate-800 leading-tight mb-1">{a.title}</h3>
+                      {a.desc && <p className="text-xs text-slate-500 leading-snug">{a.desc}</p>}
                     </div>
                   </div>
                 );
@@ -878,11 +889,11 @@ export default function Resort() {
 
         {/* TESTIMONIALS */}
         {pc.reviews.visible !== false && testimonialsDisplay.length > 0 && (
-        <section className="py-20 bg-blue-600 text-white overflow-hidden">
+        <section className="py-20 bg-sky-600 text-white overflow-hidden">
           <div ref={reviewsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl font-bold mb-4">{pc.reviews.sectionTitle}</h2>
-              <p className="text-xl text-blue-100 max-w-3xl mx-auto">{pc.reviews.sectionSubtitle}</p>
+              <p className="text-xl text-sky-100 max-w-3xl mx-auto">{pc.reviews.sectionSubtitle}</p>
             </div>
 
             {/* Carousel wrapper */}
@@ -924,10 +935,10 @@ export default function Resort() {
                       </div>
                       <div>
                         <h4 className="font-bold">{t.name}</h4>
-                        <div className="text-yellow-300">{t.stars}</div>
+                        <div className="text-amber-300">{t.stars}</div>
                       </div>
                     </div>
-                    <p className="text-blue-100">&ldquo;{t.quote}&rdquo;</p>
+                    <p className="text-sky-100">&ldquo;{t.quote}&rdquo;</p>
                   </div>
                 ))}
               </div>
@@ -937,19 +948,19 @@ export default function Resort() {
         )}
 
         {/* GALLERY */}
-        <section id="gallery" className="py-24 bg-gray-900">
+        <section id="gallery" className="py-24 bg-slate-900">
           <div ref={galleryRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="text-4xl mb-3 block">📸</span>
               <h2 className="text-3xl font-bold text-white mb-2">Gallery</h2>
-              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
-              <p className="text-lg text-gray-400 max-w-2xl mx-auto">Take a visual journey through our beautiful resort.</p>
+              <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
+              <p className="text-lg text-slate-400 max-w-2xl mx-auto">Take a visual journey through our beautiful resort.</p>
             </div>
 
             {galleryDisplay === null ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {[...Array(6)].map((_, i) => (
-                  <div key={i} className="rounded-2xl overflow-hidden bg-gray-700 animate-pulse h-64" />
+                  <div key={i} className="rounded-2xl overflow-hidden bg-slate-700 animate-pulse h-64" />
                 ))}
               </div>
             ) : (
@@ -980,7 +991,7 @@ export default function Resort() {
             <div className="text-center mt-12">
               <Link
                 to="/gallery"
-                className="inline-flex items-center gap-2 bg-white hover:bg-gray-100 text-gray-900 font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
+                className="inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all"
               >
                 View More Photos →
               </Link>
@@ -989,13 +1000,13 @@ export default function Resort() {
         </section>
 
         {/* CONTACT */}
-        <section id="contact" className="py-24 bg-gradient-to-br from-sky-50 via-white to-blue-50">
+        <section id="contact" className="py-24 bg-gradient-to-br from-sky-50 via-white to-sky-50">
           <div ref={contactRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <span className="text-4xl mb-3 block">✉️</span>
-              <h2 className="text-3xl font-bold text-gray-900 mb-2">Get In Touch</h2>
-              <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
-              <p className="text-lg text-gray-500 max-w-xl mx-auto">Have questions or need help planning your stay? We'd love to hear from you.</p>
+              <h2 className="text-3xl font-bold text-slate-900 mb-2">Get In Touch</h2>
+              <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
+              <p className="text-lg text-slate-500 max-w-xl mx-auto">Have questions or need help planning your stay? We'd love to hear from you.</p>
             </div>
             <div className="lg:flex lg:items-start lg:justify-between gap-10">
               <div className="lg:w-1/2 mb-10 lg:mb-0">
@@ -1006,13 +1017,13 @@ export default function Resort() {
                     { icon: "📞", label: "Phone",   value: pc.contact.phone   },
                     { icon: "✉️", label: "Email",   value: pc.contact.email   },
                   ].map(({ icon, label, value }) => (
-                    <div key={label} className="flex items-start gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-xl flex-shrink-0">
+                    <div key={label} className="flex items-start gap-4 bg-white rounded-xl p-4 shadow-sm border border-slate-100">
+                      <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-xl flex-shrink-0">
                         {icon}
                       </div>
                       <div>
-                        <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-0.5">{label}</p>
-                        <p className="text-gray-700 text-sm">{value}</p>
+                        <p className="text-xs font-semibold text-sky-600 uppercase tracking-wide mb-0.5">{label}</p>
+                        <p className="text-slate-700 text-sm">{value}</p>
                       </div>
                     </div>
                   ))}
@@ -1020,84 +1031,84 @@ export default function Resort() {
 
                 {(pc.contact.facebook || pc.contact.instagram || pc.contact.twitter || pc.contact.tiktok) && (
                   <div className="mt-8">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Follow Us</h3>
+                    <h3 className="text-lg font-medium text-slate-900 mb-4">Follow Us</h3>
                     <div className="flex space-x-4 text-xl">
-                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 transition" aria-label="Facebook"><i className="fab fa-facebook"></i></a>}
-                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram"></i></a>}
-                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-sky-500 transition" aria-label="Twitter"><i className="fab fa-twitter"></i></a>}
-                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-900 transition" aria-label="TikTok"><i className="fab fa-tiktok"></i></a>}
+                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-sky-600 transition" aria-label="Facebook"><i className="fab fa-facebook"></i></a>}
+                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram"></i></a>}
+                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-sky-500 transition" aria-label="Twitter"><i className="fab fa-twitter"></i></a>}
+                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-900 transition" aria-label="TikTok"><i className="fab fa-tiktok"></i></a>}
                     </div>
                   </div>
                 )}
               </div>
 
               <div className="lg:w-1/2">
-                <form onSubmit={submitContact} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-blue-500" noValidate>
+                <form onSubmit={submitContact} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-sky-500" noValidate>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                     <div className="relative">
-                      <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                       <input
                         type="text"
                         value={contactForm.name}
                         onChange={(e) => { setContactForm((p) => ({ ...p, name: e.target.value })); setContactErrors((p) => ({ ...p, name: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.name ? "border-red-400" : "border-gray-300"}`}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.name ? "border-rose-400" : "border-slate-300"}`}
                         placeholder="Your name"
                         autoComplete="name"
                       />
                     </div>
-                    {contactErrors.name && <p className="text-red-500 text-xs mt-1">{contactErrors.name}</p>}
+                    {contactErrors.name && <p className="text-rose-500 text-xs mt-1">{contactErrors.name}</p>}
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                     <div className="relative">
-                      <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                       <input
                         type="email"
                         value={contactForm.email}
                         onChange={(e) => { setContactForm((p) => ({ ...p, email: e.target.value })); setContactErrors((p) => ({ ...p, email: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.email ? "border-red-400" : "border-gray-300"}`}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.email ? "border-rose-400" : "border-slate-300"}`}
                         placeholder="Your email"
                         autoComplete="email"
                       />
                     </div>
-                    {contactErrors.email && <p className="text-red-500 text-xs mt-1">{contactErrors.email}</p>}
+                    {contactErrors.email && <p className="text-rose-500 text-xs mt-1">{contactErrors.email}</p>}
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
                     <div className="relative">
-                      <i className="fas fa-pen absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                      <i className="fas fa-pen absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                       <input
                         type="text"
                         value={contactForm.subject}
                         onChange={(e) => { setContactForm((p) => ({ ...p, subject: e.target.value })); setContactErrors((p) => ({ ...p, subject: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.subject ? "border-red-400" : "border-gray-300"}`}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.subject ? "border-rose-400" : "border-slate-300"}`}
                         placeholder="Subject"
                       />
                     </div>
-                    {contactErrors.subject && <p className="text-red-500 text-xs mt-1">{contactErrors.subject}</p>}
+                    {contactErrors.subject && <p className="text-rose-500 text-xs mt-1">{contactErrors.subject}</p>}
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
                     <div className="relative">
-                      <i className="fas fa-comment-alt absolute left-3 top-3 text-gray-400"></i>
+                      <i className="fas fa-comment-alt absolute left-3 top-3 text-slate-400"></i>
                       <textarea
                         rows={4}
                         value={contactForm.message}
                         onChange={(e) => { setContactForm((p) => ({ ...p, message: e.target.value })); setContactErrors((p) => ({ ...p, message: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${contactErrors.message ? "border-red-400" : "border-gray-300"}`}
+                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.message ? "border-rose-400" : "border-slate-300"}`}
                         placeholder="Your message"
                       />
                     </div>
-                    {contactErrors.message && <p className="text-red-500 text-xs mt-1">{contactErrors.message}</p>}
+                    {contactErrors.message && <p className="text-rose-500 text-xs mt-1">{contactErrors.message}</p>}
                   </div>
 
                   <button
                     disabled={contactSubmitting}
-                    className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl shadow hover:shadow-md transition-all"
+                    className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl shadow hover:shadow-md transition-all"
                   >
                     {contactSubmitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Sending...</> : <><i className="fas fa-paper-plane mr-2"></i>Send Message</>}
                   </button>
@@ -1109,7 +1120,7 @@ export default function Resort() {
             {(pc.contact.map_url || pc.contact.osm_url) && (
               <div className="mt-12">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                     <span>📍</span> Find Us
                   </h3>
                   {(pc.contact.directions_url || pc.contact.map_url) && (
@@ -1117,14 +1128,14 @@ export default function Resort() {
                       href={pc.contact.directions_url || "https://maps.app.goo.gl/cCa9LepoeaXXh6xm6"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      className="flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-800 font-medium"
                     >
                       <i className="fas fa-directions text-xs"></i>
                       Get Directions
                     </a>
                   )}
                 </div>
-                <div className="rounded-2xl overflow-hidden shadow-md border border-gray-200 w-full" style={{ height: "380px" }}>
+                <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200 w-full" style={{ height: "380px" }}>
                   <iframe
                     src={pc.contact.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`}
                     width="100%"
@@ -1135,8 +1146,8 @@ export default function Resort() {
                     title="Aplaya Beach Resort location"
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-gray-400 text-right">
-                  Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-600">OpenStreetMap</a> contributors
+                <p className="mt-1.5 text-xs text-slate-400 text-right">
+                  Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">OpenStreetMap</a> contributors
                 </p>
               </div>
             )}
@@ -1145,16 +1156,16 @@ export default function Resort() {
 
         {/* NEWSLETTER */}
         {pc.newsletter.visible !== false && (
-        <section className="py-16 bg-blue-600">
+        <section className="py-16 bg-sky-600">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-2xl shadow-lg px-8 py-10 max-w-2xl mx-auto text-center">
-              <h2 className="text-2xl font-bold text-gray-900 mb-3">{pc.newsletter.title}</h2>
-              <p className="text-gray-600 mb-6">{pc.newsletter.subtitle}</p>
+              <h2 className="text-2xl font-bold text-slate-900 mb-3">{pc.newsletter.title}</h2>
+              <p className="text-slate-600 mb-6">{pc.newsletter.subtitle}</p>
 
               <form onSubmit={submitNewsletter}>
                 <div className="flex">
                   <div className="relative flex-grow">
-                    <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <input
                       type="email"
                       value={newsletter.email}
@@ -1162,20 +1173,20 @@ export default function Resort() {
                       placeholder="Your email address"
                       disabled={newsletter.submitting}
                       autoComplete="email"
-                      className="w-full pl-10 pr-3 py-3 rounded-l-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 disabled:bg-gray-50"
+                      className="w-full pl-10 pr-3 py-3 rounded-l-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900 disabled:bg-slate-50"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={newsletter.submitting}
-                    className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
+                    className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
                   >
                     {newsletter.submitting ? <><i className="fas fa-spinner fa-spin mr-1"></i>Subscribing...</> : <><i className="fas fa-bell mr-1"></i>Subscribe</>}
                   </button>
                 </div>
               </form>
 
-              <p className="text-xs text-gray-400 mt-4">We respect your privacy. Unsubscribe at any time.</p>
+              <p className="text-xs text-slate-400 mt-4">We respect your privacy. Unsubscribe at any time.</p>
             </div>
           </div>
         </section>
@@ -1299,7 +1310,6 @@ export default function Resort() {
         </div>
       )}
 
-      <Toast message={toast} type={toastType} onClose={clearToast} />
     </div>
   );
 }

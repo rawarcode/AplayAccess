@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useContent } from "../context/ContentContext.jsx";
 import { getResortRooms } from "../lib/resortApi.js";
 import { RESORT_ID } from "../lib/config.js";
 import { rooms as roomsFallback } from "../data/rooms.js";
@@ -8,7 +9,14 @@ import BookingModal from "../components/modals/BookingModal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import Toast, { useToast } from "../components/ui/Toast.jsx";
 import { Helmet } from "react-helmet-async";
+
+const ROOMS_HERO_DEFAULTS = {
+  background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
+  title:    "Our Luxurious Accommodations",
+  subtitle: "Discover the perfect room for your stay at Aplaya Beach Resort.",
+};
 
 const FALLBACK_IMG = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80";
 
@@ -86,9 +94,17 @@ function HeroParticles() {
 
 export default function Rooms() {
   const { user, login } = useAuth();
+  const siteContent = useContent();
+  const [toast, showToast, clearToast, toastType, toastAction] = useToast();
+
+  const roomsHero = useMemo(() => {
+    const h = (siteContent ?? {}).page_rooms_hero ?? {};
+    return { ...ROOMS_HERO_DEFAULTS, ...h };
+  }, [siteContent]);
 
   const [roomsApi,     setRoomsApi]     = useState([]);
   const [loading,      setLoading]      = useState(true);
+  const [loadError,    setLoadError]    = useState(false);
   const [selectedId,   setSelectedId]   = useState(null);
   const [activeTab,    setActiveTab]    = useState("all");
 
@@ -102,12 +118,16 @@ export default function Rooms() {
   const anyOverlay = bookingOpen || loginOpen || successOpen;
   useLockBodyScroll(anyOverlay);
 
-  useEffect(() => {
+  function load() {
+    setLoading(true);
+    setLoadError(false);
     getResortRooms(RESORT_ID)
       .then(data => setRoomsApi((data ?? []).map(enrichRoom)))
-      .catch(() => setRoomsApi(roomsFallback.map(enrichRoom)))
+      .catch(() => { setRoomsApi(roomsFallback.map(enrichRoom)); setLoadError(true); })
       .finally(() => setLoading(false));
-  }, []);
+  }
+
+  useEffect(() => { load(); }, []);
 
   const roomCards = useMemo(() =>
     activeTab === "all" ? roomsApi : roomsApi.filter(r => getRoomCategory(r) === activeTab),
@@ -157,6 +177,7 @@ export default function Rooms() {
   function handleLoginSuccess(u) {
     login(u);
     setLoginOpen(false);
+    showToast(`Welcome back, ${u?.name || ""}!`, "success");
     if (pendingRoom !== null) {
       setSelectedRoom(pendingRoom);
       setPendingRoom(null);
@@ -170,13 +191,14 @@ export default function Rooms() {
         <title>Rooms & Cottages — Aplaya Beach Resort</title>
         <meta name="description" content="Browse rooms, cottages, and pavilions at Aplaya Beach Resort. Book day visits, night stays, or 24-hour packages online." />
       </Helmet>
+      <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
 
       {/* HERO */}
       <section
         className="relative h-[60vh] flex items-center justify-center text-center overflow-hidden"
         style={{
           backgroundImage:
-            "linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80')",
+            `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${roomsHero.background}')`,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -185,10 +207,10 @@ export default function Rooms() {
 
         <div className="max-w-4xl mx-auto px-4 text-white z-10">
           <h1 className="text-3xl md:text-5xl font-bold mb-4 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
-            Our Luxurious Accommodations
+            {roomsHero.title}
           </h1>
           <p className="text-lg md:text-xl animate-hero-fade-in [animation-delay:0.6s] opacity-0">
-            Discover the perfect room for your stay at Aplaya Beach Resort.
+            {roomsHero.subtitle}
           </p>
         </div>
 
@@ -209,15 +231,24 @@ export default function Rooms() {
       <main className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
+          {/* Load error banner */}
+          {loadError && (
+            <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-8">
+              <i className="fas fa-exclamation-triangle text-amber-500" />
+              <span className="text-sm text-amber-700 flex-1">Showing cached room data — live data unavailable.</span>
+              <button onClick={load} className="text-sm font-medium text-amber-700 hover:text-amber-800 underline">Retry</button>
+            </div>
+          )}
+
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[...Array(3)].map((_, i) => (
                 <div key={i} className="bg-white rounded-xl overflow-hidden shadow-md animate-pulse">
-                  <div className="h-64 bg-gray-200" />
+                  <div className="h-64 bg-slate-200" />
                   <div className="p-6 space-y-3">
-                    <div className="h-5 bg-gray-200 rounded w-2/3" />
-                    <div className="h-4 bg-gray-100 rounded w-full" />
-                    <div className="h-4 bg-gray-100 rounded w-4/5" />
+                    <div className="h-5 bg-slate-200 rounded w-2/3" />
+                    <div className="h-4 bg-slate-100 rounded w-full" />
+                    <div className="h-4 bg-slate-100 rounded w-4/5" />
                   </div>
                 </div>
               ))}
@@ -227,8 +258,8 @@ export default function Rooms() {
             <div className="animate-hero-fade-in [animation-delay:0.1s] opacity-0">
               <div className="text-center mb-8">
                 <span className="text-4xl mb-3 block">🛏️</span>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">Our Accommodations</h2>
-                <div className="w-16 h-1.5 rounded-full bg-blue-400 mx-auto mb-4" />
+                <h2 className="text-3xl font-bold text-slate-900 mb-2">Our Accommodations</h2>
+                <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
               </div>
 
               {/* Category tabs */}
@@ -243,14 +274,14 @@ export default function Rooms() {
                       onClick={() => { setActiveTab(tab.key); setSelectedId(null); }}
                       className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold border transition-all ${
                         activeTab === tab.key
-                          ? "bg-blue-600 text-white border-blue-600 shadow"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-blue-300 hover:text-blue-600"
+                          ? "bg-sky-600 text-white border-sky-600 shadow"
+                          : "bg-white text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-600"
                       }`}
                     >
-                      <i className={`fas ${tab.icon} text-xs`}></i>
+                      <i className={`fas ${tab.icon} text-xs`} />
                       {tab.label}
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                        activeTab === tab.key ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"
+                        activeTab === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
                       }`}>{count}</span>
                     </button>
                   );
@@ -260,14 +291,14 @@ export default function Rooms() {
               {/* Empty state */}
               {roomCards.length === 0 ? (
                 <div className="text-center py-20">
-                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-bed text-3xl text-gray-300"></i>
+                  <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
+                    <i className="fas fa-bed text-3xl text-slate-300" />
                   </div>
-                  <h3 className="text-lg font-semibold text-gray-500 mb-2">No {activeTab === "all" ? "rooms" : CATEGORY_TABS.find(t => t.key === activeTab)?.label.toLowerCase() || "rooms"} found</h3>
-                  <p className="text-gray-400 text-sm mb-4">Try selecting a different category above.</p>
+                  <h3 className="text-lg font-semibold text-slate-500 mb-2">No {activeTab === "all" ? "rooms" : CATEGORY_TABS.find(t => t.key === activeTab)?.label.toLowerCase() || "rooms"} found</h3>
+                  <p className="text-slate-400 text-sm mb-4">Try selecting a different category above.</p>
                   <button
                     onClick={() => setActiveTab("all")}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium transition"
+                    className="text-sky-600 hover:text-sky-800 text-sm font-medium transition"
                   >
                     View all accommodations →
                   </button>
@@ -276,9 +307,9 @@ export default function Rooms() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {roomCards.map((r) => (
                     <div key={r.id ?? r.name}
-                      className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ring-1 ring-gray-200 hover:ring-blue-400/50">
+                      className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-400/50">
                       {/* Hover glow */}
-                      <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
+                      <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
 
                       {/* Image */}
                       <div className="relative overflow-hidden shrink-0">
@@ -288,7 +319,7 @@ export default function Rooms() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-                          <span className="bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                          <span className="bg-white/90 backdrop-blur-sm text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
                             Day Use
                           </span>
                           {Number(r.overnight_rate) > 0 && (
@@ -305,15 +336,15 @@ export default function Rooms() {
                         {/* Capacity chip */}
                         {r.capacity > 0 && (
                           <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
-                            <i className="fas fa-users text-[10px]"></i> Up to {r.capacity} guests
+                            <i className="fas fa-users text-[10px]" /> Up to {r.capacity} guests
                           </span>
                         )}
                       </div>
 
                       {/* Body */}
                       <div className="p-5 flex flex-col flex-1">
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">{r.name}</h3>
-                        <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">{r.name}</h3>
+                        <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
 
                         {/* Pricing row */}
                         <div className="flex flex-wrap gap-2 mb-4">
@@ -338,11 +369,11 @@ export default function Rooms() {
                         {/* Actions */}
                         <div className="flex gap-2">
                           <button onClick={() => openDetails(r.id)}
-                            className="flex-1 border border-blue-200 text-blue-600 hover:border-blue-400 hover:bg-blue-50 px-3 py-2 rounded-xl text-sm font-semibold transition-all">
+                            className="flex-1 border border-sky-200 text-sky-600 hover:border-sky-400 hover:bg-sky-50 px-3 py-2 rounded-xl text-sm font-semibold transition-all">
                             Details
                           </button>
                           <button onClick={() => requestBooking(r.name)}
-                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all">
+                            className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all">
                             Book Now
                           </button>
                         </div>
@@ -353,7 +384,7 @@ export default function Rooms() {
               )}
 
               <div className="mt-12 text-center">
-                <Link to="/resort" className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all">
+                <Link to="/resort" className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-semibold px-8 py-3 rounded-xl shadow-md hover:shadow-lg transition-all">
                   ← Back to Resort
                 </Link>
               </div>
@@ -362,18 +393,18 @@ export default function Rooms() {
             /* ── DETAILS ── */
             <div className="mt-2 animate-hero-fade-in [animation-delay:0.1s] opacity-0">
               <button onClick={backToGrid}
-                className="mb-6 inline-flex items-center gap-2 bg-white border border-gray-200 hover:border-blue-400 text-blue-600 hover:text-blue-800 font-medium px-4 py-2 rounded-xl shadow-sm transition-all">
+                className="mb-6 inline-flex items-center gap-2 bg-white border border-slate-200 hover:border-sky-400 text-sky-600 hover:text-sky-800 font-medium px-4 py-2 rounded-xl shadow-sm transition-all">
                 ← Back to All Rooms
               </button>
 
-              <div className="bg-white rounded-2xl shadow-xl overflow-hidden ring-1 ring-gray-200">
+              <div className="bg-white rounded-2xl shadow-xl overflow-hidden ring-1 ring-slate-200">
                 <div className="grid grid-cols-1 lg:grid-cols-2">
                   <div className="relative overflow-hidden h-80 lg:h-auto">
                     <img src={detailRoom.img} alt={detailRoom.name}
                       className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                      <span className="bg-white/90 backdrop-blur-sm text-blue-700 text-xs font-bold px-3 py-1 rounded-full shadow">Day Use</span>
+                      <span className="bg-white/90 backdrop-blur-sm text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">Day Use</span>
                       {Number(detailRoom.overnight_rate) > 0 && (
                         <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">Overnight</span>
                       )}
@@ -384,40 +415,40 @@ export default function Rooms() {
                   </div>
 
                   <div className="p-8 overflow-y-auto">
-                    <h2 className="text-3xl font-bold text-gray-900 mb-1">{detailRoom.name}</h2>
-                    <div className="w-10 h-1 rounded-full bg-blue-400 mb-4" />
+                    <h2 className="text-3xl font-bold text-slate-900 mb-1">{detailRoom.name}</h2>
+                    <div className="w-10 h-1 rounded-full bg-sky-400 mb-4" />
 
                     {/* Quick stats chips */}
                     <div className="flex flex-wrap gap-2 mb-5">
                       {detailRoom.capacity > 0 && (
                         <span className="inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 text-sm px-3 py-1.5 rounded-full border border-sky-100">
-                          <i className="fas fa-users text-xs"></i> Up to {detailRoom.capacity} guests
+                          <i className="fas fa-users text-xs" /> Up to {detailRoom.capacity} guests
                         </span>
                       )}
                       {detailRoom.beds && (
                         <span className="inline-flex items-center gap-1.5 bg-indigo-50 text-indigo-700 text-sm px-3 py-1.5 rounded-full border border-indigo-100">
-                          <i className="fas fa-bed text-xs"></i> {detailRoom.beds}
+                          <i className="fas fa-bed text-xs" /> {detailRoom.beds}
                         </span>
                       )}
                       {detailRoom.size && (
                         <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 text-sm px-3 py-1.5 rounded-full border border-emerald-100">
-                          <i className="fas fa-expand-arrows-alt text-xs"></i> {detailRoom.size}
+                          <i className="fas fa-expand-arrows-alt text-xs" /> {detailRoom.size}
                         </span>
                       )}
                     </div>
 
-                    <p className="text-gray-600 mb-6 leading-relaxed">{detailRoom.description}</p>
+                    <p className="text-slate-600 mb-6 leading-relaxed">{detailRoom.description}</p>
 
                     {detailRoom.features?.length > 0 && (
                       <>
-                        <h3 className="text-base font-bold text-gray-800 mb-3">Room Amenities</h3>
+                        <h3 className="text-base font-bold text-slate-800 mb-3">Room Amenities</h3>
                         <ul className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {detailRoom.features.map((f, i) => (
-                            <li key={i} className="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2">
-                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
-                                <i className={`fas ${f.icon || "fa-check"} text-blue-600 text-xs`}></i>
+                            <li key={i} className="flex items-center gap-3 bg-slate-50 rounded-xl px-3 py-2">
+                              <div className="w-8 h-8 bg-sky-100 rounded-lg flex items-center justify-center shrink-0">
+                                <i className={`fas ${f.icon || "fa-check"} text-sky-600 text-xs`} />
                               </div>
-                              <span className="text-gray-600 text-sm">{f.text}</span>
+                              <span className="text-slate-600 text-sm">{f.text}</span>
                             </li>
                           ))}
                         </ul>
@@ -425,7 +456,7 @@ export default function Rooms() {
                     )}
 
                     {/* Pricing */}
-                    <div className="border-t border-gray-100 pt-6">
+                    <div className="border-t border-slate-100 pt-6">
                       <div className="flex flex-wrap gap-3 mb-5">
                         <div className="flex-1 min-w-[100px] bg-sky-50 rounded-2xl p-4 text-center border border-sky-100">
                           <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide mb-0.5">Day Use</p>
@@ -445,7 +476,7 @@ export default function Rooms() {
                         )}
                       </div>
                       <button onClick={() => requestBooking(detailRoom.name)}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all text-base">
+                        className="w-full bg-sky-600 hover:bg-sky-700 text-white py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all text-base">
                         Book This Room
                       </button>
                     </div>
@@ -472,7 +503,7 @@ export default function Rooms() {
       <LoginModal
         open={loginOpen}
         onClose={() => { setLoginOpen(false); setPendingRoom(null); }}
-        onSuccess={handleLoginSuccess}
+        onLoginSuccess={handleLoginSuccess}
       />
 
       <SuccessModal
