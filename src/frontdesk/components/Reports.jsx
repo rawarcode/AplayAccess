@@ -75,6 +75,13 @@ const SAMPLE_BOOKINGS = import.meta.env.DEV ? makeSampleBookings() : [];
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
+const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+function calcEntrance(b) {
+  if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
+  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  return (b.guests ?? 1) * rate;
+}
+
 function fmtMoney(n) {
   return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 }
@@ -121,10 +128,10 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
   };
   const statusCount = (s) => dateBookings.filter(b => b.status === s).length;
   // Gross = full value of all bookings regardless of status (shows potential earnings)
-  const grossTotal = dateBookings.reduce((s,b) => s + Number(b.total||0) + Number(b.entranceFee||0), 0);
-  const efTotal = dateBookings.reduce((s,b) => s + Number(b.entranceFee||0), 0);
+  const grossTotal = dateBookings.reduce((s,b) => s + Number(b.total||0) + calcEntrance(b), 0);
+  const efTotal = dateBookings.reduce((s,b) => s + calcEntrance(b), 0);
   const totalGuests = dateBookings.reduce((s,b) => s + (b.guests||0), 0);
-  const tableRows = dateBookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt;color:#64748b">${b.id}</td><td>${b.guest}</td><td>${b.roomType}</td><td>${fmtT(b.checkIn)}</td><td>${fmtT(b.checkOut)}</td><td style="text-align:center">${calcDuration(b.checkIn, b.checkOut)}</td><td style="text-align:center">${b.guests}</td><td style="text-align:right">${fmtM(b.total)}</td><td style="text-align:right;color:#92400e">${Number(b.entranceFee)>0?fmtM(b.entranceFee):'—'}</td><td>${statusBadge(b.status)}</td></tr>`).join('');
+  const tableRows = dateBookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt;color:#64748b">${b.id}</td><td>${b.guest}</td><td>${b.roomType}</td><td>${fmtT(b.checkIn)}</td><td>${fmtT(b.checkOut)}</td><td style="text-align:center">${calcDuration(b.checkIn, b.checkOut)}</td><td style="text-align:center">${b.guests}</td><td style="text-align:right">${fmtM(b.total)}</td><td style="text-align:right;color:#92400e">${fmtM(calcEntrance(b))}</td><td>${statusBadge(b.status)}</td></tr>`).join('');
   const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:32px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px}.co{font-size:18pt;font-weight:bold;color:#1e3a8a}.cosub{font-size:9pt;color:#64748b;margin-top:3px}.rt{text-align:right}.rt h2{font-size:13pt;font-weight:bold;color:#1e3a8a}.rt p{font-size:10pt;color:#334155;margin-top:2px}.rt small{font-size:8pt;color:#94a3b8}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}.card{border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px}.lbl{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.val{font-size:16pt;font-weight:bold;color:#0f172a;margin-top:4px}.hint{font-size:8pt;color:#94a3b8;margin-top:2px}.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}.sbox{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}.sbox .n{font-size:18pt;font-weight:bold;color:#0f172a}.sbox .s{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.sech{font-size:9pt;font-weight:bold;color:#1e3a8a;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:9pt}th{background:#1e3a8a;color:#fff;padding:7px 8px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.04em}td{padding:6px 8px;border-bottom:1px solid #f1f5f9}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#1e3a8a!important;color:#fff!important;font-weight:bold;padding:7px 8px}.ftr{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}@page{margin:1.5cm}`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Daily Report — ${reportDateLabel}</title><style>${css}</style></head><body>
 <div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Front Desk</div></div><div class="rt"><h2>Daily Activity Report</h2><p>${reportDateLabel}</p><small>Generated: ${now}</small></div></div>
@@ -170,10 +177,10 @@ export default function Reports() {
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
   );
 
-  // Cancelled: fully_paid = paid full amount online → count total, else → reservation_fee
+  // Revenue: all non-cancelled bookings (total + entrance fee) + cancelled forfeitures
   const cancelledAmt = (b) => b.fullyPaid ? Number(b.total ?? 0) : Number(b.reservationFee ?? 0);
   const totalRevenue =
-    dateBookings.filter(b => b.status === 'Completed').reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0), 0) +
+    dateBookings.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total ?? 0) + calcEntrance(b), 0) +
     dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledAmt(b), 0);
 
   const { labels, confirmed, completed, cancelled } = buildWeekChart(bookings);
@@ -303,7 +310,7 @@ export default function Reports() {
                       <td className="px-4 py-3 text-sm text-slate-500">{calcDuration(b.checkIn, b.checkOut)}</td>
                       <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
                       <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
-                      <td className="px-4 py-3 text-sm text-amber-700">{Number(b.entranceFee) > 0 ? fmtMoney(b.entranceFee) : <span className="text-slate-400">—</span>}</td>
+                      <td className="px-4 py-3 text-sm text-amber-700">{fmtMoney(calcEntrance(b))}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
                           b.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
@@ -325,7 +332,7 @@ export default function Reports() {
                       {fmtMoney(dateBookings.reduce((s, b) => s + Number(b.total || 0), 0))}
                     </td>
                     <td className="px-4 py-3 text-amber-700">
-                      {fmtMoney(dateBookings.reduce((s, b) => s + Number(b.entranceFee || 0), 0))}
+                      {fmtMoney(dateBookings.reduce((s, b) => s + calcEntrance(b), 0))}
                     </td>
                     <td className="px-4 py-3 text-emerald-700">
                       {fmtMoney(totalRevenue)} collected
