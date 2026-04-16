@@ -112,51 +112,47 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     if (!paymentPopup?.bookingId) return;
 
     function handleMessage(event) {
-      if (event.data?.type === "paymongo_paid") {
+      // Only accept messages from our own origin
+      if (event.origin !== window.location.origin) return;
+
+      if (event.data?.type === "paymongo_paid" || event.data?.type === "paymongo_cancelled") {
         try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
         const bId = paymentPopup?.bookingId;
-        setTimeLeft(null);
 
-        const finish = () => { onBooked?.(bookingResultRef.current); onClose(); };
+        // Close the popup but keep polling running (popup: null, no redirected flag).
+        // ALSO start calling confirm-payment with retries as a parallel path.
+        // Whichever succeeds first (polling or confirm) will close the modal.
+        setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
 
-        if (!bId) { finish(); return; }
+        if (!bId) return;
 
-        if (!guestMode) {
-          // Logged-in user: backend trusts the redirect and always succeeds
-          setPaymentPopup(prev => prev ? { ...prev, popup: null, redirected: true } : null);
-          api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: paymentOption === "full" })
-            .then(finish).catch(finish);
-          return;
-        }
+        // Backend verifies with PayMongo before confirming.
+        // GCash may take seconds to update payment_status — retry up to 10 times (20s).
+        const confirmFn = guestMode
+          ? () => guestConfirmPayment(bId, paymentOption === "full")
+          : () => api.post(`/api/bookings/${bId}/confirm-payment`, { fully_paid: paymentOption === "full" });
 
-        // Guest: call guestConfirmPayment — backend now always confirms when
-        // paymongo_link_id exists (trusts the success_url redirect).
-        // The 422 check was removed because GCash uses Sources API internally and
-        // payment_status never shows 'paid' on localhost without a webhook tunnel.
-        setPaymentPopup(prev => prev ? { ...prev, popup: null, redirected: true } : null);
-        guestConfirmPayment(bId, paymentOption === "full")
-          .then(finish)
-          .catch(finish); // backend confirmed — close regardless
-      }
-      if (event.data?.type === "paymongo_cancelled") {
-        try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
-        const bId = paymentPopup?.bookingId;
-        setTimeLeft(null);
-
-        if (bId && guestMode) {
-          // GCash sometimes routes to cancel_url even after successful authorization.
-          // guestConfirmPayment now always confirms (trusts redirect, no PayMongo re-check).
-          setPaymentPopup(prev => prev ? { ...prev, popup: null, redirected: true } : null);
-          const finish = () => { onBooked?.(bookingResultRef.current); onClose(); };
-          guestConfirmPayment(bId, paymentOption === "full")
-            .then(finish)
-            .catch(() => {
-              // Confirm failed (booking already cancelled or error) — show reopen UI
-              setPaymentPopup(prev => prev ? { ...prev, redirected: false } : null);
+        let attempts = 0;
+        const tryConfirm = () => {
+          confirmFn()
+            .then(() => {
+              // Confirmed! Close everything.
+              setPaymentPopup(null);
+              setTimeLeft(null);
+              onBooked?.(bookingResultRef.current);
+              onClose();
+            })
+            .catch(err => {
+              const status = err?.response?.status;
+              attempts++;
+              if ((status === 402 || status === 503) && attempts < 10) {
+                setTimeout(tryConfirm, 2000);
+              }
+              // Don't show error — polling is also running as backup.
+              // If both fail, the timer will expire and user sees the reopen UI.
             });
-        } else {
-          setPaymentPopup(prev => prev ? { ...prev, popup: null } : null);
-        }
+        };
+        tryConfirm();
       }
     }
 
@@ -164,11 +160,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     return () => window.removeEventListener("message", handleMessage);
   }, [paymentPopup, onBooked, onClose]);
 
-  // Poll payment status — runs while waiting for payment (popup open or closed but not yet redirected).
-  // Once redirected (postMessage received), the postMessage handler takes over with retry logic.
+  // Poll payment status — runs while waiting for payment.
+  // The status endpoint checks PayMongo server-side and confirms when paid.
   useEffect(() => {
     if (!paymentPopup?.bookingId) return;
-    if (paymentPopup?.redirected) return; // postMessage handler owns confirmation from here
     const { bookingId, popup } = paymentPopup;
 
     const interval = setInterval(async () => {
@@ -871,14 +866,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
           {/* Payment popup states — show regardless of step */}
           {paymentPopup && (
-            paymentPopup.redirected ? (
-              /* Payment redirect received — polling is verifying with PayMongo */
-              <div className="flex flex-col items-center gap-3 py-4 bg-green-50 border border-green-200 rounded-md mt-4">
-                <i className="fas fa-spinner fa-spin text-green-600 text-2xl"></i>
-                <p className="text-sm font-medium text-green-800">Payment received! Confirming your booking…</p>
-                <p className="text-xs text-gray-500">Please wait, this only takes a moment.</p>
-              </div>
-            ) : paymentPopup.popup ? (
+            paymentPopup.popup ? (
               /* Popup is open — show waiting state with countdown */
               <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
                 <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
@@ -923,11 +911,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <p className="text-xs text-gray-500">Please wait — do not close this window.</p>
               </div>
             ) : (
-              /* Popup was closed — offer to reopen */
+              /* Popup was closed — still verifying / offer to reopen */
               <div className="flex flex-col items-center gap-3 py-4 bg-amber-50 border border-amber-200 rounded-md mt-4">
-                <i className="fas fa-window-restore text-amber-500 text-2xl"></i>
-                <p className="text-sm font-medium text-amber-800">Payment window was closed.</p>
-                <p className="text-xs text-amber-700">Your booking is saved. Reopen the window to complete payment.</p>
+                <i className="fas fa-spinner fa-spin text-amber-500 text-2xl"></i>
+                <p className="text-sm font-medium text-amber-800">Verifying payment…</p>
+                <p className="text-xs text-amber-700">If you completed payment, please wait. Otherwise, reopen the window.</p>
                 {timeLeft !== null && (
                   <p className={`text-xs font-semibold ${timeLeft <= 60 ? "text-red-600" : "text-amber-600"}`}>
                     <i className="fas fa-clock mr-1"></i>

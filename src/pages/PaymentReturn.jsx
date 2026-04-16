@@ -59,11 +59,11 @@ export default function PaymentReturn({ outcome }) {
     // ── POPUP MODE ────────────────────────────────────────────────────────────
     if (isPopup) {
       if (outcome === "failed") {
-        try { window.opener.postMessage({ type: "paymongo_cancelled", bookingId }, "*"); } catch { /* ignore */ }
+        try { window.opener.postMessage({ type: "paymongo_cancelled", bookingId }, window.location.origin); } catch { /* ignore */ }
         setStatus("closing_failed");
         window.close();
       } else {
-        try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, "*"); } catch { /* ignore */ }
+        try { window.opener.postMessage({ type: "paymongo_paid", bookingId }, window.location.origin); } catch { /* ignore */ }
         setStatus("closing_success");
         window.close();
       }
