@@ -179,13 +179,18 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
 
         {/* Action footer */}
         <div className="px-6 py-4 border-t bg-slate-50 flex gap-3">
-          {b.status === 'Confirmed' && (
+          {b.status === 'Confirmed' && !b.fullyPaid && (
             <button
               onClick={() => onCollect(b)}
               className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
             >
               <i className="fas fa-hand-holding-usd mr-2"></i>Collect Payment
             </button>
+          )}
+          {b.status === 'Confirmed' && b.fullyPaid && (
+            <div className="flex-1 py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-sm font-medium text-center">
+              <i className="fas fa-check-circle mr-2"></i>Fully Paid Online
+            </div>
           )}
           {b.status === 'Completed' && (
             <button
