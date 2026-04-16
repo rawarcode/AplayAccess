@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Modal from "./Modal.jsx";
 import { createBooking, createGuestBooking, cancelBooking, cancelGuestBooking, createGuestPaymentLink, getGuestPaymentStatus, guestConfirmPayment } from "../../lib/bookingApi.js";
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
@@ -62,6 +62,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // Room availability: { [roomName]: true|false } — null means not yet checked
   const [availability,     setAvailability]     = useState(null);
   const [availChecking,    setAvailChecking]    = useState(false);
+
+  // Wizard step (1 = Details, 2 = Payment)
+  const [step, setStep] = useState(1);
+  const [showRequests, setShowRequests] = useState(false);
 
   // Derive rates from the selected room in the rooms prop (already fetched by parent)
   useEffect(() => {
@@ -242,6 +246,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setGuestEmail("");
       setGuestPhone("");
       setPricing(DEFAULTS);
+      setStep(1);
+      setShowRequests(false);
     }
   }, [open, selectedRoom]);
 
@@ -447,233 +453,270 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         )}
 
         <form onSubmit={submit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* Guest info — shown only in guest (no-account) mode */}
-            {guestMode && (
-              <div className="md:col-span-2">
-                <div className="mb-4 rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 flex items-start gap-3">
-                  <i className="fas fa-user-secret text-amber-500 mt-0.5 shrink-0"></i>
-                  <div>
-                    <p className="text-sm font-semibold text-amber-800">Booking as Guest</p>
-                    <p className="text-xs text-amber-700 mt-0.5">
-                      We need your contact details to send your booking confirmation. You won't be able to manage this booking online.
-                    </p>
-                  </div>
+          {/* Guest info — shown only in guest (no-account) mode, always visible outside steps */}
+          {guestMode && (
+            <div className="mb-5">
+              <div className="mb-4 rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 flex items-start gap-3">
+                <i className="fas fa-user-secret text-amber-500 mt-0.5 shrink-0"></i>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">Booking as Guest</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    We need your contact details to send your booking confirmation. You won't be able to manage this booking online.
+                  </p>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={guestName}
-                      onChange={e => setGuestName(e.target.value)}
-                      placeholder="Your full name"
-                      autoComplete="name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={guestEmail}
-                      onChange={e => setGuestEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      autoComplete="email"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone Number <span className="text-gray-400 font-normal text-xs">(optional)</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={guestPhone}
-                      onChange={e => setGuestPhone(e.target.value)}
-                      placeholder="+63 9xx xxx xxxx"
-                      autoComplete="tel"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                <hr className="my-5 border-gray-200" />
               </div>
-            )}
-
-            {/* Visit date — must be chosen first */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                min={todayStr()}
-                value={visitDate}
-                onChange={(e) => setVisitDate(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              {nightUnavailable && (
-                <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                  <i className="fas fa-moon"></i>
-                  No rooms available for tonight. Please select a future date.
-                </p>
-              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={guestName}
+                    onChange={e => setGuestName(e.target.value)}
+                    placeholder="Your full name"
+                    autoComplete="name"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={guestEmail}
+                    onChange={e => setGuestEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    autoComplete="email"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                  </label>
+                  <input
+                    type="tel"
+                    value={guestPhone}
+                    onChange={e => setGuestPhone(e.target.value)}
+                    placeholder="+63 9xx xxx xxxx"
+                    autoComplete="tel"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+              </div>
+              <hr className="mt-5 border-gray-200" />
             </div>
+          )}
 
-            {/* Booking type — 3 options */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Booking Type <span className="text-red-500">*</span>
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {[
-                  { key: "day",   icon: "fa-sun",   label: "Day Visit",  time: "6:00 AM – 6:00 PM",  color: "blue",   rate: pricing.day_rate,       disabled: dayUnavailable || !typeAllowed("day")   },
-                  { key: "night", icon: "fa-moon",  label: "Night",       time: "6:00 PM – 7:00 AM",  color: "indigo", rate: pricing.overnight_rate, disabled: !typeAllowed("night") },
-                  { key: "24hr",  icon: "fa-clock", label: "24 Hours",   time: "6AM or 6PM start",   color: "purple", rate: pricing.rate_24hr,      disabled: !typeAllowed("24hr")  },
-                ].map(({ key, icon, label, time, color, rate, disabled }) => {
-                  // 24hr button is active for both '24hr' and '24hr-pm'
-                  const active = key === "24hr" ? is24hr : bookingType === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => { if (!disabled) { setBookingType(key); setPromoResult(null); setPromoInput(""); } }}
-                      className={`flex flex-col items-center gap-1.5 p-3 border-2 rounded-xl transition-colors text-center ${
-                        disabled
-                          ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                          : active
-                            ? `border-${color}-500 bg-${color}-50`
-                            : "border-gray-200 hover:border-gray-300"
+          {/* Step indicator */}
+          <div className="flex items-center gap-2 mb-5">
+            {[{ num: 1, label: 'Details' }, { num: 2, label: 'Payment' }].map((s, i) => (
+              <React.Fragment key={s.num}>
+                {i > 0 && <div className={`flex-1 h-px ${step >= s.num ? 'bg-blue-400' : 'bg-gray-200'}`} />}
+                <button type="button" onClick={() => s.num < step && setStep(s.num)}
+                  className={`flex items-center gap-1.5 text-sm font-medium ${
+                    step === s.num ? 'text-blue-700' : step > s.num ? 'text-blue-500 cursor-pointer' : 'text-gray-400'
+                  }`}>
+                  <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                    step >= s.num ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+                  }`}>{step > s.num ? '\u2713' : s.num}</span>
+                  {s.label}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+
+          {/* ═══ Step 1 — Details ═══ */}
+          {step === 1 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Visit date */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  min={todayStr()}
+                  value={visitDate}
+                  onChange={(e) => setVisitDate(e.target.value)}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {nightUnavailable && (
+                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
+                    <i className="fas fa-moon"></i>
+                    No rooms available for tonight. Please select a future date.
+                  </p>
+                )}
+              </div>
+
+              {/* Booking type — compact pills */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Booking Type <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-2">
+                  {[
+                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: dayUnavailable || !typeAllowed("day")   },
+                    { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !typeAllowed("night") },
+                    { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "6AM/6PM", disabled: !typeAllowed("24hr")  },
+                  ].map(opt => {
+                    const active = opt.key === "24hr" ? is24hr : bookingType === opt.key;
+                    return (
+                      <button key={opt.key} type="button" disabled={opt.disabled}
+                        onClick={() => { if (!opt.disabled) { setBookingType(opt.key); setPromoResult(null); setPromoInput(""); } }}
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
+                          active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        } ${opt.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <i className={`fas ${opt.icon} text-xs`}></i>
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Rate shown below */}
+                {roomType && <p className="mt-1 text-xs text-gray-500 text-center">{formatPHP(baseRate)} / {bookingType === "night" ? "night" : is24hr ? "24 hrs" : "day"}</p>}
+
+                {/* 24hr start-time sub-toggle */}
+                {is24hr && (
+                  <div className="mt-2 flex rounded-lg overflow-hidden border border-purple-200 text-xs font-medium">
+                    <button type="button"
+                      onClick={() => { setBookingType("24hr"); setPromoResult(null); setPromoInput(""); }}
+                      className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
+                        bookingType === "24hr"
+                          ? "bg-purple-600 text-white"
+                          : "bg-white text-purple-700 hover:bg-purple-50"
                       }`}
                     >
-                      <i className={`fas ${icon} text-xl ${active && !disabled ? `text-${color}-500` : "text-gray-300"}`}></i>
-                      <p className={`text-sm font-semibold ${active && !disabled ? `text-${color}-700` : "text-gray-700"}`}>{label}</p>
-                      <p className="text-xs text-gray-400">{time}</p>
-                      <p className={`text-sm font-bold ${active && !disabled ? `text-${color}-700` : "text-gray-500"}`}>
-                        {roomType ? formatPHP(rate) : "—"}
-                      </p>
+                      <i className="fas fa-sun text-xs"></i> 6 AM start
                     </button>
-                  );
-                })}
-              </div>
-
-              {/* 24hr start-time sub-toggle */}
-              {is24hr && (
-                <div className="mt-2 flex rounded-lg overflow-hidden border border-purple-200 text-xs font-medium">
-                  <button type="button"
-                    onClick={() => { setBookingType("24hr"); setPromoResult(null); setPromoInput(""); }}
-                    className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
-                      bookingType === "24hr"
-                        ? "bg-purple-600 text-white"
-                        : "bg-white text-purple-700 hover:bg-purple-50"
-                    }`}
-                  >
-                    <i className="fas fa-sun text-xs"></i> 6 AM start
-                  </button>
-                  <button type="button"
-                    onClick={() => { setBookingType("24hr-pm"); setPromoResult(null); setPromoInput(""); }}
-                    className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
-                      bookingType === "24hr-pm"
-                        ? "bg-purple-600 text-white"
-                        : "bg-white text-purple-700 hover:bg-purple-50"
-                    }`}
-                  >
-                    <i className="fas fa-moon text-xs"></i> 6 PM start
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Room / Cottage */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Room / Cottage <span className="text-red-500">*</span>
-                {availChecking && (
-                  <span className="ml-2 text-xs text-gray-400 font-normal">
-                    <i className="fas fa-spinner fa-spin mr-1"></i>Checking…
-                  </span>
+                    <button type="button"
+                      onClick={() => { setBookingType("24hr-pm"); setPromoResult(null); setPromoInput(""); }}
+                      className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
+                        bookingType === "24hr-pm"
+                          ? "bg-purple-600 text-white"
+                          : "bg-white text-purple-700 hover:bg-purple-50"
+                      }`}
+                    >
+                      <i className="fas fa-moon text-xs"></i> 6 PM start
+                    </button>
+                  </div>
                 )}
-              </label>
-              <select
-                value={roomType}
-                onChange={(e) => { setRoomType(e.target.value); setPromoResult(null); setPromoInput(""); }}
-                required
-                disabled={nightUnavailable}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-              >
-                <option value="">{nightUnavailable ? "No rooms available" : "Select Room / Cottage / Pavilion"}</option>
-                {(() => {
-                  const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
-                  const getCategory = r => r.category || (r.name.toLowerCase().includes("cottage") ? "cottage" : r.name.toLowerCase().includes("pavilion") ? "pavilion" : "room");
-                  const groups = [
-                    { key: "room",     label: "🛏️  Rooms"     },
-                    { key: "cottage",  label: "⛱️  Cottages"  },
-                    { key: "pavilion", label: "🏛️  Pavilions" },
-                  ];
-                  return groups.map(g => {
-                    const items = visible.filter(r => getCategory(r) === g.key);
-                    if (!items.length) return null;
-                    return (
-                      <optgroup key={g.key} label={g.label}>
-                        {items.map(r => (
-                          <option key={r.name} value={r.name}>
-                            {r.name}{r.capacity_label ? ` — ${r.capacity_label}` : ""}
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  });
-                })()}
-              </select>
-              {/* Capacity label + availability badge */}
-              {selectedRoomObj && (
-                <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
-                  <i className="fas fa-users text-[10px]"></i>
-                  Recommended: {selectedRoomObj.capacity_label ?? selectedRoomObj.occupancy ?? `Up to ${selectedRoomObj.capacity} guests`}
-                  {availability !== null && roomType && (
-                    availability[roomType] === false
-                      ? <span className="ml-2 text-red-600"><i className="fas fa-times-circle mr-0.5"></i>Not available</span>
-                      : availability[roomType] === true
-                        ? <span className="ml-2 text-green-600"><i className="fas fa-check-circle mr-0.5"></i>Available</span>
-                        : null
-                  )}
-                </p>
-              )}
-            </div>
-
-            {/* Special requests */}
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Special Requests <span className="text-gray-400 font-normal text-xs">(optional)</span>
-              </label>
-              <textarea
-                rows={2}
-                value={specialRequests}
-                onChange={(e) => setSpecialRequests(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Any special requests?"
-              />
-            </div>
-
-            {/* Full-width bottom section */}
-            <div className="md:col-span-2">
-              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
-                <p className="text-sm text-yellow-800">
-                  <span className="font-medium">Cancellation Policy:</span> Cancellations or no-shows will result in the
-                  forfeiture of the {pricing.reservation_fee_pct}% reservation fee ({formatPHP(reservationFee)}).
-                </p>
               </div>
 
+              {/* Room / Cottage */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Room / Cottage <span className="text-red-500">*</span>
+                  {availChecking && (
+                    <span className="ml-2 text-xs text-gray-400 font-normal">
+                      <i className="fas fa-spinner fa-spin mr-1"></i>Checking…
+                    </span>
+                  )}
+                </label>
+                <select
+                  value={roomType}
+                  onChange={(e) => { setRoomType(e.target.value); setPromoResult(null); setPromoInput(""); }}
+                  required
+                  disabled={nightUnavailable}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                >
+                  <option value="">{nightUnavailable ? "No rooms available" : "Select Room / Cottage / Pavilion"}</option>
+                  {(() => {
+                    const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
+                    const getCategory = r => r.category || (r.name.toLowerCase().includes("cottage") ? "cottage" : r.name.toLowerCase().includes("pavilion") ? "pavilion" : "room");
+                    const groups = [
+                      { key: "room",     label: "\uD83D\uDECF\uFE0F  Rooms"     },
+                      { key: "cottage",  label: "\u26F1\uFE0F  Cottages"  },
+                      { key: "pavilion", label: "\uD83C\uDFDB\uFE0F  Pavilions" },
+                    ];
+                    return groups.map(g => {
+                      const items = visible.filter(r => getCategory(r) === g.key);
+                      if (!items.length) return null;
+                      return (
+                        <optgroup key={g.key} label={g.label}>
+                          {items.map(r => (
+                            <option key={r.name} value={r.name}>
+                              {r.name}{r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    });
+                  })()}
+                </select>
+                {/* Capacity label + availability badge */}
+                {selectedRoomObj && (
+                  <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
+                    <i className="fas fa-users text-[10px]"></i>
+                    Recommended: {selectedRoomObj.capacity_label ?? selectedRoomObj.occupancy ?? `Up to ${selectedRoomObj.capacity} guests`}
+                    {availability !== null && roomType && (
+                      availability[roomType] === false
+                        ? <span className="ml-2 text-red-600"><i className="fas fa-times-circle mr-0.5"></i>Not available</span>
+                        : availability[roomType] === true
+                          ? <span className="ml-2 text-green-600"><i className="fas fa-check-circle mr-0.5"></i>Available</span>
+                          : null
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {/* Special requests — collapsed */}
+              <div className="md:col-span-2">
+                {showRequests ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Special Requests <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={specialRequests}
+                      onChange={(e) => setSpecialRequests(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Any special requests?"
+                    />
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setShowRequests(true)} className="text-xs text-blue-600 hover:underline">
+                    <i className="fas fa-plus mr-1"></i>Add special requests
+                  </button>
+                )}
+              </div>
+
+              {/* Next button */}
+              <div className="md:col-span-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError("");
+                    if (guestMode) {
+                      if (!guestName.trim())  { setError("Please enter your full name."); return; }
+                      if (!guestEmail.trim()) { setError("Please enter your email address."); return; }
+                      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                      if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
+                    }
+                    if (!visitDate) { setError("Please select a visit date."); return; }
+                    if (!roomType)  { setError("Please select a room/cottage."); return; }
+                    if (availability !== null && availability[roomType] !== true) {
+                      setError("Selected room is not available for the chosen date. Please select another."); return;
+                    }
+                    setStep(2);
+                  }}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
+                >
+                  Next <i className="fas fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ═══ Step 2 — Payment ═══ */}
+          {step === 2 && (
+            <div className="space-y-4">
               {/* Promo code input */}
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <i className="fas fa-tag mr-1 text-blue-500"></i>Promo Code <span className="text-gray-400 font-normal">(optional)</span>
                 </label>
@@ -707,7 +750,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
 
               {/* Payment option selector */}
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   <i className="fas fa-wallet mr-1 text-blue-500"></i>Payment Option
                 </label>
@@ -754,7 +797,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
 
               {/* Payment summary */}
-              <div className="bg-blue-50 p-4 rounded-md mb-4">
+              <div className="bg-blue-50 p-4 rounded-md">
                 <h4 className="font-medium text-gray-900 mb-2">Payment Summary</h4>
                 <div className="flex justify-between mb-1 text-sm">
                   <span className="text-gray-600">
@@ -800,6 +843,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </p>
               </div>
 
+              {/* Cancellation policy (smaller) */}
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 px-3 py-2">
+                <p className="text-xs text-yellow-800">
+                  <span className="font-medium">Cancellation Policy:</span> Cancellations or no-shows will result in the
+                  forfeiture of the {pricing.reservation_fee_pct}% reservation fee ({formatPHP(reservationFee)}).
+                </p>
+              </div>
+
+              {/* PayMongo note */}
               <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 rounded-md px-3 py-2">
                 <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0"></i>
                 <span>
@@ -809,20 +861,42 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   This page will stay open in the background.
                 </span>
               </div>
-            </div>
-          </div>
 
-          {paymentPopup ? (
+              {/* Back + Review Booking buttons */}
+              {!paymentPopup && (
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
+                  >
+                    <i className="fas fa-arrow-left"></i> Back
+                  </button>
+                  <button
+                    disabled={submitting}
+                    className="flex-[2] bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
+                  >
+                    {submitting
+                      ? <><i className="fas fa-spinner fa-spin"></i> Opening checkout window...</>
+                      : <><i className="fas fa-eye"></i> Review Booking</>}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Payment popup states — show regardless of step */}
+          {paymentPopup && (
             paymentPopup.redirected ? (
               /* Payment redirect received — polling is verifying with PayMongo */
-              <div className="flex flex-col items-center gap-3 py-4 bg-green-50 border border-green-200 rounded-md">
+              <div className="flex flex-col items-center gap-3 py-4 bg-green-50 border border-green-200 rounded-md mt-4">
                 <i className="fas fa-spinner fa-spin text-green-600 text-2xl"></i>
                 <p className="text-sm font-medium text-green-800">Payment received! Confirming your booking…</p>
                 <p className="text-xs text-gray-500">Please wait, this only takes a moment.</p>
               </div>
             ) : paymentPopup.popup ? (
               /* Popup is open — show waiting state with countdown */
-              <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
                 <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
                 <p className="text-sm font-medium text-blue-800">Waiting for payment in the checkout window…</p>
                 {timeLeft !== null && (
@@ -859,14 +933,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
             ) : paymentPopup.verifying ? (
               /* Cancel URL received — verifying with PayMongo before giving up */
-              <div className="flex flex-col items-center gap-3 py-4 bg-yellow-50 border border-yellow-200 rounded-md">
+              <div className="flex flex-col items-center gap-3 py-4 bg-yellow-50 border border-yellow-200 rounded-md mt-4">
                 <i className="fas fa-spinner fa-spin text-yellow-600 text-2xl"></i>
                 <p className="text-sm font-medium text-yellow-800">Verifying payment with PayMongo…</p>
                 <p className="text-xs text-gray-500">Please wait — do not close this window.</p>
               </div>
             ) : (
               /* Popup was closed — offer to reopen */
-              <div className="flex flex-col items-center gap-3 py-4 bg-amber-50 border border-amber-200 rounded-md">
+              <div className="flex flex-col items-center gap-3 py-4 bg-amber-50 border border-amber-200 rounded-md mt-4">
                 <i className="fas fa-window-restore text-amber-500 text-2xl"></i>
                 <p className="text-sm font-medium text-amber-800">Payment window was closed.</p>
                 <p className="text-xs text-amber-700">Your booking is saved. Reopen the window to complete payment.</p>
@@ -916,15 +990,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
               </div>
             )
-          ) : (
-            <button
-              disabled={submitting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
-            >
-              {submitting
-                ? <><i className="fas fa-spinner fa-spin"></i> Opening checkout window...</>
-                : <><i className="fas fa-eye"></i> Review Booking</>}
-            </button>
           )}
         </form>
 

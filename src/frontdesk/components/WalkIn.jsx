@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
@@ -80,6 +80,8 @@ export default function WalkIn() {
   const [error, setError]                 = useState('');
   const [formError, setFormError]         = useState('');
   const [form, setForm]                   = useState(EMPTY_FORM);
+  const [wiStep, setWiStep]               = useState(1);
+  const [showWiNotes, setShowWiNotes]     = useState(false);
   const [viewWalkin, setViewWalkin]       = useState(null);
   const [toast, showToast, clearToast, toastType] = useToast();
 
@@ -115,6 +117,8 @@ export default function WalkIn() {
     if (!preselectedRoom || loading) return;
     setForm(f => ({ ...f, roomId: String(preselectedRoom.id) }));
     setFormOpen(true);
+    setWiStep(1);
+    setShowWiNotes(false);
   }, [preselectedRoom, loading]);
 
   // Room availability — same check as BookingModal
@@ -714,7 +718,28 @@ export default function WalkIn() {
                 </div>
               )}
 
+              {/* Step indicator */}
+              <div className="flex items-center gap-2 mb-5">
+                {[{ num: 1, label: 'Details' }, { num: 2, label: 'Extras & Summary' }].map((s, i) => (
+                  <React.Fragment key={s.num}>
+                    {i > 0 && <div className={`flex-1 h-px ${wiStep >= s.num ? 'bg-sky-400' : 'bg-slate-200'}`} />}
+                    <button type="button" onClick={() => s.num < wiStep && setWiStep(s.num)}
+                      className={`flex items-center gap-1.5 text-sm font-medium ${
+                        wiStep === s.num ? 'text-sky-700' : wiStep > s.num ? 'text-sky-500 cursor-pointer' : 'text-slate-400'
+                      }`}>
+                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                        wiStep >= s.num ? 'bg-sky-600 text-white' : 'bg-slate-200 text-slate-500'
+                      }`}>{wiStep > s.num ? '✓' : s.num}</span>
+                      {s.label}
+                    </button>
+                  </React.Fragment>
+                ))}
+              </div>
+
               <form onSubmit={handleCreate} id="walkin-form">
+
+                {/* ═══ STEP 1 — Guest & Booking Details ═══ */}
+                {wiStep === 1 && (<>
                 {/* Guest info */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-slate-200"></div>
@@ -759,43 +784,37 @@ export default function WalkIn() {
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
 
-                  {/* Booking type */}
+                  {/* Booking type — compact pills */}
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex gap-2">
                       {[
-                        { type: 'day',   icon: 'fa-sun',   label: 'Day Visit',  time: '6AM – 6PM',  rate: dayRate,   color: 'blue',   disabled: dayUnavailable || !typeAllowed('day')   },
-                        { type: 'night', icon: 'fa-moon',  label: 'Night Stay', time: '6PM – 7AM',  rate: nightRate, color: 'indigo', disabled: !typeAllowed('night') },
-                        { type: '24hr',  icon: 'fa-clock', label: '24 Hours',   time: '6AM or 6PM', rate: rate24,    color: 'purple', disabled: !typeAllowed('24hr')  },
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: dayUnavailable || !typeAllowed('day')   },
+                        { type: 'night', icon: 'fa-moon',  label: 'Night', disabled: !typeAllowed('night') },
+                        { type: '24hr',  icon: 'fa-clock', label: '24 Hrs', disabled: !typeAllowed('24hr')  },
                       ].map(opt => {
-                        // 24hr button is active for both '24hr' and '24hr-pm'
                         const active = opt.type === '24hr' ? is24hr : form.bookingType === opt.type;
-                        const colorMap = {
-                          blue:   { border: 'border-sky-500',   bg: 'bg-sky-50',   text: 'text-sky-700',   icon: 'text-sky-500'   },
-                          indigo: { border: 'border-indigo-500', bg: 'bg-indigo-50', text: 'text-indigo-700', icon: 'text-indigo-500' },
-                          purple: { border: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-500' },
-                        };
-                        const c = colorMap[opt.color];
                         return (
                           <button key={opt.type} type="button"
                             disabled={opt.disabled}
                             onClick={() => { if (!opt.disabled) setField('bookingType', opt.type); }}
-                            className={`flex flex-col items-center gap-1 p-3 border-2 rounded-lg transition-colors ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                               opt.disabled
                                 ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
-                                : active ? `${c.border} ${c.bg}` : 'border-slate-200 hover:border-slate-300'
+                                : active ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
                             }`}
                           >
-                            <i className={`fas ${opt.icon} text-lg ${active && !opt.disabled ? c.icon : 'text-slate-400'}`}></i>
-                            <p className={`text-xs font-semibold ${active && !opt.disabled ? c.text : 'text-slate-700'}`}>{opt.label}</p>
-                            <p className="text-xs text-slate-500">{opt.time}</p>
-                            <p className={`text-xs font-bold ${active && !opt.disabled ? c.text : 'text-slate-600'}`}>
-                              {form.roomId ? fmtMoney(opt.rate) : '—'}
-                            </p>
+                            <i className={`fas ${opt.icon} text-xs ${active && !opt.disabled ? 'text-sky-500' : 'text-slate-400'}`}></i>
+                            {opt.label}
                           </button>
                         );
                       })}
                     </div>
+                    {form.roomId && (
+                      <p className="mt-1 text-xs text-slate-500 text-center">
+                        {fmtMoney(form.bookingType === 'night' ? nightRate : is24hr ? rate24 : dayRate)} / {form.bookingType === 'night' ? 'night' : is24hr ? '24 hrs' : 'day'}
+                      </p>
+                    )}
 
                     {/* 24hr start-time sub-toggle */}
                     {is24hr && (
@@ -895,22 +914,7 @@ export default function WalkIn() {
                     </div>
                   </div>
 
-                  <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Check-in / Check-out</label>
-                    <div className={`border border-slate-200 rounded-xl px-3 py-2 w-full text-sm font-medium flex items-center gap-2 ${
-                      form.bookingType === 'night'   ? 'bg-indigo-50 text-indigo-700' :
-                      is24hr                         ? 'bg-purple-50 text-purple-700' :
-                                                       'bg-sky-50 text-sky-700'
-                    }`}>
-                      <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'}`}></i>
-                      {form.bookingType === 'night'   ? '6:00 PM → 7:00 AM (next day)'
-                     : form.bookingType === '24hr'    ? '6:00 AM → 6:00 AM (next day)'
-                     : form.bookingType === '24hr-pm' ? '6:00 PM → 6:00 PM (next day)'
-                     :                                  '6:00 AM → 6:00 PM'}
-                    </div>
-                  </div>
-
-                  <div className="col-span-2">
+                  <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">Payment Method *</label>
                     <div className="flex gap-2">
                       {[
@@ -920,26 +924,37 @@ export default function WalkIn() {
                       ].map(opt => (
                         <button key={opt.value} type="button"
                           onClick={() => setField('payMethod', opt.value)}
-                          className={`flex-1 flex items-center justify-center gap-2 py-2.5 border-2 rounded-xl text-sm font-medium transition-colors ${
+                          className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-xs font-medium transition-colors ${
                             form.payMethod === opt.value
                               ? 'border-sky-500 bg-sky-50 text-sky-700'
-                              : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                              : 'border-slate-200 text-slate-600 hover:border-slate-300'
                           }`}
                         >
-                          <i className={`fas ${opt.icon} ${form.payMethod === opt.value ? '' : opt.color}`}></i>
+                          <i className={`fas ${opt.icon} text-xs ${form.payMethod === opt.value ? '' : opt.color}`}></i>
                           {opt.value}
                         </button>
                       ))}
                     </div>
                   </div>
                 </div>
+                </>)}
 
-                <div className="mb-5">
-                  <label className="block text-xs font-medium text-slate-700 mb-1">Notes (optional)</label>
-                  <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                    placeholder="Special requests, remarks..." />
-                </div>
+                {/* ═══ STEP 2 — Extras & Summary ═══ */}
+                {wiStep === 2 && (<>
+
+                {/* Notes */}
+                {showWiNotes ? (
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Notes</label>
+                    <input type="text" value={form.notes} onChange={e => setField('notes', e.target.value)}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      placeholder="Special requests, remarks..." />
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setShowWiNotes(true)} className="text-xs text-sky-600 hover:underline mb-4">
+                    <i className="fas fa-plus mr-1"></i>Add notes / special requests
+                  </button>
+                )}
 
                 {/* Amenities — fetched from API */}
                 {addons.length > 0 && (
@@ -1103,21 +1118,40 @@ export default function WalkIn() {
                   );
                 })()}
 
+                </>)}
               </form>
             </div>
 
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0 bg-white">
-              <button type="button" onClick={() => { setFormOpen(false); setFormError(''); }}
-                className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
-                Cancel
-              </button>
-              <button type="submit" form="walkin-form"
-                disabled={submitting || nightUnavailable || (dayUnavailable && form.bookingType === 'day')}
-                className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                <i className="fas fa-eye"></i>
-                {submitting ? 'Creating...' : 'Review & Confirm'}
-              </button>
+              {wiStep === 1 ? (<>
+                <button type="button" onClick={() => { setFormOpen(false); setFormError(''); }}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  Cancel
+                </button>
+                <button type="button"
+                  onClick={() => {
+                    setFormError('');
+                    if (!form.fullName.trim()) { setFormError('Guest name is required.'); return; }
+                    if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
+                    if (!form.roomId) { setFormError('Please select a room.'); return; }
+                    setWiStep(2);
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                  Next <i className="fas fa-arrow-right"></i>
+                </button>
+              </>) : (<>
+                <button type="button" onClick={() => setWiStep(1)}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  <i className="fas fa-arrow-left mr-1"></i>Back
+                </button>
+                <button type="submit" form="walkin-form"
+                  disabled={submitting || nightUnavailable || (dayUnavailable && form.bookingType === 'day')}
+                  className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
+                  <i className="fas fa-eye"></i>
+                  {submitting ? 'Creating...' : 'Review & Confirm'}
+                </button>
+              </>)}
             </div>
           </div>
         </div>
@@ -1135,7 +1169,7 @@ export default function WalkIn() {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Today's Bookings</h2>
             <button
-              onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
+              onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); setWiStep(1); setShowWiNotes(false); }}
               className="bg-sky-600 text-white px-4 py-2 rounded hover:bg-sky-700 text-sm"
             >
               <i className="fas fa-plus mr-2"></i>New Walk-in
@@ -1151,7 +1185,7 @@ export default function WalkIn() {
               <i className="fas fa-calendar-day text-3xl mb-2 block"></i>
               <p>No bookings for today yet.</p>
               <button
-                onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); }}
+                onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); setWiStep(1); setShowWiNotes(false); }}
                 className="mt-3 px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700"
               >
                 <i className="fas fa-plus mr-2"></i>Create Walk-in
