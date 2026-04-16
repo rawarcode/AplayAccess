@@ -241,6 +241,7 @@ export default function WalkIn() {
     if (availability !== null && (!selRoom || availability[selRoom.name] !== true)) {
       setFormError('This room is not available for the selected date and booking type.'); return;
     }
+    setShortStayAck(false);
     setConfirmOpen(true);
   }
 
@@ -287,6 +288,7 @@ export default function WalkIn() {
 
   const [cancelBooking, setCancelBooking] = useState(null);
   const [cancelling,    setCancelling]    = useState(false);
+  const [shortStayAck,  setShortStayAck]  = useState(false);
 
   async function handleStatus(bookingId, status) {
     setActionLoading(bookingId);
@@ -533,6 +535,19 @@ export default function WalkIn() {
                          : form.bookingType === '24hr'    ? '24 Hours (6AM–6AM)'
                          : form.bookingType === '24hr-pm' ? '24 Hours (6PM–6PM)'
                          : 'Day Visit';
+
+        // Calculate remaining hours in slot if booking is for today
+        let remainingHrs = null;
+        if (form.date === today) {
+          const now = new Date();
+          const h = now.getHours() + now.getMinutes() / 60;
+          if (form.bookingType === 'day')        remainingHrs = 18 - h;        // ends 6PM
+          else if (form.bookingType === 'night')  remainingHrs = (h >= 18 ? (24 - h) + 7 : 7 - h);  // ends 7AM
+          else if (form.bookingType === '24hr')   remainingHrs = 24 - (h - 6);  // 24h from 6AM
+          else if (form.bookingType === '24hr-pm') remainingHrs = 24 - (h - 18); // 24h from 6PM
+        }
+        const shortStay = remainingHrs !== null && remainingHrs > 0 && remainingHrs < 4;
+
         return (
           <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
             <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
@@ -702,13 +717,35 @@ export default function WalkIn() {
                 </div>
               </div>
 
+              {/* Short-stay warning */}
+              {shortStay && (
+                <div className="mx-6 mb-2 p-3 bg-amber-50 border border-amber-300 rounded-xl">
+                  <div className="flex items-start gap-2">
+                    <i className="fas fa-exclamation-triangle text-amber-600 mt-0.5"></i>
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900">
+                        Less than {Math.ceil(remainingHrs)} {Math.ceil(remainingHrs) === 1 ? 'hour' : 'hours'} remaining in this time slot
+                      </p>
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        The guest will have limited time. Full room rate still applies.
+                      </p>
+                      <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                        <input type="checkbox" checked={shortStayAck} onChange={e => setShortStayAck(e.target.checked)}
+                          className="w-4 h-4 rounded border-amber-400 text-amber-600 focus:ring-amber-500" />
+                        <span className="text-xs font-medium text-amber-800">I've informed the guest about the remaining time</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
                 <button onClick={() => setConfirmOpen(false)}
                   className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
                   <i className="fas fa-arrow-left mr-2"></i>Back
                 </button>
-                <button onClick={handleConfirmCreate} disabled={submitting}
+                <button onClick={handleConfirmCreate} disabled={submitting || (shortStay && !shortStayAck)}
                   className="flex-1 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
                   {submitting
                     ? <><i className="fas fa-spinner fa-spin"></i> Creating...</>
