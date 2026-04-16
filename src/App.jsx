@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
@@ -11,9 +12,9 @@ import ResetPassword from "./pages/ResetPassword.jsx";
 import PaymentReturn from "./pages/PaymentReturn.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 
-// Guest dashboard (protected)
+// Guest dashboard (protected) — lazy-loaded portal shell
 import RequireAuth from "./components/auth/RequireAuth.jsx";
-import DashboardShell from "./components/dashboard/DashboardShell.jsx";
+const DashboardShell = lazy(() => import("./components/dashboard/DashboardShell.jsx"));
 import GuestDashboard from "./pages/dashboard/GuestDashboard.jsx";
 import MyBookings from "./pages/dashboard/MyBookings.jsx";
 import EditProfile from "./pages/dashboard/EditProfile.jsx";
@@ -22,9 +23,9 @@ import Messages from "./pages/dashboard/Messages.jsx";
 // Shared staff login
 import StaffLogin from "./pages/StaffLogin.jsx";
 
-// Owner portal (consolidated — includes all admin pages)
+// Owner portal (consolidated — includes all admin pages) — lazy-loaded portal shell
 import RequireOwner from "./components/auth/RequireOwner.jsx";
-import OwnerShell from "./components/owner/OwnerShell.jsx";
+const OwnerShell = lazy(() => import("./components/owner/OwnerShell.jsx"));
 import OwnerDashboard from "./pages/owner/Dashboard.jsx";
 import OwnerTransactions from "./pages/owner/Transactions.jsx";
 import OwnerReports from "./pages/owner/Reports.jsx";
@@ -42,19 +43,26 @@ import OwnerMessages from "./pages/admin/Messages.jsx";
 import OwnerAnnouncements from "./pages/admin/Announcements.jsx";
 import OwnerAddons from "./pages/admin/Addons.jsx";
 
-// Frontdesk portal
+// Frontdesk portal — lazy-loaded (no shared shell, each page is a portal entry)
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
-import FDDashboard from "./frontdesk/components/Dashboard.jsx";
-import FDReservation from "./frontdesk/components/Reservation.jsx";
-import FDBilling from "./frontdesk/components/Billing.jsx";
-import FDWalkIn from "./frontdesk/components/WalkIn.jsx";
-import FDGuestRecords from "./frontdesk/components/GuestRecords.jsx";
-import FDRooms from "./frontdesk/components/Rooms.jsx";
-import FDMessages from "./frontdesk/components/Messages.jsx";
-import FDReports from "./frontdesk/components/Reports.jsx";
+const FDDashboard = lazy(() => import("./frontdesk/components/Dashboard.jsx"));
+const FDReservation = lazy(() => import("./frontdesk/components/Reservation.jsx"));
+const FDBilling = lazy(() => import("./frontdesk/components/Billing.jsx"));
+const FDWalkIn = lazy(() => import("./frontdesk/components/WalkIn.jsx"));
+const FDGuestRecords = lazy(() => import("./frontdesk/components/GuestRecords.jsx"));
+const FDRooms = lazy(() => import("./frontdesk/components/Rooms.jsx"));
+const FDMessages = lazy(() => import("./frontdesk/components/Messages.jsx"));
+const FDReports = lazy(() => import("./frontdesk/components/Reports.jsx"));
+
+const SuspenseFallback = (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-sky-500" />
+  </div>
+);
 
 export default function App() {
   return (
+    <Suspense fallback={SuspenseFallback}>
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
@@ -190,5 +198,6 @@ export default function App() {
         }
       />
     </Routes>
+    </Suspense>
   );
 }

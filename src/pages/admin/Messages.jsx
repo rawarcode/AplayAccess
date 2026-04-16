@@ -4,15 +4,11 @@ import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
+import { fmtDateTime } from "../../lib/format";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function fmtDate(str) {
-  if (!str) return "—";
-  return new Date(str.replace(" ", "T")).toLocaleString("en-PH", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
-}
+// Local alias: the original "fmtDate" here included time — it was really fmtDateTime
+const fmtDate = fmtDateTime;
 
 function timeAgo(str) {
   if (!str) return "";

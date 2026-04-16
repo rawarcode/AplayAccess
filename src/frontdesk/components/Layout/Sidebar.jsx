@@ -97,7 +97,7 @@ export default function Sidebar({ children, showTopBar = true }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
+        <nav className="flex-1 overflow-y-auto p-4" aria-label="Frontdesk navigation">
           {/* Front Desk */}
           <div className="mb-6">
             {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Front Desk</h3>}
@@ -230,9 +230,9 @@ export default function Sidebar({ children, showTopBar = true }) {
             </div>
           </header>
         )}
-        <div className="flex-1 overflow-auto bg-sky-50">
+        <main className="flex-1 overflow-auto bg-sky-50">
           {children}
-        </div>
+        </main>
       </div>
     </div>
     </NotificationContext.Provider>

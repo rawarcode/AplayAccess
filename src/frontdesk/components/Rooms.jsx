@@ -6,6 +6,7 @@ import Modal from '../../components/modals/Modal';
 import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
+import { fmtTime } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -23,13 +24,6 @@ const CATEGORY_GROUPS = [
   { key: 'cottage',  label: 'Cottages',  icon: 'fa-umbrella-beach' },
   { key: 'pavilion', label: 'Pavilions', icon: 'fa-archway'        },
 ];
-
-function fmtTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleTimeString('en-PH', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
 
 function countdown(ms) {
   if (ms <= 0) return null;

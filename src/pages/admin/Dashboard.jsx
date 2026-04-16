@@ -3,29 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { getAdminBookings } from "../../lib/adminApi";
 import { updateBookingStatus } from "../../lib/frontdeskApi";
 import Toast, { useToast } from "../../components/ui/Toast";
+import { fmtTime, fmtDateTime } from "../../lib/format";
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function fmtTime(str) {
-  if (!str) return "";
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleString("en-PH", {
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
-}
-
-function fmtDate(str) {
-  if (!str) return "";
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleString("en-PH", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
-}
+// Local alias: the original "fmtDate" here included time — it was really fmtDateTime
+const fmtDate = fmtDateTime;
 
 const STATUS_COLORS = {
   Pending:      "bg-amber-100 text-amber-800",

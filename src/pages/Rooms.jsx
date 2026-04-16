@@ -78,21 +78,6 @@ function useReveal() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Floating hero particles                                           */
-/* ------------------------------------------------------------------ */
-function HeroParticles() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-      <div className="absolute w-2 h-2 bg-white/20 rounded-full animate-float-slow" style={{ top: "20%", left: "10%" }} />
-      <div className="absolute w-3 h-3 bg-white/15 rounded-full animate-float-slow" style={{ top: "60%", left: "80%", animationDelay: "2s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/25 rounded-full animate-float-slow" style={{ top: "80%", left: "25%", animationDelay: "4s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "30%", left: "55%", animationDelay: "1s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/20 rounded-full animate-float-fast" style={{ top: "70%", left: "40%", animationDelay: "3s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "15%", left: "70%", animationDelay: "5s" }} />
-      <div className="absolute top-0 left-[-50%] w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
-    </div>
-  );
-}
 
 export default function Rooms() {
   const { user, login } = useAuth();
@@ -205,8 +190,6 @@ export default function Rooms() {
           backgroundPosition: "center",
         }}
       >
-        <HeroParticles />
-
         <div className="max-w-4xl mx-auto px-4 text-white z-10">
           <h1 className="text-3xl md:text-5xl font-bold mb-4 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
             {roomsHero.title}
@@ -310,9 +293,6 @@ export default function Rooms() {
                   {roomCards.map((r) => (
                     <div key={r.id ?? r.name}
                       className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-400/50">
-                      {/* Hover glow */}
-                      <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
-
                       {/* Image */}
                       <div className="relative overflow-hidden shrink-0">
                         <img src={r.img} alt={r.name}

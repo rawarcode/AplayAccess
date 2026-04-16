@@ -31,21 +31,6 @@ function catLabel(cat) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Floating hero particles                                           */
-/* ------------------------------------------------------------------ */
-function HeroParticles() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-      <div className="absolute w-2 h-2 bg-white/20 rounded-full animate-float-slow" style={{ top: "20%", left: "10%" }} />
-      <div className="absolute w-3 h-3 bg-white/15 rounded-full animate-float-slow" style={{ top: "60%", left: "80%", animationDelay: "2s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/25 rounded-full animate-float-slow" style={{ top: "80%", left: "25%", animationDelay: "4s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "30%", left: "55%", animationDelay: "1s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/20 rounded-full animate-float-fast" style={{ top: "70%", left: "40%", animationDelay: "3s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "15%", left: "70%", animationDelay: "5s" }} />
-      <div className="absolute top-0 left-[-50%] w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
-    </div>
-  );
-}
 
 export default function Gallery() {
   const siteContent = useContent();
@@ -154,8 +139,6 @@ export default function Gallery() {
           backgroundRepeat: "no-repeat",
         }}
       >
-        <HeroParticles />
-
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
           <h1 className="text-3xl md:text-5xl font-bold mb-4 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
             {galleryHero.title}

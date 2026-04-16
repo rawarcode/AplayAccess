@@ -215,7 +215,7 @@ export default function DashboardShell() {
             <p className="text-xs text-gray-400 break-all">{user?.email || ""}</p>
           </div>
 
-          <nav>
+          <nav aria-label="Dashboard navigation">
             <ul className="space-y-1" onClick={() => setSidebarOpen(false)}>
               <li><NavItem to="/dashboard"><i className="fas fa-home w-5 text-center"></i> Dashboard</NavItem></li>
               <li><NavItem to="/dashboard/bookings"><i className="fas fa-calendar-alt w-5 text-center"></i> My Bookings</NavItem></li>

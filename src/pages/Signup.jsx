@@ -97,8 +97,9 @@ export default function Signup() {
 
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+              <label htmlFor="signup-name" className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
               <input
+                id="signup-name"
                 className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="Enter your full name"
                 value={form.name}
@@ -108,8 +109,9 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+              <label htmlFor="signup-email" className="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
               <input
+                id="signup-email"
                 type="email"
                 className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="Enter your email"
@@ -120,8 +122,9 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
+              <label htmlFor="signup-phone" className="block text-sm font-medium text-slate-700 mb-1">Phone Number</label>
               <input
+                id="signup-phone"
                 type="tel"
                 className="w-full px-4 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                 placeholder="Enter your phone number"
@@ -131,9 +134,10 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
+              <label htmlFor="signup-password" className="block text-sm font-medium text-slate-700 mb-1">Password</label>
               <div className="relative">
                 <input
+                  id="signup-password"
                   type={showPass ? "text" : "password"}
                   className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                   placeholder="Create a password"
@@ -151,9 +155,10 @@ export default function Signup() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+              <label htmlFor="signup-confirm" className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
               <div className="relative">
                 <input
+                  id="signup-confirm"
                   type={showConfirm ? "text" : "password"}
                   className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500"
                   placeholder="Confirm your password"

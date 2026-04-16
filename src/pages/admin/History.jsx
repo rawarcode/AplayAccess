@@ -3,6 +3,7 @@ import { getAdminHistory } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
 import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
+import { fmtDateTime } from "../../lib/format";
 
 // ── Category config ──────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -71,14 +72,6 @@ function RoleBadge({ role }) {
       {label}
     </span>
   );
-}
-
-function fmtDateTime(str) {
-  if (!str) return "\u2014";
-  return new Date(str.replace(" ", "T")).toLocaleString("en-PH", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
 }
 
 function timeAgo(dateStr) {

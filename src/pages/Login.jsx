@@ -110,26 +110,32 @@ export default function Login() {
           <form onSubmit={submit}>
             <div className="relative mb-6">
               <i className="fas fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
+              <label htmlFor="login-email" className="sr-only">Email address</label>
               <input
+                id="login-email"
                 type="email"
                 autoComplete="email"
                 placeholder="email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                aria-label="Email address"
                 className="w-full py-4 pl-14 pr-6 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
               />
             </div>
 
             <div className="relative mb-3">
               <i className="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
+              <label htmlFor="login-password" className="sr-only">Password</label>
               <input
+                id="login-password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                aria-label="Password"
                 className="w-full py-4 pl-14 pr-14 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
               />
               <button

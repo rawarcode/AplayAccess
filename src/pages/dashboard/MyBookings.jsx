@@ -7,17 +7,7 @@ import { api } from "../../lib/api.js";
 import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { Helmet } from "react-helmet-async";
-
-// ─── Datetime formatter ───────────────────────────────────────────────────────
-function fmtDateTime(str) {
-  if (!str) return str;
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleString("en-PH", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
-}
+import { fmtDateTime } from "../../lib/format";
 
 // ─── Special requests formatter ───────────────────────────────────────────────
 function renderSpecialRequests(text) {

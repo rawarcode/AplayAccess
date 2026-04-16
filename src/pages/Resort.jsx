@@ -96,21 +96,6 @@ function useReveal() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Floating hero particles                                           */
-/* ------------------------------------------------------------------ */
-function HeroParticles() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-      <div className="absolute w-2 h-2 bg-white/20 rounded-full animate-float-slow" style={{ top: "20%", left: "10%" }} />
-      <div className="absolute w-3 h-3 bg-white/15 rounded-full animate-float-slow" style={{ top: "60%", left: "80%", animationDelay: "2s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/25 rounded-full animate-float-slow" style={{ top: "80%", left: "25%", animationDelay: "4s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "30%", left: "55%", animationDelay: "1s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/20 rounded-full animate-float-fast" style={{ top: "70%", left: "40%", animationDelay: "3s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "15%", left: "70%", animationDelay: "5s" }} />
-      <div className="absolute top-0 left-[-50%] w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  Wavy SVG divider                                                  */
@@ -504,9 +489,6 @@ export default function Resort() {
             </>
           )}
 
-          {/* Floating particles */}
-          <HeroParticles />
-
           <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-hero-fade-in [animation-delay:0.2s] opacity-0">{pc.hero.title}</h1>
             <p className="text-xl md:text-2xl mb-8 animate-hero-fade-in [animation-delay:0.6s] opacity-0">{pc.hero.subtitle}</p>
@@ -546,7 +528,7 @@ export default function Resort() {
           {/* Scroll-down cue */}
           <button
             onClick={() => document.getElementById(announcements?.length ? "announcements" : "about")?.scrollIntoView({ behavior: "smooth" })}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-bounce"
+            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-pulse"
             aria-label="Scroll down"
           >
             <i className="fas fa-chevron-down text-2xl" />
@@ -560,9 +542,6 @@ export default function Resort() {
         {announcements !== null && announcements.length > 0 && (
           <section id="announcements" className="py-16 bg-sky-50 relative overflow-hidden">
             {/* Decorative blobs */}
-            <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
-
             <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               {/* Section header */}
               <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
@@ -764,9 +743,6 @@ export default function Resort() {
                   key={r.id ?? r.name}
                   className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ring-1 ring-slate-200 hover:ring-sky-400/50"
                 >
-                  {/* Hover glow */}
-                  <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
-
                   <div className="relative overflow-hidden">
                     <img src={r.img} alt={r.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />

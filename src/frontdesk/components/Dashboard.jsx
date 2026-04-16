@@ -11,18 +11,12 @@ import { useAuth } from '../../context/AuthContext';
 import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
 import NotificationBell from '../../components/ui/NotificationBell';
 import Toast, { useToast } from '../../components/ui/Toast';
+import { fmtTime } from '../../lib/format';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
-
-function fmtTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleTimeString('en-PH', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
 
 function buildWeekChart(bookings) {
   const labels = [], counts = [];

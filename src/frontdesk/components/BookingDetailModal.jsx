@@ -7,6 +7,7 @@ import {
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
+import { fmtDateTime, fmtMoney } from '../../lib/format';
 
 // Entrance fee rates per adult — matches Setting::pricing() defaults
 const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
@@ -22,16 +23,6 @@ function entranceFeeForBooking(booking) {
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function fmtDateTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
-function fmtMoney(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-}
 function parseWalkIn(b) {
   if (!b?.specialRequests?.startsWith('Walk-in:')) return null;
   const name  = (b.specialRequests.match(/^Walk-in:\s*([^,]+)/) || [])[1]?.trim() || b.guest;

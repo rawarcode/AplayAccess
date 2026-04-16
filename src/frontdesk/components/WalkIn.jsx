@@ -7,19 +7,10 @@ import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus, tr
 import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
+import { fmtMoney, fmtDateTime } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
-
-function fmtMoney(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-}
-function fmtDateTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
-    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
 
 function walkInName(b) {
   if (b.specialRequests?.startsWith('Walk-in:')) {
@@ -845,21 +836,21 @@ export default function WalkIn() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-5">
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
-                    <input type="text" value={form.fullName}
+                    <label htmlFor="wi-fullname" className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
+                    <input id="wi-fullname" type="text" value={form.fullName}
                       onChange={e => setField('fullName', e.target.value)}
                       placeholder="e.g. Juan dela Cruz Jr."
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Phone *</label>
-                    <input type="tel" value={form.phone}
+                    <label htmlFor="wi-phone" className="block text-xs font-medium text-slate-700 mb-1">Phone *</label>
+                    <input id="wi-phone" type="tel" value={form.phone}
                       onChange={e => setField('phone', e.target.value)}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="+639XXXXXXXXX" required />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 mb-1">Email</label>
-                    <input type="email" value={form.email}
+                    <label htmlFor="wi-email" className="block text-xs font-medium text-slate-700 mb-1">Email</label>
+                    <input id="wi-email" type="email" value={form.email}
                       onChange={e => setField('email', e.target.value)}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
                   </div>

@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
+import { fmtMoney, fmtDate, fmtDateTime } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -17,21 +18,6 @@ function calcEntrance(b) {
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-function fmtMoney(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-}
-function fmtDateTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
-    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
-function fmtDate(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleDateString('en-PH', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
-}
 
 function PayIcon({ method }) {
   const m = (method || '').toLowerCase();

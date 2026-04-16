@@ -5,25 +5,10 @@ import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
 import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom } from '../../lib/frontdeskApi';
+import { fmtDateTime, fmtTime, fmtMoney } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function fmtDateTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
-function fmtTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleTimeString('en-PH', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
-function fmtMoney(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-}
 
 function parseWalkIn(b) {
   if (!b.specialRequests?.startsWith('Walk-in:')) return null;

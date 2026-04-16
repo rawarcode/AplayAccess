@@ -59,24 +59,6 @@ function useReveal() {
 }
 
 /* ------------------------------------------------------------------ */
-/*  #2 — Floating particles component                                */
-/* ------------------------------------------------------------------ */
-function HeroParticles() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-[1]">
-      {/* Large slow floaters */}
-      <div className="absolute w-2 h-2 bg-white/20 rounded-full animate-float-slow" style={{ top: "20%", left: "10%" }} />
-      <div className="absolute w-3 h-3 bg-white/15 rounded-full animate-float-slow" style={{ top: "60%", left: "80%", animationDelay: "2s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/25 rounded-full animate-float-slow" style={{ top: "80%", left: "25%", animationDelay: "4s" }} />
-      {/* Small fast floaters */}
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "30%", left: "55%", animationDelay: "1s" }} />
-      <div className="absolute w-1.5 h-1.5 bg-white/20 rounded-full animate-float-fast" style={{ top: "70%", left: "40%", animationDelay: "3s" }} />
-      <div className="absolute w-1 h-1 bg-white/30 rounded-full animate-float-fast" style={{ top: "15%", left: "70%", animationDelay: "5s" }} />
-      {/* Shimmer streak */}
-      <div className="absolute top-0 left-[-50%] w-[200%] h-full bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer" />
-    </div>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /*  #4 — Wavy SVG divider                                            */
@@ -164,9 +146,6 @@ export default function Home() {
           </>
         )}
 
-        {/* #2 — floating particles */}
-        <HeroParticles />
-
         {/* #1 — staggered fade-in */}
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
           <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
@@ -186,7 +165,7 @@ export default function Home() {
         {/* Scroll indicator */}
         <button
           onClick={() => document.getElementById("resorts-section")?.scrollIntoView({ behavior: "smooth" })}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-bounce"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-pulse"
           aria-label="Scroll down"
         >
           <i className="fas fa-chevron-down text-2xl"></i>
@@ -209,10 +188,7 @@ export default function Home() {
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">{resort.sectionSubtitle}</p>
           </div>
 
-          {/* #5 — hover glow ring */}
-          <div className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50">
-            {/* Glow effect behind card */}
-            <div className="absolute -inset-[2px] rounded-2xl bg-gradient-to-r from-sky-400 via-cyan-300 to-sky-500 opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500 -z-10" />
+          <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50">
 
             <img
               src={resort.image}
@@ -241,10 +217,6 @@ export default function Home() {
       {/*  #6 — WHY CHOOSE US  (#8 scroll reveal)                     */}
       {/* ============================================================ */}
       <section className="py-20 bg-gradient-to-br from-sky-50 via-white to-sky-50 relative overflow-hidden">
-        {/* Decorative blobs */}
-        <div className="pointer-events-none absolute -top-24 -left-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-sky-200 opacity-20 blur-3xl" />
-
         <div
           ref={whyRef}
           className="reveal-section relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"

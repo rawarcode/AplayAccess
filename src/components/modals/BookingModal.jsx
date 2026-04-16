@@ -4,6 +4,7 @@ import { createBooking, createGuestBooking, cancelBooking, cancelGuestBooking, c
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
 import { validatePromo } from "../../lib/adminApi.js";
+import { fmtDateTime } from "../../lib/format";
 
 // Fallback defaults — replaced immediately by /api/pricing on mount
 const DEFAULTS = {
@@ -360,12 +361,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         : await createBooking(bookingPayload);
 
       const raw = result.data?.data ?? result.data;
-      const fmtDT = (dt) => dt
-        ? new Date(dt.replace(' ', 'T')).toLocaleString('en-PH', {
-            month: 'short', day: 'numeric', year: 'numeric',
-            hour: 'numeric', minute: '2-digit', hour12: true,
-          })
-        : '—';
+      const fmtDT = fmtDateTime;
       bookingResultRef.current = {
         roomType:      raw.room?.name ?? '',
         checkIn:       fmtDT(raw.check_in),
@@ -426,7 +422,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             Book Your Visit at Aplaya
             {guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600" aria-label="Close"><i className="fas fa-times"></i></button>
+          <button onClick={onClose} className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-600" aria-label="Close booking modal"><i className="fas fa-times"></i></button>
         </div>
 
         {error && (
@@ -451,10 +447,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="bm-guest-name" className="block text-sm font-medium text-gray-700 mb-1">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="bm-guest-name"
                     type="text"
                     value={guestName}
                     onChange={e => setGuestName(e.target.value)}
@@ -464,10 +461,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="bm-guest-email" className="block text-sm font-medium text-gray-700 mb-1">
                     Email Address <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="bm-guest-email"
                     type="email"
                     value={guestEmail}
                     onChange={e => setGuestEmail(e.target.value)}
@@ -477,10 +475,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="bm-guest-phone" className="block text-sm font-medium text-gray-700 mb-1">
                     Phone Number <span className="text-gray-400 font-normal text-xs">(optional)</span>
                   </label>
                   <input
+                    id="bm-guest-phone"
                     type="tel"
                     value={guestPhone}
                     onChange={e => setGuestPhone(e.target.value)}
@@ -517,10 +516,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Visit date */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="bm-visit-date" className="block text-sm font-medium text-gray-700 mb-1">
                   Date <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="bm-visit-date"
                   type="date"
                   min={todayStr()}
                   value={visitDate}

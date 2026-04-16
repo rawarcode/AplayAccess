@@ -137,7 +137,7 @@ export default function OwnerReports() {
   const roomRevenue  = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0), 0)), [roomTypes, active]);
   const roomBookings = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).length), [roomTypes, active]);
 
-  const roomBarData = {
+  const roomBarData = useMemo(() => ({
     labels: roomTypes,
     datasets: [{
       label: "Revenue (₱)",
@@ -145,10 +145,10 @@ export default function OwnerReports() {
       backgroundColor: ROOM_COLORS,
       borderRadius: 6,
     }],
-  };
+  }), [roomTypes, roomRevenue]);
 
   // Daily Revenue Trend chart data
-  const dailyLineData = {
+  const dailyLineData = useMemo(() => ({
     labels: dailyRevenueData.map((d) => d.day),
     datasets: [{
       label: "Revenue (₱)",
@@ -159,18 +159,19 @@ export default function OwnerReports() {
       fill: true,
       pointRadius: 3,
     }],
-  };
-  const dailyLineOptions = {
+  }), [dailyRevenueData]);
+
+  const dailyLineOptions = useMemo(() => ({
     responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
       x: { title: { display: true, text: `Day of ${MONTH_NAMES[month - 1]}`, font: { size: 11 } } },
       y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true },
     },
-  };
+  }), [month]);
 
   // Month-over-Month Revenue chart data
-  const monthlyBarData = {
+  const monthlyBarData = useMemo(() => ({
     labels: monthlyData.map((m) => m.label),
     datasets: [{
       label: "Revenue (₱)",
@@ -180,7 +181,8 @@ export default function OwnerReports() {
       ),
       borderRadius: 6,
     }],
-  };
+  }), [monthlyData]);
+
   const monthlyBarOptions = {
     responsive: true, maintainAspectRatio: false,
     plugins: { legend: { display: false } },
@@ -205,18 +207,20 @@ export default function OwnerReports() {
   const totalRev = dailyData.reduce((s, r) => s + Number(r.revenue ?? 0), 0);
   const totalBk  = dailyData.reduce((s, r) => s + Number(r.bookings ?? 0), 0);
 
-  const revenueLineData = {
+  const revenueLineData = useMemo(() => ({
     labels: dailyData.map((d) => shortLabel(d.date)),
     datasets: [{ label: "Revenue", data: dailyData.map((d) => Number(d.revenue ?? 0)), borderColor: "rgba(59,130,246,0.8)", backgroundColor: "rgba(59,130,246,0.1)", tension: 0.3, fill: true }],
-  };
-  const bookingsLineData = {
+  }), [dailyData]);
+
+  const bookingsLineData = useMemo(() => ({
     labels: dailyData.map((d) => shortLabel(d.date)),
     datasets: [{ label: "Bookings", data: dailyData.map((d) => Number(d.bookings ?? 0)), borderColor: "rgba(16,185,129,0.8)", backgroundColor: "rgba(16,185,129,0.1)", tension: 0.3, fill: true }],
-  };
-  const analyticsRoomBarData = {
+  }), [dailyData]);
+
+  const analyticsRoomBarData = useMemo(() => ({
     labels: roomsData.map((r) => r.label),
     datasets: [{ label: "Revenue (₱)", data: roomsData.map((r) => Number(r.revenue ?? 0)), backgroundColor: roomsData.map((_, i) => BAR_COLORS[i % BAR_COLORS.length]), borderRadius: 6 }],
-  };
+  }), [roomsData]);
   const lineOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } } };
   const analyticsBarOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "top" } }, scales: { y: { ticks: { callback: (v) => `₱${(v/1000).toFixed(0)}k` } } } };
 

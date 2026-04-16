@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -64,63 +64,75 @@ export default function OwnerDashboard() {
   }, [load]);
 
   // ── Derived analytics — all computed from bookings array for consistency ──
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-  const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
-  const days30ago = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
-
   // Helper: revenue for a booking (total + entrance fee)
   const bookingRevenue = (b) => Number(b.total ?? 0) + calcEntrance(b);
-
-  // Active = not Cancelled/Pending (same filter as Reports, Billing, GuestRecords)
-  const activeBookings = bookings.filter(b => !['Cancelled', 'Pending'].includes(b.status));
-
-  // This month bookings (by check-in date)
-  const thisMonthAll    = bookings.filter(b => (b.checkIn?.slice(0, 10) ?? '') >= monthStart);
-  const thisMonthActive = thisMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
-  const lastMonthAll    = bookings.filter(b => { const d = b.checkIn?.slice(0, 10) ?? ''; return d >= lastMonthStart && d <= lastMonthEnd; });
-  const lastMonthActive = lastMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
-
-  const revThisMonth = thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
-  const revLastMonth = lastMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
-  const revMoM = revLastMonth > 0 ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
-  const txThisMonth = thisMonthAll.length;
-  const txLastMonth = lastMonthAll.length;
-  const txMoM = txThisMonth - txLastMonth;
-
-  // Avg booking value (from active bookings this month)
-  const avgBookingValue = thisMonthActive.length > 0
-    ? Math.round(thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0) / thisMonthActive.length)
-    : 0;
-
-  // Cancellation rate this month
-  const cancelledThisMonth = thisMonthAll.filter(b => b.status === 'Cancelled').length;
-  const cancelRate = txThisMonth > 0 ? Math.round((cancelledThisMonth / txThisMonth) * 100) : 0;
-
-  // Total guests (sum of guest counts from active bookings)
-  const totalGuests = activeBookings.reduce((s, b) => s + Number(b.guests ?? 0), 0);
-
-  // Online vs Walk-in — walk-ins have specialRequests starting with 'Walk-in:'
   const isWalkIn = (b) => b.specialRequests?.startsWith('Walk-in:') || b.reservationFee == 0 || b.reservationFee === '0';
-  const walkinBookings  = bookings.filter(b => isWalkIn(b)).length;
-  const onlineBookings  = bookings.length - walkinBookings;
-  const onlinePct       = bookings.length > 0 ? Math.round((onlineBookings / bookings.length) * 100) : 0;
 
-  // Peak day of week (from last 30 days bookings)
-  const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0]; // Sun-Sat
-  const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  bookings.forEach(b => {
-    const d = b.checkIn?.slice(0, 10) ?? '';
-    if (d < days30ago) return;
-    const dayIdx = new Date(d + 'T00:00:00').getDay();
-    dayOfWeekCounts[dayIdx] += 1;
-  });
-  const peakDayIdx = dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts));
-  const peakDay    = dayLabels[peakDayIdx];
+  const derivedKpis = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
+    const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
+    const days30ago = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+
+    // Active = not Cancelled/Pending
+    const activeBookings = bookings.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+
+    // This month bookings (by check-in date)
+    const thisMonthAll    = bookings.filter(b => (b.checkIn?.slice(0, 10) ?? '') >= monthStart);
+    const thisMonthActive = thisMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+    const lastMonthAll    = bookings.filter(b => { const d = b.checkIn?.slice(0, 10) ?? ''; return d >= lastMonthStart && d <= lastMonthEnd; });
+    const lastMonthActive = lastMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+
+    const revThisMonth = thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
+    const revLastMonth = lastMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
+    const revMoM = revLastMonth > 0 ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
+    const txThisMonth = thisMonthAll.length;
+    const txLastMonth = lastMonthAll.length;
+    const txMoM = txThisMonth - txLastMonth;
+
+    const avgBookingValue = thisMonthActive.length > 0
+      ? Math.round(thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0) / thisMonthActive.length)
+      : 0;
+
+    const cancelledThisMonth = thisMonthAll.filter(b => b.status === 'Cancelled').length;
+    const cancelRate = txThisMonth > 0 ? Math.round((cancelledThisMonth / txThisMonth) * 100) : 0;
+
+    const totalGuests = activeBookings.reduce((s, b) => s + Number(b.guests ?? 0), 0);
+
+    const walkinBookings  = bookings.filter(b => isWalkIn(b)).length;
+    const onlineBookings  = bookings.length - walkinBookings;
+    const onlinePct       = bookings.length > 0 ? Math.round((onlineBookings / bookings.length) * 100) : 0;
+
+    // Peak day of week (from last 30 days bookings)
+    const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0];
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    bookings.forEach(b => {
+      const d = b.checkIn?.slice(0, 10) ?? '';
+      if (d < days30ago) return;
+      const dayIdx = new Date(d + 'T00:00:00').getDay();
+      dayOfWeekCounts[dayIdx] += 1;
+    });
+    const peakDayIdx = dayOfWeekCounts.indexOf(Math.max(...dayOfWeekCounts));
+    const peakDay    = dayLabels[peakDayIdx];
+
+    return {
+      activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
+      avgBookingValue, cancelledThisMonth, cancelRate, totalGuests,
+      walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
+      dayOfWeekCounts, days30ago,
+    };
+  }, [bookings]);
+
+  const {
+    activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
+    avgBookingValue, cancelledThisMonth, cancelRate, totalGuests,
+    walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
+    dayOfWeekCounts, days30ago,
+  } = derivedKpis;
 
   // Revenue breakdown from active bookings (consistent with Reports page)
-  const revBreakdown = (() => {
+  const revBreakdown = useMemo(() => {
     let room = 0, entrance = 0, addons = 0, promos = 0;
     activeBookings.forEach(b => {
       const amenityTotal = Array.isArray(b.amenities)
@@ -134,15 +146,16 @@ export default function OwnerDashboard() {
       promos   += disc;
     });
     return { room: Math.max(room, 0), entrance, addons, promos };
-  })();
+  }, [activeBookings]);
+
   const revGrand = revBreakdown.room + revBreakdown.entrance + revBreakdown.addons;
-  const revSlices = [
+  const revSlices = useMemo(() => [
     { label: 'Room Rates',    value: revBreakdown.room,     color: '#3b82f6', icon: 'fa-bed' },
     { label: 'Entrance Fees', value: revBreakdown.entrance, color: '#10b981', icon: 'fa-ticket' },
     { label: 'Add-ons',       value: revBreakdown.addons,   color: '#f59e0b', icon: 'fa-concierge-bell' },
-  ].filter(s => s.value > 0);
+  ].filter(s => s.value > 0), [revBreakdown]);
 
-  const doughnutData = {
+  const doughnutData = useMemo(() => ({
     labels: revSlices.map(s => s.label),
     datasets: [{
       data: revSlices.map(s => s.value),
@@ -151,7 +164,8 @@ export default function OwnerDashboard() {
       borderColor: '#fff',
       hoverOffset: 6,
     }],
-  };
+  }), [revSlices]);
+
   const doughnutOpts = {
     responsive: true,
     maintainAspectRatio: false,
@@ -163,7 +177,7 @@ export default function OwnerDashboard() {
   };
 
   // Top performing rooms (computed from active bookings, last 30 days)
-  const topRooms = (() => {
+  const topRooms = useMemo(() => {
     const map = {};
     activeBookings.forEach(b => {
       const d = b.checkIn?.slice(0, 10) ?? '';
@@ -174,12 +188,12 @@ export default function OwnerDashboard() {
       map[key].revenue  += bookingRevenue(b);
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  })();
+  }, [activeBookings, days30ago]);
 
   // Daily revenue chart (computed from bookings, last 30 days)
-  const chartData = (() => {
+  const chartData = useMemo(() => {
+    const now = new Date();
     const dayMap = {};
-    // Init all 30 days
     for (let i = 29; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
       dayMap[d] = 0;
@@ -201,7 +215,7 @@ export default function OwnerDashboard() {
         pointRadius: 2,
       }],
     };
-  })();
+  }, [activeBookings]);
 
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) return (

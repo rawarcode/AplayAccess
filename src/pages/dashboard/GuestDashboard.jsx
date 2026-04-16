@@ -9,25 +9,7 @@ import BookingModal from "../../components/modals/BookingModal.jsx";
 import SuccessModal from "../../components/modals/SuccessModal.jsx";
 import Modal from "../../components/modals/Modal.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
-
-/** "2026-03-20 07:00" → "Mar 20, 2026 7:00 AM" */
-function fmtDateTime(str) {
-  if (!str) return str;
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleString("en-PH", {
-    month: "short", day: "numeric", year: "numeric",
-    hour: "numeric", minute: "2-digit", hour12: true,
-  });
-}
-
-/** "2026-03-20 07:00" → "Mar 20, 2026" */
-function fmtDate(str) {
-  if (!str) return str;
-  const d = new Date(str.replace(" ", "T"));
-  if (isNaN(d)) return str;
-  return d.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
-}
+import { fmtDateTime, fmtDate } from "../../lib/format";
 
 /** Days from now until a date string. Negative = past. */
 function daysUntil(str) {

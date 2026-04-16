@@ -3,6 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
+import { fmtDate, fmtMoney } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
@@ -12,15 +13,6 @@ function calcEntrance(b) {
   return (b.guests ?? 1) * rate;
 }
 
-function fmtDate(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleDateString('en-PH', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
-}
-function fmtMoney(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-}
 function initials(name) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }

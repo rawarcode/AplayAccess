@@ -267,7 +267,7 @@ export default function OwnerShell() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4">
+      <nav className="flex-1 overflow-y-auto px-3 py-4" aria-label="Owner navigation">
         {Object.keys(MENU).map(key => renderSection(key, mobile))}
       </nav>
 
@@ -345,6 +345,7 @@ export default function OwnerShell() {
               <button
                 onClick={() => setMobileOpen(true)}
                 className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none"
+                aria-label="Open menu"
               >
                 <i className="fas fa-bars text-xl"></i>
               </button>
@@ -400,9 +401,9 @@ export default function OwnerShell() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1">
+        <main className="flex-1">
           <Outlet />
-        </div>
+        </main>
       </div>
 
       {/* ── Account Settings Modal ────────────────────────────── */}

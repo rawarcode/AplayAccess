@@ -1,7 +1,7 @@
 export default function PortalTransition({ label }) {
   return (
     <div className="fixed inset-0 z-[9999] bg-[#1e3a8a] flex flex-col items-center justify-center">
-      <i className="fas fa-umbrella-beach text-white text-5xl mb-6 animate-bounce"></i>
+      <i className="fas fa-umbrella-beach text-white text-5xl mb-6 animate-pulse"></i>
       <p className="text-white text-2xl font-light tracking-wide mb-2">AplayAccess</p>
       <p className="text-blue-200 text-sm mb-8">{label}</p>
       <div className="flex gap-2">

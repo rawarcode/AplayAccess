@@ -201,7 +201,7 @@ export default function AdminShell() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto p-4">
+      <nav className="flex-1 overflow-y-auto p-4" aria-label="Admin navigation">
         <div className="mb-6">
           {(!collapsed || mobile) && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Admin</h3>}
           <ul>
@@ -364,6 +364,7 @@ export default function AdminShell() {
               <button
                 onClick={() => setMobileOpen(true)}
                 className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none"
+                aria-label="Open menu"
               >
                 <i className="fas fa-bars text-xl"></i>
               </button>
@@ -420,9 +421,9 @@ export default function AdminShell() {
         </header>
 
         {/* Page content */}
-        <div className="flex-1">
+        <main className="flex-1">
           <Outlet />
-        </div>
+        </main>
       </div>
 
       {/* ── Account Settings Modal ────────────────────────────────── */}

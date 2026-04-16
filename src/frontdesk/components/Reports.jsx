@@ -7,6 +7,7 @@ import {
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
+import { fmtMoney, fmtTime } from '../../lib/format';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -82,15 +83,6 @@ function calcEntrance(b) {
   return (b.guests ?? 1) * rate;
 }
 
-function fmtMoney(n) {
-  return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
-}
-function fmtTime(dt) {
-  if (!dt) return '—';
-  return new Date(dt.replace(' ', 'T')).toLocaleTimeString('en-PH', {
-    hour: 'numeric', minute: '2-digit', hour12: true,
-  });
-}
 
 function calcDuration(checkIn, checkOut) {
   if (!checkIn || !checkOut) return '—';
