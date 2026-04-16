@@ -258,24 +258,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const allowedTypes = selectedRoomObj?.allowed_booking_types ?? null;
   const typeAllowed  = (type) => !allowedTypes || allowedTypes.includes(type);
 
-  // ── Day unavailable: past 3PM today ───────────────────────────────────────
-  const dayUnavailable = useMemo(() => {
-    if (visitDate !== todayStr()) return false;
-    return new Date().getHours() >= 15; // 3PM cutoff for day booking
-  }, [visitDate]);
-
-  // ── Night unavailable: past 6PM today with no available rooms ─────────────
-  const nightUnavailable = useMemo(() => {
-    if (bookingType !== "night") return false;
-    if (visitDate === todayStr() && new Date().getHours() >= 18) return true;
-    if (availability !== null) return !Object.values(availability).some(v => v === true);
-    return false;
-  }, [bookingType, visitDate, availability]);
-
-  // Auto-switch away from Day if it becomes unavailable
-  useEffect(() => {
-    if (dayUnavailable && bookingType === "day") setBookingType("night");
-  }, [dayUnavailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-switch to first allowed type when room with restrictions is selected
   useEffect(() => {
@@ -334,9 +316,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
-    if (nightUnavailable) {
-      setError("No rooms available for tonight. Please select a future date."); return;
-    }
     if (!roomType)  { setError("Please select a room/cottage."); return; }
     if (availability !== null && availability[roomType] !== true) {
       setError("Selected room is not available for the chosen date. Please select another."); return;
@@ -543,12 +522,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                {nightUnavailable && (
-                  <p className="mt-1.5 text-xs text-red-600 flex items-center gap-1">
-                    <i className="fas fa-moon"></i>
-                    No rooms available for tonight. Please select a future date.
-                  </p>
-                )}
               </div>
 
               {/* Booking type — compact pills */}
@@ -558,7 +531,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </label>
                 <div className="flex gap-2">
                   {[
-                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: dayUnavailable || !typeAllowed("day")   },
+                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: !typeAllowed("day")   },
                     { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !typeAllowed("night") },
                     { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "6AM/6PM", disabled: !typeAllowed("24hr")  },
                   ].map(opt => {
@@ -619,10 +592,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   value={roomType}
                   onChange={(e) => { setRoomType(e.target.value); setPromoResult(null); setPromoInput(""); }}
                   required
-                  disabled={nightUnavailable}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">{nightUnavailable ? "No rooms available" : "Select Room / Cottage / Pavilion"}</option>
+                  <option value="">Select Room / Cottage / Pavilion</option>
                   {(() => {
                     const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
                     const getCategory = r => r.category || (r.name.toLowerCase().includes("cottage") ? "cottage" : r.name.toLowerCase().includes("pavilion") ? "pavilion" : "room");

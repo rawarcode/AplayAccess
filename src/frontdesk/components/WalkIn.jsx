@@ -142,26 +142,6 @@ export default function WalkIn() {
       .finally(() => setAvailChecking(false));
   }, [form.date, form.bookingType]);
 
-  // Day is unavailable when: today is selected and it's past 3PM
-  const dayUnavailable = useMemo(() => {
-    if (form.date !== today) return false;
-    return new Date().getHours() >= 15; // 3PM cutoff
-  }, [form.date, today]);
-
-  // Night is unavailable when: past 6PM today
-  const nightUnavailable = useMemo(() => {
-    if (form.bookingType !== 'night') return false;
-    if (form.date === today) {
-      const now = new Date();
-      if (now.getHours() >= 18) return true;
-    }
-    return false;
-  }, [form.bookingType, form.date, today]);
-
-  // Auto-switch away from Day if it becomes unavailable (past 3PM)
-  useEffect(() => {
-    if (dayUnavailable && form.bookingType === 'day') setField('bookingType', 'night');
-  }, [dayUnavailable]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })); }
 
@@ -243,14 +223,8 @@ export default function WalkIn() {
       setFormError('Guest name is required.'); return;
     }
     if (!form.phone.trim()) { setFormError('Phone number is required.'); return; }
-    if (dayUnavailable && form.bookingType === 'day') {
-      setFormError('Day booking is not available after 3:00 PM. Please select Night or 24 Hours.'); return;
-    }
     if (allowedTypes && !allowedTypes.includes(form.bookingType)) {
       setFormError(`This room only supports: ${allowedTypes.join(', ')}.`); return;
-    }
-    if (nightUnavailable) {
-      setFormError('Night booking is not available — it is past 6PM. Please select a future date.'); return;
     }
     if (!form.roomId) { setFormError('Please select a room.'); return; }
     const selRoom = rooms.find(r => String(r.id) === String(form.roomId));
@@ -788,7 +762,7 @@ export default function WalkIn() {
                     <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
                     <div className="flex gap-2">
                       {[
-                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: dayUnavailable || !typeAllowed('day')   },
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: !typeAllowed('day')   },
                         { type: 'night', icon: 'fa-moon',  label: 'Night', disabled: !typeAllowed('night') },
                         { type: '24hr',  icon: 'fa-clock', label: '24 Hrs', disabled: !typeAllowed('24hr')  },
                       ].map(opt => {
@@ -847,10 +821,8 @@ export default function WalkIn() {
                       Room *{availChecking && <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>}
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
-                      disabled={nightUnavailable}
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-100 disabled:cursor-not-allowed" required>
-                      <option value="">
-                        {nightUnavailable ? 'Night not available — select a future date' : 'Select room / cottage / pavilion'}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required>
+                      <option value="">Select room / cottage / pavilion
                       </option>
                       {(() => {
                         const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
@@ -1163,7 +1135,7 @@ export default function WalkIn() {
                 </button>
                 <button type="button"
                   onClick={handleCreate}
-                  disabled={submitting || nightUnavailable || (dayUnavailable && form.bookingType === 'day')}
+                  disabled={submitting}
                   className="flex-1 px-4 py-2.5 bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
                   <i className="fas fa-eye"></i>
                   {submitting ? 'Creating...' : 'Review & Confirm'}
