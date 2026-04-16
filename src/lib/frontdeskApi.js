@@ -45,9 +45,9 @@ export async function createWalkInBooking(payload) {
   return res.data;
 }
 
-// GET /api/resorts/:id/rooms?staff=1 — room list including tent pitching
+// GET /api/resorts/:id/rooms — room list (backend auto-includes tent for authenticated staff)
 export async function getFdRooms() {
-  const res = await api.get(`/api/resorts/${RESORT_ID}/rooms`, { params: { staff: 1 } });
+  const res = await api.get(`/api/resorts/${RESORT_ID}/rooms`);
   return res.data.data ?? res.data;
 }
 
