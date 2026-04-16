@@ -68,7 +68,7 @@ export default function ForgotPassword() {
             </p>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
                 <i className="fas fa-exclamation-circle mr-2"></i>
                 {error}
               </div>
@@ -98,7 +98,7 @@ export default function ForgotPassword() {
                 style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
               >
                 <i className="fas fa-paper-plane"></i>
-                {loading ? "Sending..." : cooldown > 0 ? `Resend in ${cooldown}s` : "Send Reset Link"}
+                {loading ? <><i className="fas fa-spinner fa-spin text-sm"></i> Sending...</> : cooldown > 0 ? `Resend in ${cooldown}s` : "Send Reset Link"}
               </button>
             </form>
 
@@ -116,8 +116,8 @@ export default function ForgotPassword() {
           </>
         ) : (
           <div className="text-center">
-            <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-              <i className="fas fa-check text-green-600 text-2xl"></i>
+            <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <i className="fas fa-check text-emerald-600 text-2xl"></i>
             </div>
             <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Check Your Email</h2>
             <p className="text-[#4a6f8c] mb-2">

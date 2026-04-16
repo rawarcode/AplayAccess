@@ -78,8 +78,8 @@ export default function ResetPassword() {
 
         {done ? (
           <div className="text-center">
-            <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-              <i className="fas fa-check text-green-600 text-2xl"></i>
+            <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+              <i className="fas fa-check text-emerald-600 text-2xl"></i>
             </div>
             <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Password Reset!</h2>
             <p className="text-[#4a6f8c] mb-4">
@@ -103,7 +103,7 @@ export default function ResetPassword() {
             <p className="text-center text-sm font-medium text-[#1e3a8a] mb-6 truncate">{email}</p>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
                 <i className="fas fa-exclamation-circle mr-2"></i>
                 {error}{" "}
                 {error.includes("expired") && (
@@ -146,7 +146,7 @@ export default function ResetPassword() {
                   </p>
                 )}
                 {password.length >= 8 && (
-                  <p className="text-xs text-green-600 mt-1">
+                  <p className="text-xs text-emerald-600 mt-1">
                     <i className="fas fa-check-circle mr-1"></i>
                     Password length is good
                   </p>
@@ -165,7 +165,7 @@ export default function ResetPassword() {
                     onChange={(e) => setPasswordConfirm(e.target.value)}
                     placeholder="Repeat your new password"
                     autoComplete="new-password"
-                    className={`w-full py-3 pl-12 pr-12 bg-[#f3fafd] border rounded-2xl text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb] ${mismatch ? "border-red-400" : "border-[#cde3ec]"}`}
+                    className={`w-full py-3 pl-12 pr-12 bg-[#f3fafd] border rounded-2xl text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb] ${mismatch ? "border-rose-400" : "border-[#cde3ec]"}`}
                   />
                   <button
                     type="button"
@@ -177,7 +177,7 @@ export default function ResetPassword() {
                   </button>
                 </div>
                 {mismatch && (
-                  <p className="text-xs text-red-500 mt-1">
+                  <p className="text-xs text-rose-500 mt-1">
                     <i className="fas fa-exclamation-circle mr-1"></i>
                     Passwords do not match
                   </p>
@@ -191,7 +191,7 @@ export default function ResetPassword() {
                 style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
               >
                 <i className="fas fa-shield-halved"></i>
-                {loading ? "Updating..." : "Reset Password"}
+                {loading ? <><i className="fas fa-spinner fa-spin text-sm"></i> Updating...</> : "Reset Password"}
               </button>
             </form>
           </>

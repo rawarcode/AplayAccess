@@ -117,7 +117,7 @@ export default function StaffLogin() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-200">
+            <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded-lg text-sm border border-rose-200">
               <i className="fas fa-exclamation-circle mr-2"></i>
               {error}
             </div>

@@ -116,27 +116,27 @@ export default function PaymentReturn({ outcome }) {
         <div className="text-center p-8 animate-hero-fade-in opacity-0">
           {status === "closing_success" ? (
             <>
-              <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
-                <i className="fas fa-check text-green-600 text-2xl"></i>
+              <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
+                <i className="fas fa-check text-emerald-600 text-2xl"></i>
               </div>
-              <p className="text-lg font-semibold text-gray-800">Payment received!</p>
-              <p className="text-sm text-gray-500 mt-1">Closing window…</p>
+              <p className="text-lg font-semibold text-slate-800">Payment received!</p>
+              <p className="text-sm text-slate-500 mt-1">Closing window…</p>
             </>
           ) : status === "verifying" ? (
             <>
               <div className="flex justify-center mb-4">
-                <div className="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                <div className="w-14 h-14 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
               </div>
-              <p className="text-lg font-semibold text-gray-800">Verifying payment…</p>
-              <p className="text-sm text-gray-500 mt-1">Please wait a moment.</p>
+              <p className="text-lg font-semibold text-slate-800">Verifying payment…</p>
+              <p className="text-sm text-slate-500 mt-1">Please wait a moment.</p>
             </>
           ) : (
             <>
-              <div className="mx-auto h-16 w-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                <i className="fas fa-times text-red-600 text-2xl"></i>
+              <div className="mx-auto h-16 w-16 rounded-full bg-rose-100 flex items-center justify-center mb-4">
+                <i className="fas fa-times text-rose-600 text-2xl"></i>
               </div>
-              <p className="text-lg font-semibold text-gray-800">Payment cancelled.</p>
-              <p className="text-sm text-gray-500 mt-1">Closing window…</p>
+              <p className="text-lg font-semibold text-slate-800">Payment cancelled.</p>
+              <p className="text-sm text-slate-500 mt-1">Closing window…</p>
             </>
           )}
         </div>
@@ -170,8 +170,8 @@ export default function PaymentReturn({ outcome }) {
         {status === "confirmed" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-                <i className="fas fa-check text-green-600 text-3xl"></i>
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+                <i className="fas fa-check text-emerald-600 text-3xl"></i>
               </div>
             </div>
             <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Confirmed!</h2>
@@ -183,7 +183,7 @@ export default function PaymentReturn({ outcome }) {
               </p>
             )}
             <p className="text-[#6b8cae] text-sm mb-5">
-              Your booking is now <span className="font-semibold text-green-600">Confirmed</span>.
+              Your booking is now <span className="font-semibold text-emerald-600">Confirmed</span>.
             </p>
             {isGuest ? (
               <>
@@ -191,7 +191,7 @@ export default function PaymentReturn({ outcome }) {
                   <i className="fas fa-info-circle mt-0.5 shrink-0 text-amber-500"></i>
                   <span>You booked as a guest. Download your receipt now — this is the only way to retrieve your booking details without contacting the resort.</span>
                 </div>
-                {dlError && <p className="text-xs text-red-600 mb-3"><i className="fas fa-exclamation-circle mr-1"></i>{dlError}</p>}
+                {dlError && <p className="text-xs text-rose-600 mb-3"><i className="fas fa-exclamation-circle mr-1"></i>{dlError}</p>}
                 <div className="flex flex-col gap-3">
                   <button
                     onClick={handleDownload}
@@ -231,7 +231,7 @@ export default function PaymentReturn({ outcome }) {
             <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Processing</h2>
             <p className="text-[#4a6f8c] mb-1">We received your payment but confirmation is still processing.</p>
             <p className="text-[#6b8cae] text-sm mb-2">
-              Your booking will update to <span className="font-semibold text-green-600">Confirmed</span> within a few minutes.
+              Your booking will update to <span className="font-semibold text-emerald-600">Confirmed</span> within a few minutes.
             </p>
             <button
               onClick={() => window.location.reload()}
@@ -254,8 +254,8 @@ export default function PaymentReturn({ outcome }) {
         {status === "failed" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
-                <i className="fas fa-times text-red-600 text-3xl"></i>
+              <div className="w-16 h-16 rounded-full bg-rose-100 flex items-center justify-center">
+                <i className="fas fa-times text-rose-600 text-3xl"></i>
               </div>
             </div>
             <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Failed</h2>
