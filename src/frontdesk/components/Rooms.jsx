@@ -467,6 +467,9 @@ export default function FDRooms() {
     );
   }, [roomInfos, filter]);
 
+  // After 6PM PH time, overnight is the active shift — show it first, fade day
+  const isNightShift = new Date().getHours() >= 18;
+
   const FILTERS = [
     { key: 'all',      label: 'All Rooms',  color: 'bg-slate-700 text-white'       },
     { key: 'vacant',   label: 'Vacant',     color: 'bg-emerald-500 text-white'     },
@@ -556,85 +559,75 @@ export default function FDRooms() {
             </div>
           ) : (
             <div className="space-y-10">
-              {/* Day Section */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5">
-                    <i className="fas fa-sun text-amber-500"></i>
-                    <span className="font-semibold text-amber-800 text-sm">Day Visit</span>
-                    <span className="text-xs text-amber-600">6:00 AM – 6:00 PM</span>
-                  </div>
-                </div>
-                {(() => {
-                  const dayItems = filteredInfos.filter(({ dayInfo }) => filter === 'all' || dayInfo.status === filter);
-                  if (dayItems.length === 0) return <p className="text-slate-400 text-sm py-4">No rooms match this filter.</p>;
-                  return (
-                    <div className="space-y-5">
-                      {CATEGORY_GROUPS.map(grp => {
-                        const items = dayItems.filter(({ room }) => getCat(room) === grp.key);
-                        if (!items.length) return null;
-                        return (
-                          <div key={grp.key}>
-                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                              <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
-                            </p>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                              {items.map(({ room, dayInfo }) => dayInfo.multi ? (
-                                <MultiUnitCard key={`day-${room.id}`} room={room} info={dayInfo}
-                                  onHousekeepingChange={handleHousekeeping}
-                                  onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: room } })} />
-                              ) : (
-                                <RoomCard key={`day-${room.id}`} room={room} info={dayInfo} onHousekeepingChange={handleHousekeeping}
-                                  onClick={() => setSelectedSlot({ room, info: dayInfo })} />
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-              </div>
+              {/* Sections swap order: after 6PM overnight comes first */}
+              {(isNightShift ? ['night', 'day'] : ['day', 'night']).map(slot => {
+                const isDay   = slot === 'day';
+                const faded   = (isDay && isNightShift) || (!isDay && !isNightShift && new Date().getHours() < 6);
+                const infoKey = isDay ? 'dayInfo' : 'nightInfo';
+                const slotItems = filteredInfos.filter(item => filter === 'all' || item[infoKey].status === filter);
 
-              {/* Overnight Section */}
-              <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-1.5">
-                    <i className="fas fa-moon text-indigo-500"></i>
-                    <span className="font-semibold text-indigo-800 text-sm">Overnight Stay</span>
-                    <span className="text-xs text-indigo-600">6:00 PM – 7:00 AM</span>
-                  </div>
-                </div>
-                {(() => {
-                  const nightItems = filteredInfos.filter(({ nightInfo }) => filter === 'all' || nightInfo.status === filter);
-                  if (nightItems.length === 0) return <p className="text-slate-400 text-sm py-4">No rooms match this filter.</p>;
-                  return (
-                    <div className="space-y-5">
-                      {CATEGORY_GROUPS.map(grp => {
-                        const items = nightItems.filter(({ room }) => getCat(room) === grp.key);
-                        if (!items.length) return null;
-                        return (
-                          <div key={grp.key}>
-                            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                              <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
-                            </p>
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                              {items.map(({ room, nightInfo }) => nightInfo.multi ? (
-                                <MultiUnitCard key={`night-${room.id}`} room={room} info={nightInfo}
-                                  onHousekeepingChange={handleHousekeeping}
-                                  onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: room } })} />
-                              ) : (
-                                <RoomCard key={`night-${room.id}`} room={room} info={nightInfo} onHousekeepingChange={handleHousekeeping}
-                                  onClick={() => setSelectedSlot({ room, info: nightInfo })} />
-                              ))}
-                            </div>
-                          </div>
-                        );
-                      })}
+                return (
+                  <div key={slot} className={faded ? 'opacity-50' : ''}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${
+                        isDay
+                          ? 'bg-amber-50 border border-amber-200'
+                          : 'bg-indigo-50 border border-indigo-200'
+                      }`}>
+                        <i className={`fas ${isDay ? 'fa-sun text-amber-500' : 'fa-moon text-indigo-500'}`}></i>
+                        <span className={`font-semibold text-sm ${isDay ? 'text-amber-800' : 'text-indigo-800'}`}>
+                          {isDay ? 'Day Visit' : 'Overnight Stay'}
+                        </span>
+                        <span className={`text-xs ${isDay ? 'text-amber-600' : 'text-indigo-600'}`}>
+                          {isDay ? '6:00 AM – 6:00 PM' : '6:00 PM – 7:00 AM'}
+                        </span>
+                      </div>
+                      {faded && (
+                        <span className="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                          {isDay ? 'Ended' : 'Not yet'}
+                        </span>
+                      )}
+                      {!faded && (
+                        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                          Active
+                        </span>
+                      )}
                     </div>
-                  );
-                })()}
-              </div>
+                    {slotItems.length === 0
+                      ? <p className="text-slate-400 text-sm py-4">No rooms match this filter.</p>
+                      : (
+                        <div className="space-y-5">
+                          {CATEGORY_GROUPS.map(grp => {
+                            const items = slotItems.filter(({ room }) => getCat(room) === grp.key);
+                            if (!items.length) return null;
+                            return (
+                              <div key={grp.key}>
+                                <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                                  <i className={`fas ${grp.icon} text-[10px]`}></i>{grp.label}
+                                </p>
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                                  {items.map(item => {
+                                    const info = item[infoKey];
+                                    return info.multi ? (
+                                      <MultiUnitCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
+                                        onHousekeepingChange={handleHousekeeping}
+                                        onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: item.room } })} />
+                                    ) : (
+                                      <RoomCard key={`${slot}-${item.room.id}`} room={item.room} info={info} onHousekeepingChange={handleHousekeeping}
+                                        onClick={() => setSelectedSlot({ room: item.room, info })} />
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )
+                    }
+                  </div>
+                );
+              })}
             </div>
           )}
 
