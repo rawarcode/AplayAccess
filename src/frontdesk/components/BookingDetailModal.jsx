@@ -12,7 +12,7 @@ import { applyPromoToBooking } from '../../lib/adminApi';
 const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
 function entranceFeeForBooking(booking) {
-  const type   = booking.bookingType ?? booking.bookingType ?? 'day';
+  const type   = booking.bookingType ?? 'day';
   const rate   = ENTRANCE_RATES[type] ?? 50;
   // Use stored DB value when available (after check-in/walk-in); otherwise compute expected
   const amount = (booking.entranceFee != null && Number(booking.entranceFee) > 0)
@@ -50,20 +50,20 @@ function isExpiredPending(b) {
 function StatusBadge({ status, booking }) {
   if (status === 'Pending' && booking && isExpiredPending(booking)) {
     return (
-      <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+      <span className="px-2 py-1 rounded text-xs font-medium bg-rose-100 text-rose-700 flex items-center gap-1 w-fit">
         <i className="fas fa-times-circle text-[10px]"></i>Expired
       </span>
     );
   }
   const cls = {
-    Confirmed:    'bg-blue-100 text-blue-800',
-    'Checked In': 'bg-purple-100 text-purple-800',
-    Completed:    'bg-green-100 text-green-800',
-    Cancelled:    'bg-red-100 text-red-800',
-    Pending:      'bg-yellow-100 text-yellow-800',
+    Confirmed:    'bg-sky-100 text-sky-800',
+    'Checked In': 'bg-violet-100 text-violet-800',
+    Completed:    'bg-emerald-100 text-emerald-800',
+    Cancelled:    'bg-rose-100 text-rose-800',
+    Pending:      'bg-amber-100 text-amber-800',
   };
   return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-slate-100 text-slate-800'}`}>
       {status}
     </span>
   );
@@ -72,11 +72,11 @@ function StatusBadge({ status, booking }) {
 function PayIcon({ method }) {
   const m = (method || '').toLowerCase();
   if (m === 'cash')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-money-bill-wave text-green-600"></i> Cash</span>;
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-money-bill-wave text-emerald-600"></i> Cash</span>;
   if (m === 'gcash')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-blue-500"></i> GCash</span>;
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-sky-500"></i> GCash</span>;
   if (m === 'maya' || m === 'paymaya')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-green-500"></i> Maya</span>;
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-emerald-500"></i> Maya</span>;
   return <span className="capitalize">{method || '—'}</span>;
 }
 
@@ -87,45 +87,45 @@ const ACTION_CONFIG = {
   'confirm-booking': {
     label:   'Confirm Booking',
     icon:    'fa-check',
-    color:   'blue',
+    color:   'sky',
     heading: 'Confirm this reservation?',
     desc:    'This commits the reservation. The guest will be notified.',
   },
   checkin: {
     label:   'Check In Guest',
     icon:    'fa-door-open',
-    color:   'purple',
+    color:   'violet',
     heading: 'Check in this guest?',
     desc:    'Ensure the balance and entrance fee have been collected before checking in.',
   },
   checkout: {
     label:   'Check Out Guest',
     icon:    'fa-sign-out-alt',
-    color:   'green',
+    color:   'emerald',
     heading: 'Check out this guest?',
     desc:    'This marks the booking as Completed. Make sure all charges are settled before proceeding.',
   },
   cancel: {
     label:   'Cancel Booking',
     icon:    'fa-ban',
-    color:   'red',
+    color:   'rose',
     heading: 'Cancel this booking?',
     desc:    'This cannot be undone. The reservation fee is non-refundable.',
   },
   'remove-amenity': {
     label:   'Remove Add-on',
     icon:    'fa-times',
-    color:   'red',
+    color:   'rose',
     heading: 'Remove this add-on?',
     desc:    'This will remove the item and adjust the booking total.',
   },
 };
 
 const COLOR = {
-  blue:   { btn: 'bg-blue-600 hover:bg-blue-700',     banner: 'bg-blue-50 border-blue-200 text-blue-800'   },
-  purple: { btn: 'bg-purple-600 hover:bg-purple-700', banner: 'bg-purple-50 border-purple-200 text-purple-800' },
-  green:  { btn: 'bg-green-600 hover:bg-green-700',   banner: 'bg-green-50 border-green-200 text-green-800' },
-  red:    { btn: 'bg-red-600 hover:bg-red-700',       banner: 'bg-red-50 border-red-200 text-red-800'      },
+  sky:     { btn: 'bg-sky-600 hover:bg-sky-700',       banner: 'bg-sky-50 border-sky-200 text-sky-800'       },
+  violet:  { btn: 'bg-violet-600 hover:bg-violet-700', banner: 'bg-violet-50 border-violet-200 text-violet-800' },
+  emerald: { btn: 'bg-emerald-600 hover:bg-emerald-700', banner: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
+  rose:    { btn: 'bg-rose-600 hover:bg-rose-700',     banner: 'bg-rose-50 border-rose-200 text-rose-800'    },
 };
 
 /**
@@ -205,7 +205,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       const res = await updateBookingGuests(booking.bookingId, guestCount);
       applyUpdate({ guests: res.guests });
       setGuestEdit(false);
-      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(res.guests * (ENTRANCE_RATES[booking.bookingType ?? booking.bookingType ?? 'day'] ?? 50))}.`);
+      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(res.guests * (ENTRANCE_RATES[booking.bookingType ?? 'day'] ?? 50))}.`);
     } catch {
       showToast?.('Failed to update guest count.');
     } finally {
@@ -322,24 +322,24 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               {/* Summary rows */}
               <div className="bg-white/60 rounded-lg px-3 py-2 text-xs space-y-1 mb-3">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Booking</span>
+                  <span className="text-slate-500">Booking</span>
                   <span className="font-semibold">{booking.id}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Guest</span>
+                  <span className="text-slate-500">Guest</span>
                   <span className="font-semibold">{guestName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">Room</span>
+                  <span className="text-slate-500">Room</span>
                   <span className="font-semibold">{booking.roomType}</span>
                 </div>
                 {pendingAction.type === 'checkin' && (() => {
                   const { rate, amount } = entranceFeeForBooking(booking);
                   return (
                     <>
-                      <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
-                        <span className="text-gray-500">Balance due (room)</span>
-                        <span className="font-bold text-purple-700">{fmtMoney(balanceDue)}</span>
+                      <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                        <span className="text-slate-500">Balance due (room)</span>
+                        <span className="font-bold text-violet-700">{fmtMoney(balanceDue)}</span>
                       </div>
                       <div className="flex justify-between pt-0.5">
                         <span className="text-amber-600 flex items-center gap-1">
@@ -353,14 +353,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   );
                 })()}
                 {pendingAction.type === 'checkout' && (
-                  <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
-                    <span className="text-gray-500">Total Amount</span>
-                    <span className="font-bold text-green-700">{fmtMoney(booking.total)}</span>
+                  <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                    <span className="text-slate-500">Total Amount</span>
+                    <span className="font-bold text-emerald-700">{fmtMoney(booking.total)}</span>
                   </div>
                 )}
                 {pendingAction.type === 'remove-amenity' && (
-                  <div className="flex justify-between border-t border-gray-200 pt-1 mt-1">
-                    <span className="text-gray-500">Item</span>
+                  <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                    <span className="text-slate-500">Item</span>
                     <span className="font-semibold">{pendingAction.amenityName} — {fmtMoney(pendingAction.amenityTotal)}</span>
                   </div>
                 )}
@@ -368,7 +368,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
               <div className="flex gap-2">
                 <button onClick={() => setPendingAction(null)}
-                  className="flex-1 px-3 py-2 border border-gray-300 bg-white rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
+                  className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50">
                   Cancel
                 </button>
                 <button onClick={execAction} disabled={actionLoading}
@@ -384,85 +384,85 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Booking — {booking.id}</h3>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Close">
+            <button onClick={onClose} className="text-slate-500 hover:text-slate-700" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>
 
           {/* Booking details grid */}
-          <div className="grid grid-cols-2 gap-3 p-4 bg-gray-50 rounded text-sm mb-4">
+          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded text-sm mb-4">
             <div>
-              <p className="text-xs text-gray-500">Guest</p>
+              <p className="text-xs text-slate-500">Guest</p>
               <p className="font-medium">{guestName}</p>
-              {wi && <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">Walk-in</span>}
+              {wi && <span className="text-xs text-sky-600 bg-sky-50 px-1 rounded">Walk-in</span>}
             </div>
-            <div><p className="text-xs text-gray-500">Status</p><StatusBadge status={booking.status} booking={booking} /></div>
-            <div><p className="text-xs text-gray-500">Email</p><p>{guestEmail}</p></div>
-            <div><p className="text-xs text-gray-500">Phone</p><p>{guestPhone}</p></div>
-            <div><p className="text-xs text-gray-500">Room Type</p><p className="font-medium">{booking.roomType}</p></div>
+            <div><p className="text-xs text-slate-500">Status</p><StatusBadge status={booking.status} booking={booking} /></div>
+            <div><p className="text-xs text-slate-500">Email</p><p>{guestEmail}</p></div>
+            <div><p className="text-xs text-slate-500">Phone</p><p>{guestPhone}</p></div>
+            <div><p className="text-xs text-slate-500">Room Type</p><p className="font-medium">{booking.roomType}</p></div>
             <div>
-              <p className="text-xs text-gray-500">Guests</p>
+              <p className="text-xs text-slate-500">Guests</p>
               {guestEdit ? (
                 <div className="flex items-center gap-1 mt-0.5">
                   <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
-                    className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-sm font-bold">−</button>
+                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-sm font-bold">−</button>
                   <span className="w-6 text-center font-medium">{guestCount}</span>
                   <button onClick={() => setGuestCount(g => g + 1)}
-                    className="w-6 h-6 rounded bg-gray-100 hover:bg-gray-200 text-sm font-bold">+</button>
+                    className="w-6 h-6 rounded bg-slate-100 hover:bg-slate-200 text-sm font-bold">+</button>
                   <button onClick={handleUpdateGuests} disabled={guestLoading}
-                    className="ml-1 px-2 py-0.5 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-50">
+                    className="ml-1 px-2 py-0.5 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
                     {guestLoading ? '…' : 'Save'}
                   </button>
                   <button onClick={() => { setGuestEdit(false); setGuestCount(booking.guests); }}
-                    className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs hover:bg-gray-200">✕</button>
+                    className="px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs hover:bg-slate-200">✕</button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <p>{booking.guests} pax</p>
                   {['Confirmed', 'Checked In'].includes(booking.status) && (
                     <button onClick={() => { setGuestEdit(true); setGuestCount(booking.guests); }}
-                      className="text-xs text-blue-600 hover:underline">
+                      className="text-xs text-sky-600 hover:underline">
                       <i className="fas fa-user-plus mr-0.5"></i>Edit
                     </button>
                   )}
                 </div>
               )}
             </div>
-            <div><p className="text-xs text-gray-500">Check-in</p><p>{fmtDateTime(booking.checkIn)}</p></div>
-            <div><p className="text-xs text-gray-500">Check-out</p><p>{fmtDateTime(booking.checkOut)}</p></div>
+            <div><p className="text-xs text-slate-500">Check-in</p><p>{fmtDateTime(booking.checkIn)}</p></div>
+            <div><p className="text-xs text-slate-500">Check-out</p><p>{fmtDateTime(booking.checkOut)}</p></div>
             {booking.checkedInAt && (
-              <div><p className="text-xs text-gray-500">Actual Check-in</p>
-                <p className="text-purple-700 font-medium">{fmtDateTime(booking.checkedInAt)}</p></div>
+              <div><p className="text-xs text-slate-500">Actual Check-in</p>
+                <p className="text-violet-700 font-medium">{fmtDateTime(booking.checkedInAt)}</p></div>
             )}
             {booking.checkedOutAt && (
-              <div><p className="text-xs text-gray-500">Actual Check-out</p>
-                <p className="text-green-700 font-medium">{fmtDateTime(booking.checkedOutAt)}</p></div>
+              <div><p className="text-xs text-slate-500">Actual Check-out</p>
+                <p className="text-emerald-700 font-medium">{fmtDateTime(booking.checkedOutAt)}</p></div>
             )}
             <div>
-              <p className="text-xs text-gray-500">Total Amount</p>
-              <p className="font-semibold text-blue-700">{fmtMoney(booking.total)}</p>
+              <p className="text-xs text-slate-500">Total Amount</p>
+              <p className="font-semibold text-sky-700">{fmtMoney(booking.total)}</p>
             </div>
-            <div><p className="text-xs text-gray-500">Payment Method</p><PayIcon method={booking.paymentMethod} /></div>
+            <div><p className="text-xs text-slate-500">Payment Method</p><PayIcon method={booking.paymentMethod} /></div>
             {booking.promoCode && Number(booking.discount) > 0 && (
               <div className="col-span-2">
-                <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
                   <div className="flex items-center gap-2">
-                    <i className="fas fa-tag text-green-600 text-xs"></i>
+                    <i className="fas fa-tag text-emerald-600 text-xs"></i>
                     <div>
-                      <p className="text-xs text-green-700 font-semibold">Promo Applied</p>
-                      <p className="text-sm font-mono font-bold text-green-800">{booking.promoCode}</p>
+                      <p className="text-xs text-emerald-700 font-semibold">Promo Applied</p>
+                      <p className="text-sm font-mono font-bold text-emerald-800">{booking.promoCode}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-green-700">Discount</p>
-                    <p className="text-sm font-bold text-green-800">−{fmtMoney(booking.discount)}</p>
+                    <p className="text-xs text-emerald-700">Discount</p>
+                    <p className="text-sm font-bold text-emerald-800">−{fmtMoney(booking.discount)}</p>
                   </div>
                 </div>
               </div>
             )}
             {!['Completed','Cancelled'].includes(booking.status) && !booking.promoCode && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-500 mb-1">Apply Promo Code</p>
+                <p className="text-xs text-slate-500 mb-1">Apply Promo Code</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -479,17 +479,17 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
                   </button>
                 </div>
-                {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+                {promoError && <p className="text-xs text-rose-500 mt-1">{promoError}</p>}
               </div>
             )}
             {!wi && booking.specialRequests && (
               <div className="col-span-2">
-                <p className="text-xs text-gray-500">Special Requests</p>
-                <p className="italic text-gray-700">{booking.specialRequests}</p>
+                <p className="text-xs text-slate-500">Special Requests</p>
+                <p className="italic text-slate-700">{booking.specialRequests}</p>
               </div>
             )}
             <div className="col-span-2">
-              <p className="text-xs text-gray-500">Booked On</p>
+              <p className="text-xs text-slate-500">Booked On</p>
               <p>{fmtDateTime(booking.createdAt)}</p>
             </div>
           </div>
@@ -513,24 +513,24 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
           {/* Add-ons */}
           <div className="mb-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Add-ons</p>
+            <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Add-ons</p>
             {(booking.amenities?.length ?? 0) === 0 ? (
-              <p className="text-xs text-gray-400 mb-2">No add-ons added.</p>
+              <p className="text-xs text-slate-400 mb-2">No add-ons added.</p>
             ) : (
               <div className="space-y-1 mb-2">
                 {booking.amenities.map(a => (
-                  <div key={a.id} className="flex items-center justify-between bg-gray-50 rounded px-3 py-2 text-sm">
+                  <div key={a.id} className="flex items-center justify-between bg-slate-50 rounded px-3 py-2 text-sm">
                     <span>
-                      <i className={`fas ${addonCatalog.find(c => c.name === a.name)?.icon || 'fa-tag'} mr-2 text-gray-500`}></i>
+                      <i className={`fas ${addonCatalog.find(c => c.name === a.name)?.icon || 'fa-tag'} mr-2 text-slate-500`}></i>
                       {a.name}{a.qty > 1 && ` × ${a.qty}`}
                     </span>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-600 text-xs">{fmtMoney(a.total)}</span>
+                      <span className="text-slate-600 text-xs">{fmtMoney(a.total)}</span>
                       {['Confirmed', 'Checked In'].includes(booking.status) && (
                         <button
                           onClick={() => setPendingAction({ type: 'remove-amenity', amenityId: a.id, amenityName: a.name, amenityTotal: a.total })}
                           disabled={amenityLoading}
-                          className="text-red-400 hover:text-red-600 text-xs disabled:opacity-40"
+                          className="text-rose-400 hover:text-rose-600 text-xs disabled:opacity-40"
                           title="Remove"
                          aria-label="Remove"><i className="fas fa-times"></i></button>
                       )}
@@ -542,41 +542,41 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
             {['Confirmed', 'Checked In'].includes(booking.status) && addonCatalog.length > 0 && (
               addingAmenity ? (
-                <div className="border rounded-lg p-3 bg-blue-50">
-                  <p className="text-xs font-medium text-gray-700 mb-2">Add Add-on</p>
+                <div className="border rounded-lg p-3 bg-sky-50">
+                  <p className="text-xs font-medium text-slate-700 mb-2">Add Add-on</p>
                   <div className="flex gap-2 flex-wrap mb-2">
                     {addonCatalog.map(cat => (
                       <button key={cat.id} type="button"
                         onClick={() => setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
                         className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
                           addingAmenity.name === cat.name
-                            ? 'border-blue-500 bg-blue-100 text-blue-700'
-                            : 'border-gray-300 bg-white text-gray-600'
+                            ? 'border-sky-500 bg-sky-100 text-sky-700'
+                            : 'border-slate-300 bg-white text-slate-600'
                         }`}
                       >
                         <i className={`fas ${cat.icon || 'fa-tag'} mr-1`}></i>{cat.name}
-                        <br /><span className="text-gray-400">₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</span>
+                        <br /><span className="text-slate-400">₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</span>
                       </button>
                     ))}
                   </div>
                   {!addingAmenity.per_booking && (
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs text-gray-600">Qty:</span>
+                      <span className="text-xs text-slate-600">Qty:</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
                         className="w-6 h-6 border rounded text-xs">−</button>
                       <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
                         className="w-6 h-6 border rounded text-xs">+</button>
-                      <span className="ml-auto text-xs font-medium text-blue-700">
+                      <span className="ml-auto text-xs font-medium text-sky-700">
                         ₱{((addingAmenity.qty || 1) * addingAmenity.unitPrice).toLocaleString()}
                       </span>
                     </div>
                   )}
                   <div className="flex gap-2">
                     <button onClick={() => setAddingAmenity(null)}
-                      className="px-3 py-1 border rounded text-xs text-gray-600">Cancel</button>
+                      className="px-3 py-1 border rounded text-xs text-slate-600">Cancel</button>
                     <button onClick={handleAddAmenity} disabled={amenityLoading}
-                      className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 disabled:opacity-40">
+                      className="px-3 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-40">
                       {amenityLoading ? 'Adding...' : 'Add'}
                     </button>
                   </div>
@@ -587,7 +587,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     const first = addonCatalog[0];
                     setAddingAmenity({ id: first.id, name: first.name, qty: 1, unit_price: first.price, per_booking: first.per_booking, max_qty: first.max_qty, icon: first.icon });
                   }}
-                  className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                  className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1"
                 >
                   <i className="fas fa-plus-circle"></i> Add add-on
                 </button>
@@ -597,21 +597,21 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
           {/* Transfer Room Panel */}
           {transferOpen && (
-            <div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4">
+            <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shrink-0">
+                <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
                   <i className="fas fa-exchange-alt text-white text-xs"></i>
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-indigo-900">Transfer to Another Room</p>
-                  <p className="text-xs text-indigo-700">Currently in: <strong>{booking.roomType}</strong></p>
+                  <p className="font-semibold text-sm text-violet-900">Transfer to Another Room</p>
+                  <p className="text-xs text-violet-700">Currently in: <strong>{booking.roomType}</strong></p>
                 </div>
               </div>
               {roomsLoading ? (
-                <p className="text-xs text-indigo-600"><i className="fas fa-spinner fa-spin mr-1"></i>Loading rooms...</p>
+                <p className="text-xs text-violet-600"><i className="fas fa-spinner fa-spin mr-1"></i>Loading rooms...</p>
               ) : (
                 <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-                  className="w-full border border-indigo-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white">
+                  className="w-full border border-violet-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
                   <option value="">Select a room...</option>
                   {rooms
                     .filter(r => String(r.id) !== String(booking.roomId))
@@ -620,11 +620,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               )}
               <div className="flex gap-2">
                 <button onClick={() => { setTransferOpen(false); setTransferRoomId(''); }}
-                  className="flex-1 px-3 py-2 border border-gray-300 bg-white rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50">
+                  className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50">
                   Cancel
                 </button>
                 <button onClick={handleTransfer} disabled={!transferRoomId || transferring || roomsLoading}
-                  className="flex-1 px-3 py-2 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 disabled:opacity-60">
+                  className="flex-1 px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 disabled:opacity-60">
                   {transferring
                     ? <><i className="fas fa-spinner fa-spin mr-1"></i>Transferring...</>
                     : <><i className="fas fa-exchange-alt mr-1"></i>Confirm Transfer</>}
@@ -639,28 +639,28 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               {['Pending', 'Confirmed'].includes(booking.status) && !isExpiredPending(booking) && (
                 <button onClick={() => setPendingAction({ type: 'checkin' })}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 disabled:opacity-50">
+                  className="px-3 py-2 bg-violet-600 text-white rounded text-sm hover:bg-violet-700 disabled:opacity-50">
                   <i className="fas fa-door-open mr-1"></i>Check In
                 </button>
               )}
               {booking.status === 'Checked In' && !transferOpen && (
                 <button onClick={openTransfer}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-50">
+                  className="px-3 py-2 bg-violet-600 text-white rounded text-sm hover:bg-violet-700 disabled:opacity-50">
                   <i className="fas fa-exchange-alt mr-1"></i>Transfer
                 </button>
               )}
               {booking.status === 'Checked In' && (
                 <button onClick={() => setPendingAction({ type: 'checkout' })}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50">
+                  className="px-3 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50">
                   <i className="fas fa-sign-out-alt mr-1"></i>Check Out
                 </button>
               )}
               {booking.status === 'Pending' && !isExpiredPending(booking) && (
                 <button onClick={() => setPendingAction({ type: 'cancel' })}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-red-600 text-white rounded text-sm hover:bg-red-700 disabled:opacity-50">
+                  className="px-3 py-2 bg-rose-600 text-white rounded text-sm hover:bg-rose-700 disabled:opacity-50">
                   <i className="fas fa-times mr-1"></i>Cancel
                 </button>
               )}
@@ -673,7 +673,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </button>
               )}
               <button onClick={onClose}
-                className="px-3 py-2 border rounded text-sm text-gray-700">Close</button>
+                className="px-3 py-2 border rounded text-sm text-slate-700">Close</button>
             </div>
           )}
         </div>
