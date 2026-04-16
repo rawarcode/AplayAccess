@@ -108,63 +108,94 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
           </div>
 
           {/* Bill breakdown */}
-          <div className="border rounded-lg overflow-hidden text-sm">
-            <div className="flex justify-between px-4 py-3 border-b bg-slate-50">
-              <span className="text-slate-500">Room Rate</span>
-              <span className="font-medium">{fmtMoney(b.total)}</span>
-            </div>
-            {Number(b.reservationFee ?? 0) > 0 && (
-              <div className="flex justify-between px-4 py-3 border-b text-emerald-700">
-                <span>Reservation Fee Paid</span>
-                <span>− {fmtMoney(b.reservationFee)}</span>
-              </div>
-            )}
-            {b.status === 'Cancelled' ? (
-              <div className="flex justify-between px-4 py-3 bg-rose-50 text-rose-700 font-semibold">
-                <span>Forfeited (Non-refundable)</span>
-                <span>{fmtMoney(b.reservationFee ?? 0)}</span>
-              </div>
-            ) : b.status === 'Completed' ? (
-              <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
-                <span>Total Collected</span>
-                <span>{fmtMoney(b.total)}</span>
-              </div>
-            ) : b.fullyPaid ? (
-              <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
-                <span>Fully Paid</span>
-                <span>{fmtMoney(b.total)}</span>
-              </div>
-            ) : (
-              <div className="flex justify-between px-4 py-3 bg-sky-50 text-sky-800 font-bold text-base">
-                <span>Balance Due</span>
-                <span>{fmtMoney(balanceDue)}</span>
-              </div>
-            )}
-            {Number(b.entranceFee ?? 0) > 0 && (
-              <div className="flex justify-between px-4 py-3 bg-amber-50 border-t border-amber-100 text-amber-800 text-xs">
-                <span className="flex items-center gap-1.5">
-                  <i className="fas fa-ticket-alt"></i>
-                  Entrance Fee ({b.guests} pax) — collected at gate
-                </span>
-                <span className="font-semibold">{fmtMoney(b.entranceFee)}</span>
-              </div>
-            )}
-          </div>
+          {(() => {
+            const amenityTotal = (b.amenities ?? []).reduce((s, a) => s + Number(a.total ?? (a.unitPrice * a.qty) ?? 0), 0);
+            const discount     = Number(b.discount ?? 0);
+            const roomRate     = Number(b.total ?? 0) + discount - amenityTotal;
+            const hasExtras    = amenityTotal > 0 || discount > 0;
 
-          {/* Amenities if any */}
-          {b.amenities?.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Add-ons</p>
-              <div className="space-y-1">
-                {b.amenities.map((a, i) => (
-                  <div key={i} className="flex justify-between text-sm text-slate-600">
-                    <span>{a.name} × {a.qty}</span>
+            return (
+              <div className="border rounded-lg overflow-hidden text-sm">
+                {/* Room rate */}
+                <div className="flex justify-between px-4 py-3 border-b bg-slate-50">
+                  <span className="text-slate-500">Room Rate</span>
+                  <span className="font-medium">{fmtMoney(roomRate)}</span>
+                </div>
+
+                {/* Add-ons */}
+                {b.amenities?.length > 0 && b.amenities.map((a, i) => (
+                  <div key={i} className="flex justify-between px-4 py-2.5 border-b text-slate-600">
+                    <span className="flex items-center gap-1.5">
+                      <i className="fas fa-plus-circle text-xs text-slate-400"></i>
+                      {a.name} × {a.qty}
+                    </span>
                     <span>{fmtMoney(a.total ?? (a.unitPrice * a.qty))}</span>
                   </div>
                 ))}
+
+                {/* Promo discount */}
+                {discount > 0 && (
+                  <div className="flex justify-between px-4 py-2.5 border-b text-emerald-700">
+                    <span className="flex items-center gap-1.5">
+                      <i className="fas fa-tag text-xs"></i>
+                      Promo{b.promoCode ? ` (${b.promoCode})` : ''}
+                    </span>
+                    <span>− {fmtMoney(discount)}</span>
+                  </div>
+                )}
+
+                {/* Subtotal — only show when there are extras */}
+                {hasExtras && (
+                  <div className="flex justify-between px-4 py-3 border-b bg-slate-50 font-semibold text-slate-800">
+                    <span>Total</span>
+                    <span>{fmtMoney(b.total)}</span>
+                  </div>
+                )}
+
+                {/* Reservation fee paid */}
+                {Number(b.reservationFee ?? 0) > 0 && (
+                  <div className="flex justify-between px-4 py-2.5 border-b text-emerald-700">
+                    <span>Reservation Fee Paid</span>
+                    <span>− {fmtMoney(b.reservationFee)}</span>
+                  </div>
+                )}
+
+                {/* Balance / status row */}
+                {b.status === 'Cancelled' ? (
+                  <div className="flex justify-between px-4 py-3 bg-rose-50 text-rose-700 font-semibold">
+                    <span>Forfeited (Non-refundable)</span>
+                    <span>{fmtMoney(b.reservationFee ?? 0)}</span>
+                  </div>
+                ) : b.status === 'Completed' ? (
+                  <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
+                    <span>Total Collected</span>
+                    <span>{fmtMoney(b.total)}</span>
+                  </div>
+                ) : b.fullyPaid ? (
+                  <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
+                    <span>Fully Paid</span>
+                    <span>{fmtMoney(b.total)}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between px-4 py-3 bg-sky-50 text-sky-800 font-bold text-base">
+                    <span>Balance Due</span>
+                    <span>{fmtMoney(balanceDue)}</span>
+                  </div>
+                )}
+
+                {/* Entrance fee */}
+                {Number(b.entranceFee ?? 0) > 0 && (
+                  <div className="flex justify-between px-4 py-3 bg-amber-50 border-t border-amber-100 text-amber-800 text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <i className="fas fa-ticket-alt"></i>
+                      Entrance Fee ({b.guests} pax) — collected at gate
+                    </span>
+                    <span className="font-semibold">{fmtMoney(b.entranceFee)}</span>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Special requests */}
           {b.specialRequests && (
