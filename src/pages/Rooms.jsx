@@ -7,6 +7,8 @@ import { RESORT_ID } from "../lib/config.js";
 import { rooms as roomsFallback } from "../data/rooms.js";
 import BookingModal from "../components/modals/BookingModal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
+import SignupModal from "../components/modals/SignupModal.jsx";
+import GuestWarningModal from "../components/modals/GuestWarningModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import Toast, { useToast } from "../components/ui/Toast.jsx";
