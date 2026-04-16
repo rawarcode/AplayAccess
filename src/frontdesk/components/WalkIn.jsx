@@ -697,7 +697,7 @@ export default function WalkIn() {
                     is24hr                       ? 'text-purple-900 border-purple-200' :
                                                    'text-sky-900 border-sky-200'
                   }`}>
-                    <span>Room Total</span>
+                    <span>Booking Total</span>
                     <span>{fmtMoney(previewTotal)}</span>
                   </div>
                   <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
@@ -709,11 +709,15 @@ export default function WalkIn() {
                       </span>
                       <span>{fmtMoney(entranceFeeTotal)}</span>
                     </div>
-                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                      <i className="fas fa-hand-holding-usd"></i>
-                      Collect this amount separately at the gate — not included in booking total.
-                    </p>
                   </div>
+                  <div className="flex justify-between font-bold text-lg border-t-2 border-slate-300 pt-3 mt-3 text-slate-900">
+                    <span>Total to Collect</span>
+                    <span>{fmtMoney(previewTotal + entranceFeeTotal)}</span>
+                  </div>
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <i className="fas fa-info-circle"></i>
+                    Entrance fee collected separately at the gate.
+                  </p>
                 </div>
               </div>
 
@@ -1193,7 +1197,7 @@ export default function WalkIn() {
                         )}
                       </div>
                       <div className={`flex justify-between font-bold border-t pt-2 ${tc.text} ${tc.hr}`}>
-                        <span>Room Total</span>
+                        <span>Booking Total</span>
                         <span>{fmtMoney(previewTotal)}</span>
                       </div>
                       <div className="flex justify-between text-amber-700 font-medium pt-1.5 border-t border-dashed border-amber-200 mt-1.5">
@@ -1203,8 +1207,12 @@ export default function WalkIn() {
                         </span>
                         <span>{fmtMoney(entranceFeeTotal)}</span>
                       </div>
-                      <p className="text-xs text-amber-600 mt-0.5">
-                        <i className="fas fa-hand-holding-usd mr-1"></i>Collect entrance fee separately at the gate.
+                      <div className="flex justify-between font-bold text-base border-t border-slate-300 pt-2 mt-2 text-slate-900">
+                        <span>Total to Collect</span>
+                        <span>{fmtMoney(previewTotal + entranceFeeTotal)}</span>
+                      </div>
+                      <p className="text-xs text-amber-600 mt-1">
+                        <i className="fas fa-info-circle mr-1"></i>Entrance fee collected separately at the gate.
                       </p>
                     </div>
                   );
