@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
@@ -35,11 +36,11 @@ function parseWalkIn(b) {
 function PayIcon({ method }) {
   const m = (method || '').toLowerCase();
   if (m === 'cash')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-money-bill-wave text-green-600"></i> Cash</span>;
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-money-bill-wave text-emerald-600"></i> Cash</span>;
   if (m === 'gcash')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-blue-500"></i> GCash</span>;
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-sky-500"></i> GCash</span>;
   if (m === 'maya' || m === 'paymaya')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-green-500"></i> Maya</span>;
+    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-emerald-500"></i> Maya</span>;
   return <span className="capitalize">{method || '—'}</span>;
 }
 
@@ -57,20 +58,20 @@ function isExpiredPending(b) {
 function StatusBadge({ status, booking }) {
   if (status === 'Pending' && booking && isExpiredPending(booking)) {
     return (
-      <span className="px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700 flex items-center gap-1 w-fit">
+      <span className="px-2 py-1 rounded text-xs font-medium bg-rose-100 text-rose-700 flex items-center gap-1 w-fit">
         <i className="fas fa-times-circle text-[10px]"></i>Expired
       </span>
     );
   }
   const cls = {
-    Confirmed:    'bg-blue-100 text-blue-800',
-    'Checked In': 'bg-purple-100 text-purple-800',
-    Completed:    'bg-green-100 text-green-800',
-    Cancelled:    'bg-red-100 text-red-800',
-    Pending:      'bg-yellow-100 text-yellow-800',
+    Confirmed:    'bg-sky-100 text-sky-800',
+    'Checked In': 'bg-violet-100 text-violet-800',
+    Completed:    'bg-emerald-100 text-emerald-800',
+    Cancelled:    'bg-rose-100 text-rose-800',
+    Pending:      'bg-amber-100 text-amber-800',
   };
   return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-gray-100 text-gray-800'}`}>
+    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-slate-100 text-slate-800'}`}>
       {status}
     </span>
   );
@@ -219,16 +220,17 @@ export default function Reservation() {
   }
 
   const CONFIRM_CONFIG = {
-    confirm:  { label: 'Confirm Booking', icon: 'fa-check',        color: 'blue',   desc: 'Mark this booking as confirmed?' },
-    checkin:  { label: 'Check In Guest',  icon: 'fa-door-open',    color: 'purple', desc: 'Check in the guest for this booking?' },
-    checkout: { label: 'Check Out Guest', icon: 'fa-sign-out-alt', color: 'green',  desc: 'Complete this booking and check out the guest?' },
-    cancel:   { label: 'Cancel Booking',  icon: 'fa-ban',          color: 'red',    desc: 'Cancel this booking? This cannot be undone.' },
+    confirm:  { label: 'Confirm Booking', icon: 'fa-check',        color: 'sky',     desc: 'Mark this booking as confirmed?' },
+    checkin:  { label: 'Check In Guest',  icon: 'fa-door-open',    color: 'violet',  desc: 'Check in the guest for this booking?' },
+    checkout: { label: 'Check Out Guest', icon: 'fa-sign-out-alt', color: 'emerald', desc: 'Complete this booking and check out the guest?' },
+    cancel:   { label: 'Cancel Booking',  icon: 'fa-ban',          color: 'rose',    desc: 'Cancel this booking? This cannot be undone.' },
   };
-  const COLOR_BTN = { blue: 'bg-blue-600 hover:bg-blue-700', purple: 'bg-purple-600 hover:bg-purple-700', green: 'bg-green-600 hover:bg-green-700', red: 'bg-red-600 hover:bg-red-700' };
+  const COLOR_BTN = { sky: 'bg-sky-600 hover:bg-sky-700', violet: 'bg-violet-600 hover:bg-violet-700', emerald: 'bg-emerald-600 hover:bg-emerald-700', rose: 'bg-rose-600 hover:bg-rose-700' };
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
+      <Helmet><title>Reservations — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── Quick-Action Confirmation Modal ── */}
       {confirmState && (() => {
@@ -239,7 +241,7 @@ export default function Reservation() {
         return (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-              <div className={`rounded-t-2xl px-6 py-4 flex items-center gap-3 ${{confirm:'bg-blue-600',checkin:'bg-purple-600',checkout:'bg-green-600',cancel:'bg-red-600'}[confirmState.action]}`}>
+              <div className={`rounded-t-2xl px-6 py-4 flex items-center gap-3 ${{confirm:'bg-sky-600',checkin:'bg-violet-600',checkout:'bg-emerald-600',cancel:'bg-rose-600'}[confirmState.action]}`}>
                 <i className={`fas ${cfg.icon} text-white text-lg`}></i>
                 <h3 className="text-white font-semibold text-base">{cfg.label}</h3>
               </div>
@@ -296,19 +298,19 @@ export default function Reservation() {
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
                   <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="text-gray-500 hover:text-gray-700" aria-label="Close"><i className="fas fa-times"></i></button>
+                    className="text-slate-500 hover:text-slate-700" aria-label="Close"><i className="fas fa-times"></i></button>
                 </div>
-                <div className="p-4 bg-gray-50 rounded mb-4 text-sm">
-                  <p className="font-medium text-gray-800">{parseWalkIn(transferBooking)?.name ?? transferBooking.guest}</p>
-                  <p className="text-gray-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
+                <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
+                  <p className="font-medium text-slate-800">{parseWalkIn(transferBooking)?.name ?? transferBooking.guest}</p>
+                  <p className="text-slate-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
                 </div>
                 <div className="mb-5">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Transfer to Room</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Transfer to Room</label>
                   {availableRooms.length === 0 ? (
-                    <p className="text-sm text-red-600">No other rooms are available for this time slot.</p>
+                    <p className="text-sm text-rose-600">No other rooms are available for this time slot.</p>
                   ) : (
                     <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-                      className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                       <option value="">Select a room...</option>
                       {availableRooms.map(r => (
                         <option key={r.id} value={r.id}>{r.name}</option>
@@ -318,7 +320,7 @@ export default function Reservation() {
                 </div>
                 <div className="flex justify-end gap-3">
                   <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="px-4 py-2 border rounded text-sm text-gray-700">Cancel</button>
+                    className="px-4 py-2 border rounded text-sm text-slate-700">Cancel</button>
                   <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
                     className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-60">
                     <i className="fas fa-exchange-alt mr-1"></i>
@@ -361,76 +363,76 @@ export default function Reservation() {
               <option>Completed</option>
               <option>Cancelled</option>
             </select>
-            <span className="text-sm text-gray-500 whitespace-nowrap">
+            <span className="text-sm text-slate-500 whitespace-nowrap">
               {filtered.length} result{filtered.length !== 1 ? 's' : ''}
             </span>
-            <button onClick={load} className="flex items-center gap-2 text-blue-600 hover:text-blue-800 text-sm ml-auto">
+            <button onClick={load} className="flex items-center gap-2 text-sky-600 hover:text-sky-800 text-sm ml-auto">
               <i className="fas fa-sync-alt"></i> Refresh
             </button>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded text-sm">
+            <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded text-sm">
               <i className="fas fa-exclamation-circle mr-2"></i>{error}
             </div>
           )}
 
           {loading ? (
-            <div className="py-16 text-center text-gray-400">
+            <div className="py-16 text-center text-slate-400">
               <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading bookings...
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
                   <tr>
                     {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Total', 'Status'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                         <button onClick={() => handleSort(h)}
-                          className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
+                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
                           {h}
-                          <span className="text-gray-400 group-hover:text-blue-400">
+                          <span className="text-slate-400 group-hover:text-sky-400">
                             {sortBy === h
-                              ? <i className={`fas fa-arrow-${sortDir === 'asc' ? 'up' : 'down'} text-blue-500`}></i>
+                              ? <i className={`fas fa-arrow-${sortDir === 'asc' ? 'up' : 'down'} text-sky-500`}></i>
                               : <i className="fas fa-sort opacity-40"></i>}
                           </span>
                         </button>
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-slate-200">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-10 text-center text-gray-400">No bookings found.</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">No bookings found.</td></tr>
                   ) : filtered.map(b => {
                     const wi = parseWalkIn(b);
                     return (
-                      <tr key={b.bookingId} className="hover:bg-gray-50 cursor-pointer" onClick={() => setViewBooking(b)}>
-                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{b.id}</td>
+                      <tr key={b.bookingId} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewBooking(b)}>
+                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-gray-900">{wi ? wi.name : b.guest}</p>
-                          <p className="text-xs text-gray-500">{wi ? wi.email : b.guestEmail}</p>
-                          {wi && <span className="text-xs text-blue-600 bg-blue-50 px-1 rounded">Walk-in</span>}
+                          <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>
+                          <p className="text-xs text-slate-500">{wi ? wi.email : b.guestEmail}</p>
+                          {wi && <span className="text-xs text-sky-600 bg-sky-50 px-1 rounded">Walk-in</span>}
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{b.roomType}</td>
-                        <td className="px-4 py-3 text-xs text-gray-600 whitespace-nowrap">
+                        <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{b.roomType}</td>
+                        <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
                           {fmtDateTime(b.checkIn)}<br />
-                          <span className="text-gray-400">→ {fmtTime(b.checkOut)}</span>
+                          <span className="text-slate-400">→ {fmtTime(b.checkOut)}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap">{fmtMoney(b.total)}</td>
+                        <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{fmtMoney(b.total)}</td>
                         <td className="px-4 py-3"><StatusBadge status={b.status} booking={b} /></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
                             <button onClick={() => setViewBooking(b)} title="View details"
-                              className="text-blue-600 hover:text-blue-800">
+                              className="text-sky-600 hover:text-sky-800">
                               <i className="fas fa-eye"></i>
                             </button>
                             {b.status === 'Pending' && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'confirm', booking: b })}
                                 disabled={actionLoading === b.bookingId}
-                                title="Confirm" className="text-blue-600 hover:text-blue-800 disabled:opacity-40">
+                                title="Confirm" className="text-sky-600 hover:text-sky-800 disabled:opacity-40">
                                 <i className="fas fa-check"></i>
                               </button>
                             )}
@@ -443,7 +445,7 @@ export default function Reservation() {
                             )}
                             {b.status === 'Checked In' && (
                               <>
-                                <span title="Go to Billing to collect payment &amp; complete" className="text-green-500 cursor-default opacity-60">
+                                <span title="Go to Billing to collect payment &amp; complete" className="text-emerald-500 cursor-default opacity-60">
                                   <i className="fas fa-file-invoice-dollar"></i>
                                 </span>
                                 <button
@@ -458,7 +460,7 @@ export default function Reservation() {
                             {b.status === 'Pending' && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'cancel', booking: b })}
                                 disabled={actionLoading === b.bookingId}
-                                title="Cancel" className="text-red-600 hover:text-red-800 disabled:opacity-40">
+                                title="Cancel" className="text-rose-600 hover:text-rose-800 disabled:opacity-40">
                                 <i className="fas fa-ban"></i>
                               </button>
                             )}
