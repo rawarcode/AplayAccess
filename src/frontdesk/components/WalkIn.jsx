@@ -836,6 +836,7 @@ export default function WalkIn() {
                           { key: 'room',     label: '🛏️  Rooms'     },
                           { key: 'cottage',  label: '⛱️  Cottages'  },
                           { key: 'pavilion', label: '🏛️  Pavilions' },
+                          { key: 'tent',     label: '⛺  Tent Pitching' },
                         ];
                         return groups.map(g => {
                           const items = visible.filter(r => getCat(r) === g.key);

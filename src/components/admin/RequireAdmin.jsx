@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 
-const ALLOWED_ROLES = ["admin", "owner"];
+const ALLOWED_ROLES = ["owner"];
 
 export default function RequireAdmin({ children }) {
   const { user, booting } = useAuth();

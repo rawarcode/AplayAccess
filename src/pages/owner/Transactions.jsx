@@ -345,7 +345,7 @@ export default function OwnerTransactions() {
                   <td colSpan={8} className="px-6 py-10 text-center text-slate-400">No transactions found.</td>
                 </tr>
               ) : currentRows.map((b) => (
-                <tr key={b.bookingId} onClick={() => navigate("/admin/transactions")} className="hover:bg-slate-50 cursor-pointer">
+                <tr key={b.bookingId} onClick={() => navigate("/owner/transactions")} className="hover:bg-slate-50 cursor-pointer">
                   <td className="px-6 py-4 font-medium text-slate-900">{b.id}</td>
                   <td className="px-6 py-4 text-slate-500">{(b.checkIn ?? "").slice(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-slate-900">{b.guest}</td>

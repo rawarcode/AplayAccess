@@ -45,9 +45,9 @@ export async function createWalkInBooking(payload) {
   return res.data;
 }
 
-// GET /api/resorts/:id/rooms — room list with housekeeping_status
+// GET /api/resorts/:id/rooms?staff=1 — room list including tent pitching
 export async function getFdRooms() {
-  const res = await api.get(`/api/resorts/${RESORT_ID}/rooms`);
+  const res = await api.get(`/api/resorts/${RESORT_ID}/rooms`, { params: { staff: 1 } });
   return res.data.data ?? res.data;
 }
 

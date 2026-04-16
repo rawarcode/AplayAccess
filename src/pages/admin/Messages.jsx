@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { getAdminMessages, replyAdminMessage, markAdminMessageRead, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
+import { getAdminMessages, replyAdminMessage, markAdminMessageRead, deleteAdminMessage, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
@@ -469,8 +469,11 @@ export default function AdminMessages() {
   const [filterRead,  setFilterRead]  = useState("all");
   const [scrollTick,  setScrollTick]  = useState(0);
   const [rulesOpen,   setRulesOpen]   = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const bottomRef = useRef(null);
   const searchRef = useRef(null);
+  const undoTimerRef = useRef(null);
+  const undoItemRef  = useRef(null);
 
   // ── load ─────────────────────────────────────────────────────────────────────
   const load = useCallback(() => {
@@ -501,6 +504,62 @@ export default function AdminMessages() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [activeId, scrollTick]);
+
+  // ── cleanup: flush pending thread delete on unmount ─────────────────────────
+  useEffect(() => () => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      if (undoItemRef.current) {
+        deleteAdminMessage(undoItemRef.current.id).catch(() => {});
+      }
+      undoTimerRef.current = null;
+      undoItemRef.current  = null;
+    }
+  }, []);
+
+  // ── delete thread (undo pattern) ────────────────────────────────────────────
+  function handleDeleteThread(thread) {
+    // Flush any prior pending delete immediately
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      if (undoItemRef.current) {
+        deleteAdminMessage(undoItemRef.current.id).catch(() => {});
+      }
+      undoTimerRef.current = null;
+      undoItemRef.current  = null;
+    }
+
+    // Optimistic removal
+    setThreads(prev => prev.filter(t => t.id !== thread.id));
+    setDeleteTarget(null);
+    if (activeId === thread.id) setActiveId(null);
+
+    // Store ref for unmount flush
+    undoItemRef.current = thread;
+
+    // Start 6s timer then call API
+    undoTimerRef.current = setTimeout(async () => {
+      try {
+        await deleteAdminMessage(thread.id);
+      } catch {
+        // Restore on failure
+        load();
+        showToast("Failed to delete thread.", "error");
+      }
+      undoTimerRef.current = null;
+      undoItemRef.current  = null;
+    }, 6000);
+
+    showToast(`Thread "${thread.subject}" deleted.`, "success", {
+      label: "Undo",
+      onClick: () => {
+        clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = null;
+        undoItemRef.current  = null;
+        load(); // Restore from server
+      },
+    });
+  }
 
   // ── derived ───────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -574,6 +633,17 @@ export default function AdminMessages() {
 
       {/* Auto-Reply Rules Panel */}
       <AutoReplyPanel open={rulesOpen} onClose={() => setRulesOpen(false)} showToast={showToast} />
+
+      {/* Delete thread confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget && !deleteTarget.keyword}
+        title="Delete Thread"
+        message={<>Delete the thread <strong>"{deleteTarget?.subject}"</strong> and all its replies? You can undo within 6 seconds.</>}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => handleDeleteThread(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+      />
 
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -743,7 +813,7 @@ export default function AdminMessages() {
                     <span><i className="fas fa-clock mr-1 text-slate-400"></i>{fmtDate(active.created_at)}</span>
                   </p>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 flex items-center gap-2">
                   {active.replies?.some(r => r.sender_type === "resort") ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
                       <i className="fas fa-check-circle"></i>Replied
@@ -753,6 +823,10 @@ export default function AdminMessages() {
                       <i className="fas fa-clock"></i>Awaiting reply
                     </span>
                   )}
+                  <button onClick={() => setDeleteTarget(active)} title="Delete thread"
+                    className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
+                    <i className="fas fa-trash text-xs"></i>
+                  </button>
                 </div>
               </div>
 

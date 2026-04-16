@@ -14,9 +14,9 @@ function todayStr() {
  * downward via NotificationContext — not called in leaf components.
  */
 const DEFAULT_PATHS = {
-  pendingBookings: '/admin/transactions',
-  messages:        '/admin/messages',
-  arrivals:        '/frontdesk/reservation',
+  pendingBookings: '/owner/transactions?status=Pending',
+  messages:        '/owner/messages',
+  arrivals:        '/owner/transactions?status=Confirmed',
   rooms:           '/frontdesk/rooms',
 };
 

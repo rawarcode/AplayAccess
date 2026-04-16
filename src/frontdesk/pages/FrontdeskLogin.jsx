@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const ALLOWED_ROLES = ['frontdesk', 'admin', 'owner'];
+const ALLOWED_ROLES = ['front_desk', 'owner'];
 
 export default function FrontdeskLogin() {
   const { loginWithEmail, isLoggedIn, user, booting } = useAuth();

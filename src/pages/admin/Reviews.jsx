@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
-import { getAdminReviews, updateAdminReview } from "../../lib/adminApi";
+import { getAdminReviews, updateAdminReview, deleteAdminReview } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
 
 const PAGE_SIZE = 10;
@@ -39,6 +39,8 @@ export default function AdminReviews() {
   const [pendingAction, setPendingAction] = useState(null);
 
   const searchRef = useRef(null);
+  const undoTimerRef = useRef(null);
+  const undoItemRef = useRef(null);
 
   /* ── load ── */
   const load = useCallback(() => {
@@ -89,8 +91,12 @@ export default function AdminReviews() {
   /* ── actions ── */
   async function execPendingAction() {
     if (!pendingAction) return;
-    const { id, type, featured } = pendingAction;
+    const { id, type, featured, review } = pendingAction;
     setPendingAction(null);
+    if (type === "delete") {
+      handleDelete(review);
+      return;
+    }
     try {
       if (type === "approve") {
         await updateAdminReview(id, { status: "Approved" });
@@ -112,6 +118,61 @@ export default function AdminReviews() {
       showToast("Failed to update review.", "error");
     }
   }
+
+  /* ── undo-delete ── */
+  function flushPendingDelete() {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    if (undoItemRef.current) {
+      const id = undoItemRef.current.id;
+      undoItemRef.current = null;
+      deleteAdminReview(id).catch(() => {});
+    }
+  }
+
+  function handleDelete(review) {
+    // flush any previous pending delete first
+    flushPendingDelete();
+
+    // optimistic removal
+    undoItemRef.current = review;
+    setReviews(rs => rs.filter(r => r.id !== review.id));
+    if (viewReview?.id === review.id) setViewReview(null);
+
+    showToast(
+      `Review by ${review.guestName} deleted.`,
+      "success",
+      {
+        label: "Undo",
+        onClick: () => {
+          if (undoTimerRef.current) {
+            clearTimeout(undoTimerRef.current);
+            undoTimerRef.current = null;
+          }
+          undoItemRef.current = null;
+          load();
+          showToast("Delete undone.", "success");
+        },
+      },
+    );
+
+    undoTimerRef.current = setTimeout(() => {
+      undoTimerRef.current = null;
+      const item = undoItemRef.current;
+      if (item) {
+        undoItemRef.current = null;
+        deleteAdminReview(item.id).catch(() => {
+          showToast("Failed to delete review.", "error");
+          load();
+        });
+      }
+    }, 6000);
+  }
+
+  // flush pending delete on unmount
+  useEffect(() => () => flushPendingDelete(), []);
 
   /* ── stats ── */
   const avgRating    = reviews.length ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "—";
@@ -152,7 +213,7 @@ export default function AdminReviews() {
         title={pendingAction?.label || ""}
         message={pendingAction?.desc || ""}
         confirmLabel={pendingAction?.label || "Confirm"}
-        variant={pendingAction?.type === "reject" ? "danger" : pendingAction?.type === "approve" ? "info" : "info"}
+        variant={pendingAction?.type === "reject" || pendingAction?.type === "delete" ? "danger" : pendingAction?.type === "approve" ? "info" : "info"}
         onConfirm={execPendingAction}
         onCancel={() => setPendingAction(null)}
       />
@@ -365,6 +426,11 @@ export default function AdminReviews() {
                           review.featured ? "hover:bg-rose-50 text-rose-400 hover:text-rose-600" : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"
                         }`} title={review.featured ? "Unfeature" : "Feature"}>
                         <i className={`fas fa-heart text-xs`}></i>
+                      </button>
+
+                      <button onClick={() => setPendingAction({ id: review.id, type: "delete", label: "Delete Review", desc: `Delete review by ${review.guestName}? You can undo within 6 seconds.`, review })}
+                        className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-600 transition" title="Delete">
+                        <i className="fas fa-trash-alt text-xs"></i>
                       </button>
                     </div>
                   </div>

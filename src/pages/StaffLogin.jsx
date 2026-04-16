@@ -5,7 +5,6 @@ import { useAuth } from '../context/AuthContext';
 
 const ROLE_REDIRECTS = {
   front_desk: '/frontdesk',
-  admin:      '/admin',
   owner:      '/owner',
 };
 
@@ -99,11 +98,7 @@ export default function StaffLogin() {
               </div>
               <div className="flex items-center gap-2">
                 <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
-                <span>Admin → rooms, users & content</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
-                <span>Owner → analytics & financials</span>
+                <span>Owner → management & analytics</span>
               </div>
             </div>
           </div>

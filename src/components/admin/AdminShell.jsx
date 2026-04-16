@@ -60,7 +60,7 @@ export default function AdminShell() {
 
   const userName  = user?.name  || "Admin";
   const userEmail = user?.email || "admin@aplayaccess.com";
-  const userRole  = user?.role  === "owner" ? "Owner" : "Administrator";
+  const userRole  = "Owner";
   const initials  = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   const pageTitle = PAGE_TITLES[location.pathname] ?? "Admin";
 

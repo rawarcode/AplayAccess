@@ -1,11 +1,24 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAdminStats } from "../../lib/adminApi";
+import { getAdminBookings } from "../../lib/adminApi";
 import { updateBookingStatus } from "../../lib/frontdeskApi";
 import Toast, { useToast } from "../../components/ui/Toast";
 
-function fmtDateTime(str) {
-  if (!str) return str;
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function fmtTime(str) {
+  if (!str) return "";
+  const d = new Date(str.replace(" ", "T"));
+  if (isNaN(d)) return str;
+  return d.toLocaleString("en-PH", {
+    hour: "numeric", minute: "2-digit", hour12: true,
+  });
+}
+
+function fmtDate(str) {
+  if (!str) return "";
   const d = new Date(str.replace(" ", "T"));
   if (isNaN(d)) return str;
   return d.toLocaleString("en-PH", {
@@ -23,12 +36,12 @@ const STATUS_COLORS = {
 };
 
 export default function AdminDashboard() {
-  const [stats,       setStats]       = useState(null);
+  const [bookings,    setBookings]    = useState([]);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
-  const [viewBooking, setViewBooking] = useState(null);
-  const [acting,      setActing]      = useState(false);
+  const [acting,      setActing]      = useState(null); // bookingId being acted on
   const [refreshing,  setRefreshing]  = useState(false);
+  const [viewBooking, setViewBooking] = useState(null);
 
   const [toast, showToast, clearToast, toastType] = useToast();
   const navigate = useNavigate();
@@ -36,9 +49,13 @@ export default function AdminDashboard() {
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
-    getAdminStats()
-      .then(r => { setStats(r.data.data); setError(null); })
-      .catch(() => setError("Failed to load dashboard data."))
+    getAdminBookings()
+      .then(r => {
+        const data = r.data?.data ?? r.data ?? r;
+        setBookings(Array.isArray(data) ? data : []);
+        setError(null);
+      })
+      .catch(() => setError("Failed to load bookings."))
       .finally(() => { setLoading(false); setRefreshing(false); });
   }, []);
 
@@ -50,7 +67,7 @@ export default function AdminDashboard() {
     return () => clearInterval(id);
   }, [load]);
 
-  // Escape key closes modal
+  // Escape closes modal
   useEffect(() => {
     if (!viewBooking) return;
     function onKey(e) { if (e.key === "Escape") setViewBooking(null); }
@@ -58,8 +75,20 @@ export default function AdminDashboard() {
     return () => document.removeEventListener("keydown", onKey);
   }, [viewBooking]);
 
+  // ── Derived data ────────────────────────────────────────────────────────────
+  const today = todayStr();
+
+  const pending = bookings.filter(b => b.status === "Pending");
+  const todayCheckIns = bookings.filter(
+    b => b.status === "Confirmed" && b.checkIn?.slice(0, 10) === today
+  );
+  const todayCheckOuts = bookings.filter(
+    b => b.status === "Checked In" && b.checkOut?.slice(0, 10) === today
+  );
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
   async function handleAction(bookingId, status) {
-    setActing(true);
+    setActing(bookingId);
     try {
       await updateBookingStatus(bookingId, status);
       showToast(`Booking ${status.toLowerCase()} successfully.`, "success");
@@ -68,46 +97,44 @@ export default function AdminDashboard() {
     } catch (err) {
       showToast(err.response?.data?.message || `Failed to ${status.toLowerCase()} booking.`, "error");
     } finally {
-      setActing(false);
+      setActing(null);
     }
   }
 
-  // ── Loading skeleton ───────────────────────────────────────────────────────
+  // ── Loading skeleton ────────────────────────────────────────────────────────
   if (loading) return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
-            <div className="flex items-center">
-              <div className="h-12 w-12 rounded-full bg-gray-200 mr-4"></div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="bg-white rounded-xl shadow p-5 animate-pulse">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-gray-200"></div>
               <div className="space-y-2 flex-1">
                 <div className="h-3 bg-gray-200 rounded w-24"></div>
-                <div className="h-6 bg-gray-200 rounded w-16"></div>
-                <div className="h-2 bg-gray-100 rounded w-32"></div>
+                <div className="h-7 bg-gray-200 rounded w-12"></div>
               </div>
             </div>
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b animate-pulse flex justify-between">
-          <div className="h-5 bg-gray-200 rounded w-36"></div>
-          <div className="h-4 bg-gray-100 rounded w-16"></div>
-        </div>
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="px-6 py-4 flex gap-6 border-b animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-28"></div>
-            <div className="h-4 bg-gray-200 rounded w-24"></div>
-            <div className="h-4 bg-gray-100 rounded w-28"></div>
-            <div className="h-4 bg-gray-100 rounded w-40"></div>
-            <div className="h-5 bg-gray-200 rounded-full w-20"></div>
+      {[1, 2].map(i => (
+        <div key={i} className="bg-white rounded-xl shadow">
+          <div className="px-6 py-4 border-b animate-pulse">
+            <div className="h-5 bg-gray-200 rounded w-40"></div>
           </div>
-        ))}
-      </div>
+          {[1, 2, 3].map(j => (
+            <div key={j} className="px-6 py-4 flex gap-6 border-b animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-24"></div>
+              <div className="h-4 bg-gray-100 rounded w-32"></div>
+              <div className="h-4 bg-gray-200 rounded w-20"></div>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 
-  // ── Error state ────────────────────────────────────────────────────────────
+  // ── Error state ─────────────────────────────────────────────────────────────
   if (error) return (
     <div className="p-6">
       <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-6 text-center">
@@ -123,132 +150,259 @@ export default function AdminDashboard() {
     </div>
   );
 
-  const cards = [
+  // ── Action cards ────────────────────────────────────────────────────────────
+  const actionCards = [
     {
-      label: "Total Guests",
-      value: stats.total_guests.toLocaleString(),
-      icon: "fa-users",
-      color: "bg-blue-100 text-blue-600",
-      sub: `${stats.pending_bookings} pending bookings`,
+      label: "Pending Approval",
+      count: pending.length,
+      icon: "fa-clock",
+      color: "bg-amber-50 text-amber-600 border-amber-200",
+      iconBg: "bg-amber-100",
+      empty: "All caught up!",
+      target: "#pending",
     },
     {
-      label: "Total Rooms",
-      value: stats.total_rooms,
-      icon: "fa-bed",
-      color: "bg-green-100 text-green-600",
-      sub: "All room types",
+      label: "Today's Check-ins",
+      count: todayCheckIns.length,
+      icon: "fa-arrow-right-to-bracket",
+      color: "bg-green-50 text-green-600 border-green-200",
+      iconBg: "bg-green-100",
+      empty: "No arrivals today",
+      target: "#checkins",
     },
     {
-      label: "Bookings This Month",
-      value: stats.bookings_this_month,
-      icon: "fa-calendar-check",
-      color: "bg-amber-100 text-amber-600",
-      sub: "Current month",
-    },
-    {
-      label: "Revenue This Month",
-      value: `₱${Number(stats.revenue_this_month).toLocaleString()}`,
-      icon: "fa-peso-sign",
-      color: "bg-purple-100 text-purple-600",
-      sub: "Completed + forfeited fees",
+      label: "Today's Check-outs",
+      count: todayCheckOuts.length,
+      icon: "fa-arrow-right-from-bracket",
+      color: "bg-blue-50 text-blue-600 border-blue-200",
+      iconBg: "bg-blue-100",
+      empty: "No departures today",
+      target: "#checkouts",
     },
   ];
 
   return (
     <div className="p-6 space-y-6">
 
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {cards.map((c) => (
-          <div key={c.label} className="bg-white rounded-lg shadow p-6 hover:shadow-md transition">
-            <div className="flex items-center">
-              <div className={`p-3 rounded-full mr-4 ${c.color}`}>
-                <i className={`fas ${c.icon} text-xl`}></i>
-              </div>
-              <div>
-                <p className="text-gray-500 text-sm">{c.label}</p>
-                <h3 className="text-2xl font-bold">{c.value}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {c.label === "Total Guests" && stats.pending_bookings > 0 ? (
-                    <span className="inline-flex items-center gap-1">
-                      <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500"></span>
-                      {stats.pending_bookings} pending
-                    </span>
-                  ) : c.sub}
-                </p>
-              </div>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">Command Center</h1>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {new Date().toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          </p>
+        </div>
+        <button
+          onClick={() => load(true)}
+          disabled={refreshing}
+          className="text-gray-400 hover:text-gray-600 transition disabled:opacity-50 p-2"
+          title="Refresh"
+        >
+          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`}></i>
+        </button>
+      </div>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {actionCards.map(c => (
+          <a
+            key={c.label}
+            href={c.target}
+            className={`rounded-xl border p-5 flex items-center gap-4 transition hover:shadow-md ${c.color}`}
+          >
+            <div className={`h-12 w-12 rounded-xl ${c.iconBg} flex items-center justify-center shrink-0`}>
+              <i className={`fas ${c.icon} text-lg`}></i>
             </div>
-          </div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium opacity-70 uppercase tracking-wide">{c.label}</p>
+              {c.count > 0 ? (
+                <p className="text-2xl font-bold">{c.count}</p>
+              ) : (
+                <p className="text-sm font-medium opacity-60">{c.empty}</p>
+              )}
+            </div>
+          </a>
         ))}
       </div>
 
-      {/* Recent Bookings */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-800">Recent Bookings</h2>
-          <div className="flex items-center gap-3">
+      {/* Pending Approval Queue */}
+      <section id="pending">
+        <div className="bg-white rounded-xl shadow">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-800">
+              <i className="fas fa-clock text-amber-500 mr-2"></i>
+              Pending Approval
+              {pending.length > 0 && (
+                <span className="ml-2 bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {pending.length}
+                </span>
+              )}
+            </h2>
             <button
-              onClick={() => load(true)}
-              disabled={refreshing}
-              className="text-gray-400 hover:text-gray-600 transition disabled:opacity-50"
-              title="Refresh"
-            >
-              <i className={`fas fa-sync-alt text-sm ${refreshing ? "fa-spin" : ""}`}></i>
-            </button>
-            <span className="bg-gray-100 text-gray-500 text-xs font-medium px-2.5 py-1 rounded-full">Latest 5</span>
-            <button
-              onClick={() => navigate("/admin/history")}
+              onClick={() => navigate("/owner/bookings")}
               className="text-xs text-blue-600 hover:underline font-medium"
             >
-              View All <i className="fas fa-arrow-right ml-0.5 text-[10px]"></i>
+              View All Bookings <i className="fas fa-arrow-right ml-0.5 text-[10px]"></i>
             </button>
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          {stats.recent_bookings.length === 0 ? (
-            <div className="px-6 py-12 text-center">
-              <i className="fas fa-calendar-times text-gray-200 text-4xl mb-3 block"></i>
-              <p className="text-gray-400 text-sm">No bookings yet.</p>
+          {pending.length === 0 ? (
+            <div className="px-6 py-10 text-center">
+              <i className="fas fa-check-circle text-green-200 text-4xl mb-3 block"></i>
+              <p className="text-gray-400 text-sm font-medium">No pending bookings — all caught up!</p>
             </div>
           ) : (
-            <table className="min-w-full text-sm text-gray-700">
-              <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
-                <tr>
-                  <th className="px-6 py-3 text-left">ID</th>
-                  <th className="px-6 py-3 text-left">Room</th>
-                  <th className="px-6 py-3 text-left">Guest</th>
-                  <th className="px-6 py-3 text-left">Dates</th>
-                  <th className="px-6 py-3 text-left">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {stats.recent_bookings.map((b) => (
-                  <tr
-                    key={b.id}
-                    onClick={() => setViewBooking(b)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <td className="px-6 py-4 font-mono text-xs text-gray-500">{b.id}</td>
-                    <td className="px-6 py-4">{b.room}</td>
-                    <td className="px-6 py-4">{b.guest}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                      <div>{fmtDateTime(b.checkIn) || b.checkIn}</div>
-                      <div className="text-xs text-gray-400">→ {fmtDateTime(b.checkOut) || b.checkOut}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${STATUS_COLORS[b.status] || "bg-gray-100 text-gray-700"}`}>
-                        {b.status}
-                      </span>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="min-w-full text-sm">
+                <thead className="bg-gray-50 text-xs text-gray-500 uppercase tracking-wide">
+                  <tr>
+                    <th className="px-6 py-3 text-left">Guest</th>
+                    <th className="px-6 py-3 text-left">Room</th>
+                    <th className="px-6 py-3 text-left">Check-in</th>
+                    <th className="px-6 py-3 text-left">Type</th>
+                    <th className="px-6 py-3 text-left">Total</th>
+                    <th className="px-6 py-3 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {pending.map(b => (
+                    <tr key={b.id || b.bookingId} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-3">
+                        <button
+                          onClick={() => setViewBooking(b)}
+                          className="text-blue-600 hover:underline font-medium text-left"
+                        >
+                          {b.guest}
+                        </button>
+                        <p className="text-xs text-gray-400">{b.id}</p>
+                      </td>
+                      <td className="px-6 py-3 text-gray-700">{b.room}</td>
+                      <td className="px-6 py-3 text-gray-500 whitespace-nowrap">{fmtDate(b.checkIn)}</td>
+                      <td className="px-6 py-3">
+                        <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full capitalize">
+                          {b.bookingType || "—"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 font-medium">₱{Number(b.total || 0).toLocaleString()}</td>
+                      <td className="px-6 py-3 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => handleAction(b.bookingId || b.id, "Confirmed")}
+                            disabled={acting === (b.bookingId || b.id)}
+                            className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 disabled:opacity-50 transition"
+                          >
+                            {acting === (b.bookingId || b.id) ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-check mr-1"></i>Confirm</>}
+                          </button>
+                          <button
+                            onClick={() => handleAction(b.bookingId || b.id, "Cancelled")}
+                            disabled={acting === (b.bookingId || b.id)}
+                            className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition"
+                          >
+                            <i className="fas fa-ban mr-1"></i>Decline
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
+      </section>
+
+      {/* Today's Schedule — Check-ins & Check-outs side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        {/* Today's Check-ins */}
+        <section id="checkins" className="bg-white rounded-xl shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-800">
+              <i className="fas fa-arrow-right-to-bracket text-green-500 mr-2"></i>
+              Arriving Today
+              {todayCheckIns.length > 0 && (
+                <span className="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {todayCheckIns.length}
+                </span>
+              )}
+            </h2>
+          </div>
+          {todayCheckIns.length === 0 ? (
+            <div className="px-6 py-10 text-center">
+              <i className="fas fa-couch text-gray-200 text-3xl mb-2 block"></i>
+              <p className="text-gray-400 text-sm">No arrivals scheduled today</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {todayCheckIns.map(b => (
+                <div key={b.id || b.bookingId} className="px-6 py-4 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors">
+                  <div className="min-w-0">
+                    <button
+                      onClick={() => setViewBooking(b)}
+                      className="text-sm font-medium text-blue-600 hover:underline truncate block"
+                    >
+                      {b.guest}
+                    </button>
+                    <p className="text-xs text-gray-500">{b.room} · {fmtTime(b.checkIn)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleAction(b.bookingId || b.id, "Checked In")}
+                    disabled={acting === (b.bookingId || b.id)}
+                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-50 transition shrink-0"
+                  >
+                    {acting === (b.bookingId || b.id) ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-door-open mr-1"></i>Check In</>}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Today's Check-outs */}
+        <section id="checkouts" className="bg-white rounded-xl shadow">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-base font-semibold text-gray-800">
+              <i className="fas fa-arrow-right-from-bracket text-blue-500 mr-2"></i>
+              Departing Today
+              {todayCheckOuts.length > 0 && (
+                <span className="ml-2 bg-blue-100 text-blue-700 text-xs font-bold px-2 py-0.5 rounded-full">
+                  {todayCheckOuts.length}
+                </span>
+              )}
+            </h2>
+          </div>
+          {todayCheckOuts.length === 0 ? (
+            <div className="px-6 py-10 text-center">
+              <i className="fas fa-door-closed text-gray-200 text-3xl mb-2 block"></i>
+              <p className="text-gray-400 text-sm">No departures scheduled today</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {todayCheckOuts.map(b => (
+                <div key={b.id || b.bookingId} className="px-6 py-4 flex items-center justify-between gap-3 hover:bg-gray-50 transition-colors">
+                  <div className="min-w-0">
+                    <button
+                      onClick={() => setViewBooking(b)}
+                      className="text-sm font-medium text-blue-600 hover:underline truncate block"
+                    >
+                      {b.guest}
+                    </button>
+                    <p className="text-xs text-gray-500">{b.room} · out by {fmtTime(b.checkOut)}</p>
+                  </div>
+                  <button
+                    onClick={() => handleAction(b.bookingId || b.id, "Completed")}
+                    disabled={acting === (b.bookingId || b.id)}
+                    className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 disabled:opacity-50 transition shrink-0"
+                  >
+                    {acting === (b.bookingId || b.id) ? <i className="fas fa-spinner fa-spin"></i> : <><i className="fas fa-flag-checkered mr-1"></i>Check Out</>}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
-      {/* View Booking Modal */}
+      {/* Booking Detail Modal */}
       {viewBooking && (
         <div
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
@@ -256,7 +410,7 @@ export default function AdminDashboard() {
         >
           <div
             className="bg-white rounded-2xl shadow-xl w-full max-w-sm animate-hero-fade-in opacity-0"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900">
@@ -271,8 +425,8 @@ export default function AdminDashboard() {
                 ["fa-hashtag",      "Booking ID",  viewBooking.id],
                 ["fa-user",         "Guest",       viewBooking.guest],
                 ["fa-bed",          "Room",        viewBooking.room],
-                ["fa-arrow-right-to-bracket", "Check-in", fmtDateTime(viewBooking.checkIn) || viewBooking.checkIn],
-                ["fa-arrow-right-from-bracket", "Check-out", fmtDateTime(viewBooking.checkOut) || viewBooking.checkOut],
+                ["fa-arrow-right-to-bracket", "Check-in", fmtDate(viewBooking.checkIn) || viewBooking.checkIn],
+                ["fa-arrow-right-from-bracket", "Check-out", fmtDate(viewBooking.checkOut) || viewBooking.checkOut],
                 ...(viewBooking.guests ? [["fa-users", "Guests", viewBooking.guests]] : []),
                 ...(viewBooking.bookingType ? [["fa-clock", "Type", viewBooking.bookingType]] : []),
                 ...(viewBooking.total ? [["fa-peso-sign", "Total", `₱${Number(viewBooking.total).toLocaleString()}`]] : []),
@@ -293,25 +447,24 @@ export default function AdminDashboard() {
               </div>
             </div>
             <div className="px-6 pb-6 flex flex-wrap gap-2 justify-end">
-              {/* Quick actions */}
               {viewBooking.status === "Pending" && (
-                <button
-                  onClick={() => handleAction(viewBooking.bookingId || viewBooking.id, "Confirmed")}
-                  disabled={acting}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 disabled:opacity-50 transition"
-                >
-                  {acting ? <i className="fas fa-spinner fa-spin mr-1"></i> : <i className="fas fa-check mr-1"></i>}
-                  Confirm
-                </button>
-              )}
-              {viewBooking.status === "Pending" && (
-                <button
-                  onClick={() => handleAction(viewBooking.bookingId || viewBooking.id, "Cancelled")}
-                  disabled={acting}
-                  className="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm hover:bg-red-200 disabled:opacity-50 transition"
-                >
-                  <i className="fas fa-ban mr-1"></i>Cancel
-                </button>
+                <>
+                  <button
+                    onClick={() => handleAction(viewBooking.bookingId || viewBooking.id, "Confirmed")}
+                    disabled={acting}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-xl text-sm hover:bg-blue-700 disabled:opacity-50 transition"
+                  >
+                    {acting ? <i className="fas fa-spinner fa-spin mr-1"></i> : <i className="fas fa-check mr-1"></i>}
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => handleAction(viewBooking.bookingId || viewBooking.id, "Cancelled")}
+                    disabled={acting}
+                    className="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm hover:bg-red-200 disabled:opacity-50 transition"
+                  >
+                    <i className="fas fa-ban mr-1"></i>Decline
+                  </button>
+                </>
               )}
               {viewBooking.status === "Confirmed" && (
                 <button
