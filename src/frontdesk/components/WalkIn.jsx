@@ -1152,20 +1152,8 @@ export default function WalkIn() {
                                 : '6:00 PM';
                   const rateLabel = form.bookingType === 'night' ? 'Night rate' : is24hr ? '24 hr rate' : 'Day rate';
                   return (
-                    <div className={`p-3 rounded text-sm mb-4 border ${tc.bg} ${tc.border}`}>
-                      <p className={`font-semibold mb-2 ${tc.text}`}>
-                        <i className={`fas ${form.bookingType === 'night' ? 'fa-moon' : is24hr ? 'fa-clock' : 'fa-sun'} mr-1`}></i>Booking Summary
-                      </p>
-                      <div className={`space-y-1 mb-2 ${tc.sub}`}>
-                        <div className="flex justify-between">
-                          <span>Check-in</span>
-                          <span className="font-medium">{ciLabel}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Check-out</span>
-                          <span className="font-medium">{coLabel}</span>
-                        </div>
-                        <hr className={`my-1 ${tc.hr}`} />
+                    <div className={`p-3 rounded text-sm border ${tc.bg} ${tc.border}`}>
+                      <div className={`space-y-0.5 ${tc.sub}`}>
                         <div className="flex justify-between">
                           <span>{rateLabel}</span>
                           <span>{fmtMoney(baseRate)}</span>
@@ -1175,45 +1163,26 @@ export default function WalkIn() {
                           const subtotal = a.per_booking ? a.price : a.price * qty;
                           return (
                             <div key={a.id} className="flex justify-between">
-                              <span>
-                                <i className={`fas ${a.icon || 'fa-tag'} mr-1 text-xs`}></i>
-                                {a.name}{!a.per_booking && ` × ${qty}`}
-                              </span>
+                              <span>{a.name}{!a.per_booking && ` × ${qty}`}</span>
                               <span>{fmtMoney(subtotal)}</span>
                             </div>
                           );
                         })}
                         {promoDiscount > 0 && (
-                          <>
-                            <div className="flex justify-between text-slate-400 line-through">
-                              <span>Subtotal</span>
-                              <span>{fmtMoney(previewSubtotal)}</span>
-                            </div>
-                            <div className="flex justify-between text-emerald-700 font-medium">
-                              <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput})</span>
-                              <span>− {fmtMoney(promoDiscount)}</span>
-                            </div>
-                          </>
+                          <div className="flex justify-between text-emerald-700 font-medium">
+                            <span><i className="fas fa-tag mr-1 text-xs"></i>Promo ({promoInput})</span>
+                            <span>− {fmtMoney(promoDiscount)}</span>
+                          </div>
                         )}
+                        <div className="flex justify-between text-amber-700 pt-0.5">
+                          <span>Entrance ({form.guests} pax × ₱{entranceFeeRate})</span>
+                          <span>{fmtMoney(entranceFeeTotal)}</span>
+                        </div>
                       </div>
-                      <div className={`flex justify-between font-bold border-t pt-2 ${tc.text} ${tc.hr}`}>
-                        <span>Booking Total</span>
-                        <span>{fmtMoney(previewTotal)}</span>
-                      </div>
-                      <div className="flex justify-between text-amber-700 font-medium pt-1.5 border-t border-dashed border-amber-200 mt-1.5">
-                        <span className="flex items-center gap-1">
-                          <i className="fas fa-ticket-alt text-xs"></i>
-                          Entrance fee ({form.guests} pax × ₱{entranceFeeRate})
-                        </span>
-                        <span>{fmtMoney(entranceFeeTotal)}</span>
-                      </div>
-                      <div className="flex justify-between font-bold text-base border-t border-slate-300 pt-2 mt-2 text-slate-900">
+                      <div className="flex justify-between font-bold text-base border-t border-slate-300 pt-1.5 mt-1.5 text-slate-900">
                         <span>Total to Collect</span>
                         <span>{fmtMoney(previewTotal + entranceFeeTotal)}</span>
                       </div>
-                      <p className="text-xs text-amber-600 mt-1">
-                        <i className="fas fa-info-circle mr-1"></i>Entrance fee collected separately at the gate.
-                      </p>
                     </div>
                   );
                 })()}
