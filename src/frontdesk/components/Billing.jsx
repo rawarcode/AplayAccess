@@ -499,7 +499,7 @@ export default function Billing() {
                 <button onClick={handleCollect} disabled={paying}
                   className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
                   <i className="fas fa-check mr-1"></i>
-                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue)}`}
+                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue + calcEntrance(billing))}`}
                 </button>
               </div>
             </div>
@@ -568,9 +568,9 @@ export default function Billing() {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-slate-500">Balance Due</p>
+                    <p className="text-xs text-slate-500">Total to Collect</p>
                     <p className="font-bold text-sky-700 text-lg">
-                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)))}
+                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b))}
                     </p>
                     <button
                       onClick={e => { e.stopPropagation(); openCollect(b); }}
@@ -616,7 +616,7 @@ export default function Billing() {
                         </button>
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Balance Due</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">To Collect</th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Action</th>
                   </tr>
                 </thead>
@@ -641,7 +641,7 @@ export default function Billing() {
                           ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservationFee ?? 0)}</span>
                           : b.fullyPaid
                           ? <span className="text-emerald-600"><i className="fas fa-check mr-1"></i>Paid</span>
-                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)))}</span>
+                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b))}</span>
                         }
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
