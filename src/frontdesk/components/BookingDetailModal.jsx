@@ -30,7 +30,11 @@ function parseWalkIn(b) {
   const name  = (b.specialRequests.match(/^Walk-in:\s*([^,]+)/) || [])[1]?.trim() || b.guest;
   const phone = (b.specialRequests.match(/Phone:\s*([^,]+)/)    || [])[1]?.trim() || '—';
   const email = (b.specialRequests.match(/Email:\s*([^,]+)/)    || [])[1]?.trim() || '—';
-  return { name, phone, email };
+  // Notes is the free-form guest request that the walk-in form appends.
+  // Grab everything after "Notes:" so multi-comma notes aren't truncated.
+  const notesMatch = b.specialRequests.match(/Notes:\s*(.+)$/);
+  const notes = notesMatch?.[1]?.trim() || '';
+  return { name, phone, email, notes };
 }
 
 function isExpiredPending(b) {
@@ -454,17 +458,36 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 {promoError && <p className="text-xs text-rose-500 mt-1">{promoError}</p>}
               </div>
             )}
-            {!wi && booking.specialRequests && (
-              <div className="col-span-2">
-                <p className="text-xs text-slate-500">Special Requests</p>
-                <p className="italic text-slate-700">{booking.specialRequests}</p>
-              </div>
-            )}
             <div className="col-span-2">
               <p className="text-xs text-slate-500">Booked On</p>
               <p>{fmtDateTime(booking.createdAt)}</p>
             </div>
           </div>
+
+          {/* Special requests — prominent callout so frontdesk staff can't
+              miss guest-authored notes (e.g. allergies, early check-in,
+              anniversary requests). Works for both regular and walk-in
+              bookings (walk-in metadata lives in specialRequests as well,
+              so we surface the Notes: slice only). */}
+          {(() => {
+            const note = wi ? wi.notes : booking.specialRequests;
+            if (!note) return null;
+            return (
+              <div className="mt-4 rounded-xl border-2 border-amber-300 bg-amber-50 px-4 py-3 flex gap-3 shadow-sm">
+                <div className="shrink-0 w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center">
+                  <i className="fas fa-note-sticky text-amber-600" aria-hidden="true"></i>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                    Special request from guest
+                  </p>
+                  <p className="mt-1 text-sm text-amber-900 whitespace-pre-wrap break-words">
+                    {note}
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Guest Count + Entrance Fee — shown for active bookings */}
           {['Pending', 'Confirmed', 'Checked In'].includes(booking.status) && (() => {
