@@ -1,11 +1,11 @@
 /**
- * Frontdesk Messages page — wraps the shared AdminMessages component with the
- * frontdesk Sidebar layout. Both admin and frontdesk staff use the same
+ * Frontdesk Messages page — wraps the shared owner Messages component with
+ * the frontdesk Sidebar layout. Both owner and frontdesk staff use the same
  * /api/admin/messages endpoint (covered by the `staff` middleware which allows
- * both `admin` and `front_desk` roles), so no duplication is needed.
+ * both `owner` and `front_desk` roles), so no duplication is needed.
  */
 import Sidebar from './Layout/Sidebar';
-import AdminMessages from '../../pages/admin/Messages';
+import AdminMessages from '../../pages/owner/Messages';
 
 export default function FDMessages() {
   return (

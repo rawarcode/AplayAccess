@@ -31,14 +31,16 @@ Aplaya Beach Resort booking system — Capstone project.
 | Portal    | Pages                    | Shell                                    |
 |-----------|--------------------------|------------------------------------------|
 | Guest     | `src/pages/dashboard/`   | `src/components/DashboardShell.jsx`     |
-| Admin     | `src/pages/admin/`       | `src/components/admin/AdminShell.jsx`   |
 | Owner     | `src/pages/owner/`       | `src/components/owner/OwnerShell.jsx`   |
 | Frontdesk | `src/frontdesk/`         | `src/frontdesk/components/Layout/`      |
+
+Legacy `/admin/*` routes redirect to `/owner/*`; the admin role was removed
+and `src/pages/admin/` was merged into `src/pages/owner/`.
 
 ## Key Files
 - `src/components/modals/BookingModal.jsx` — guest/public online booking (3 types, PayMongo)
 - `src/frontdesk/components/WalkIn.jsx` — frontdesk walk-in booking form
-- `src/pages/admin/Rooms.jsx` — admin room CRUD
+- `src/pages/owner/Rooms.jsx` — owner room CRUD
 
 ## Pricing Model (current)
 - **4 booking types:** `day` (6AM–6PM), `night` (6PM–7AM next day), `24hr` (6AM–6AM next day), `24hr-pm` (6PM–6PM next day)
