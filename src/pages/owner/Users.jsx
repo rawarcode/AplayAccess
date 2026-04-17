@@ -851,7 +851,6 @@ export default function OwnerUsers() {
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Role <span className="text-red-400">*</span></label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { key: "owner", label: "Owner", icon: "fa-crown", bg: "peer-checked:bg-amber-50 peer-checked:border-amber-300 peer-checked:ring-1 peer-checked:ring-amber-200" },
                         { key: "front_desk", label: "Front Desk", icon: "fa-headset", bg: "peer-checked:bg-sky-50 peer-checked:border-sky-300 peer-checked:ring-1 peer-checked:ring-sky-200" },
                       ].map(({ key, label, icon, bg }) => (
                         <label key={key} className="relative cursor-pointer select-none">
