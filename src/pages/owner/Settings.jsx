@@ -7,7 +7,7 @@ const PRICING_FIELDS = [
   {
     key:         "entrance_fee_day",
     label:       "Entrance Fee — Day (6AM–6PM)",
-    description: "Per adult head for daytime visits. Children 5 & below are free.",
+    description: "Per guest for daytime visits.",
     icon:        "fa-sun",
     prefix:      "₱",
     suffix:      "/ head",
@@ -16,7 +16,7 @@ const PRICING_FIELDS = [
   {
     key:         "entrance_fee_night",
     label:       "Entrance Fee — Night (6PM–7AM)",
-    description: "Per adult head for nighttime visits. Children 5 & below are free.",
+    description: "Per guest for nighttime visits.",
     icon:        "fa-moon",
     prefix:      "₱",
     suffix:      "/ head",
@@ -25,20 +25,11 @@ const PRICING_FIELDS = [
   {
     key:         "entrance_fee_24hr",
     label:       "Entrance Fee — 24 Hours",
-    description: "Per adult head for full-day (24-hour) visits. Children 5 & below are free.",
+    description: "Per guest for full-day (24-hour) visits.",
     icon:        "fa-clock",
     prefix:      "₱",
     suffix:      "/ head",
     step:        "any",
-  },
-  {
-    key:         "child_free_age",
-    label:       "Children Free Age Limit",
-    description: "Children at or below this age are exempt from entrance fees.",
-    icon:        "fa-child",
-    prefix:      "",
-    suffix:      "& below",
-    step:        1,
   },
   {
     key:         "reservation_fee_pct",
@@ -111,10 +102,6 @@ export default function OwnerSettings() {
         showToast(`"${f.label}" must be a non-negative number.`, "error");
         return;
       }
-      if (f.key === "child_free_age" && !Number.isInteger(v)) {
-        showToast(`"${f.label}" must be a whole number.`, "error");
-        return;
-      }
       if (f.key === "reservation_fee_pct" && (v < 0 || v > 100)) {
         showToast(`"${f.label}" must be between 0 and 100.`, "error");
         return;
@@ -147,10 +134,8 @@ export default function OwnerSettings() {
 
   /* ---------- preview helpers ---------- */
   const feeDay   = Number(draft.entrance_fee_day ?? 0);
-  const childAge = Number(draft.child_free_age ?? 5);
   const resPct   = Number(draft.reservation_fee_pct ?? 0);
   const adultCount   = 4;
-  const childCount   = 2;
   const adultTotal   = adultCount * feeDay;
 
   /* ---------- render ---------- */
@@ -261,8 +246,9 @@ export default function OwnerSettings() {
             <div>
               <p className="font-semibold mb-1">These values are live</p>
               <p>
-                Changes take effect immediately for all new bookings made on the website.
-                Existing confirmed bookings are not affected.
+                Room rates are locked in at booking time — existing bookings keep the rate they were booked at.
+                Entrance fees and reservation-fee percentage reflect the current setting, so changes here apply
+                to new bookings and to any check-ins that haven't collected the gate fee yet.
               </p>
             </div>
           </div>
@@ -271,17 +257,12 @@ export default function OwnerSettings() {
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
               <h2 className="font-semibold text-slate-800 text-sm">Booking Summary Preview</h2>
-              <p className="text-xs text-slate-400">Example day visit with {adultCount} adults + {childCount} children</p>
+              <p className="text-xs text-slate-400">Example day visit with {adultCount} guests</p>
             </div>
             <div className="px-6 py-5 text-sm space-y-2 text-slate-700">
               <PreviewRow
-                label={`Entrance fee adults (${adultCount} × ₱${feeDay.toLocaleString()})`}
+                label={`Entrance fee (${adultCount} × ₱${feeDay.toLocaleString()})`}
                 value={`₱${adultTotal.toLocaleString()}`}
-              />
-              <PreviewRow
-                label={`Entrance fee children (${childCount}, age ${childAge} & below)`}
-                value="FREE"
-                note=""
               />
               <PreviewRow
                 label="Room rate (base)"
