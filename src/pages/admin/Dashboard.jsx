@@ -3,11 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { getAdminBookings } from "../../lib/adminApi";
 import { updateBookingStatus, checkInBooking } from "../../lib/frontdeskApi";
 import Toast, { useToast } from "../../components/ui/Toast";
-import { fmtTime, fmtDateTime } from "../../lib/format";
+import { fmtTime, fmtDateTime, localDateStr } from "../../lib/format";
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
+const todayStr = () => localDateStr();
 
 // Local alias: the original "fmtDate" here included time — it was really fmtDateTime
 const fmtDate = fmtDateTime;

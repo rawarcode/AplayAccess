@@ -6,10 +6,10 @@ import Modal from '../../components/modals/Modal';
 import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
-import { fmtTime } from '../../lib/format';
+import { fmtTime, localDateStr } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+const todayStr = () => localDateStr();
 
 function getCat(room) {
   if (room.category) return room.category;
@@ -102,7 +102,7 @@ function getOvernightStatus(roomName, bookings) {
     const ci = new Date(b.checkIn.replace(' ', 'T'));
     const co = new Date(b.checkOut.replace(' ', 'T'));
     // Relevant if currently in progress OR check-in is today (tonight)
-    return (now >= ci && now < co) || ci.toISOString().slice(0, 10) === today;
+    return (now >= ci && now < co) || localDateStr(ci) === today;
   });
 
   for (const b of ovBk) {
@@ -171,7 +171,7 @@ function getMultiNightStatus(roomName, quantity, bookings) {
     if (!isOvernightBooking(b)) return false;
     const ci = new Date(b.checkIn.replace(' ', 'T'));
     const co = new Date(b.checkOut.replace(' ', 'T'));
-    return (now >= ci && now < co) || ci.toISOString().slice(0, 10) === today;
+    return (now >= ci && now < co) || localDateStr(ci) === today;
   }).forEach(b => {
     const ci = new Date(b.checkIn.replace(' ', 'T'));
     const co = new Date(b.checkOut.replace(' ', 'T'));

@@ -4,6 +4,7 @@ import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { getPromoCodes, createPromoCode, updatePromoCode, deletePromoCode } from "../../lib/adminApi.js";
+import { localDateStr } from "../../lib/format";
 import useDebounce from "../../hooks/useDebounce.js";
 
 const EMPTY_FORM = { code: "", type: "percentage", value: "", max_uses: "", expires_at: "" };
@@ -885,7 +886,7 @@ export default function PromoCodes() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Expiry Date</label>
-                  <input type="date" value={form.expires_at} min={new Date().toISOString().substring(0, 10)}
+                  <input type="date" value={form.expires_at} min={localDateStr()}
                     onChange={(e) => setForm((p) => ({ ...p, expires_at: e.target.value }))}
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
                 </div>

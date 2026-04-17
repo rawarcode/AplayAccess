@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAdminMessages, getAdminReviews } from '../lib/adminApi';
 import { getFdBookings } from '../lib/frontdeskApi';
+import { localDateStr } from '../lib/format';
 
 const POLL_MS = 10_000; // 10 seconds
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
+const todayStr = () => localDateStr();
 
 /**
  * Polls messages, bookings, and rooms every 30 s and returns notification counts + items.

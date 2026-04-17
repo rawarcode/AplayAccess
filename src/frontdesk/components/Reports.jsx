@@ -8,7 +8,7 @@ import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
-import { fmtMoney, fmtTime } from '../../lib/format';
+import { fmtMoney, fmtTime, localDateStr } from '../../lib/format';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -30,7 +30,7 @@ function makeSampleBookings() {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dateStr = d.toISOString().slice(0, 10);
+    const dateStr = localDateStr(d);
     const n = counts[6 - i];
 
     for (let j = 0; j < n; j++) {
@@ -42,7 +42,7 @@ function makeSampleBookings() {
       const durations = [12, 13, 24];                         // day=12h, night=13h, 24hr
       const dur = durations[j % durations.length];
       const outHH = (hh + dur) % 24;
-      const outDate = dur + hh >= 24 ? (() => { const nd = new Date(d); nd.setDate(nd.getDate()+1); return nd.toISOString().slice(0,10); })() : dateStr;
+      const outDate = dur + hh >= 24 ? (() => { const nd = new Date(d); nd.setDate(nd.getDate()+1); return localDateStr(nd); })() : dateStr;
       const checkOut = `${outDate} ${String(outHH).padStart(2, '0')}:00:00`;
       const gCount  = (j % 3) + 2;
       const total   = 1500 + Math.max(0, gCount - 5) * 50;
@@ -51,7 +51,7 @@ function makeSampleBookings() {
         : statuses[(id - 9001) % statuses.length];
 
       bookings.push({
-        id:              `APL-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${String(id).padStart(4, '0')}`,
+        id:              `APL-${localDateStr().replace(/-/g,'')}-${String(id).padStart(4, '0')}`,
         booking_id:      id,
         guest:           g,
         guest_email:     g.toLowerCase().replace(/\s+/g, '.') + '@example.com',
@@ -75,7 +75,7 @@ function makeSampleBookings() {
 const SAMPLE_BOOKINGS = import.meta.env.DEV ? makeSampleBookings() : [];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+const todayStr = () => localDateStr();
 
 // '24hr-pm' is kept for legacy bookings created before the flexible 24hr
 // start-hour; new bookings only use '24hr'. Priced the same as '24hr'.
@@ -101,7 +101,7 @@ function buildWeekChart(bookings) {
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateStr(d);
     const day = bookings.filter(b => b.checkIn?.slice(0, 10) === key);
     labels.push(d.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' }));
     confirmed.push(day.filter(b => b.status === 'Confirmed').length);

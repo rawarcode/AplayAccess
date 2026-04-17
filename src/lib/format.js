@@ -44,3 +44,21 @@ export function fmtDateTime(dt) {
 export function fmtMoney(n) {
   return '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
 }
+
+/**
+ * Date → "YYYY-MM-DD" in the user's LOCAL timezone.
+ *
+ * Prefer this over `toISOString().slice(0, 10)` whenever the result
+ * represents a calendar date (what day is it / which day is this booking).
+ * toISOString() emits UTC, which drifts from the local wall-clock date
+ * by up to the offset — in Asia/Manila (UTC+8) that's 8 hours, so
+ * between 00:00 and 07:59 local, UTC still shows the previous day.
+ */
+export function localDateStr(d = new Date()) {
+  const date = d instanceof Date ? d : new Date(d);
+  if (isNaN(date.getTime())) return '';
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}

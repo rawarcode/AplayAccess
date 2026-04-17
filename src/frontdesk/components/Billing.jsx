@@ -4,7 +4,7 @@ import Sidebar from './Layout/Sidebar';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
-import { fmtMoney, fmtDate, fmtDateTime } from '../../lib/format';
+import { fmtMoney, fmtDate, fmtDateTime, localDateStr } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -19,7 +19,7 @@ function calcEntrance(b, entranceRates = FALLBACK_RATES) {
   return (b.guests ?? 1) * rate;
 }
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+const todayStr = () => localDateStr();
 
 
 function PayIcon({ method }) {

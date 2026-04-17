@@ -8,10 +8,10 @@ import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
 import Modal from '../../components/modals/Modal';
-import { fmtMoney, fmtDateTime } from '../../lib/format';
+import { fmtMoney, fmtDateTime, localDateStr } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+const todayStr = () => localDateStr();
 
 function walkInName(b) {
   if (b.specialRequests?.startsWith('Walk-in:')) {

@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { updateProfile, changePassword, exportAccountData, deleteAccount } from "../../lib/profileApi.js";
 import { uploadFile } from "../../lib/uploadApi.js";
+import { localDateStr } from "../../lib/format";
 import Toast, { useToast } from "../../components/ui/Toast";
 import Modal from "../../components/modals/Modal.jsx";
 import { Helmet } from "react-helmet-async";
@@ -153,7 +154,7 @@ export default function EditProfile() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `aplaya-my-data-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.download = `aplaya-my-data-${localDateStr()}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
       showToast("Your data has been downloaded.", "success");

@@ -11,19 +11,19 @@ import { useAuth } from '../../context/AuthContext';
 import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
 import NotificationBell from '../../components/ui/NotificationBell';
 import Toast, { useToast } from '../../components/ui/Toast';
-import { fmtTime } from '../../lib/format';
+import { fmtTime, localDateStr } from '../../lib/format';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
-function todayStr() { return new Date().toISOString().slice(0, 10); }
+const todayStr = () => localDateStr();
 
 function buildWeekChart(bookings) {
   const labels = [], counts = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const key = d.toISOString().slice(0, 10);
+    const key = localDateStr(d);
     labels.push(d.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' }));
     counts.push(bookings.filter(b => b.checkIn?.slice(0, 10) === key).length);
   }

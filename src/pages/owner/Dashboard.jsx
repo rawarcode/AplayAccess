@@ -12,6 +12,7 @@ import {
   Filler,
 } from "chart.js";
 import { getAdminBookings } from "../../lib/adminApi.js";
+import { localDateStr } from "../../lib/format";
 import Toast, { useToast } from "../../components/ui/Toast";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
@@ -72,10 +73,10 @@ export default function OwnerDashboard() {
 
   const derivedKpis = useMemo(() => {
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1).toISOString().slice(0, 10);
-    const lastMonthEnd   = new Date(now.getFullYear(), now.getMonth(), 0).toISOString().slice(0, 10);
-    const days30ago = new Date(now.getTime() - 30 * 86400000).toISOString().slice(0, 10);
+    const monthStart     = localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+    const lastMonthStart = localDateStr(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    const lastMonthEnd   = localDateStr(new Date(now.getFullYear(), now.getMonth(), 0));
+    const days30ago      = localDateStr(new Date(now.getTime() - 30 * 86400000));
 
     // Active = not Cancelled/Pending
     const activeBookings = bookings.filter(b => !['Cancelled', 'Pending'].includes(b.status));
@@ -197,7 +198,7 @@ export default function OwnerDashboard() {
     const now = new Date();
     const dayMap = {};
     for (let i = 29; i >= 0; i--) {
-      const d = new Date(now.getTime() - i * 86400000).toISOString().slice(0, 10);
+      const d = localDateStr(new Date(now.getTime() - i * 86400000));
       dayMap[d] = 0;
     }
     activeBookings.forEach(b => {
