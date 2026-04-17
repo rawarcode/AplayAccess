@@ -210,9 +210,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     setPromoError('');
     try {
       const res = await applyPromoToBooking(booking.bookingId, promoInput.trim());
-      applyUpdate({ promo_code: res.data.promoCode, discount: res.data.discount, total: res.data.total });
+      const code = res.data.promo_code;
+      applyUpdate({ promoCode: code, discount: res.data.discount, total: res.data.total });
       setPromoInput('');
-      showToast?.(`Promo code "${res.data.promoCode}" applied. Discount: ${fmtMoney(res.data.discount)}`);
+      showToast?.(`Promo code "${code}" applied. Discount: ${fmtMoney(res.data.discount)}`);
     } catch (err) {
       setPromoError(err?.response?.data?.message || 'Invalid promo code.');
     } finally {
