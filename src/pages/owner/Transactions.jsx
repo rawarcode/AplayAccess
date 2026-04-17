@@ -133,7 +133,7 @@ export default function OwnerTransactions() {
       else if (sortBy === 'Guest')       { aVal = (a.guest ?? '').toLowerCase();            bVal = (b.guest ?? '').toLowerCase(); }
       else if (sortBy === 'Room')        { aVal = (a.roomType ?? '').toLowerCase();          bVal = (b.roomType ?? '').toLowerCase(); }
       else if (sortBy === 'Discount')    { aVal = Number(a.discount ?? 0);                  bVal = Number(b.discount ?? 0); }
-      else if (sortBy === 'Amount')      { aVal = Number(a.total ?? 0);                     bVal = Number(b.total ?? 0); }
+      else if (sortBy === 'Amount')      { aVal = Number(a.total ?? 0) + Number(a.entranceFee ?? 0); bVal = Number(b.total ?? 0) + Number(b.entranceFee ?? 0); }
       else { aVal = STATUS_PRIORITY[a.status] ?? 5; bVal = STATUS_PRIORITY[b.status] ?? 5; }
       if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
@@ -410,7 +410,22 @@ export default function OwnerTransactions() {
                       <span className="text-slate-400">—</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 font-medium">{fmt(b.total)}</td>
+                  <td className="px-6 py-4 font-medium">
+                    {(() => {
+                      const entrance   = Number(b.entranceFee ?? 0);
+                      const grandTotal = Number(b.total ?? 0) + entrance;
+                      return (
+                        <>
+                          <div>{fmt(grandTotal)}</div>
+                          {entrance > 0 && (
+                            <div className="text-[11px] font-normal text-slate-400">
+                              incl. {fmt(entrance)} entrance
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </td>
                   <td className="px-6 py-4">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLASSES[b.status] || "bg-gray-100 text-gray-800"}`}>
                       {b.status}
