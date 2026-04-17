@@ -6,13 +6,6 @@ import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtDate, fmtMoney } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
-function calcEntrance(b) {
-  if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
-  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
-  return (b.guests ?? 1) * rate;
-}
-
 function initials(name) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -65,14 +58,26 @@ export default function GuestRecords() {
     return Object.values(map).map(g => {
       const sorted  = [...g.visits].sort((a, b) => b.checkIn.localeCompare(a.checkIn));
       const done    = g.visits.filter(v => v.status === 'Completed');
-      const active  = g.visits.filter(v => !['Cancelled', 'Pending'].includes(v.status));
+      // Total spend = money actually collected per visit.
+      //  Completed / fully paid → total + persisted entrance fee
+      //  Cancelled              → reservation fee forfeited
+      //  Pending                → 0 (guest hasn't paid yet)
+      //  else (Confirmed / Checked In not yet fully paid) → reservation fee only
+      const totalSpend = g.visits.reduce((s, v) => {
+        if (v.status === 'Pending') return s;
+        if (v.status === 'Cancelled') return s + Number(v.reservationFee ?? 0);
+        if (v.status === 'Completed' || v.fullyPaid) {
+          return s + Number(v.total ?? 0) + Number(v.entranceFee ?? 0);
+        }
+        return s + Number(v.reservationFee ?? 0);
+      }, 0);
       return {
         ...g,
         visits:         sorted,
         totalVisits:    g.visits.length,
         completedVisits: done.length,
         lastVisit:      sorted[0]?.checkIn ?? null,
-        totalSpend:     active.reduce((s, v) => s + Number(v.total ?? 0) + calcEntrance(v), 0),
+        totalSpend,
       };
     }).sort((a, b) => (b.lastVisit ?? '').localeCompare(a.lastVisit ?? ''));
   }, [bookings]);
