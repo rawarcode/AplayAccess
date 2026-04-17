@@ -296,9 +296,62 @@ export default function Billing() {
   const [toast, showToast, clearToast, toastType] = useToast();
   const [entranceRates, setEntranceRates] = useState(FALLBACK_RATES);
 
+  // Dedicated search side panel — fetches on demand, no auto-refresh.
+  // Lets staff reach bookings older than the 7-day poll window (e.g. to
+  // reprint a receipt from 6 months ago) without bloating every 20s poll.
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const [pastQuery, setPastQuery] = useState('');
+  const [pastResults, setPastResults] = useState([]);
+  const [pastLoading, setPastLoading] = useState(false);
+  const [pastSearched, setPastSearched] = useState(false);
+  const [pastDownloading, setPastDownloading] = useState(null);
+
+  async function runPastSearch(e) {
+    if (e) e.preventDefault();
+    const q = pastQuery.trim();
+    if (!q) return;
+    setPastLoading(true);
+    setPastSearched(true);
+    try {
+      const data = await getFdBookings({ search: q });
+      setPastResults(data);
+    } catch {
+      showToast('Search failed. Please try again.', 'error');
+    } finally {
+      setPastLoading(false);
+    }
+  }
+
+  async function downloadPastReceipt(bookingId, resId) {
+    setPastDownloading(bookingId);
+    try {
+      const blob = await downloadStaffReceipt(bookingId);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${resId}-receipt.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast('Failed to download receipt.', 'error');
+    } finally {
+      setPastDownloading(null);
+    }
+  }
+
   useEffect(() => {
+    // 7-day window for the Billing page's polling — covers today + the
+    // last week of check-ins, plus any booking that is currently Checked
+    // In regardless of when it started (backend adds that OR-clause). Old
+    // bookings are reachable via the Search Past panel.
+    const from = (() => {
+      const d = new Date();
+      d.setDate(d.getDate() - 7);
+      return localDateStr(d);
+    })();
+
     function loadBookings(initial = false) {
-      getFdBookings()
+      getFdBookings({ from })
         .then(data => { setBookings(data); setError(''); })
         .catch(() => setError('Failed to load billing data.'))
         .finally(() => { if (initial) setLoading(false); });
@@ -354,22 +407,21 @@ export default function Billing() {
     return false;
   }), [bookings, today]);
 
-  // When there's a search term, widen the search across ALL bookings
-  // (not just today's). This lets staff find past billings to review
-  // details or reprint a receipt without leaving the Billing page.
-  // Without a term, the view stays scoped to today + in-progress stays.
+  // Inline search narrows today's view. To find a booking older than the
+  // 7-day poll window, staff opens the "Search past" side panel which
+  // hits the backend on demand.
   const isSearching = searchTerm.trim().length > 0;
   const searchedTodayAll = useMemo(() => {
     if (!isSearching) return todayAll;
     const term = searchTerm.trim().toLowerCase();
-    return bookings.filter(b =>
+    return todayAll.filter(b =>
       (b.guest ?? '').toLowerCase().includes(term)
         || (b.id ?? '').toLowerCase().includes(term)
         || (b.roomType ?? '').toLowerCase().includes(term)
         || (b.guestEmail ?? '').toLowerCase().includes(term)
         || (b.guestPhone ?? '').includes(term.replace(/\s/g, ''))
     );
-  }, [bookings, todayAll, searchTerm, isSearching]);
+  }, [todayAll, searchTerm, isSearching]);
 
   const sortedTodayAll = useMemo(() => [...searchedTodayAll].sort((a, b) => {
     let aVal, bVal;
@@ -660,31 +712,28 @@ export default function Billing() {
           </div>
         )}
 
-        {/* Full today's table — becomes a "search all" view when a term is entered */}
+        {/* Today's table — recent 7 days + in-progress stays */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex flex-wrap gap-3 mb-4 items-center">
             <div>
-              <h2 className="text-lg font-semibold">
-                {isSearching ? 'Search Results' : "Today's Billing Summary"}
-              </h2>
+              <h2 className="text-lg font-semibold">Today's Billing Summary</h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                {isSearching
-                  ? <>Searching across <strong>all bookings</strong>, including past. Clear to return to today.</>
-                  : <>Today + in-progress stays. Type a name / ID / room to search past billings.</>}
+                Last 7 days + in-progress stays. Looking for something older? Use <strong>Search past</strong>.
               </p>
             </div>
-            <div className="ml-auto relative">
-              <input type="text" aria-label="Search bookings" placeholder="Search guest, ID, room, email, phone…"
-                value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-                className="border border-slate-200 rounded-lg pl-9 pr-9 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-sky-400" />
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
-              {isSearching && (
-                <button type="button" onClick={() => setSearchTerm('')}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
-                  aria-label="Clear search" title="Clear search">
-                  <i className="fas fa-times-circle text-xs"></i>
-                </button>
-              )}
+            <div className="ml-auto flex items-center gap-2">
+              <div className="relative">
+                <input type="text" aria-label="Filter this list" placeholder="Filter this list…"
+                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  className="border border-slate-200 rounded-lg pl-9 pr-3 py-2 text-sm w-56 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              </div>
+              <button type="button" onClick={() => setSearchPanelOpen(true)}
+                className="px-3 py-2 text-sm rounded-lg border border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 flex items-center gap-1.5"
+                title="Search bookings older than 7 days">
+                <i className="fas fa-clock-rotate-left text-xs"></i>
+                Search past
+              </button>
             </div>
           </div>
 
@@ -695,10 +744,10 @@ export default function Billing() {
           ) : isSearching && searchedTodayAll.length === 0 ? (
             <div className="py-10 text-center text-slate-400">
               <i className="fas fa-search text-2xl mb-2 block opacity-50"></i>
-              <p>No bookings match "<strong>{searchTerm}</strong>".</p>
-              <button type="button" onClick={() => setSearchTerm('')}
+              <p>No matches in the last 7 days for "<strong>{searchTerm}</strong>".</p>
+              <button type="button" onClick={() => { setSearchTerm(''); setPastQuery(searchTerm); setSearchPanelOpen(true); runPastSearch(); }}
                 className="mt-2 text-sky-600 hover:underline text-sm">
-                Clear search
+                Search older bookings instead →
               </button>
             </div>
           ) : !isSearching && todayAll.length === 0 ? (
@@ -797,6 +846,131 @@ export default function Billing() {
           )}
         </div>
       </main>
+
+      {/* ── Search past billings — side panel (no auto-refresh) ─────── */}
+      {searchPanelOpen && (
+        <>
+          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setSearchPanelOpen(false)} />
+          <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Search past billings"
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200"
+          >
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
+              <div className="flex-1">
+                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+                  <i className="fas fa-clock-rotate-left text-sky-600"></i>
+                  Search Past Billings
+                </h3>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Finds any booking — past or present. No auto-refresh.
+                </p>
+              </div>
+              <button onClick={() => setSearchPanelOpen(false)}
+                className="text-slate-400 hover:text-slate-700 p-1" aria-label="Close">
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <form onSubmit={runPastSearch} className="px-5 py-3 border-b border-slate-100">
+              <div className="relative">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Guest name, booking ID, email, phone, room…"
+                  value={pastQuery}
+                  onChange={e => setPastQuery(e.target.value)}
+                  className="w-full border border-slate-200 rounded-lg pl-9 pr-24 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                />
+                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <button type="submit" disabled={!pastQuery.trim() || pastLoading}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-sky-600 text-white rounded-md text-xs font-medium hover:bg-sky-700 disabled:opacity-50">
+                  {pastLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Search'}
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-2">
+                Enter at least part of the guest name, booking ID (e.g. APL-20260417-0001), or contact info.
+              </p>
+            </form>
+
+            <div className="flex-1 overflow-y-auto px-5 py-3">
+              {!pastSearched && !pastLoading && (
+                <div className="text-center text-slate-400 py-12">
+                  <i className="fas fa-magnifying-glass text-3xl mb-2 block opacity-40"></i>
+                  <p className="text-sm">Type a query above and press Search.</p>
+                </div>
+              )}
+              {pastLoading && (
+                <div className="text-center text-slate-400 py-12">
+                  <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>
+                  <p className="text-sm">Searching…</p>
+                </div>
+              )}
+              {pastSearched && !pastLoading && pastResults.length === 0 && (
+                <div className="text-center text-slate-400 py-12">
+                  <i className="fas fa-face-sad-tear text-3xl mb-2 block opacity-40"></i>
+                  <p className="text-sm">No bookings match "<strong>{pastQuery}</strong>".</p>
+                </div>
+              )}
+              {pastSearched && !pastLoading && pastResults.length > 0 && (
+                <>
+                  <p className="text-[11px] text-slate-500 mb-2 uppercase tracking-wide">
+                    {pastResults.length} result{pastResults.length === 1 ? '' : 's'}
+                  </p>
+                  <ul className="space-y-2">
+                    {pastResults.map(b => {
+                      const grand       = Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+                      const outstanding = Math.max(0, grand - Number(b.paidAmount ?? 0));
+                      return (
+                        <li key={b.bookingId}
+                          className="border border-slate-200 rounded-lg p-3 hover:border-sky-300 hover:bg-sky-50/40 transition"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-slate-800 truncate">{b.guest || 'Guest'}</p>
+                                <StatusBadge status={b.status} booking={b} />
+                              </div>
+                              <p className="text-[11px] font-mono text-slate-500">{b.id}</p>
+                              <p className="text-xs text-slate-600 mt-1">
+                                {b.roomType} · {b.guests} pax
+                              </p>
+                              <p className="text-[11px] text-slate-500">
+                                {fmtDate(b.checkIn)} → {fmtDate(b.checkOut)}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="font-bold text-slate-800 text-sm">{fmtMoney(grand)}</p>
+                              {outstanding > 0
+                                ? <p className="text-[11px] text-sky-700 font-medium">{fmtMoney(outstanding)} owed</p>
+                                : <p className="text-[11px] text-emerald-600 font-medium">Fully paid</p>}
+                            </div>
+                          </div>
+                          <div className="mt-2 flex gap-2">
+                            <button
+                              onClick={() => { setSelected(b); setSearchPanelOpen(false); }}
+                              className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs text-slate-700 hover:bg-slate-50">
+                              <i className="fas fa-eye mr-1"></i>View details
+                            </button>
+                            <button
+                              onClick={() => downloadPastReceipt(b.bookingId, b.id)}
+                              disabled={pastDownloading === b.bookingId}
+                              className="flex-1 px-2 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
+                              <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`}></i>
+                              Receipt
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+            </div>
+          </aside>
+        </>
+      )}
     </Sidebar>
   );
 }

@@ -2,9 +2,20 @@
 import { api } from "./api";
 import { RESORT_ID } from "./config";
 
-// GET /api/admin/bookings — all bookings (staff + admin only)
-export async function getFdBookings() {
-  const res = await api.get("/api/admin/bookings");
+// GET /api/admin/bookings — all bookings (staff + admin only).
+// Optional params:
+//   from   (YYYY-MM-DD)     — earliest check-in date to return; any
+//                             still-Checked-In booking is always included
+//                             so in-progress stays don't disappear.
+//   to     (YYYY-MM-DD)     — latest check-in date to return.
+//   search (string)         — filter by guest name / email / phone /
+//                             room name / booking id.
+// Pass nothing for the classic "all bookings" behavior.
+export async function getFdBookings(params = {}) {
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== "")
+  );
+  const res = await api.get("/api/admin/bookings", { params: clean });
   return res.data.data;
 }
 
