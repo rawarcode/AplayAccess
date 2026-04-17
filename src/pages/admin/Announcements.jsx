@@ -12,13 +12,25 @@ import { isVideoUrl } from "../../lib/uploadApi.js";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
 import useDebounce from "../../hooks/useDebounce.js";
 
+// <input type="datetime-local"> expects a local wall-clock string (YYYY-MM-DDTHH:mm).
+// toISOString() returns UTC, so using its slice silently shifts times by the
+// browser's UTC offset (e.g. Manila users see and resave times 8 hours off).
+// This builder assembles the string from the Date's *local* components instead.
+function toLocalDatetimeInput(input) {
+  const d = input instanceof Date ? input : new Date(input);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+         `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 const BLANK = {
   title: "",
   body: "",
   media_url: "",
   is_active: true,
   is_pinned: false,
-  published_at: new Date().toISOString().slice(0, 16),
+  published_at: toLocalDatetimeInput(new Date()),
 };
 
 const BODY_MAX = 1000;
@@ -145,7 +157,7 @@ export default function AdminAnnouncements() {
 
   /* ── CRUD ── */
   function openNew() {
-    const fresh = { ...BLANK, published_at: new Date().toISOString().slice(0, 16) };
+    const fresh = { ...BLANK, published_at: toLocalDatetimeInput(new Date()) };
     setEditing(fresh);
     editSnapshot.current = JSON.stringify(fresh);
     setViewItem(null);
@@ -155,9 +167,7 @@ export default function AdminAnnouncements() {
   function openEdit(item) {
     const obj = {
       ...item,
-      published_at: item.published_at
-        ? new Date(item.published_at).toISOString().slice(0, 16)
-        : new Date().toISOString().slice(0, 16),
+      published_at: toLocalDatetimeInput(item.published_at || new Date()),
     };
     setEditing(obj);
     editSnapshot.current = JSON.stringify(obj);
@@ -169,7 +179,7 @@ export default function AdminAnnouncements() {
     const clone = { ...item };
     delete clone.id;
     clone.title = `${item.title} (Copy)`;
-    clone.published_at = new Date().toISOString().slice(0, 16);
+    clone.published_at = toLocalDatetimeInput(new Date());
     setEditing(clone);
     editSnapshot.current = JSON.stringify(clone);
     setViewItem(null);
