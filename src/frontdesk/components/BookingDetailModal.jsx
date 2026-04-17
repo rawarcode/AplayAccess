@@ -718,7 +718,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <i className="fas fa-times mr-1"></i>Cancel
                 </button>
               )}
-              {booking.status === 'Completed' && (
+              {/* Receipt is available for any booking that has been paid to
+                  some degree — Pending rows have no collected amounts yet,
+                  so the PDF would be empty. Confirmed / Checked In /
+                  Completed / Cancelled all have meaningful records. */}
+              {booking.status !== 'Pending' && (
                 <button onClick={handleDownloadReceipt} disabled={receiptLoading}
                   className="px-3 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50">
                   {receiptLoading

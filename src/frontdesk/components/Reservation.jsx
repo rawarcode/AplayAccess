@@ -4,7 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
-import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom } from '../../lib/frontdeskApi';
+import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { fmtDateTime, fmtTime, fmtMoney } from '../../lib/format';
 
 
@@ -115,6 +115,26 @@ export default function Reservation() {
   const [transferBooking, setTransferBooking] = useState(null);
   const [transferRoomId, setTransferRoomId]   = useState('');
   const [transferring, setTransferring]       = useState(false);
+  // bookingId currently downloading a receipt (so we can show a spinner
+  // on that row without blocking other rows).
+  const [receiptLoadingId, setReceiptLoadingId] = useState(null);
+
+  async function handleDownloadReceipt(b) {
+    setReceiptLoadingId(b.bookingId);
+    try {
+      const blob = await downloadStaffReceipt(b.bookingId);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `${b.id}-receipt.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast('Failed to download receipt.', 'error');
+    } finally {
+      setReceiptLoadingId(null);
+    }
+  }
 
   function load() {
     setLoading(true);
@@ -492,6 +512,16 @@ export default function Reservation() {
                                 disabled={actionLoading === b.bookingId}
                                 title="Cancel" className="text-rose-600 hover:text-rose-800 disabled:opacity-40">
                                 <i className="fas fa-ban"></i>
+                              </button>
+                            )}
+                            {b.status !== 'Pending' && (
+                              <button onClick={() => handleDownloadReceipt(b)}
+                                disabled={receiptLoadingId === b.bookingId}
+                                title="Download receipt (PDF)"
+                                className="text-slate-500 hover:text-slate-800 disabled:opacity-40">
+                                {receiptLoadingId === b.bookingId
+                                  ? <i className="fas fa-spinner fa-spin"></i>
+                                  : <i className="fas fa-file-pdf"></i>}
                               </button>
                             )}
                           </div>
