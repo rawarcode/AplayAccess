@@ -79,7 +79,7 @@ export default function Reservation() {
   const [sortBy, setSortBy]               = useState('Visit Time');
   const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
-  const VALID_STATUSES = ['Pending','Confirmed','Checked In','Completed','Cancelled'];
+  const VALID_STATUSES = ['Pending','Confirmed','Checked In','Completed','Cancelled','Overdue'];
   const [filterStatus, setFilterStatus]   = useState(() => {
     const s = searchParams.get('status');
     return VALID_STATUSES.includes(s) ? s : 'All';
@@ -135,7 +135,10 @@ export default function Reservation() {
   }
 
   const filtered = useMemo(() => {
-    let list = filterStatus === 'All' ? bookings : bookings.filter(b => b.status === filterStatus);
+    let list;
+    if (filterStatus === 'All') list = bookings;
+    else if (filterStatus === 'Overdue') list = bookings.filter(isOverdueCheckout);
+    else list = bookings.filter(b => b.status === filterStatus);
     const term = searchTerm.trim().toLowerCase();
     if (term) {
       list = list.filter(b => {
@@ -378,6 +381,7 @@ export default function Reservation() {
               <option>Checked In</option>
               <option>Completed</option>
               <option>Cancelled</option>
+              <option>Overdue</option>
             </select>
             <span className="text-sm text-slate-500 whitespace-nowrap">
               {filtered.length} result{filtered.length !== 1 ? 's' : ''}
