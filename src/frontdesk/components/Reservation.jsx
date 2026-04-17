@@ -40,6 +40,12 @@ function isExpiredPending(b) {
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }
 
+// A Checked In booking whose scheduled checkout time has already passed
+function isOverdueCheckout(b) {
+  if (b.status !== 'Checked In' || !b.checkOut) return false;
+  return new Date(String(b.checkOut).replace(' ', 'T')) < new Date();
+}
+
 function StatusBadge({ status, booking }) {
   if (status === 'Pending' && booking && isExpiredPending(booking)) {
     return (
@@ -86,6 +92,15 @@ export default function Reservation() {
   }, [searchParams]);
 
   const [viewBooking, setViewBooking]     = useState(null);
+
+  // Auto-open detail modal when ?booking=<id> is in the URL (e.g. from dashboard overdue alert)
+  useEffect(() => {
+    const bookingParam = searchParams.get('booking');
+    if (!bookingParam || bookings.length === 0) return;
+    const match = bookings.find(b => String(b.bookingId) === bookingParam || b.id === bookingParam);
+    if (match) setViewBooking(match);
+  }, [searchParams, bookings]);
+
   const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }
   const [toast, showToast, clearToast, toastType] = useToast();
 
@@ -393,8 +408,9 @@ export default function Reservation() {
                     <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">No bookings found.</td></tr>
                   ) : filtered.map(b => {
                     const wi = parseWalkIn(b);
+                    const overdue = isOverdueCheckout(b);
                     return (
-                      <tr key={b.bookingId} role="button" tabIndex={0} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewBooking(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
+                      <tr key={b.bookingId} role="button" tabIndex={0} className={`cursor-pointer ${overdue ? 'bg-rose-50 hover:bg-rose-100 border-l-4 border-rose-400' : 'hover:bg-slate-50'}`} onClick={() => setViewBooking(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
                         <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>
@@ -408,7 +424,16 @@ export default function Reservation() {
                         </td>
                         <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
                         <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{fmtMoney(b.total)}</td>
-                        <td className="px-4 py-3"><StatusBadge status={b.status} booking={b} /></td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-col gap-1 items-start">
+                            <StatusBadge status={b.status} booking={b} />
+                            {overdue && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 flex items-center gap-1">
+                                <i className="fas fa-exclamation-triangle text-[9px]"></i>Overdue
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
                             <button onClick={() => setViewBooking(b)} title="View details"

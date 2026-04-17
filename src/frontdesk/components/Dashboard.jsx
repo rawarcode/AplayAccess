@@ -309,9 +309,14 @@ export default function Dashboard() {
             </h2>
             <div className="space-y-3 max-h-48 overflow-y-auto">
               {overdueCheckouts.map(b => (
-                <div key={b.bookingId} className="flex items-center justify-between bg-rose-50 rounded-lg px-4 py-2">
+                <button
+                  key={b.bookingId}
+                  type="button"
+                  onClick={() => navigate(`/frontdesk/reservation?booking=${b.bookingId}`)}
+                  className="w-full flex items-center justify-between bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2 text-left transition group"
+                >
                   <div className="flex items-center gap-3">
-                    <div className="bg-rose-100 text-rose-600 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0">
+                    <div className="bg-rose-100 text-rose-600 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-200">
                       <i className="fas fa-user text-sm"></i>
                     </div>
                     <div>
@@ -319,8 +324,11 @@ export default function Dashboard() {
                       <p className="text-xs text-slate-500">{b.roomType} · Checkout was {fmtTime(b.checkOut)}</p>
                     </div>
                   </div>
-                  <span className="text-xs font-semibold text-rose-600 bg-rose-100 px-2 py-1 rounded-full">Overdue</span>
-                </div>
+                  <span className="flex items-center gap-2">
+                    <span className="text-xs font-semibold text-rose-600 bg-rose-100 px-2 py-1 rounded-full">Overdue</span>
+                    <i className="fas fa-chevron-right text-xs text-rose-400 group-hover:text-rose-600"></i>
+                  </span>
+                </button>
               ))}
             </div>
           </div>
