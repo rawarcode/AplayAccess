@@ -884,8 +884,8 @@ export default function WalkIn() {
 
                   {/* Booking type — compact pills */}
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-700 mb-2">Booking Type *</label>
-                    <div className="flex gap-2">
+                    <label className="block text-xs font-medium text-slate-700 mb-2" id="walkin-booking-type-label">Booking Type *</label>
+                    <div className="flex gap-2" role="group" aria-labelledby="walkin-booking-type-label">
                       {[
                         { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: dayPassed || !typeAllowed('day')   },
                         { type: 'night', icon: 'fa-moon',  label: 'Night', disabled: !typeAllowed('night') },
@@ -895,6 +895,7 @@ export default function WalkIn() {
                         return (
                           <button key={opt.type} type="button"
                             disabled={opt.disabled}
+                            aria-pressed={active}
                             onClick={() => { if (!opt.disabled) setField('bookingType', opt.type); }}
                             className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                               opt.disabled
@@ -917,8 +918,14 @@ export default function WalkIn() {
                     {/* 24hr: pick any on-the-hour start time (walk-ins have no lead rule) */}
                     {is24hr && (
                       <div className="mt-2">
-                        <label className="block text-xs font-medium text-slate-600 mb-1">Start time *</label>
+                        <label
+                          htmlFor="walkin-checkin-hour"
+                          className="block text-xs font-medium text-slate-600 mb-1"
+                        >
+                          Start time *
+                        </label>
                         <select
+                          id="walkin-checkin-hour"
                           value={form.checkInHour ?? 6}
                           onChange={e => setField('checkInHour', Number(e.target.value))}
                           className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"

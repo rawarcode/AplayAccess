@@ -555,10 +555,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
               {/* Booking type — compact pills */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2" id="booking-type-label">
                   Booking Type <span className="text-red-500">*</span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2" role="group" aria-labelledby="booking-type-label">
                   {[
                     { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: dayPassed || !typeAllowed("day")   },
                     { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !typeAllowed("night") },
@@ -567,6 +567,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     const active = bookingType === opt.key;
                     return (
                       <button key={opt.key} type="button" disabled={opt.disabled}
+                        aria-pressed={active}
                         onClick={() => { if (!opt.disabled) { setBookingType(opt.key); setPromoResult(null); setPromoInput(""); } }}
                         className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                           active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
@@ -583,10 +584,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {/* 24hr: pick any on-the-hour start time */}
                 {is24hr && (
                   <div className="mt-3">
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label
+                      htmlFor="booking-modal-checkin-hour"
+                      className="block text-xs font-medium text-gray-600 mb-1"
+                    >
                       Start time <span className="text-red-500">*</span>
                     </label>
                     <select
+                      id="booking-modal-checkin-hour"
                       value={checkInHour}
                       onChange={(e) => setCheckInHour(Number(e.target.value))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
