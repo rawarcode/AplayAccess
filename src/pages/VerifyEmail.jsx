@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { verifyEmailRequest, resendVerificationRequest } from "../lib/authApi.js";
 
 export default function VerifyEmail() {
-  const { user, login } = useAuth();
+  const { user, login, booting } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -15,12 +15,17 @@ export default function VerifyEmail() {
   const [cooldown, setCooldown] = useState(0);
   const inputsRef = useRef([]);
 
-  // Redirect if already verified
+  // Redirect if already verified, OR if user logged out (no session)
   useEffect(() => {
-    if (user?.email_verified_at) {
+    if (booting) return;
+    if (!user) {
+      navigate("/", { replace: true });
+      return;
+    }
+    if (user.email_verified_at) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, booting, navigate]);
 
   // Cooldown timer
   useEffect(() => {
