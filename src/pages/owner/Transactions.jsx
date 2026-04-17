@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from "chart.js";
 import { getAdminBookings, getAnalyticsOverview } from "../../lib/adminApi.js";
@@ -61,6 +61,7 @@ const STATUS_CLASSES = {
 
 export default function OwnerTransactions() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [toast, showToast, clearToast, toastType] = useToast();
 
   const [sortBy,  setSortBy]  = useState('Check-in');
@@ -71,6 +72,7 @@ export default function OwnerTransactions() {
 
   const [search,      setSearch]      = useState("");
   const [searchField, setSearchField] = useState("guest");
+  const [statusFilter, setStatusFilter] = useState(() => searchParams.get("status") || "");
   const [dateFrom,    setDateFrom]    = useState("");
   const [dateTo,      setDateTo]      = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -85,10 +87,11 @@ export default function OwnerTransactions() {
       .finally(() => setLoading(false));
   }, [showToast]);
 
-  const hasFilters = search || dateFrom || dateTo;
+  const hasFilters = search || dateFrom || dateTo || statusFilter;
 
   const filtered = useMemo(() => {
     const list = allBookings.filter((b) => {
+      if (statusFilter && b.status !== statusFilter) return false;
       const val = search.toLowerCase();
       let matchesSearch = true;
       if (val) {
@@ -116,7 +119,7 @@ export default function OwnerTransactions() {
       if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
       return 0;
     });
-  }, [allBookings, search, searchField, dateFrom, dateTo, sortBy, sortDir]);
+  }, [allBookings, search, searchField, statusFilter, dateFrom, dateTo, sortBy, sortDir]);
 
   const totalPages   = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const indexOfFirst = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -189,7 +192,7 @@ export default function OwnerTransactions() {
     },
   };
 
-  const clearFilters = () => { setSearch(""); setDateFrom(""); setDateTo(""); setCurrentPage(1); };
+  const clearFilters = () => { setSearch(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); setCurrentPage(1); };
   const handleSearch = (v) => { setSearch(v);      setCurrentPage(1); };
   const handleField  = (v) => { setSearchField(v); setCurrentPage(1); };
   const handleFrom   = (v) => { setDateFrom(v);    setCurrentPage(1); };
@@ -270,6 +273,21 @@ export default function OwnerTransactions() {
                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
               </div>
             </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+              className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+            >
+              <option value="">All</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Checked In">Checked In</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Date Range (Check-in)</label>
