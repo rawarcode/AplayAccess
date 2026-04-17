@@ -296,6 +296,22 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     if (!allowedTypes.includes(bookingType)) setBookingType(allowedTypes[0]);
   }, [roomType]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // When the selected date is today, hours earlier than "now" are disabled
+  // in the hour-grid picker. Pre-existing auto-switch from Day → Night at
+  // 6 PM handles the Day slot; this handles the 24hr slot.
+  const isTodaySelected = visitDate === todayStr();
+  const minHourToday    = isTodaySelected ? new Date().getHours() : 0;
+
+  // If the user picks today with a 24hr start that's already past, bump
+  // the selection forward to the current hour so the value is always valid.
+  useEffect(() => {
+    if (!isTodaySelected) return;
+    if (checkInHour < minHourToday) setCheckInHour(minHourToday);
+    // Intentionally skip checkInHour in deps — we only re-clamp when the
+    // date changes (otherwise the user's later upward edits would ping-pong).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visitDate]);
+
   // ── Derived pricing — room rate only, 20% reservation fee ─────────────────
   const is24hr   = bookingType === "24hr";
   const baseRate = bookingType === "night"
@@ -348,6 +364,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
     if (!roomType)  { setError("Please select a room/cottage."); return; }
+    if (is24hr && isTodaySelected && checkInHour < minHourToday) {
+      setError("The chosen start time is already past. Pick a later hour today or a future date.");
+      return;
+    }
     if (availability !== null && availability[roomType] !== true) {
       setError("Selected room is not available for the chosen date. Please select another."); return;
     }
@@ -598,6 +618,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       onChange={setCheckInHour}
                       accent="blue"
                       labelId="booking-modal-checkin-hour-label"
+                      minHour={minHourToday}
                     />
                   </div>
                 )}

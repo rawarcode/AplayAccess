@@ -58,6 +58,9 @@ export default function HourGridPicker({
   onChange,
   accent = "blue",
   labelId,
+  // Hours below this are disabled (e.g. past hours when the selected
+  // date is today). 0 = every hour allowed.
+  minHour = 0,
 }) {
   const v = Number(value ?? 6);
   const timeLabel = hourLabel12(v);
@@ -65,6 +68,7 @@ export default function HourGridPicker({
 
   const cellBase     = `min-w-[40px] h-10 rounded-md border text-xs font-medium transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-offset-1 ${theme.ring}`;
   const cellInactive = "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50";
+  const cellDisabled = "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed line-through";
 
   const renderRow = (hours, icon, iconColor, labelText) => (
     <div className="flex items-center gap-2">
@@ -74,15 +78,19 @@ export default function HourGridPicker({
       </div>
       <div className="flex-1 grid grid-cols-6 sm:grid-cols-12 gap-1">
         {hours.map((h) => {
-          const active = h === v;
+          const active   = h === v;
+          const disabled = h < minHour;
+          const stateClass = disabled ? cellDisabled : active ? theme.cell : cellInactive;
           return (
             <button
               key={h}
               type="button"
+              disabled={disabled}
               aria-pressed={active}
-              aria-label={hourLabel12(h)}
+              aria-label={disabled ? `${hourLabel12(h)} — already past` : hourLabel12(h)}
+              title={disabled ? "Past — pick a later time or a future date" : undefined}
               onClick={() => onChange(h)}
-              className={`${cellBase} ${active ? theme.cell : cellInactive}`}
+              className={`${cellBase} ${stateClass}`}
             >
               {cellLabel(h)}
             </button>
@@ -103,15 +111,21 @@ export default function HourGridPicker({
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[10px] uppercase tracking-wide text-slate-400 mr-0.5">Quick</span>
         {QUICK_PICKS.map((h) => {
-          const active = h === v;
+          const active   = h === v;
+          const disabled = h < minHour;
           return (
             <button
               key={h}
               type="button"
+              disabled={disabled}
               aria-pressed={active}
               onClick={() => onChange(h)}
               className={`px-2.5 py-1 rounded-full border text-[11px] font-medium transition-colors ${
-                active ? theme.chip : "border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
+                disabled
+                  ? "border-slate-100 bg-slate-50 text-slate-300 cursor-not-allowed line-through"
+                  : active
+                    ? theme.chip
+                    : "border-slate-200 text-slate-500 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
               {hourLabel12(h)}

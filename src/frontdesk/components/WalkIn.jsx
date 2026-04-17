@@ -207,6 +207,22 @@ export default function WalkIn() {
   const rate24        = Number(selectedRoom?.rate_24hr      ?? 2000);
   const is24hr        = form.bookingType === '24hr';
   const baseRate      = form.bookingType === 'night' ? nightRate : is24hr ? rate24 : dayRate;
+
+  // Disable already-past hours when the walk-in is for today. Walk-ins have
+  // no lead-time rule, so the current hour itself stays selectable (the
+  // guest is at the counter *now*).
+  const isTodaySelected = form.date === today;
+  const minHourToday    = isTodaySelected ? new Date().getHours() : 0;
+
+  // Keep the selected start-hour valid when the date or booking type
+  // changes — if it's now below the floor, bump it up.
+  useEffect(() => {
+    if (!isTodaySelected) return;
+    if ((form.checkInHour ?? 6) < minHourToday) {
+      setForm(prev => ({ ...prev, checkInHour: minHourToday }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.date, form.bookingType]);
   const amenityTotal = addons.reduce((sum, a) => {
     const qty = Number(addonQtys[a.id] || 0);
     if (qty <= 0) return sum;
@@ -256,6 +272,9 @@ export default function WalkIn() {
       setFormError(`This room only supports: ${allowedTypes.join(', ')}.`); return;
     }
     if (!form.roomId) { setFormError('Please select a room.'); return; }
+    if (is24hr && isTodaySelected && Number(form.checkInHour ?? 6) < minHourToday) {
+      setFormError('That start time is already past. Pick a later hour today or a future date.'); return;
+    }
     const selRoom = rooms.find(r => String(r.id) === String(form.roomId));
     if (availability !== null && (!selRoom || availability[selRoom.name] !== true)) {
       setFormError('This room is not available for the selected date and booking type.'); return;
@@ -926,6 +945,7 @@ export default function WalkIn() {
                           onChange={(h) => setField('checkInHour', h)}
                           accent="sky"
                           labelId="walkin-checkin-hour-label"
+                          minHour={minHourToday}
                         />
                       </div>
                     )}
