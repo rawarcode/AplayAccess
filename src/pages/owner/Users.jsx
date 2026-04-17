@@ -251,15 +251,21 @@ export default function OwnerUsers() {
     catch { showToast("Failed to copy.", "error"); }
   }
 
-  function canToggleActive(u) { return u.id !== currentUser?.id; }
-  function canDelete(u) { return u.id !== currentUser?.id; }
+  // Backend refuses to modify/delete owner accounts, so the UI hides those
+  // controls too. The current user is also excluded to prevent self-lockout.
+  function isProtected(u) { return u.id === currentUser?.id || u.role === "owner"; }
+  function canToggleActive(u) { return !isProtected(u); }
+  function canDelete(u) { return !isProtected(u); }
 
   /* ── bulk ── */
   function toggleSelect(id) {
+    // Don't let protected rows into the selection set
+    const u = users.find((x) => x.id === id);
+    if (u && isProtected(u)) return;
     setSelected((prev) => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
   function toggleSelectAll() {
-    const selectable = paginated.filter((u) => u.id !== currentUser?.id);
+    const selectable = paginated.filter((u) => !isProtected(u));
     const allSelected = selectable.length > 0 && selectable.every((u) => selected.has(u.id));
     if (allSelected) {
       setSelected((prev) => {
@@ -276,21 +282,33 @@ export default function OwnerUsers() {
     }
   }
   async function bulkAction(action) {
-    const ids = [...selected];
-    try {
-      if (action === "delete") {
-        await Promise.all(ids.map((id) => deleteAdminUser(id)));
-        showToast(`${ids.length} user(s) deleted.`, "success");
-      } else {
-        const activate = action === "activate";
-        await Promise.all(ids.map((id) => updateAdminUser(id, { is_active: activate })));
-        showToast(`${ids.length} user(s) ${activate ? "activated" : "deactivated"}.`, "success");
-      }
-      setSelected(new Set());
-      load();
-    } catch {
-      showToast("Some operations failed.", "error");
+    // Defensive guard: strip any protected ids that may have slipped in
+    const ids = [...selected].filter((id) => {
+      const u = users.find((x) => x.id === id);
+      return u && !isProtected(u);
+    });
+    if (ids.length === 0) {
+      showToast("No eligible users selected.", "error");
+      return;
     }
+    // Use allSettled so partial failures still report accurately, and always
+    // reload + clear selection afterwards so the UI reflects real state.
+    const runOne = action === "delete"
+      ? (id) => deleteAdminUser(id)
+      : (id) => updateAdminUser(id, { is_active: action === "activate" });
+    const results = await Promise.allSettled(ids.map(runOne));
+    const ok = results.filter((r) => r.status === "fulfilled").length;
+    const fail = results.length - ok;
+    const verb = action === "delete" ? "deleted" : (action === "activate" ? "activated" : "deactivated");
+    if (fail === 0) {
+      showToast(`${ok} user(s) ${verb}.`, "success");
+    } else if (ok === 0) {
+      showToast(`Failed to ${action} ${fail} user(s).`, "error");
+    } else {
+      showToast(`${ok} ${verb}, ${fail} failed.`, "error");
+    }
+    setSelected(new Set());
+    load();
   }
 
   /* ── sort ── */

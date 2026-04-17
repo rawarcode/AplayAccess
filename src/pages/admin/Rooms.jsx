@@ -68,6 +68,7 @@ const CATEGORY_META = {
   room:     { label: "Room",     icon: "fa-bed",            color: "bg-sky-100 text-sky-600"     },
   cottage:  { label: "Cottage",  icon: "fa-umbrella-beach", color: "bg-amber-100 text-amber-600" },
   pavilion: { label: "Pavilion", icon: "fa-archway",        color: "bg-emerald-100 text-emerald-600" },
+  tent:     { label: "Tent",     icon: "fa-campground",     color: "bg-rose-100 text-rose-600"   },
 };
 
 const ADMIN_CATEGORY_TABS = [
@@ -75,11 +76,13 @@ const ADMIN_CATEGORY_TABS = [
   { key: "room",     label: "Rooms",     icon: "fa-bed"            },
   { key: "cottage",  label: "Cottages",  icon: "fa-umbrella-beach" },
   { key: "pavilion", label: "Pavilions", icon: "fa-archway"        },
+  { key: "tent",     label: "Tents",     icon: "fa-campground"     },
 ];
 
 function getRoomCategory(r) {
   if (r.category) return r.category;
   const n = (r.name || "").toLowerCase();
+  if (n.includes("tent"))     return "tent";
   if (n.includes("cottage"))  return "cottage";
   if (n.includes("pavilion")) return "pavilion";
   return "room";
@@ -959,6 +962,7 @@ export default function AdminRooms() {
                     <option value="room">Room</option>
                     <option value="cottage">Cottage</option>
                     <option value="pavilion">Pavilion</option>
+                    <option value="tent">Tent</option>
                   </select>
                 </div>
                 <div className="md:col-span-2">

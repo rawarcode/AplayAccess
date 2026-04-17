@@ -182,7 +182,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                 {/* Entrance fee — always show (calculated from guests × rate if not yet stored) */}
                 {(() => {
                   const ef = calcEntrance(b, entranceRates);
-                  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+                  const rate = entranceRates[b.bookingType ?? 'day'] ?? 50;
                   return ef > 0 && (
                     <div className="flex justify-between px-4 py-2.5 border-t border-amber-100 bg-amber-50 text-amber-800 text-xs">
                       <span className="flex items-center gap-1.5">
@@ -464,7 +464,7 @@ export default function Billing() {
                       <div className="flex justify-between px-4 py-2.5 border-b bg-amber-50 text-amber-800 text-xs">
                         <span className="flex items-center gap-1.5">
                           <i className="fas fa-ticket-alt"></i>
-                          Entrance Fee ({billing.guests} pax × ₱{ENTRANCE_RATES[billing.bookingType ?? 'day'] ?? 50})
+                          Entrance Fee ({billing.guests} pax × ₱{entranceRates[billing.bookingType ?? 'day'] ?? 50})
                         </span>
                         <span className="font-semibold">{fmtMoney(bEntrance)}</span>
                       </div>
