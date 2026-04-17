@@ -9,6 +9,7 @@ import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
 import Modal from '../../components/modals/Modal';
 import { fmtMoney, fmtDateTime, localDateStr } from '../../lib/format';
+import HourGridPicker from '../../components/ui/HourGridPicker.jsx';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const todayStr = () => localDateStr();
@@ -43,8 +44,7 @@ function StatusBadge({ status }) {
 // always use '24hr' with a staff-picked start hour.
 const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
-// Hour dropdown (0–23) for 24-hour bookings.
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
+// 12-hour label used in confirmation summary / receipts.
 function formatHourLabel(h) {
   const suffix = h < 12 ? 'AM' : 'PM';
   const twelve = h % 12 === 0 ? 12 : h % 12;
@@ -917,26 +917,16 @@ export default function WalkIn() {
 
                     {/* 24hr: pick any on-the-hour start time (walk-ins have no lead rule) */}
                     {is24hr && (
-                      <div className="mt-2">
-                        <label
-                          htmlFor="walkin-checkin-hour"
-                          className="block text-xs font-medium text-slate-600 mb-1"
-                        >
+                      <div className="mt-3">
+                        <p id="walkin-checkin-hour-label" className="block text-xs font-medium text-slate-600 mb-2">
                           Start time *
-                        </label>
-                        <select
-                          id="walkin-checkin-hour"
+                        </p>
+                        <HourGridPicker
                           value={form.checkInHour ?? 6}
-                          onChange={e => setField('checkInHour', Number(e.target.value))}
-                          aria-required="true"
-                          className="w-full px-3 py-3 md:py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
-                        >
-                          {HOUR_OPTIONS.map(h => (
-                            <option key={h} value={h}>
-                              {formatHourLabel(h)} → {formatHourLabel(h)} next day
-                            </option>
-                          ))}
-                        </select>
+                          onChange={(h) => setField('checkInHour', h)}
+                          accent="sky"
+                          labelId="walkin-checkin-hour-label"
+                        />
                       </div>
                     )}
                   </div>

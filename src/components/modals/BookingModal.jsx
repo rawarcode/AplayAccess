@@ -5,6 +5,7 @@ import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
 import { api } from "../../lib/api.js";
 import { validatePromo } from "../../lib/adminApi.js";
 import { fmtDateTime } from "../../lib/format";
+import HourGridPicker from "../ui/HourGridPicker.jsx";
 
 // Fallback defaults — replaced immediately by /api/pricing on mount
 const DEFAULTS = {
@@ -26,9 +27,7 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// Hour dropdown (0–23) for 24-hour bookings.
-const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
-
+// 12-hour label used in confirmation summary / receipts.
 function formatHourLabel(h) {
   const suffix = h < 12 ? "AM" : "PM";
   const twelve = h % 12 === 0 ? 12 : h % 12;
@@ -591,25 +590,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {/* 24hr: pick any on-the-hour start time */}
                 {is24hr && (
                   <div className="mt-3">
-                    <label
-                      htmlFor="booking-modal-checkin-hour"
-                      className="block text-xs font-medium text-gray-600 mb-1"
-                    >
+                    <p id="booking-modal-checkin-hour-label" className="block text-xs font-medium text-gray-600 mb-2">
                       Start time <span className="text-red-600" aria-hidden="true">*</span>
-                    </label>
-                    <select
-                      id="booking-modal-checkin-hour"
+                    </p>
+                    <HourGridPicker
                       value={checkInHour}
-                      onChange={(e) => setCheckInHour(Number(e.target.value))}
-                      aria-required="true"
-                      className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {HOUR_OPTIONS.map(h => (
-                        <option key={h} value={h}>
-                          {formatHourLabel(h)} → {formatHourLabel(h)} next day
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setCheckInHour}
+                      accent="blue"
+                      labelId="booking-modal-checkin-hour-label"
+                    />
                   </div>
                 )}
               </div>
