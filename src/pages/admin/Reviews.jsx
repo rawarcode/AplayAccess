@@ -99,19 +99,22 @@ export default function AdminReviews() {
     }
     try {
       if (type === "approve") {
-        await updateAdminReview(id, { status: "Approved" });
-        setReviews(rs => rs.map(r => r.id === id ? { ...r, status: "Approved" } : r));
-        if (viewReview?.id === id) setViewReview(v => ({ ...v, status: "Approved" }));
+        const res = await updateAdminReview(id, { status: "Approved" });
+        const updated = res.data?.data ?? res.data ?? { status: "Approved" };
+        setReviews(rs => rs.map(r => r.id === id ? { ...r, ...updated } : r));
+        if (viewReview?.id === id) setViewReview(v => ({ ...v, ...updated }));
         showToast("Review approved.", "success");
       } else if (type === "reject") {
-        await updateAdminReview(id, { status: "Rejected" });
-        setReviews(rs => rs.map(r => r.id === id ? { ...r, status: "Rejected" } : r));
-        if (viewReview?.id === id) setViewReview(v => ({ ...v, status: "Rejected" }));
+        const res = await updateAdminReview(id, { status: "Rejected" });
+        const updated = res.data?.data ?? res.data ?? { status: "Rejected" };
+        setReviews(rs => rs.map(r => r.id === id ? { ...r, ...updated } : r));
+        if (viewReview?.id === id) setViewReview(v => ({ ...v, ...updated }));
         showToast("Review rejected.", "success");
       } else if (type === "feature") {
-        await updateAdminReview(id, { featured });
-        setReviews(rs => rs.map(r => r.id === id ? { ...r, featured } : r));
-        if (viewReview?.id === id) setViewReview(v => ({ ...v, featured }));
+        const res = await updateAdminReview(id, { featured });
+        const updated = res.data?.data ?? res.data ?? { featured };
+        setReviews(rs => rs.map(r => r.id === id ? { ...r, ...updated } : r));
+        if (viewReview?.id === id) setViewReview(v => ({ ...v, ...updated }));
         showToast(featured ? "Review featured." : "Review unfeatured.", "success");
       }
     } catch {
