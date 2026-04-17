@@ -4,8 +4,10 @@ import { useAuth } from "../../context/AuthContext.jsx";
 const ROLE_REDIRECTS = { front_desk: "/frontdesk", owner: "/owner" };
 
 export default function RequireAuth({ children }) {
-  const { user } = useAuth();
+  const { user, booting } = useAuth();
   const location = useLocation();
+
+  if (booting) return null;
 
   if (!user) {
     return (
