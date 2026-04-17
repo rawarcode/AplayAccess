@@ -240,7 +240,6 @@ export default function OwnerNewsletter() {
     try {
       const res = await sendNewsletterCampaign(subject.trim(), body.trim());
       setResult(res.data);
-      setPreview(false);
     } catch (e) {
       setError(e?.response?.data?.message || "Failed to send campaign.");
     } finally {
