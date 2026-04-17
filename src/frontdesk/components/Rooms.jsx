@@ -35,10 +35,16 @@ function countdown(ms) {
   return `${mins}m`;
 }
 
-// Overnight bookings have check-out before 7AM (i.e., 6AM)
+// Classify by booking_type field from backend (night, 24hr, 24hr-pm are overnight-slot)
 function isOvernightBooking(b) {
-  const co = new Date(b.checkOut.replace(' ', 'T'));
-  return co.getHours() < 7;
+  const type = b.bookingType ?? '';
+  if (type === 'night' || type === '24hr-pm') return true;
+  if (type === 'day') return false;
+  // 24hr bookings starting at 6AM belong to the day slot; 24hr-pm already handled above
+  if (type === '24hr') return false;
+  // Fallback for legacy bookings without bookingType: check if check-in is 6PM+
+  const ci = new Date(b.checkIn.replace(' ', 'T'));
+  return ci.getHours() >= 18;
 }
 
 // ─── Day slot status ───────────────────────────────────────────────────────────
@@ -324,6 +330,8 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
 
   return (
     <div onClick={onClick}
+      role="button" tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); } }}
       className={`
         ${config.bg} ${config.border} ${config.text}
         border-2 rounded-lg p-3 flex flex-col gap-1.5

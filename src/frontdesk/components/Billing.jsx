@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
@@ -283,21 +283,21 @@ export default function Billing() {
 
   const today = todayStr();
 
-  const todayAll = bookings.filter(b =>
+  const todayAll = useMemo(() => bookings.filter(b =>
     b.checkIn?.slice(0, 10) === today ||
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === today)
-  );
+  ), [bookings, today]);
 
-  const searchedTodayAll = searchTerm.trim()
+  const searchedTodayAll = useMemo(() => searchTerm.trim()
     ? todayAll.filter(b => {
         const term = searchTerm.trim().toLowerCase();
         return (b.guest ?? '').toLowerCase().includes(term)
           || (b.id ?? '').toLowerCase().includes(term)
           || (b.roomType ?? '').toLowerCase().includes(term);
       })
-    : todayAll;
+    : todayAll, [todayAll, searchTerm]);
 
-  const sortedTodayAll = [...searchedTodayAll].sort((a, b) => {
+  const sortedTodayAll = useMemo(() => [...searchedTodayAll].sort((a, b) => {
     let aVal, bVal;
     if (sortBy === 'Booking ID') { aVal = a.id ?? '';             bVal = b.id ?? ''; }
     else if (sortBy === 'Guest')      { aVal = (a.guest ?? '').toLowerCase();      bVal = (b.guest ?? '').toLowerCase(); }
@@ -308,17 +308,19 @@ export default function Billing() {
     if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
     if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
     return 0;
-  });
+  }), [searchedTodayAll, sortBy, sortDir]);
 
   // Bookings awaiting balance collection: Confirmed/Checked In that haven't been fully paid yet
-  const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fullyPaid);
-  const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
-  const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
-
-  const todayActive   = todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
-  const revenueToday =
-    todayActive.reduce((s, b) => s + Number(b.total ?? 0) + calcEntrance(b), 0) +
-    todayCancelled.reduce((s, b) => s + Number(b.reservationFee ?? 0), 0);
+  const { todayConfirmed, todayCompleted, todayCancelled, revenueToday } = useMemo(() => {
+    const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fullyPaid);
+    const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
+    const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
+    const todayActive     = todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
+    const revenueToday =
+      todayActive.reduce((s, b) => s + Number(b.total ?? 0) + calcEntrance(b), 0) +
+      todayCancelled.reduce((s, b) => s + Number(b.reservationFee ?? 0), 0);
+    return { todayConfirmed, todayCompleted, todayCancelled, revenueToday };
+  }, [todayAll]);
 
   async function handleCollect() {
     if (!billing) return;
@@ -384,7 +386,7 @@ export default function Billing() {
 
       {/* ── Payment Collection Modal ── */}
       {billing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Collect payment">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
@@ -576,7 +578,7 @@ export default function Billing() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex flex-wrap gap-3 mb-4 items-center">
             <h2 className="text-lg font-semibold">Today's Billing Summary</h2>
-            <input type="text" placeholder="Search guest, ID, room…"
+            <input type="text" aria-label="Search bookings" placeholder="Search guest, ID, room…"
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="ml-auto border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-sky-400" />
           </div>

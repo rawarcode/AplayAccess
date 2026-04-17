@@ -231,7 +231,7 @@ export default function OwnerReports() {
       <div className="flex gap-2 border-b border-slate-200 pb-0">
         {[["monthly","fa-file-alt","Monthly Report"],["analytics","fa-chart-line","Analytics"]].map(([key,icon,label]) => (
           <button key={key} onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab===key ? "border-[#1e3a8a] text-[#1e3a8a]" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
+            className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab===key ? "border-brand text-brand" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
             <i className={`fas ${icon} text-xs`}></i>{label}
           </button>
         ))}
@@ -295,7 +295,7 @@ export default function OwnerReports() {
           <div className="rounded-2xl bg-white shadow-lg border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
-              <button onClick={() => { /* print financials */ }} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition">
+              <button onClick={() => { /* print financials */ }} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-blue-50 transition">
                 <i className="fas fa-print text-xs"></i>Print
               </button>
             </div>
@@ -345,7 +345,7 @@ export default function OwnerReports() {
         <button
           onClick={() => printReport({ bookings, active, revenue, avgVal, nights, period, roomTypes, roomRevenue, roomBookings })}
           disabled={loading || bookings.length === 0}
-          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] disabled:opacity-40 transition"
+          className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-dark disabled:opacity-40 transition"
         >
           <i className="fas fa-print text-xs"></i>
           Print Report
@@ -356,7 +356,7 @@ export default function OwnerReports() {
       <div className="space-y-6">
 
         {/* Report title */}
-        <div className="bg-[#1e3a8a] text-white rounded-xl px-6 py-5">
+        <div className="bg-brand text-white rounded-xl px-6 py-5">
           <p className="text-blue-200 text-sm uppercase tracking-wide">Monthly Report</p>
           <h2 className="text-2xl font-bold mt-1">{period}</h2>
           <p className="text-blue-200 text-sm mt-1">Aplaya Beach Resort</p>

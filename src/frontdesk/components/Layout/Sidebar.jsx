@@ -5,6 +5,7 @@ import PortalTransition from '../../../components/PortalTransition.jsx';
 import { useStaffNotifications } from '../../../hooks/useStaffNotifications.js';
 import NotificationContext from '../../../context/NotificationContext.jsx';
 import NotificationBell from '../../../components/ui/NotificationBell.jsx';
+import useLockBodyScroll from '../../../hooks/useLockBodyScroll.js';
 
 const PAGE_TITLES = {
   '/frontdesk':             'Dashboard',
@@ -19,6 +20,7 @@ const PAGE_TITLES = {
 
 export default function Sidebar({ children, showTopBar = true }) {
   const [collapsed,    setCollapsed]    = useState(false);
+  const [mobileOpen,   setMobileOpen]   = useState(false);
   const [switching,    setSwitching]    = useState(null);
   const [profileOpen,  setProfileOpen]  = useState(false);
   const profileRef = useRef(null);
@@ -30,6 +32,8 @@ export default function Sidebar({ children, showTopBar = true }) {
   const userEmail = user?.email || 'staff@aplayaccess.com';
   const initials  = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
+  useLockBodyScroll(mobileOpen);
+
   useEffect(() => {
     function handleClick(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
@@ -37,6 +41,16 @@ export default function Sidebar({ children, showTopBar = true }) {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Close mobile sidebar on route change
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
+  // Escape key closes mobile sidebar
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape' && mobileOpen) setMobileOpen(false); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen]);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
     pendingBookings: '/frontdesk/reservation?status=Pending',
@@ -77,136 +91,178 @@ export default function Sidebar({ children, showTopBar = true }) {
 
   const notifCtx = { counts, items: notifItems, total: notifTotal, refresh: notifRefresh };
 
-  return (
-    <NotificationContext.Provider value={notifCtx}>
-    <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <div className={`bg-[#1e3a8a] text-white ${collapsed ? 'w-20' : 'w-64'} flex flex-col transition-all duration-300 flex-shrink-0`}>
-        {/* Logo */}
-        <div className="p-4 flex items-center justify-between border-b border-[#2e4a9a]">
-          <div className="flex items-center min-w-0">
-            <i className="fas fa-umbrella-beach text-2xl mr-3 text-white shrink-0"></i>
-            {!collapsed && <span className="text-xl font-bold text-white truncate">AplayAccess</span>}
-          </div>
+  /* ── Sidebar content (shared between desktop & mobile) ───────────── */
+  const sidebarContent = (mobile = false) => (
+    <>
+      {/* Logo */}
+      <div className="p-4 flex items-center justify-between border-b border-brand-hover">
+        <div className="flex items-center min-w-0">
+          <i className="fas fa-umbrella-beach text-2xl mr-3 text-white shrink-0"></i>
+          {(!collapsed || mobile) && <span className="text-xl font-bold text-white truncate">AplayAccess</span>}
+        </div>
+        {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-white hover:bg-[#2e4a9a] p-2 rounded focus:outline-none shrink-0"
+            className="text-white hover:bg-brand-hover p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand/50 shrink-0"
           >
             <i className={`fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
           </button>
+        )}
+      </div>
+
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto p-4" aria-label="Frontdesk navigation">
+        {/* Front Desk */}
+        <div className="mb-6">
+          {(!collapsed || mobile) && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Front Desk</h3>}
+          <ul>
+            {menuItems.frontDesk.map((item) => {
+              const badge = item.badgeKey ? counts[item.badgeKey] : 0;
+              return (
+                <li key={item.path} className="mb-2 relative">
+                  <Link
+                    to={item.path}
+                    onClick={mobile ? () => setMobileOpen(false) : undefined}
+                    className={`flex items-center p-2 rounded transition ${
+                      isActive(item.path)
+                        ? 'bg-brand-hover text-white'
+                        : 'text-blue-100 hover:bg-brand-hover hover:text-white'
+                    }`}
+                  >
+                    <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
+                    {(!collapsed || mobile) && (
+                      <>
+                        <span className="text-sm flex-1">{item.label}</span>
+                        {badge > 0 && (
+                          <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-white
+                            text-[10px] font-bold flex items-center justify-center px-1 leading-none shrink-0">
+                            {badge > 99 ? '99+' : badge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {!mobile && collapsed && badge > 0 && (
+                      <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 pointer-events-none"></span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4" aria-label="Frontdesk navigation">
-          {/* Front Desk */}
-          <div className="mb-6">
-            {!collapsed && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Front Desk</h3>}
-            <ul>
-              {menuItems.frontDesk.map((item) => {
-                const badge = item.badgeKey ? counts[item.badgeKey] : 0;
-                return (
-                  <li key={item.path} className="mb-2 relative">
-                    <Link
-                      to={item.path}
-                      className={`flex items-center p-2 rounded transition ${
-                        isActive(item.path)
-                          ? 'bg-[#2e4a9a] text-white'
-                          : 'text-blue-100 hover:bg-[#2e4a9a] hover:text-white'
-                      }`}
-                    >
-                      <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
-                      {!collapsed && (
-                        <>
-                          <span className="text-sm flex-1">{item.label}</span>
-                          {badge > 0 && (
-                            <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-white
-                              text-[10px] font-bold flex items-center justify-center px-1 leading-none shrink-0">
-                              {badge > 99 ? '99+' : badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                      {collapsed && badge > 0 && (
-                        <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 pointer-events-none"></span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+      </nav>
+
+      {/* Inline alerts strip */}
+      {(!collapsed || mobile) && notifItems.length > 0 && (
+        <div className="mx-3 mb-3 rounded-lg bg-brand-dark border border-blue-400/20 p-3">
+          <p className="text-[10px] text-blue-200 uppercase font-semibold mb-2 tracking-wide">
+            <i className="fas fa-bell mr-1.5"></i>Active Alerts
+          </p>
+          <div className="space-y-2">
+            {notifItems.map(n => (
+              <Link
+                key={n.id}
+                to={n.path}
+                onClick={mobile ? () => setMobileOpen(false) : undefined}
+                className="flex items-center gap-2 text-xs text-blue-100 hover:text-white transition-colors"
+              >
+                <i className={`fas ${n.icon} w-3.5 text-center shrink-0`}></i>
+                <span className="truncate">{n.label}</span>
+              </Link>
+            ))}
           </div>
+        </div>
+      )}
 
-        </nav>
-
-        {/* Inline alerts strip */}
-        {!collapsed && notifItems.length > 0 && (
-          <div className="mx-3 mb-3 rounded-lg bg-[#152c6e] border border-blue-400/20 p-3">
-            <p className="text-[10px] text-blue-200 uppercase font-semibold mb-2 tracking-wide">
-              <i className="fas fa-bell mr-1.5"></i>Active Alerts
-            </p>
-            <div className="space-y-2">
-              {notifItems.map(n => (
-                <Link
-                  key={n.id}
-                  to={n.path}
-                  className="flex items-center gap-2 text-xs text-blue-100 hover:text-white transition-colors"
-                >
-                  <i className={`fas ${n.icon} w-3.5 text-center shrink-0`}></i>
-                  <span className="truncate">{n.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Portal switcher — owner only */}
-        {user?.role === 'owner' && (
-          <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
-            {!collapsed && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
-            <button
-              onClick={() => switchPortal('/owner', 'Switching to Owner Portal...')}
-              className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
-              title="Switch to Owner Portal"
-            >
-              <i className="fas fa-crown mr-3 w-5 text-center"></i>
-              {!collapsed && <span className="text-sm">Owner Portal</span>}
-            </button>
-          </div>
-        )}
-
-        {/* User info + logout */}
-        <div className="p-4 border-t border-[#2e4a9a]">
-          {!collapsed && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-white truncate">{userName}</p>
-              <p className="text-xs text-blue-200 truncate">{userEmail}</p>
-            </div>
-          )}
+      {/* Portal switcher — owner only */}
+      {user?.role === 'owner' && (
+        <div className="px-4 pb-2 border-t border-brand-hover pt-3">
+          {(!collapsed || mobile) && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
           <button
-            onClick={handleLogout}
-            className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
+            onClick={() => switchPortal('/owner', 'Switching to Owner Portal...')}
+            className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
+            title="Switch to Owner Portal"
           >
-            <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
-            {!collapsed && <span className="text-sm">Logout</span>}
+            <i className="fas fa-crown mr-3 w-5 text-center"></i>
+            {(!collapsed || mobile) && <span className="text-sm">Owner Portal</span>}
           </button>
         </div>
+      )}
+
+      {/* User info + logout */}
+      <div className="p-4 border-t border-brand-hover">
+        {(!collapsed || mobile) && (
+          <div className="mb-3">
+            <p className="text-sm font-medium text-white truncate">{userName}</p>
+            <p className="text-xs text-blue-200 truncate">{userEmail}</p>
+          </div>
+        )}
+        <button
+          onClick={handleLogout}
+          className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
+        >
+          <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+          {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
+        </button>
       </div>
+    </>
+  );
+
+  return (
+    <NotificationContext.Provider value={notifCtx}>
+    <div className="flex h-screen overflow-hidden">
+
+      {/* ── Desktop Sidebar ───────────────────────────────────────── */}
+      <div className={`hidden md:flex bg-brand text-white ${collapsed ? 'w-20' : 'w-64'} flex-col transition-[width] duration-300 flex-shrink-0`}>
+        {sidebarContent(false)}
+      </div>
+
+      {/* ── Mobile Sidebar Overlay ────────────────────────────────── */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="absolute inset-y-0 left-0 w-72 bg-brand text-white flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10"
+              aria-label="Close sidebar"
+            >
+              <i className="fas fa-times text-lg"></i>
+            </button>
+            {sidebarContent(true)}
+          </div>
+        </div>
+      )}
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {showTopBar && (
           <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between flex-shrink-0">
-            <h1 className="text-xl font-bold text-gray-800">
-              {PAGE_TITLES[location.pathname] ?? 'Front Desk'}
-            </h1>
+            <div className="flex items-center gap-3">
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                aria-label="Open menu"
+              >
+                <i className="fas fa-bars text-xl"></i>
+              </button>
+              <h1 className="text-xl font-bold text-gray-800">
+                {PAGE_TITLES[location.pathname] ?? 'Front Desk'}
+              </h1>
+            </div>
             <div className="flex items-center space-x-4">
               <NotificationBell />
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(o => !o)}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  <div className="h-8 w-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold">
+                  <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
                     {initials}
                   </div>
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>

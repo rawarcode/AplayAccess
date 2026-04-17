@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Bar } from 'react-chartjs-2';
@@ -72,37 +72,45 @@ export default function Dashboard() {
   }, []);
 
   // ── derived metrics ─────────────────────────────────────────────────────────
-  const today          = todayStr();
-  const todayBookings  = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
-  const arriving       = todayBookings.filter(b => b.status === 'Confirmed');
-  const checkedIn      = todayBookings.filter(b => b.status === 'Checked In');
-  const completed      = todayBookings.filter(b => b.status === 'Completed');
-  const allPending     = bookings.filter(b => b.status === 'Pending');
-  const walkIns        = todayBookings.filter(b => b.source === 'walk-in' || b.source === 'walkin');
+  const today = todayStr();
+
+  const { todayBookings, arriving, checkedIn, completed, allPending, walkIns, todayRevenue, overdueCheckouts } = useMemo(() => {
+    const todayBookings  = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
+    const arriving       = todayBookings.filter(b => b.status === 'Confirmed');
+    const checkedIn      = todayBookings.filter(b => b.status === 'Checked In');
+    const completed      = todayBookings.filter(b => b.status === 'Completed');
+    const allPending     = bookings.filter(b => b.status === 'Pending');
+    const walkIns        = todayBookings.filter(b => b.source === 'walk-in' || b.source === 'walkin');
+
+    // Today's revenue
+    const todayRevenue   = todayBookings
+      .filter(b => ['Confirmed', 'Checked In', 'Completed'].includes(b.status))
+      .reduce((sum, b) => sum + Number(b.totalAmount ?? b.total ?? 0), 0);
+
+    // Overdue checkouts — checked in but checkout time has passed
+    const now = new Date();
+    const overdueCheckouts = bookings.filter(b => {
+      if (b.status !== 'Checked In' || !b.checkOut) return false;
+      return new Date(b.checkOut.replace(' ', 'T')) < now;
+    });
+
+    return { todayBookings, arriving, checkedIn, completed, allPending, walkIns, todayRevenue, overdueCheckouts };
+  }, [bookings, today]);
 
   // Occupancy
-  const totalRooms     = rooms.reduce((sum, r) => sum + Number(r.quantity ?? 1), 0);
-  const occupiedRooms  = bookings.filter(b => b.status === 'Checked In').length;
-  const availableRooms = Math.max(0, totalRooms - occupiedRooms);
-  const occupancyPct   = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+  const { totalRooms, occupiedRooms, availableRooms, occupancyPct } = useMemo(() => {
+    const totalRooms     = rooms.reduce((sum, r) => sum + Number(r.quantity ?? 1), 0);
+    const occupiedRooms  = bookings.filter(b => b.status === 'Checked In').length;
+    const availableRooms = Math.max(0, totalRooms - occupiedRooms);
+    const occupancyPct   = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
+    return { totalRooms, occupiedRooms, availableRooms, occupancyPct };
+  }, [rooms, bookings]);
 
-  // Today's revenue
-  const todayRevenue   = todayBookings
-    .filter(b => ['Confirmed', 'Checked In', 'Completed'].includes(b.status))
-    .reduce((sum, b) => sum + Number(b.totalAmount ?? b.total ?? 0), 0);
-
-  // Overdue checkouts — checked in but checkout time has passed
-  const now = new Date();
-  const overdueCheckouts = bookings.filter(b => {
-    if (b.status !== 'Checked In' || !b.checkOut) return false;
-    return new Date(b.checkOut.replace(' ', 'T')) < now;
-  });
-
-  const { labels, counts } = buildWeekChart(bookings);
-  const chartData = {
+  const { labels, counts } = useMemo(() => buildWeekChart(bookings), [bookings]);
+  const chartData = useMemo(() => ({
     labels,
     datasets: [{ label: 'Bookings', data: counts, backgroundColor: 'rgba(14,165,233,0.7)', borderRadius: 4 }],
-  };
+  }), [labels, counts]);
 
   // ── handlers ────────────────────────────────────────────────────────────────
   const handleLogout = async () => { await logout(); navigate('/staff-login'); };

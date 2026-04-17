@@ -44,51 +44,51 @@ export default function Login() {
 
       {/* Background accents */}
       <div className="absolute inset-0 pointer-events-none z-0 opacity-20">
-        <i className="fas fa-umbrella-beach absolute text-7xl bottom-5 right-8 text-[#b0d0dd] rotate-6"></i>
-        <i className="fas fa-circle absolute text-5xl left-5 top-8 text-[#cbe0e9] -rotate-12"></i>
+        <i className="fas fa-umbrella-beach absolute text-7xl bottom-5 right-8 text-coastal-decor rotate-6"></i>
+        <i className="fas fa-circle absolute text-5xl left-5 top-8 text-coastal-decor-light -rotate-12"></i>
       </div>
 
       {/* Card */}
       <div
-        className="relative z-20 bg-white rounded-[48px] shadow-2xl max-w-4xl w-full flex flex-wrap overflow-hidden border border-[#e2edf2] animate-hero-fade-in [animation-delay:0.1s] opacity-0"
+        className="relative z-20 bg-white rounded-[48px] shadow-2xl max-w-4xl w-full flex flex-wrap overflow-hidden border border-coastal-border-alt animate-hero-fade-in [animation-delay:0.1s] opacity-0"
         style={{ boxShadow: "0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)" }}
       >
         {/* Left — Branding */}
-        <div className="flex-1 min-w-[280px] bg-[#f9fcfe] p-12 flex flex-col justify-between border-r border-[#e2edf2]">
+        <div className="flex-1 min-w-[280px] bg-coastal-bg p-12 flex flex-col justify-between border-r border-coastal-border-alt">
           <div>
             <div className="flex items-center gap-2">
-              <i className="fas fa-umbrella-beach text-4xl text-[#1e3a8a]"></i>
-              <span className="text-3xl font-light text-[#1e3a8a] tracking-tight">AplayAccess</span>
+              <i className="fas fa-umbrella-beach text-4xl text-brand"></i>
+              <span className="text-3xl font-light text-brand tracking-tight">AplayAccess</span>
             </div>
             <div className="mt-10 mb-4">
-              <h2 className="font-light text-3xl text-[#1e3a8a] leading-tight">
+              <h2 className="font-light text-3xl text-brand leading-tight">
                 welcome back,<br />team
               </h2>
-              <p className="text-[#4a6f8c] font-light mt-3">
-                <i className="fas fa-shield-halved text-[#5f9db2] mr-2"></i>
+              <p className="text-coastal-text font-light mt-3">
+                <i className="fas fa-shield-halved text-coastal-accent mr-2"></i>
                 staff portal — sign in to access your dashboard
               </p>
             </div>
 
             {/* Features */}
-            <div className="mt-6 space-y-2 text-sm text-[#4a6f8c]">
+            <div className="mt-6 space-y-2 text-sm text-coastal-text">
               <div className="flex items-center gap-2">
-                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
+                <i className="fas fa-circle-dot text-coastal-accent text-xs"></i>
                 <span>Manage bookings & check-ins</span>
               </div>
               <div className="flex items-center gap-2">
-                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
+                <i className="fas fa-circle-dot text-coastal-accent text-xs"></i>
                 <span>Monitor resort operations</span>
               </div>
               <div className="flex items-center gap-2">
-                <i className="fas fa-circle-dot text-[#5f9db2] text-xs"></i>
+                <i className="fas fa-circle-dot text-coastal-accent text-xs"></i>
                 <span>View reports & analytics</span>
               </div>
             </div>
           </div>
 
-          <div className="text-[#6b8cae] font-light text-sm border-t border-dashed border-[#cde3ea] pt-6">
-            <i className="fas fa-map-pin text-[#5f9db2] mr-2"></i>
+          <div className="text-coastal-text-muted font-light text-sm border-t border-dashed border-coastal-border pt-6">
+            <i className="fas fa-map-pin text-coastal-accent mr-2"></i>
             Aplaya Beach Resort · Cavite
           </div>
         </div>
@@ -96,8 +96,9 @@ export default function Login() {
         {/* Right — Login form */}
         <div className="flex-1 min-w-[340px] bg-white p-12">
           <div className="flex items-center gap-2 mb-10">
-            <i className="fas fa-lock-open text-2xl text-[#1e3a8a] bg-[#e1f1f7] p-3 rounded-full"></i>
-            <h2 className="font-light text-3xl text-[#1e3a8a]">Sign In</h2>
+            <i className="fas fa-lock-open text-2xl text-brand bg-coastal-bg-accent p-3 rounded-full"></i>
+            <h1 className="sr-only">Sign in to AplayAccess</h1>
+            <h2 className="font-light text-3xl text-brand">Sign In</h2>
           </div>
 
           {error && (
@@ -109,7 +110,7 @@ export default function Login() {
 
           <form onSubmit={submit}>
             <div className="relative mb-6">
-              <i className="fas fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
+              <i className="fas fa-envelope absolute left-5 top-1/2 -translate-y-1/2 text-coastal-accent text-xl"></i>
               <label htmlFor="login-email" className="sr-only">Email address</label>
               <input
                 id="login-email"
@@ -120,12 +121,12 @@ export default function Login() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 aria-label="Email address"
-                className="w-full py-4 pl-14 pr-6 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
+                className="w-full py-4 pl-14 pr-6 bg-coastal-bg-alt border border-coastal-border rounded-[34px] text-brand outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand focus:bg-white transition-all placeholder:text-coastal-placeholder"
               />
             </div>
 
             <div className="relative mb-3">
-              <i className="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-[#5f9db2] text-xl"></i>
+              <i className="fas fa-lock absolute left-5 top-1/2 -translate-y-1/2 text-coastal-accent text-xl"></i>
               <label htmlFor="login-password" className="sr-only">Password</label>
               <input
                 id="login-password"
@@ -136,12 +137,12 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 aria-label="Password"
-                className="w-full py-4 pl-14 pr-14 bg-[#f3fafd] border border-[#cde3ec] rounded-[34px] text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
+                className="w-full py-4 pl-14 pr-14 bg-coastal-bg-alt border border-coastal-border rounded-[34px] text-brand outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand focus:bg-white transition-all placeholder:text-coastal-placeholder"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-[#5f9db2] hover:text-[#1e3a8a] transition"
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-coastal-accent hover:text-brand transition"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
@@ -149,7 +150,7 @@ export default function Login() {
             </div>
 
             <div className="flex justify-end mb-6">
-              <Link to="/forgot-password" className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] transition">
+              <Link to="/forgot-password" className="text-xs text-coastal-accent hover:text-brand transition">
                 Forgot password?
               </Link>
             </div>
@@ -157,7 +158,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-[#1e3a8a] text-white rounded-[60px] font-medium text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:bg-[#152c6e] hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
+              className="w-full py-4 bg-brand text-white rounded-[60px] font-medium text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
               style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
             >
               <i className="fas fa-arrow-right-to-bracket"></i>
@@ -168,7 +169,7 @@ export default function Login() {
           <div className="mt-6 text-center">
             <Link
               to="/resort"
-              className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] transition"
+              className="text-xs text-coastal-accent hover:text-brand transition"
             >
               <i className="fas fa-arrow-left mr-1"></i>
               Back to resort

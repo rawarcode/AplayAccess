@@ -301,16 +301,16 @@ export default function Rooms() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-                          <span className="bg-white/90 backdrop-blur-sm text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                          <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
                             Day Use
                           </span>
                           {Number(r.overnight_rate) > 0 && (
-                            <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                            <span className="bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                               Overnight
                             </span>
                           )}
                           {Number(r.rate_24hr) > 0 && (
-                            <span className="bg-amber-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                            <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                               24 Hours
                             </span>
                           )}
@@ -386,12 +386,12 @@ export default function Rooms() {
                       className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                      <span className="bg-white/90 backdrop-blur-sm text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">Day Use</span>
+                      <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">Day Use</span>
                       {Number(detailRoom.overnight_rate) > 0 && (
-                        <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">Overnight</span>
+                        <span className="bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Overnight</span>
                       )}
                       {Number(detailRoom.rate_24hr) > 0 && (
-                        <span className="bg-amber-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">24 Hours</span>
+                        <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">24 Hours</span>
                       )}
                     </div>
                   </div>

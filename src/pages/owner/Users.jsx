@@ -366,7 +366,7 @@ export default function OwnerUsers() {
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
           <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input ref={searchRef} type="text" placeholder="Search by name or email..."
+          <input ref={searchRef} type="text" aria-label="Search users" placeholder="Search by name or email..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
@@ -533,7 +533,10 @@ export default function OwnerUsers() {
                 <tbody className="divide-y divide-slate-200">
                   {paginated.map((u, idx) => (
                     <tr key={u.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setViewUser(u)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewUser(u); } }}
                       className={`cursor-pointer transition-all hover:bg-sky-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!u.is_active ? "opacity-60" : ""}`}>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         {u.id !== currentUser?.id ? (
@@ -571,16 +574,16 @@ export default function OwnerUsers() {
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => copyEmail(u.email)} title="Copy email"
-                            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                            className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
                             <i className="fas fa-envelope text-xs"></i>
                           </button>
                           <button onClick={() => openEdit(u)} title="Edit"
-                            className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                            className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                             <i className="fas fa-pen text-xs"></i>
                           </button>
                           {canToggleActive(u) && (
                             <button onClick={() => setConfirmToggle(u)} title={u.is_active ? "Deactivate" : "Activate"}
-                              className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${u.is_active
+                              className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
                                 ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
                                 : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}>
                               <i className={`fas ${u.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`}></i>
@@ -588,7 +591,7 @@ export default function OwnerUsers() {
                           )}
                           {canDelete(u) && (
                             <button onClick={() => setConfirmDelete(u)} title="Delete"
-                              className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
+                              className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
                               <i className="fas fa-trash text-xs"></i>
                             </button>
                           )}
@@ -607,7 +610,7 @@ export default function OwnerUsers() {
                   </p>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
-                      className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
+                      className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
                       <i className="fas fa-chevron-left text-xs"></i>
                     </button>
                     {getPageNumbers(safePage, totalPages).map((n, i) =>
@@ -627,7 +630,7 @@ export default function OwnerUsers() {
                       )
                     )}
                     <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-                      className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
+                      className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
                       <i className="fas fa-chevron-right text-xs"></i>
                     </button>
                   </div>
@@ -660,7 +663,7 @@ export default function OwnerUsers() {
                 User Details
               </h3>
               <button onClick={() => setViewUser(null)}
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -797,7 +800,7 @@ export default function OwnerUsers() {
                 </div>
               </div>
               <button type="button" onClick={guardedCloseModal}
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

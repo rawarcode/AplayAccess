@@ -85,7 +85,7 @@ function NotificationBell() {
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none"
+        className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
         aria-label="Notifications"
       >
         <i className="fas fa-bell text-lg"></i>

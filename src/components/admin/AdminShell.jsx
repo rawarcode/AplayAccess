@@ -8,6 +8,7 @@ import NotificationBell from "../ui/NotificationBell.jsx";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { updateProfile, changePassword } from "../../lib/profileApi.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
+import Modal from "../modals/Modal.jsx";
 import { Helmet } from "react-helmet-async";
 
 const PAGE_TITLES = {
@@ -185,7 +186,7 @@ export default function AdminShell() {
   const sidebarContent = (mobile = false) => (
     <>
       {/* Logo */}
-      <div className="p-4 flex items-center justify-between border-b border-[#2e4a9a]">
+      <div className="p-4 flex items-center justify-between border-b border-brand-hover">
         <div className="flex items-center">
           <i className="fas fa-umbrella-beach text-2xl mr-3 text-white"></i>
           {(!collapsed || mobile) && <span className="text-xl font-bold text-white">AplayAccess</span>}
@@ -193,7 +194,7 @@ export default function AdminShell() {
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-white hover:bg-[#2e4a9a] p-2 rounded focus:outline-none"
+            className="text-white hover:bg-brand-hover p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand/50"
           >
             <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`}></i>
           </button>
@@ -216,8 +217,8 @@ export default function AdminShell() {
                       onClick={mobile ? () => setMobileOpen(false) : undefined}
                       className={`flex items-center p-2 rounded transition ${
                         isActive(item.path)
-                          ? "bg-[#2e4a9a] text-white"
-                          : "text-blue-100 hover:bg-[#2e4a9a] hover:text-white"
+                          ? "bg-brand-hover text-white"
+                          : "text-blue-100 hover:bg-brand-hover hover:text-white"
                       }`}
                     >
                       <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
@@ -254,8 +255,8 @@ export default function AdminShell() {
                     onClick={mobile ? () => setMobileOpen(false) : undefined}
                     className={`flex items-center p-2 rounded transition ${
                       isActive(item.path)
-                        ? "bg-[#2e4a9a] text-white"
-                        : "text-blue-100 hover:bg-[#2e4a9a] hover:text-white"
+                        ? "bg-brand-hover text-white"
+                        : "text-blue-100 hover:bg-brand-hover hover:text-white"
                     }`}
                   >
                     <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
@@ -282,12 +283,12 @@ export default function AdminShell() {
       </nav>
 
       {/* Portal switcher */}
-      <div className="px-4 pb-2 border-t border-[#2e4a9a] pt-3">
+      <div className="px-4 pb-2 border-t border-brand-hover pt-3">
         {(!collapsed || mobile) && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
         {user?.role === "owner" && (
           <button
             onClick={() => switchPortal("/owner", "Switching to Owner Panel...")}
-            className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition mb-1"
+            className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition mb-1"
             title="Switch to Owner Panel"
           >
             <i className="fas fa-crown mr-3 w-5 text-center"></i>
@@ -296,7 +297,7 @@ export default function AdminShell() {
         )}
         <button
           onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
-          className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
+          className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
           title="Switch to Front Desk"
         >
           <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
@@ -305,7 +306,7 @@ export default function AdminShell() {
       </div>
 
       {/* User info + logout */}
-      <div className="p-4 border-t border-[#2e4a9a]">
+      <div className="p-4 border-t border-brand-hover">
         {(!collapsed || mobile) && (
           <div className="mb-3">
             <p className="text-sm font-medium text-white truncate">{userName}</p>
@@ -314,7 +315,7 @@ export default function AdminShell() {
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center w-full p-2 text-blue-100 hover:bg-[#2e4a9a] rounded transition"
+          className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
         >
           <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
           {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
@@ -329,7 +330,7 @@ export default function AdminShell() {
     <div className="flex h-screen overflow-hidden">
 
       {/* ── Desktop Sidebar ───────────────────────────────────────── */}
-      <div className={`hidden md:flex bg-[#1e3a8a] text-white ${collapsed ? "w-20" : "w-64"} flex-col transition-all duration-300 flex-shrink-0`}>
+      <div className={`hidden md:flex bg-brand text-white ${collapsed ? "w-20" : "w-64"} flex-col transition-[width] duration-300 flex-shrink-0`}>
         {sidebarContent(false)}
       </div>
 
@@ -338,7 +339,7 @@ export default function AdminShell() {
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div
-            className="absolute inset-y-0 left-0 w-72 bg-[#1e3a8a] text-white flex flex-col shadow-xl"
+            className="absolute inset-y-0 left-0 w-72 bg-brand text-white flex flex-col shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -363,7 +364,7 @@ export default function AdminShell() {
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none"
+                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 aria-label="Open menu"
               >
                 <i className="fas fa-bars text-xl"></i>
@@ -378,9 +379,9 @@ export default function AdminShell() {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none"
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  <div className="h-8 w-8 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold">
+                  <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
                     {initials}
                   </div>
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
@@ -390,7 +391,7 @@ export default function AdminShell() {
                 {profileOpen && (
                   <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="p-3 flex items-center border-b border-gray-100">
-                      <div className="h-10 w-10 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-sm font-semibold mr-3">
+                      <div className="h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold mr-3">
                         {initials}
                       </div>
                       <div>
@@ -428,18 +429,12 @@ export default function AdminShell() {
 
       {/* ── Account Settings Modal ────────────────────────────────── */}
       {settingsOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-          onClick={closeSettings}
-        >
-          <div
-            className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-xl mx-4 animate-hero-fade-in opacity-0"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <Modal open onClose={closeSettings} title="Account Settings" maxWidth="max-w-lg">
+          <div className="max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-800">
-                <i className="fas fa-user-cog mr-2 text-[#1e3a8a]"></i>Account Settings
+                <i className="fas fa-user-cog mr-2 text-brand"></i>Account Settings
               </h3>
               <button
                 onClick={closeSettings}
@@ -453,7 +448,7 @@ export default function AdminShell() {
             <div className="p-6">
               {/* Profile Header */}
               <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="h-14 w-14 rounded-full bg-[#1e3a8a] text-white flex items-center justify-center text-lg font-semibold mr-4">
+                <div className="h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center text-lg font-semibold mr-4">
                   {initials}
                 </div>
                 <div className="flex-1">
@@ -464,7 +459,7 @@ export default function AdminShell() {
                 {!isEditing && (
                   <button
                     onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "" }); setIsEditing(true); }}
-                    className="px-4 py-2 bg-[#1e3a8a] text-white rounded text-sm hover:bg-[#152c6e] transition"
+                    className="px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark transition"
                   >
                     <i className="fas fa-edit mr-2"></i>Edit
                   </button>
@@ -485,7 +480,7 @@ export default function AdminShell() {
                           value={editProfile.name}
                           onChange={(e) => setEditProfile({ ...editProfile, name: e.target.value })}
                           autoComplete="name"
-                          className="border rounded px-3 py-2 pl-9 w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          className="border rounded px-3 py-2 pl-9 w-full focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                         />
                       </div>
                     </div>
@@ -498,7 +493,7 @@ export default function AdminShell() {
                           value={editProfile.email}
                           onChange={(e) => setEditProfile({ ...editProfile, email: e.target.value })}
                           autoComplete="email"
-                          className="border rounded px-3 py-2 pl-9 w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          className="border rounded px-3 py-2 pl-9 w-full focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                         />
                       </div>
                     </div>
@@ -511,7 +506,7 @@ export default function AdminShell() {
                           value={editProfile.phone}
                           onChange={(e) => setEditProfile({ ...editProfile, phone: e.target.value })}
                           autoComplete="tel"
-                          className="border rounded px-3 py-2 pl-9 w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          className="border rounded px-3 py-2 pl-9 w-full focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                         />
                       </div>
                     </div>
@@ -523,7 +518,7 @@ export default function AdminShell() {
                           type="text"
                           value={userRole}
                           readOnly
-                          className="border rounded px-3 py-2 pl-9 w-full bg-gray-100 text-gray-500 focus:outline-none"
+                          className="border rounded px-3 py-2 pl-9 w-full bg-gray-100 text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand/50"
                         />
                       </div>
                     </div>
@@ -541,7 +536,7 @@ export default function AdminShell() {
                           value={passwordData.current}
                           onChange={(e) => setPasswordData({ ...passwordData, current: e.target.value })}
                           autoComplete="current-password"
-                          className="border rounded px-3 py-2 pl-9 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          className="border rounded px-3 py-2 pl-9 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                         />
                         <button
                           type="button"
@@ -562,7 +557,7 @@ export default function AdminShell() {
                           value={passwordData.new}
                           onChange={(e) => setPasswordData({ ...passwordData, new: e.target.value })}
                           autoComplete="new-password"
-                          className="border rounded px-3 py-2 pl-9 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a]"
+                          className="border rounded px-3 py-2 pl-9 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand"
                         />
                         <button
                           type="button"
@@ -589,7 +584,7 @@ export default function AdminShell() {
                           value={passwordData.confirm}
                           onChange={(e) => setPasswordData({ ...passwordData, confirm: e.target.value })}
                           autoComplete="new-password"
-                          className={`border rounded px-3 py-2 pl-9 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] ${
+                          className={`border rounded px-3 py-2 pl-9 pr-10 w-full focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand ${
                             pwMismatch ? "border-red-400" : ""
                           }`}
                         />
@@ -660,7 +655,7 @@ export default function AdminShell() {
                     <button
                       onClick={saveSettings}
                       disabled={saving}
-                      className="px-4 py-2 rounded text-sm font-medium text-white bg-[#1e3a8a] hover:bg-[#152c6e] transition disabled:opacity-50 flex items-center gap-2"
+                      className="px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 flex items-center gap-2"
                     >
                       {saving ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-save"></i>}
                       {saving ? "Saving..." : "Save Changes"}
@@ -677,7 +672,7 @@ export default function AdminShell() {
               </div>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Shared Toast */}

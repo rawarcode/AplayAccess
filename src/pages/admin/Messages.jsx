@@ -228,7 +228,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
               </div>
             </div>
             <button type="button" onClick={() => setEditing(null)}
-              className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+              className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
               <i className="fas fa-times"></i>
             </button>
           </div>
@@ -248,6 +248,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Keyword <span className="text-red-400">*</span></label>
                   <input required placeholder="e.g. price, check-in, wifi" value={editing.keyword}
                     onChange={e => setEditing(prev => ({ ...prev, keyword: e.target.value }))}
+                    aria-label="Keyword"
                     className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 text-sm placeholder:text-slate-300 transition" />
                 </div>
                 <div>
@@ -271,6 +272,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Priority</label>
                   <input type="number" min={0} max={100} value={editing.priority}
                     onChange={e => setEditing(prev => ({ ...prev, priority: e.target.value }))}
+                    aria-label="Priority"
                     className="w-24 px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm transition" />
                   <p className="text-[10px] text-slate-400 mt-1">Higher priority rules are checked first.</p>
                 </div>
@@ -290,6 +292,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                 <textarea required rows={4} placeholder="The automated response sent to the guest..."
                   value={editing.response}
                   onChange={e => setEditing(prev => ({ ...prev, response: e.target.value }))}
+                  aria-label="Response template"
                   className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-violet-400 text-sm placeholder:text-slate-300 transition resize-none" />
                 <p className={`text-[10px] mt-1 ${editing.response.length > 1800 ? "text-rose-500" : "text-slate-400"}`}>
                   {editing.response.length}/2000
@@ -301,6 +304,8 @@ function AutoReplyPanel({ open, onClose, showToast }) {
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
               <div className="p-4">
                 <div onClick={() => setEditing(prev => ({ ...prev, is_active: !prev.is_active }))}
+                  role="button" tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditing(prev => ({ ...prev, is_active: !prev.is_active })); } }}
                   className="flex items-center justify-between cursor-pointer select-none p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition">
                   <div className="flex items-center gap-3">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${editing.is_active ? "bg-emerald-100" : "bg-slate-100"}`}>
@@ -352,7 +357,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
               <i className="fas fa-plus text-xs"></i>New Rule
             </button>
             <button onClick={onClose}
-              className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+              className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
               <i className="fas fa-times"></i>
             </button>
           </div>
@@ -848,7 +853,7 @@ export default function AdminMessages() {
                         if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); }
                       }}
                       placeholder="Type your reply to the guest… (Enter to send, Shift+Enter for new line)"
-                      className="w-full px-4 py-3 text-sm text-slate-800 resize-none focus:outline-none"
+                      className="w-full px-4 py-3 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-brand/50"
                     />
                     <div className="flex items-center justify-between px-3 pb-2">
                       <span className="text-[11px] text-slate-400">Replying as Aplaya Beach Resort</span>

@@ -261,7 +261,7 @@ export default function OwnerNewsletter() {
         </div>
         <button
           onClick={openCompose}
-          className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-5 py-2.5 rounded-xl text-sm font-medium transition"
+          className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-5 py-2.5 rounded-xl text-sm font-medium transition"
         >
           <i className="fas fa-paper-plane text-xs"></i> Send Campaign
         </button>
@@ -270,7 +270,7 @@ export default function OwnerNewsletter() {
       {/* Stat card */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow border border-slate-100 p-5 flex items-center gap-4">
-          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-[#1e3a8a]">
+          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-brand">
             <i className="fas fa-envelope text-lg"></i>
           </div>
           <div>
@@ -302,7 +302,7 @@ export default function OwnerNewsletter() {
       <div className="bg-white rounded-xl shadow border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-2 flex-1">
-            <i className="fas fa-users text-sm text-[#1e3a8a]"></i>
+            <i className="fas fa-users text-sm text-brand"></i>
             <h3 className="font-semibold text-slate-800 text-sm">Subscribers</h3>
           </div>
           <div className="relative">
@@ -312,7 +312,7 @@ export default function OwnerNewsletter() {
               placeholder="Search email…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="pl-8 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] w-56"
+              className="pl-8 pr-4 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-brand w-56"
             />
           </div>
         </div>
@@ -349,13 +349,13 @@ export default function OwnerNewsletter() {
 
       {/* Compose Modal */}
       {composeOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal="true" aria-label="Compose email">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
 
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-[#1e3a8a]">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-brand">
                   <i className="fas fa-paper-plane text-sm"></i>
                 </div>
                 <div>
@@ -363,7 +363,7 @@ export default function OwnerNewsletter() {
                   <p className="text-xs text-slate-400">Sending to {total} subscriber{total !== 1 ? 's' : ''}</p>
                 </div>
               </div>
-              <button onClick={() => setComposeOpen(false)} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
+              <button onClick={() => setComposeOpen(false)} className="text-slate-400 hover:text-slate-600 w-11 h-11 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -393,7 +393,7 @@ export default function OwnerNewsletter() {
                   <button
                     key={t.key}
                     onClick={() => setTab(t.key)}
-                    className={`px-6 py-3 text-sm font-medium border-b-2 transition ${tab === t.key ? 'border-[#1e3a8a] text-[#1e3a8a]' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+                    className={`px-6 py-3 text-sm font-medium border-b-2 transition ${tab === t.key ? 'border-brand text-brand' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                   >
                     <i className={`fas ${t.icon} mr-2`}></i>{t.label}
                   </button>
@@ -418,7 +418,7 @@ export default function OwnerNewsletter() {
                       placeholder="e.g. Exclusive Summer Promo — 20% Off All Rooms!"
                       value={subject}
                       onChange={e => setSubject(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
                     />
                   </div>
                   <div>
@@ -428,11 +428,11 @@ export default function OwnerNewsletter() {
                       placeholder={"Hi there,\n\nWe have an exciting promo just for our newsletter subscribers!\n\n..."}
                       value={body}
                       onChange={e => setBody(e.target.value)}
-                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none font-mono"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none font-mono"
                     />
                     <p className="text-xs text-slate-400 mt-1">
                       Plain text. A "Book Now" button and unsubscribe notice are added automatically.
-                      {" "}<button type="button" onClick={() => setTab("templates")} className="text-[#1e3a8a] underline hover:no-underline">Use a template</button>
+                      {" "}<button type="button" onClick={() => setTab("templates")} className="text-brand underline hover:no-underline">Use a template</button>
                     </p>
                   </div>
                 </div>
@@ -463,7 +463,7 @@ export default function OwnerNewsletter() {
                               <button
                                 type="button"
                                 onClick={() => applyTemplate(tpl)}
-                                className="text-xs bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-3 py-1.5 rounded-lg font-medium"
+                                className="text-xs bg-brand hover:bg-brand-dark text-white px-3 py-1.5 rounded-lg font-medium"
                               >
                                 Use
                               </button>
@@ -501,7 +501,7 @@ export default function OwnerNewsletter() {
                                 type="text"
                                 value={editForm.label}
                                 onChange={e => setEditForm(f => ({ ...f, label: e.target.value }))}
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white"
                               />
                             </div>
                             <div>
@@ -510,7 +510,7 @@ export default function OwnerNewsletter() {
                                 type="text"
                                 value={editForm.subject}
                                 onChange={e => setEditForm(f => ({ ...f, subject: e.target.value }))}
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] bg-white"
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand bg-white"
                               />
                             </div>
                             <div>
@@ -519,7 +519,7 @@ export default function OwnerNewsletter() {
                                 rows={8}
                                 value={editForm.body}
                                 onChange={e => setEditForm(f => ({ ...f, body: e.target.value }))}
-                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] resize-none font-mono bg-white"
+                                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand resize-none font-mono bg-white"
                               />
                             </div>
                             <div className="flex justify-end gap-2 pt-1">
@@ -533,7 +533,7 @@ export default function OwnerNewsletter() {
                               <button
                                 type="button"
                                 onClick={() => saveEdit(i)}
-                                className="px-3 py-1.5 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg font-medium flex items-center gap-1.5"
+                                className="px-3 py-1.5 text-sm bg-brand hover:bg-brand-dark text-white rounded-lg font-medium flex items-center gap-1.5"
                               >
                                 <i className="fas fa-check text-xs"></i> Save Template
                               </button>
@@ -552,19 +552,19 @@ export default function OwnerNewsletter() {
                 <div className="p-6">
                   <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
                     {/* Mock email header */}
-                    <div className="bg-[#1e3a8a] px-6 py-5 text-center">
+                    <div className="bg-brand px-6 py-5 text-center">
                       <p className="text-white font-bold text-lg">🏖️ Aplaya Beach Resort</p>
                       <p className="text-white/70 text-xs mt-1">Your Paradise Getaway</p>
                     </div>
                     <div className="p-6 bg-white">
-                      <p className="font-bold text-[#1e3a8a] text-lg mb-4 leading-snug">
+                      <p className="font-bold text-brand text-lg mb-4 leading-snug">
                         {subject || <span className="text-slate-300 italic">Subject line will appear here</span>}
                       </p>
                       <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">
                         {body || <span className="text-slate-300 italic">Message body will appear here</span>}
                       </p>
                       <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-                        <span className="inline-block bg-[#1e3a8a] text-white text-sm font-semibold px-6 py-3 rounded-lg">
+                        <span className="inline-block bg-brand text-white text-sm font-semibold px-6 py-3 rounded-lg">
                           Explore Our Rooms &amp; Book Now
                         </span>
                       </div>
@@ -589,7 +589,7 @@ export default function OwnerNewsletter() {
                 <button
                   onClick={handleSend}
                   disabled={sending || !subject.trim() || !body.trim()}
-                  className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-50 text-white px-5 py-2 rounded-xl text-sm font-medium transition"
+                  className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white px-5 py-2 rounded-xl text-sm font-medium transition"
                 >
                   {sending
                     ? <><i className="fas fa-spinner fa-spin text-xs"></i> Sending…</>

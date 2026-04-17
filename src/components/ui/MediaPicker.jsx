@@ -123,18 +123,18 @@ export default function MediaPicker({
 
       {/* Modal */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label="Media picker">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[85vh]">
 
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-[#1e3a8a]">
+                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-brand">
                   <i className="fas fa-photo-film text-sm"></i>
                 </div>
                 <h3 className="font-bold text-slate-800 text-base">Choose Media</h3>
               </div>
-              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
+              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 w-11 h-11 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -146,7 +146,7 @@ export default function MediaPicker({
                 onClick={() => setTab('upload')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                   tab === 'upload'
-                    ? 'border-[#1e3a8a] text-[#1e3a8a]'
+                    ? 'border-brand text-brand'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -157,7 +157,7 @@ export default function MediaPicker({
                 onClick={() => setTab('library')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
                   tab === 'library'
-                    ? 'border-[#1e3a8a] text-[#1e3a8a]'
+                    ? 'border-brand text-brand'
                     : 'border-transparent text-slate-500 hover:text-slate-700'
                 }`}
               >
@@ -177,7 +177,7 @@ export default function MediaPicker({
                     className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
                       uploading
                         ? 'border-slate-200 bg-slate-50 cursor-not-allowed'
-                        : 'border-slate-300 hover:border-[#1e3a8a] hover:bg-blue-50 cursor-pointer'
+                        : 'border-slate-300 hover:border-brand hover:bg-blue-50 cursor-pointer'
                     }`}
                   >
                     {uploading ? (
@@ -226,7 +226,7 @@ export default function MediaPicker({
                           title={item.label}
                           className={`relative rounded-xl overflow-hidden aspect-square border-2 transition-all ${
                             isSelected
-                              ? 'border-[#1e3a8a] ring-2 ring-[#1e3a8a] ring-offset-1'
+                              ? 'border-brand ring-2 ring-brand ring-offset-1'
                               : 'border-transparent hover:border-slate-300'
                           }`}
                         >
@@ -250,7 +250,7 @@ export default function MediaPicker({
 
                           {/* Selected checkmark */}
                           {isSelected && (
-                            <div className="absolute top-1.5 right-1.5 bg-[#1e3a8a] rounded-full w-5 h-5 flex items-center justify-center shadow">
+                            <div className="absolute top-1.5 right-1.5 bg-brand rounded-full w-5 h-5 flex items-center justify-center shadow">
                               <i className="fas fa-check text-white text-xs"></i>
                             </div>
                           )}

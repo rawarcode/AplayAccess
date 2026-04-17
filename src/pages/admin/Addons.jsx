@@ -506,7 +506,10 @@ export default function AdminAddons() {
                   {paginated.map((item, idx) => (
                     <tr
                       key={item.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setViewItem(item)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewItem(item); } }}
                       className={`cursor-pointer transition-all hover:bg-emerald-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""}`}
                     >
                       <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
@@ -618,7 +621,7 @@ export default function AdminAddons() {
                 </span>
                 {viewItem.name || <span className="italic text-slate-400">Unnamed</span>}
               </h3>
-              <button onClick={() => setViewItem(null)} className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+              <button onClick={() => setViewItem(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -742,7 +745,7 @@ export default function AdminAddons() {
               </div>
             </div>
             <button type="button" onClick={guardedCloseModal}
-              className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+              className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>

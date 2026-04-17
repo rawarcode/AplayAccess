@@ -311,7 +311,7 @@ export default function OwnerTransactions() {
           </p>
           <button
             onClick={() => printTransactions(filtered)}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-[#1e3a8a] border border-[#1e3a8a] rounded-lg hover:bg-blue-50 transition"
+            className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-blue-50 transition"
           >
             <i className="fas fa-print text-xs"></i>
             Print Report
@@ -346,7 +346,7 @@ export default function OwnerTransactions() {
                   <td colSpan={8} className="px-6 py-10 text-center text-slate-400">No transactions found.</td>
                 </tr>
               ) : currentRows.map((b) => (
-                <tr key={b.bookingId} onClick={() => navigate("/owner/transactions")} className="hover:bg-slate-50 cursor-pointer">
+                <tr key={b.bookingId} role="button" tabIndex={0} onClick={() => navigate("/owner/transactions")} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate("/owner/transactions"); }}} className="hover:bg-slate-50 cursor-pointer">
                   <td className="px-6 py-4 font-medium text-slate-900">{b.id}</td>
                   <td className="px-6 py-4 text-slate-500">{(b.checkIn ?? "").slice(0, 10)}</td>
                   <td className="px-6 py-4 font-medium text-slate-900">{b.guest}</td>
@@ -405,7 +405,7 @@ export default function OwnerTransactions() {
               className="px-3 py-1.5 rounded-l-md border border-slate-200 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40">
               <i className="fas fa-chevron-left"></i>
             </button>
-            <span className="px-4 py-1.5 border-y border-slate-200 bg-[#1e3a8a] text-white text-sm font-medium">
+            <span className="px-4 py-1.5 border-y border-slate-200 bg-brand text-white text-sm font-medium">
               {currentPage} / {totalPages || 1}
             </span>
             <button onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage >= totalPages}

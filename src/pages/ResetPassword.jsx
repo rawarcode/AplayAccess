@@ -75,7 +75,7 @@ export default function ResetPassword() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
           <img src="/logo.jpg" alt="Aplaya Cottages & Rentals" className="h-20 w-auto" />
-          <span className="text-lg font-semibold text-[#1e3a8a] mt-2">Aplaya Cottages & Rentals</span>
+          <span className="text-lg font-semibold text-brand mt-2">Aplaya Cottages & Rentals</span>
         </div>
 
         {done ? (
@@ -83,11 +83,11 @@ export default function ResetPassword() {
             <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <i className="fas fa-check text-emerald-600 text-2xl"></i>
             </div>
-            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Password Reset!</h2>
-            <p className="text-[#4a6f8c] mb-4">
+            <h2 className="text-2xl font-light text-brand mb-2">Password Reset!</h2>
+            <p className="text-coastal-text mb-4">
               Your password has been updated successfully.
             </p>
-            <p className="text-sm text-[#6b8cae]">
+            <p className="text-sm text-coastal-text-muted">
               <i className="fas fa-spinner fa-spin mr-1"></i>
               Redirecting you to login...
             </p>
@@ -95,14 +95,14 @@ export default function ResetPassword() {
         ) : (
           <>
             <div className="flex justify-center mb-4">
-              <div className="h-14 w-14 rounded-full bg-[#e1f1f7] flex items-center justify-center">
-                <i className="fas fa-shield-halved text-2xl text-[#1e3a8a]"></i>
+              <div className="h-14 w-14 rounded-full bg-coastal-bg-accent flex items-center justify-center">
+                <i className="fas fa-shield-halved text-2xl text-brand"></i>
               </div>
             </div>
 
-            <h2 className="text-center text-2xl font-light text-[#1e3a8a] mb-2">Set New Password</h2>
-            <p className="text-center text-sm text-[#4a6f8c] mb-1">Resetting password for</p>
-            <p className="text-center text-sm font-medium text-[#1e3a8a] mb-6 truncate">{email}</p>
+            <h2 className="text-center text-2xl font-light text-brand mb-2">Set New Password</h2>
+            <p className="text-center text-sm text-coastal-text mb-1">Resetting password for</p>
+            <p className="text-center text-sm font-medium text-brand mb-6 truncate">{email}</p>
 
             {error && (
               <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
@@ -119,9 +119,9 @@ export default function ResetPassword() {
             <form onSubmit={submit} className="space-y-4">
               {/* New Password */}
               <div>
-                <label className="block text-sm font-medium text-[#4a6f8c] mb-1">New Password</label>
+                <label className="block text-sm font-medium text-coastal-text mb-1">New Password</label>
                 <div className="relative">
-                  <i className="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#5f9db2]"></i>
+                  <i className="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-coastal-accent"></i>
                   <input
                     type={showPassword ? "text" : "password"}
                     required
@@ -130,12 +130,12 @@ export default function ResetPassword() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 8 characters"
                     autoComplete="new-password"
-                    className={`w-full py-3 pl-12 pr-12 bg-[#f3fafd] border rounded-2xl text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb] ${passwordWeak ? "border-amber-400" : "border-[#cde3ec]"}`}
+                    className={`w-full py-3 pl-12 pr-12 bg-coastal-bg-alt border rounded-2xl text-brand outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand focus:bg-white transition-all placeholder:text-coastal-placeholder ${passwordWeak ? "border-amber-400" : "border-coastal-border"}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#5f9db2] hover:text-[#1e3a8a] transition"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-coastal-accent hover:text-brand transition"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
@@ -157,9 +157,9 @@ export default function ResetPassword() {
 
               {/* Confirm Password */}
               <div>
-                <label className="block text-sm font-medium text-[#4a6f8c] mb-1">Confirm New Password</label>
+                <label className="block text-sm font-medium text-coastal-text mb-1">Confirm New Password</label>
                 <div className="relative">
-                  <i className="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-[#5f9db2]"></i>
+                  <i className="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-coastal-accent"></i>
                   <input
                     type={showConfirm ? "text" : "password"}
                     required
@@ -167,12 +167,12 @@ export default function ResetPassword() {
                     onChange={(e) => setPasswordConfirm(e.target.value)}
                     placeholder="Repeat your new password"
                     autoComplete="new-password"
-                    className={`w-full py-3 pl-12 pr-12 bg-[#f3fafd] border rounded-2xl text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb] ${mismatch ? "border-rose-400" : "border-[#cde3ec]"}`}
+                    className={`w-full py-3 pl-12 pr-12 bg-coastal-bg-alt border rounded-2xl text-brand outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand focus:bg-white transition-all placeholder:text-coastal-placeholder ${mismatch ? "border-rose-400" : "border-coastal-border"}`}
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirm((s) => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-[#5f9db2] hover:text-[#1e3a8a] transition"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-coastal-accent hover:text-brand transition"
                     aria-label={showConfirm ? "Hide password" : "Show password"}
                   >
                     <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"}`}></i>
@@ -189,7 +189,7 @@ export default function ResetPassword() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-[#1e3a8a] text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-[#152c6e] hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
+                className="w-full py-3 bg-brand text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
                 style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
               >
                 <i className="fas fa-shield-halved"></i>
@@ -199,8 +199,8 @@ export default function ResetPassword() {
           </>
         )}
 
-        <p className="text-center mt-6 text-sm text-[#6b8cae]">
-          <Link to="/resort" className="font-semibold text-[#1e3a8a] hover:underline">
+        <p className="text-center mt-6 text-sm text-coastal-text-muted">
+          <Link to="/resort" className="font-semibold text-brand hover:underline">
             <i className="fas fa-arrow-left mr-1"></i>
             Back to Resort
           </Link>

@@ -116,7 +116,7 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Sign up">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
         <div className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl animate-hero-fade-in opacity-0 max-h-[90vh] overflow-y-auto">

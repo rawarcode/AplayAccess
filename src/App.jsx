@@ -2,46 +2,46 @@ import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
-import Home from "./pages/Home.jsx";
-import Resort from "./pages/Resort.jsx";
-import Rooms from "./pages/Rooms.jsx";
-import Gallery from "./pages/Gallery.jsx";
-import Announcements from "./pages/Announcements.jsx";
-import ForgotPassword from "./pages/ForgotPassword.jsx";
-import ResetPassword from "./pages/ResetPassword.jsx";
-import PaymentReturn from "./pages/PaymentReturn.jsx";
-import VerifyEmail from "./pages/VerifyEmail.jsx";
+const Home = lazy(() => import("./pages/Home.jsx"));
+const Resort = lazy(() => import("./pages/Resort.jsx"));
+const Rooms = lazy(() => import("./pages/Rooms.jsx"));
+const Gallery = lazy(() => import("./pages/Gallery.jsx"));
+const Announcements = lazy(() => import("./pages/Announcements.jsx"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
+const PaymentReturn = lazy(() => import("./pages/PaymentReturn.jsx"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 
 // Guest dashboard (protected) — lazy-loaded portal shell
 import RequireAuth from "./components/auth/RequireAuth.jsx";
 const DashboardShell = lazy(() => import("./components/dashboard/DashboardShell.jsx"));
-import GuestDashboard from "./pages/dashboard/GuestDashboard.jsx";
-import MyBookings from "./pages/dashboard/MyBookings.jsx";
-import EditProfile from "./pages/dashboard/EditProfile.jsx";
-import Messages from "./pages/dashboard/Messages.jsx";
+const GuestDashboard = lazy(() => import("./pages/dashboard/GuestDashboard.jsx"));
+const MyBookings = lazy(() => import("./pages/dashboard/MyBookings.jsx"));
+const EditProfile = lazy(() => import("./pages/dashboard/EditProfile.jsx"));
+const Messages = lazy(() => import("./pages/dashboard/Messages.jsx"));
 
 // Shared staff login
-import StaffLogin from "./pages/StaffLogin.jsx";
+const StaffLogin = lazy(() => import("./pages/StaffLogin.jsx"));
 
 // Owner portal (consolidated — includes all admin pages) — lazy-loaded portal shell
 import RequireOwner from "./components/auth/RequireOwner.jsx";
 const OwnerShell = lazy(() => import("./components/owner/OwnerShell.jsx"));
-import OwnerDashboard from "./pages/owner/Dashboard.jsx";
-import OwnerTransactions from "./pages/owner/Transactions.jsx";
-import OwnerReports from "./pages/owner/Reports.jsx";
-import OwnerPromoCodes from "./pages/owner/PromoCodes.jsx";
-import OwnerNewsletter from "./pages/owner/Newsletter.jsx";
-import OwnerUsers from "./pages/owner/Users.jsx";
-import OwnerSettings from "./pages/owner/Settings.jsx";
+const OwnerDashboard = lazy(() => import("./pages/owner/Dashboard.jsx"));
+const OwnerTransactions = lazy(() => import("./pages/owner/Transactions.jsx"));
+const OwnerReports = lazy(() => import("./pages/owner/Reports.jsx"));
+const OwnerPromoCodes = lazy(() => import("./pages/owner/PromoCodes.jsx"));
+const OwnerNewsletter = lazy(() => import("./pages/owner/Newsletter.jsx"));
+const OwnerUsers = lazy(() => import("./pages/owner/Users.jsx"));
+const OwnerSettings = lazy(() => import("./pages/owner/Settings.jsx"));
 // Pages absorbed from admin portal
-import OwnerActivityLog from "./pages/admin/History.jsx";
-import OwnerRooms from "./pages/admin/Rooms.jsx";
-import OwnerContent from "./pages/admin/Content.jsx";
-import OwnerReviews from "./pages/admin/Reviews.jsx";
-import OwnerGuests from "./pages/admin/Guests.jsx";
-import OwnerMessages from "./pages/admin/Messages.jsx";
-import OwnerAnnouncements from "./pages/admin/Announcements.jsx";
-import OwnerAddons from "./pages/admin/Addons.jsx";
+const OwnerActivityLog = lazy(() => import("./pages/admin/History.jsx"));
+const OwnerRooms = lazy(() => import("./pages/admin/Rooms.jsx"));
+const OwnerContent = lazy(() => import("./pages/admin/Content.jsx"));
+const OwnerReviews = lazy(() => import("./pages/admin/Reviews.jsx"));
+const OwnerGuests = lazy(() => import("./pages/admin/Guests.jsx"));
+const OwnerMessages = lazy(() => import("./pages/admin/Messages.jsx"));
+const OwnerAnnouncements = lazy(() => import("./pages/admin/Announcements.jsx"));
+const OwnerAddons = lazy(() => import("./pages/admin/Addons.jsx"));
 
 // Frontdesk portal — lazy-loaded (no shared shell, each page is a portal entry)
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";

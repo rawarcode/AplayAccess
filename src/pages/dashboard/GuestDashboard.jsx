@@ -406,7 +406,7 @@ export default function GuestDashboard() {
               upcoming.slice(0, 3).map((b) => {
                 const days = daysUntil(b.checkIn);
                 return (
-                  <div key={b.id} onClick={() => setSelected(b)} className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                  <div key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}} className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
@@ -489,7 +489,7 @@ export default function GuestDashboard() {
               </div>
             ) : (
               past.slice(0, 3).map((b) => (
-                <div key={b.id} onClick={() => setSelected(b)} className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                <div key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}} className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>

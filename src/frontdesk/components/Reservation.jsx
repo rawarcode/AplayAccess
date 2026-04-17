@@ -224,7 +224,7 @@ export default function Reservation() {
         const wi  = parseWalkIn(b);
         const guest = wi ? wi.name : b.guest;
         return (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Confirm action">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
               <div className={`rounded-t-2xl px-6 py-4 flex items-center gap-3 ${{confirm:'bg-sky-600',checkin:'bg-violet-600',checkout:'bg-emerald-600',cancel:'bg-rose-600'}[confirmState.action]}`}>
                 <i className={`fas ${cfg.icon} text-white text-lg`}></i>
@@ -277,7 +277,7 @@ export default function Reservation() {
           String(r.id) !== String(transferBooking.roomId) && !busyRoomIds.has(r.id)
         );
         return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Transfer room">
             <div className="bg-white rounded-lg w-full max-w-md">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-4">
@@ -295,6 +295,7 @@ export default function Reservation() {
                     <p className="text-sm text-rose-600">No other rooms are available for this time slot.</p>
                   ) : (
                     <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                      aria-label="Transfer to room"
                       className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                       <option value="">Select a room...</option>
                       {availableRooms.map(r => (
@@ -336,7 +337,7 @@ export default function Reservation() {
         <div className="bg-white rounded-lg shadow p-6">
           {/* Search + Filter */}
           <div className="flex flex-wrap gap-3 mb-6 items-center">
-            <input type="text" placeholder="Search name, ID, room…"
+            <input type="text" aria-label="Search reservations" placeholder="Search name, ID, room…"
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="border rounded px-3 py-2 text-sm flex-1 min-w-[160px]" />
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
@@ -393,7 +394,7 @@ export default function Reservation() {
                   ) : filtered.map(b => {
                     const wi = parseWalkIn(b);
                     return (
-                      <tr key={b.bookingId} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewBooking(b)}>
+                      <tr key={b.bookingId} role="button" tabIndex={0} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewBooking(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
                         <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>

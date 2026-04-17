@@ -153,7 +153,7 @@ function PageButtons({ current, total, onChange }) {
       <button
         onClick={() => onChange(current - 1)}
         disabled={current === 1}
-        className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium text-slate-600 transition"
+        className="px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium text-slate-600 transition"
         type="button"
       >
         <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
@@ -165,7 +165,7 @@ function PageButtons({ current, total, onChange }) {
           <button
             key={p}
             onClick={() => onChange(p)}
-            className={`h-8 w-8 rounded-lg text-xs font-semibold transition ${
+            className={`h-11 w-11 rounded-lg text-xs font-semibold transition ${
               p === current
                 ? "bg-sky-600 text-white shadow"
                 : "border border-slate-200 hover:bg-slate-100 text-slate-600"
@@ -179,7 +179,7 @@ function PageButtons({ current, total, onChange }) {
       <button
         onClick={() => onChange(current + 1)}
         disabled={current === total}
-        className="px-3 py-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium text-slate-600 transition"
+        className="px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium text-slate-600 transition"
         type="button"
       >
         Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
@@ -494,7 +494,9 @@ export default function AdminHistory() {
                   return (
                     <tr
                       key={log.id}
+                      role="button" tabIndex={0}
                       onClick={() => setSelectedLog(log)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedLog(log); }}}
                       className={`hover:bg-sky-50 cursor-pointer transition-colors ${idx % 2 === 1 ? "bg-slate-50/50" : ""}`}
                     >
                       <td className="px-5 py-3 whitespace-nowrap">
@@ -558,7 +560,7 @@ export default function AdminHistory() {
                 <p className="text-xs text-slate-400">Log Entry Details</p>
               </div>
             </div>
-            <button onClick={() => setSelectedLog(null)} className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close" type="button">
+            <button onClick={() => setSelectedLog(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close" type="button">
               <i className="fas fa-times"></i>
             </button>
           </div>

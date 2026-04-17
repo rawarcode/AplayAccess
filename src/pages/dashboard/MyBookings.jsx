@@ -87,7 +87,7 @@ function StarRating({ value, onChange }) {
       {[1, 2, 3, 4, 5].map((star) => (
         <button key={star} type="button"
           onMouseEnter={() => setHovered(star)} onMouseLeave={() => setHovered(0)}
-          onClick={() => onChange(star)} className="text-2xl leading-none focus:outline-none">
+          onClick={() => onChange(star)} aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`} className="text-2xl leading-none focus:outline-none focus:ring-2 focus:ring-brand/50">
           <i className={`fas fa-star ${(hovered || value) >= star ? "text-amber-400" : "text-slate-300"}`} />
         </button>
       ))}
@@ -468,7 +468,7 @@ export default function MyBookings() {
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
               {filtered.map(b => (
-                <tr key={b.id} onClick={() => setSelected(b)} className="cursor-pointer hover:bg-slate-50 transition-colors">
+                <tr key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}} className="cursor-pointer hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{b.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{b.roomType}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">
@@ -553,7 +553,8 @@ export default function MyBookings() {
             </div>
           )}
           {filtered.map(b => (
-            <div key={b.id} onClick={() => setSelected(b)}
+            <div key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}}
               className="bg-white px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors space-y-3">
               {/* Top row: ID + status */}
               <div className="flex items-center justify-between">

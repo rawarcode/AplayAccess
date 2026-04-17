@@ -415,7 +415,7 @@ export default function PromoCodes() {
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
           <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input ref={searchRef} type="text" placeholder="Search by code..."
+          <input ref={searchRef} type="text" aria-label="Search promo codes" placeholder="Search by code..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
@@ -563,7 +563,10 @@ export default function PromoCodes() {
                 <tbody className="divide-y divide-slate-200">
                   {paginated.map((code, idx) => (
                     <tr key={code.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setViewItem(code)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewItem(code); } }}
                       className={`cursor-pointer transition-all hover:bg-indigo-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!code.is_active ? "opacity-60" : ""}`}>
                       <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
                         <input type="checkbox" checked={selected.has(code.id)}
@@ -607,7 +610,7 @@ export default function PromoCodes() {
                       <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => copyCode(code.code)} title="Copy code"
-                            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
                             <i className="fas fa-copy text-xs"></i>
                           </button>
                           <button onClick={() => openEdit(code)} title="Edit"
@@ -709,7 +712,7 @@ export default function PromoCodes() {
                   </div>
                 </div>
                 <button onClick={() => setViewItem(null)}
-                  className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                  className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -786,7 +789,7 @@ export default function PromoCodes() {
               </div>
             </div>
             <button type="button" onClick={guardedCloseCreate}
-              className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+              className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>
@@ -915,7 +918,7 @@ export default function PromoCodes() {
             </div>
           </div>
           <button onClick={() => setConfirmOpen(false)}
-            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>
@@ -965,7 +968,7 @@ export default function PromoCodes() {
                 </div>
               </div>
               <button type="button" onClick={guardedCloseEdit}
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

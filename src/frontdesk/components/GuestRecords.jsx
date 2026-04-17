@@ -103,7 +103,7 @@ export default function GuestRecords() {
       <Helmet><title>Guest Records — Frontdesk</title></Helmet>
       {/* ── View Guest Modal ── */}
       {viewGuest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Guest history">
           <div className="bg-white rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">

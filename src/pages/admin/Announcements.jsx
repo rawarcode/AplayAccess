@@ -565,7 +565,10 @@ export default function AdminAnnouncements() {
                   {paginated.map((item, idx) => (
                     <tr
                       key={item.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setViewItem(item)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewItem(item); } }}
                       className={`cursor-pointer transition-all hover:bg-indigo-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!item.is_active ? "opacity-60" : ""}`}
                     >
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
@@ -586,7 +589,7 @@ export default function AdminAnnouncements() {
                                 </div>
                               </div>
                             ) : (
-                              <img src={item.media_url} alt="" className="w-full h-full object-cover" />
+                              <img src={item.media_url} alt="" loading="lazy" className="w-full h-full object-cover" />
                             )}
                           </div>
                         ) : (
@@ -721,7 +724,7 @@ export default function AdminAnnouncements() {
                 </div>
               </div>
               <button onClick={() => setViewItem(null)}
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -755,7 +758,7 @@ export default function AdminAnnouncements() {
                   {isVideoUrl(viewItem.media_url) ? (
                     <video src={viewItem.media_url} controls className="max-h-56 w-full object-contain" />
                   ) : (
-                    <img src={viewItem.media_url} alt="" className="max-h-56 object-contain" />
+                    <img src={viewItem.media_url} alt="" loading="lazy" className="max-h-56 object-contain" />
                   )}
                 </div>
               )}
@@ -842,7 +845,7 @@ export default function AdminAnnouncements() {
                 </div>
               </div>
               <button type="button" onClick={guardedCloseModal}
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

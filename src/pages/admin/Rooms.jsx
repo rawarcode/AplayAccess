@@ -638,7 +638,7 @@ export default function AdminRooms() {
           </div>
           <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
             <div className="relative w-full md:w-64">
-              <input type="text" placeholder="Search rooms\u2026"
+              <input type="text" aria-label="Search rooms" placeholder="Search rooms\u2026"
                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
@@ -698,7 +698,8 @@ export default function AdminRooms() {
                   const isUnavailable = avail !== "available";
                   const isSelected = selected.has(room.id);
                   return (
-                    <tr key={room.id} onClick={() => setViewRoom(room)}
+                    <tr key={room.id} role="button" tabIndex={0} onClick={() => setViewRoom(room)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewRoom(room); }}}
                       className={`cursor-pointer transition-colors ${isUnavailable ? "opacity-60" : ""} ${isSelected ? "bg-sky-50/70" : idx % 2 === 1 ? "bg-slate-50/50" : ""} hover:bg-sky-50`}>
                       {/* #13 — row checkbox */}
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
@@ -775,7 +776,7 @@ export default function AdminRooms() {
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition" type="button">
+                  className="px-4 py-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition" type="button">
                   <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -790,13 +791,13 @@ export default function AdminRooms() {
                       <span key={`dots-${i}`} className="px-2 text-slate-400 text-xs">...</span>
                     ) : (
                       <button key={p} onClick={() => setPage(p)}
-                        className={`h-8 w-8 rounded-lg text-xs font-semibold transition ${
+                        className={`h-11 w-11 rounded-lg text-xs font-semibold transition ${
                           page === p ? "bg-sky-600 text-white shadow" : "text-slate-600 hover:bg-slate-100 border border-slate-200"
                         }`} type="button">{p}</button>
                     )
                   )}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
-                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition" type="button">
+                  className="px-4 py-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition" type="button">
                   Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
                 </button>
               </div>
@@ -826,7 +827,7 @@ export default function AdminRooms() {
                     <p className="text-xs text-slate-400">{CATEGORY_META[getRoomCategory(viewRoom)]?.label || "Room"} Details</p>
                   </div>
                 </div>
-                <button onClick={() => setViewRoom(null)} className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close" type="button">
+                <button onClick={() => setViewRoom(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close" type="button">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -834,7 +835,7 @@ export default function AdminRooms() {
               <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
                 {/* Image */}
                 {viewRoom.image && (
-                  <img src={viewRoom.image} alt={viewRoom.name} className="w-full h-44 object-cover rounded-xl" />
+                  <img src={viewRoom.image} alt={viewRoom.name} loading="lazy" className="w-full h-44 object-cover rounded-xl" />
                 )}
 
                 {/* Unavailable banner */}
@@ -964,7 +965,7 @@ export default function AdminRooms() {
                   </div>
                 </div>
                 <button type="button" onClick={guardedCloseModal}
-                  className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                  className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>

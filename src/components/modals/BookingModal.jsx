@@ -976,7 +976,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           }[bookingType] ?? { label: "Day Visit", icon: "fa-sun", color: "blue", checkIn: "6:00 AM", checkOut: "6:00 PM (same day)" };
           const rateLabel = bookingType === "night" ? "Overnight rate" : is24hr ? "24-hour rate" : "Day visit rate";
           return (
-          <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10">
+          <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10"
+            role="dialog" aria-modal="true" aria-label="Booking confirmation"
+            onKeyDown={(e) => { if (e.key === 'Escape') setConfirmOpen(false); }}>
             <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
             <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
 

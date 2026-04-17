@@ -504,14 +504,14 @@ export default function Resort() {
               {isLoggedIn ? (
                 <Link
                   to="/dashboard"
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm transition"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium transition"
                 >
                   My Dashboard →
                 </Link>
               ) : (
                 <button
                   onClick={() => setLoginOpen(true)}
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium backdrop-blur-sm transition"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium transition"
                 >
                   Login
                 </button>
@@ -635,6 +635,7 @@ export default function Resort() {
                     <img
                       src={announcementModal.media_url}
                       alt={announcementModal.title}
+                      loading="lazy"
                       className="w-full object-contain"
                     />
                   )}
@@ -747,16 +748,16 @@ export default function Resort() {
                     <img src={r.img} alt={r.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute top-3 left-3 flex gap-2">
-                      <span className="bg-white/90 backdrop-blur-sm text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                      <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
                         Day Use
                       </span>
                       {r.overnight_rate > 0 && (
-                        <span className="bg-indigo-600/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                        <span className="bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                           Overnight
                         </span>
                       )}
                       {r.rate_24hr > 0 && (
-                        <span className="bg-amber-500/90 backdrop-blur-sm text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                        <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                           24 Hours
                         </span>
                       )}
@@ -878,14 +879,14 @@ export default function Resort() {
                 <>
                   <button
                     onClick={() => scrollRef.current?.scrollBy({ left: -320, behavior: "smooth" })}
-                    className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition"
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
                     aria-label="Previous review"
                   >
                     <i className="fas fa-chevron-left text-sm"></i>
                   </button>
                   <button
                     onClick={() => scrollRef.current?.scrollBy({ left: 320, behavior: "smooth" })}
-                    className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-sm flex items-center justify-center transition"
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
                     aria-label="Next review"
                   >
                     <i className="fas fa-chevron-right text-sm"></i>
@@ -903,7 +904,7 @@ export default function Resort() {
                 {testimonialsDisplay.map((t, i) => (
                   <div
                     key={`${t.name}-${i}`}
-                    className="bg-white/10 p-6 rounded-xl backdrop-blur-sm hover:scale-[1.03] transition flex-shrink-0 snap-start w-[300px] md:w-[calc(33.333%-16px)]"
+                    className="bg-white/10 p-6 rounded-xl hover:scale-[1.03] transition flex-shrink-0 snap-start w-[300px] md:w-[calc(33.333%-16px)]"
                   >
                     <div className="flex items-center mb-4">
                       <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
@@ -944,8 +945,10 @@ export default function Resort() {
                 {galleryDisplay.map((g, i) => (
                   <div
                     key={`${g.alt}-${i}`}
+                    role="button" tabIndex={0}
                     className="group relative rounded-2xl overflow-hidden shadow-lg cursor-pointer"
                     onClick={() => setLightboxIdx(i)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxIdx(i); }}}
                   >
                     <img
                       src={g.src}
@@ -1021,10 +1024,11 @@ export default function Resort() {
               <div className="lg:w-1/2">
                 <form onSubmit={submitContact} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-sky-500" noValidate>
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
+                    <label htmlFor="contact-name" className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                     <div className="relative">
                       <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                       <input
+                        id="contact-name"
                         type="text"
                         value={contactForm.name}
                         onChange={(e) => { setContactForm((p) => ({ ...p, name: e.target.value })); setContactErrors((p) => ({ ...p, name: undefined })); }}
@@ -1037,10 +1041,11 @@ export default function Resort() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <label htmlFor="contact-email" className="block text-sm font-medium text-slate-700 mb-1">Email</label>
                     <div className="relative">
                       <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                       <input
+                        id="contact-email"
                         type="email"
                         value={contactForm.email}
                         onChange={(e) => { setContactForm((p) => ({ ...p, email: e.target.value })); setContactErrors((p) => ({ ...p, email: undefined })); }}
@@ -1053,10 +1058,11 @@ export default function Resort() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
+                    <label htmlFor="contact-subject" className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
                     <div className="relative">
                       <i className="fas fa-pen absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                       <input
+                        id="contact-subject"
                         type="text"
                         value={contactForm.subject}
                         onChange={(e) => { setContactForm((p) => ({ ...p, subject: e.target.value })); setContactErrors((p) => ({ ...p, subject: undefined })); }}
@@ -1068,10 +1074,11 @@ export default function Resort() {
                   </div>
 
                   <div className="mb-4">
-                    <label className="block text-sm font-medium text-slate-700 mb-1">Message</label>
+                    <label htmlFor="contact-message" className="block text-sm font-medium text-slate-700 mb-1">Message</label>
                     <div className="relative">
                       <i className="fas fa-comment-alt absolute left-3 top-3 text-slate-400"></i>
                       <textarea
+                        id="contact-message"
                         rows={4}
                         value={contactForm.message}
                         onChange={(e) => { setContactForm((p) => ({ ...p, message: e.target.value })); setContactErrors((p) => ({ ...p, message: undefined })); }}
@@ -1144,6 +1151,7 @@ export default function Resort() {
                     <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                     <input
                       type="email"
+                      aria-label="Email address for newsletter"
                       value={newsletter.email}
                       onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
                       placeholder="Your email address"
@@ -1240,8 +1248,16 @@ export default function Resort() {
       {/* Gallery Lightbox */}
       {lightboxIdx !== null && galleryDisplay?.[lightboxIdx] && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image lightbox"
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setLightboxIdx(null); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setLightboxIdx(null);
+            if (e.key === 'ArrowLeft' && galleryDisplay.length > 1) setLightboxIdx((i) => (i - 1 + galleryDisplay.length) % galleryDisplay.length);
+            if (e.key === 'ArrowRight' && galleryDisplay.length > 1) setLightboxIdx((i) => (i + 1) % galleryDisplay.length);
+          }}
         >
           <button
             onClick={() => setLightboxIdx(null)}

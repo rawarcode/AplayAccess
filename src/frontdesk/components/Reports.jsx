@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -167,26 +167,27 @@ export default function Reports() {
   }, []);
 
   // Include check-ins for the selected date PLUS any cancellations on that date
-  const dateBookings = bookings.filter(b =>
+  const dateBookings = useMemo(() => bookings.filter(b =>
     b.checkIn?.slice(0, 10) === reportDate ||
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
-  );
+  ), [bookings, reportDate]);
 
   // Revenue: all non-cancelled bookings (total + entrance fee) + cancelled forfeitures
   const cancelledAmt = (b) => b.fullyPaid ? Number(b.total ?? 0) : Number(b.reservationFee ?? 0);
-  const totalRevenue =
+  const totalRevenue = useMemo(() =>
     dateBookings.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total ?? 0) + calcEntrance(b), 0) +
-    dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledAmt(b), 0);
+    dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledAmt(b), 0),
+  [dateBookings]);
 
-  const { labels, confirmed, completed, cancelled } = buildWeekChart(bookings);
-  const chartData = {
+  const { labels, confirmed, completed, cancelled } = useMemo(() => buildWeekChart(bookings), [bookings]);
+  const chartData = useMemo(() => ({
     labels,
     datasets: [
       { label: 'Confirmed', data: confirmed, backgroundColor: 'rgba(14,165,233,0.7)',  borderRadius: 3 },  // sky-500
       { label: 'Completed', data: completed, backgroundColor: 'rgba(16,185,129,0.7)',  borderRadius: 3 },  // emerald-500
       { label: 'Cancelled', data: cancelled, backgroundColor: 'rgba(244,63,94,0.5)',   borderRadius: 3 },   // rose-500
     ],
-  };
+  }), [labels, confirmed, completed, cancelled]);
 
 
   const reportDateLabel = new Date(reportDate + 'T00:00:00').toLocaleDateString('en-PH', {
@@ -265,7 +266,7 @@ export default function Reports() {
             <button
               onClick={() => printDailyReport(dateBookings, reportDateLabel, totalRevenue)}
               disabled={loading || dateBookings.length === 0}
-              className="mt-4 w-full px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50"
+              className="mt-4 w-full px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark disabled:opacity-50"
             >
               <i className="fas fa-print mr-2"></i>Print Report
             </button>

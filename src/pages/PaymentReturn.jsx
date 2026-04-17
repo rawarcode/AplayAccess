@@ -160,10 +160,10 @@ export default function PaymentReturn({ outcome }) {
         {status === "loading" && (
           <>
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 border-4 border-[#cde3ec] border-t-[#1e3a8a] rounded-full animate-spin" />
+              <div className="w-16 h-16 border-4 border-coastal-border border-t-brand rounded-full animate-spin" />
             </div>
-            <h2 className="text-xl font-light text-[#1e3a8a] mb-2">Verifying your payment…</h2>
-            <p className="text-sm text-[#6b8cae]">Please wait. This only takes a few seconds.</p>
+            <h2 className="text-xl font-light text-brand mb-2">Verifying your payment…</h2>
+            <p className="text-sm text-coastal-text-muted">Please wait. This only takes a few seconds.</p>
           </>
         )}
 
@@ -174,15 +174,15 @@ export default function PaymentReturn({ outcome }) {
                 <i className="fas fa-check text-emerald-600 text-3xl"></i>
               </div>
             </div>
-            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Confirmed!</h2>
-            <p className="text-[#4a6f8c] mb-1">Your reservation fee has been received.</p>
+            <h2 className="text-2xl font-light text-brand mb-2">Payment Confirmed!</h2>
+            <p className="text-coastal-text mb-1">Your reservation fee has been received.</p>
             {bookingId && (
-              <p className="text-xs text-[#6b8cae] mb-1">
+              <p className="text-xs text-coastal-text-muted mb-1">
                 <i className="fas fa-hashtag mr-1"></i>
-                Booking ref: <span className="font-medium text-[#1e3a8a]">{bookingId}</span>
+                Booking ref: <span className="font-medium text-brand">{bookingId}</span>
               </p>
             )}
-            <p className="text-[#6b8cae] text-sm mb-5">
+            <p className="text-coastal-text-muted text-sm mb-5">
               Your booking is now <span className="font-semibold text-emerald-600">Confirmed</span>.
             </p>
             {isGuest ? (
@@ -196,13 +196,13 @@ export default function PaymentReturn({ outcome }) {
                   <button
                     onClick={handleDownload}
                     disabled={downloading}
-                    className="w-full flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-60 text-white font-medium py-3 rounded-xl transition"
+                    className="w-full flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white font-medium py-3 rounded-xl transition"
                   >
                     {downloading
                       ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</>
                       : <><i className="fas fa-file-pdf"></i> Download Receipt (PDF)</>}
                   </button>
-                  <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                  <Link to="/resort" className="text-sm text-coastal-accent hover:text-brand transition">
                     <i className="fas fa-arrow-left mr-1"></i>Back to Resort
                   </Link>
                 </div>
@@ -210,10 +210,10 @@ export default function PaymentReturn({ outcome }) {
             ) : (
               <div className="flex flex-col gap-3">
                 <Link to="/dashboard/bookings"
-                  className="w-full inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white font-medium py-3 rounded-xl transition">
+                  className="w-full inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white font-medium py-3 rounded-xl transition">
                   <i className="fas fa-calendar-check"></i> View My Bookings
                 </Link>
-                <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+                <Link to="/resort" className="text-sm text-coastal-accent hover:text-brand transition">
                   <i className="fas fa-arrow-left mr-1"></i>Back to Resort
                 </Link>
               </div>
@@ -228,23 +228,23 @@ export default function PaymentReturn({ outcome }) {
                 <i className="fas fa-hourglass-half text-amber-600 text-3xl"></i>
               </div>
             </div>
-            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Processing</h2>
-            <p className="text-[#4a6f8c] mb-1">We received your payment but confirmation is still processing.</p>
-            <p className="text-[#6b8cae] text-sm mb-2">
+            <h2 className="text-2xl font-light text-brand mb-2">Payment Processing</h2>
+            <p className="text-coastal-text mb-1">We received your payment but confirmation is still processing.</p>
+            <p className="text-coastal-text-muted text-sm mb-2">
               Your booking will update to <span className="font-semibold text-emerald-600">Confirmed</span> within a few minutes.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="text-xs text-[#5f9db2] hover:text-[#1e3a8a] mb-5 transition"
+              className="text-xs text-coastal-accent hover:text-brand mb-5 transition"
             >
               <i className="fas fa-arrows-rotate mr-1"></i>Refresh to check again
             </button>
             <div className="flex flex-col gap-3">
               <Link to="/dashboard/bookings"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white font-medium py-3 rounded-xl transition">
+                className="w-full inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white font-medium py-3 rounded-xl transition">
                 <i className="fas fa-calendar-check"></i> Go to My Bookings
               </Link>
-              <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+              <Link to="/resort" className="text-sm text-coastal-accent hover:text-brand transition">
                 <i className="fas fa-arrow-left mr-1"></i>Back to Resort
               </Link>
             </div>
@@ -258,16 +258,16 @@ export default function PaymentReturn({ outcome }) {
                 <i className="fas fa-times text-rose-600 text-3xl"></i>
               </div>
             </div>
-            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Payment Failed</h2>
-            <p className="text-[#4a6f8c] mb-6">
+            <h2 className="text-2xl font-light text-brand mb-2">Payment Failed</h2>
+            <p className="text-coastal-text mb-6">
               Your payment was not completed. Please try again.
             </p>
             <div className="flex flex-col gap-3">
               <Link to="/resort?book=1"
-                className="w-full inline-flex items-center justify-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white font-medium py-3 rounded-xl transition">
+                className="w-full inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-dark text-white font-medium py-3 rounded-xl transition">
                 <i className="fas fa-redo"></i> Try Again
               </Link>
-              <Link to="/resort" className="text-sm text-[#5f9db2] hover:text-[#1e3a8a] transition">
+              <Link to="/resort" className="text-sm text-coastal-accent hover:text-brand transition">
                 <i className="fas fa-arrow-left mr-1"></i>Back to Resort
               </Link>
             </div>

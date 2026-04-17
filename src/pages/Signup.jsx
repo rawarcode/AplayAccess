@@ -93,6 +93,7 @@ export default function Signup() {
             <span className="text-2xl font-bold text-sky-600">Aplaya Beach Resort</span>
           </div>
 
+          <h1 className="sr-only">Create an account</h1>
           <h2 className="text-center text-2xl font-bold text-slate-900 mb-6">Create Your Account</h2>
 
           <form onSubmit={submit} className="space-y-4">

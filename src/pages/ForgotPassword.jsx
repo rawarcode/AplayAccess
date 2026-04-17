@@ -51,19 +51,19 @@ export default function ForgotPassword() {
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
           <img src="/logo.jpg" alt="Aplaya Cottages & Rentals" className="h-20 w-auto" />
-          <span className="text-lg font-semibold text-[#1e3a8a] mt-2">Aplaya Cottages & Rentals</span>
+          <span className="text-lg font-semibold text-brand mt-2">Aplaya Cottages & Rentals</span>
         </div>
 
         {!submitted ? (
           <>
             <div className="flex justify-center mb-4">
-              <div className="h-14 w-14 rounded-full bg-[#e1f1f7] flex items-center justify-center">
-                <i className="fas fa-key text-2xl text-[#1e3a8a]"></i>
+              <div className="h-14 w-14 rounded-full bg-coastal-bg-accent flex items-center justify-center">
+                <i className="fas fa-key text-2xl text-brand"></i>
               </div>
             </div>
 
-            <h2 className="text-center text-2xl font-light text-[#1e3a8a] mb-2">Forgot Password?</h2>
-            <p className="text-center text-sm text-[#4a6f8c] mb-6">
+            <h2 className="text-center text-2xl font-light text-brand mb-2">Forgot Password?</h2>
+            <p className="text-center text-sm text-coastal-text mb-6">
               Enter your email and we&apos;ll send you reset instructions.
             </p>
 
@@ -76,9 +76,9 @@ export default function ForgotPassword() {
 
             <form onSubmit={submit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-[#4a6f8c] mb-1">Email Address</label>
+                <label className="block text-sm font-medium text-coastal-text mb-1">Email Address</label>
                 <div className="relative">
-                  <i className="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-[#5f9db2]"></i>
+                  <i className="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-coastal-accent"></i>
                   <input
                     type="email"
                     required
@@ -86,7 +86,7 @@ export default function ForgotPassword() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your registered email"
                     autoComplete="email"
-                    className="w-full py-3 pl-12 pr-4 bg-[#f3fafd] border border-[#cde3ec] rounded-2xl text-[#1e3a8a] outline-none focus:border-[#1e3a8a] focus:bg-white transition-all placeholder:text-[#9dbecb]"
+                    className="w-full py-3 pl-12 pr-4 bg-coastal-bg-alt border border-coastal-border rounded-2xl text-brand outline-none focus:ring-2 focus:ring-brand/50 focus:border-brand focus:bg-white transition-all placeholder:text-coastal-placeholder"
                   />
                 </div>
               </div>
@@ -94,7 +94,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading || cooldown > 0}
-                className="w-full py-3 bg-[#1e3a8a] text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-[#152c6e] hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
+                className="w-full py-3 bg-brand text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
                 style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
               >
                 <i className="fas fa-paper-plane"></i>
@@ -102,13 +102,13 @@ export default function ForgotPassword() {
               </button>
             </form>
 
-            <div className="mt-5 p-3 bg-[#f3fafd] rounded-xl text-sm text-[#4a6f8c] border border-[#e2edf2]">
+            <div className="mt-5 p-3 bg-coastal-bg-alt rounded-xl text-sm text-coastal-text border border-coastal-border-alt">
               <p className="font-medium mb-1">
-                <i className="fas fa-circle-info text-[#5f9db2] mr-1"></i>
+                <i className="fas fa-circle-info text-coastal-accent mr-1"></i>
                 Need immediate help?
               </p>
               <p>Contact us at{" "}
-                <a href="mailto:aplayabeachresortph@gmail.com" className="text-[#1e3a8a] underline">
+                <a href="mailto:aplayabeachresortph@gmail.com" className="text-brand underline">
                   aplayabeachresortph@gmail.com
                 </a>
               </p>
@@ -119,20 +119,20 @@ export default function ForgotPassword() {
             <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
               <i className="fas fa-check text-emerald-600 text-2xl"></i>
             </div>
-            <h2 className="text-2xl font-light text-[#1e3a8a] mb-2">Check Your Email</h2>
-            <p className="text-[#4a6f8c] mb-2">
-              If <span className="font-medium text-[#1e3a8a]">{email}</span> is registered, you&apos;ll receive
+            <h2 className="text-2xl font-light text-brand mb-2">Check Your Email</h2>
+            <p className="text-coastal-text mb-2">
+              If <span className="font-medium text-brand">{email}</span> is registered, you&apos;ll receive
               reset instructions shortly.
             </p>
-            <p className="text-sm text-[#6b8cae] mb-6">
+            <p className="text-sm text-coastal-text-muted mb-6">
               Didn&apos;t get an email? Check your spam folder or contact{" "}
-              <a href="mailto:aplayabeachresortph@gmail.com" className="text-[#1e3a8a] underline">
+              <a href="mailto:aplayabeachresortph@gmail.com" className="text-brand underline">
                 our support team
               </a>.
             </p>
             <button
               onClick={() => { setSubmitted(false); setEmail(""); setError(""); }}
-              className="text-sm text-[#1e3a8a] hover:underline font-medium"
+              className="text-sm text-brand hover:underline font-medium"
             >
               <i className="fas fa-arrow-left mr-1"></i>
               Try a different email
@@ -140,9 +140,9 @@ export default function ForgotPassword() {
           </div>
         )}
 
-        <p className="text-center mt-6 text-sm text-[#6b8cae]">
+        <p className="text-center mt-6 text-sm text-coastal-text-muted">
           Remember your password?{" "}
-          <Link to="/resort" className="font-semibold text-[#1e3a8a] hover:underline">
+          <Link to="/resort" className="font-semibold text-brand hover:underline">
             Back to Resort
           </Link>
         </p>

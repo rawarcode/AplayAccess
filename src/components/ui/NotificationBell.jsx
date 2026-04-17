@@ -68,7 +68,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
       <button
         ref={btnRef}
         onClick={() => (open ? setOpen(false) : openDropdown())}
-        className={`relative p-2 focus:outline-none transition-colors ${bellClass} ${className}`}
+        className={`relative p-2 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-colors ${bellClass} ${className}`}
         title="Notifications"
       >
         <i className="fas fa-bell text-xl"></i>

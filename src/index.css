@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+@theme {
+  --color-brand: #1e3a8a;
+  --color-brand-hover: #2e4a9a;
+  --color-brand-dark: #152c6e;
+
+  /* Coastal palette — auth & public pages */
+  --color-coastal-bg: #f9fcfe;
+  --color-coastal-bg-alt: #f3fafd;
+  --color-coastal-bg-accent: #e1f1f7;
+  --color-coastal-border: #cde3ec;
+  --color-coastal-border-alt: #e2edf2;
+  --color-coastal-text: #4a6f8c;
+  --color-coastal-text-muted: #6b8cae;
+  --color-coastal-accent: #5f9db2;
+  --color-coastal-placeholder: #9dbecb;
+  --color-coastal-decor: #b0d0dd;
+  --color-coastal-decor-light: #cbe0e9;
+}
+
 /* Global focus-visible indicator for keyboard navigation */
 :focus-visible {
   outline: 2px solid #2563eb;

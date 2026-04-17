@@ -276,7 +276,7 @@ export default function Home() {
             </Link>
             <Link
               to="/resort#rooms"
-              className="inline-block bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-lg transition backdrop-blur-sm border border-white/20"
+              className="inline-block bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-lg transition border border-white/20"
             >
               View Rooms
             </Link>

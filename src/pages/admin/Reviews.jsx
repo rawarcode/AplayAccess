@@ -485,7 +485,7 @@ export default function AdminReviews() {
                 </span>
                 Review Details
               </h3>
-              <button onClick={() => setViewReview(null)} className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+              <button onClick={() => setViewReview(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

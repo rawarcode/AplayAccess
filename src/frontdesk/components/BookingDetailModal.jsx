@@ -293,6 +293,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+         role="dialog" aria-modal="true" aria-label="Booking details"
          onMouseDown={e => e.target === e.currentTarget && !pendingAction && onClose()}>
       <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="p-6">
@@ -436,6 +437,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     value={promoInput}
                     onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
                     placeholder="Enter promo code"
+                    aria-label="Promo code"
                     className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono uppercase"
                   />
                   <button
@@ -476,10 +478,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     {guestEdit ? (
                       <div className="flex items-center gap-2">
                         <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
-                          className="w-8 h-8 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">−</button>
+                          className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">−</button>
                         <span className="w-8 text-center font-bold text-lg text-amber-900">{guestCount}</span>
                         <button onClick={() => setGuestCount(g => g + 1)}
-                          className="w-8 h-8 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">+</button>
+                          className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">+</button>
                         <button onClick={handleUpdateGuests} disabled={guestLoading}
                           className="ml-2 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 disabled:opacity-50">
                           {guestLoading ? '…' : 'Save'}
@@ -566,10 +568,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs text-slate-600">Qty:</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
-                        className="w-6 h-6 border rounded text-xs">−</button>
+                        className="w-11 h-11 border rounded text-sm">−</button>
                       <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
-                        className="w-6 h-6 border rounded text-xs">+</button>
+                        className="w-11 h-11 border rounded text-sm">+</button>
                       <span className="ml-auto text-xs font-medium text-sky-700">
                         ₱{((addingAmenity.qty || 1) * addingAmenity.unitPrice).toLocaleString()}
                       </span>
@@ -614,6 +616,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 <p className="text-xs text-violet-600"><i className="fas fa-spinner fa-spin mr-1"></i>Loading rooms...</p>
               ) : (
                 <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                  aria-label="Transfer to room"
                   className="w-full border border-violet-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
                   <option value="">Select a room...</option>
                   {rooms

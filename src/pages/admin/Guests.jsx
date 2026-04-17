@@ -129,7 +129,7 @@ export default function AdminGuests() {
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
           <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input ref={searchRef} type="text" placeholder="Search by name or email..."
+          <input ref={searchRef} type="text" aria-label="Search guests" placeholder="Search by name or email..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
@@ -253,7 +253,10 @@ export default function AdminGuests() {
                 <tbody className="divide-y divide-slate-200">
                   {paginated.map((g, idx) => (
                     <tr key={g.id}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => setViewGuest(g)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewGuest(g); } }}
                       className={`cursor-pointer transition-all hover:bg-sky-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!g.is_active ? "opacity-60" : ""}`}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -287,7 +290,7 @@ export default function AdminGuests() {
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => copyEmail(g.email)} title="Copy email"
-                            className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
                             <i className="fas fa-envelope text-xs"></i>
                           </button>
                           <button onClick={() => setViewGuest(g)} title="View"
@@ -356,7 +359,7 @@ export default function AdminGuests() {
                 Guest Details
               </h3>
               <button onClick={() => setViewGuest(null)}
-                className="h-8 w-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>

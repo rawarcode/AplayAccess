@@ -185,10 +185,10 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
   const hideable = visible !== undefined;
 
   return (
-    <div className={`bg-white rounded-lg shadow border ${editing ? "border-[#1e3a8a]" : visible === false ? "border-slate-200 opacity-60" : "border-slate-200"} overflow-hidden`}>
+    <div className={`bg-white rounded-lg shadow border ${editing ? "border-brand" : visible === false ? "border-slate-200 opacity-60" : "border-slate-200"} overflow-hidden`}>
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${visible === false ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-[#1e3a8a]"}`}>
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${visible === false ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-brand"}`}>
             <i className={`fas ${icon} text-sm`}></i>
           </div>
           <div>
@@ -219,7 +219,7 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
           {!editing && (
             <button
               onClick={onEdit}
-              className="text-xs bg-slate-100 hover:bg-[#1e3a8a] hover:text-white text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
+              className="text-xs bg-slate-100 hover:bg-brand hover:text-white text-slate-600 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5"
             >
               <i className="fas fa-pen text-xs"></i> Edit
             </button>
@@ -236,7 +236,7 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
               Cancel
             </button>
             <button onClick={onSave}
-              className="px-4 py-2 text-sm bg-[#1e3a8a] hover:bg-[#152c6e] text-white rounded-lg flex items-center gap-2">
+              className="px-4 py-2 text-sm bg-brand hover:bg-brand-dark text-white rounded-lg flex items-center gap-2">
               <i className="fas fa-check text-xs"></i> Save Changes
             </button>
           </div>
@@ -367,9 +367,9 @@ function FooterEditor({ content, onSave }) {
             {/* Contact card */}
             <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 space-y-1.5">
               <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Contact</p>
-              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-map-marker-alt text-[#1e3a8a] w-3 text-center text-[10px]"></i>{content.address || <span className="text-slate-300 italic">Not set</span>}</p>
-              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-phone text-[#1e3a8a] w-3 text-center text-[10px]"></i>{content.phone || <span className="text-slate-300 italic">Not set</span>}</p>
-              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-envelope text-[#1e3a8a] w-3 text-center text-[10px]"></i>{content.email || <span className="text-slate-300 italic">Not set</span>}</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-map-marker-alt text-brand w-3 text-center text-[10px]"></i>{content.address || <span className="text-slate-300 italic">Not set</span>}</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-phone text-brand w-3 text-center text-[10px]"></i>{content.phone || <span className="text-slate-300 italic">Not set</span>}</p>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5"><i className="fas fa-envelope text-brand w-3 text-center text-[10px]"></i>{content.email || <span className="text-slate-300 italic">Not set</span>}</p>
             </div>
             {/* Hours card */}
             <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3">
@@ -444,7 +444,7 @@ function FooterEditor({ content, onSave }) {
               </h3>
               <button type="button"
                 onClick={() => setForm(p => ({ ...p, hours: [...(p.hours || []), { day: "", time: "" }] }))}
-                className="text-xs text-[#1e3a8a] hover:underline flex items-center gap-1">
+                className="text-xs text-brand hover:underline flex items-center gap-1">
                 <i className="fas fa-plus text-[10px]"></i> Add Row
               </button>
             </div>
@@ -595,7 +595,7 @@ function HomeWhyEditor({ content, onSave }) {
             {(content.features || []).map((f, i) => (
               <div key={i} className="rounded-xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/50 p-3 text-center hover:shadow-sm transition">
                 <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-1.5">
-                  <i className={`fas ${f.icon} text-[#1e3a8a] text-sm`}></i>
+                  <i className={`fas ${f.icon} text-brand text-sm`}></i>
                 </div>
                 <p className="text-xs font-semibold text-slate-800 truncate">{f.title}</p>
                 <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2">{f.desc}</p>
@@ -615,7 +615,7 @@ function HomeWhyEditor({ content, onSave }) {
               <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide">Features ({(form.features || []).length}/8)</label>
               {(form.features || []).length < 8 && (
                 <button type="button" onClick={addFeature}
-                  className="text-xs text-[#1e3a8a] hover:underline flex items-center gap-1">
+                  className="text-xs text-brand hover:underline flex items-center gap-1">
                   <i className="fas fa-plus text-[10px]"></i> Add Feature
                 </button>
               )}
@@ -661,7 +661,7 @@ function HomeWhyEditor({ content, onSave }) {
               {(form.features || []).map((feat, i) => (
                 <div key={i} className="bg-white rounded-xl p-3 text-center shadow-sm border border-slate-100">
                   <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-2">
-                    <i className={`fas ${feat.icon} text-[#1e3a8a] text-sm`}></i>
+                    <i className={`fas ${feat.icon} text-brand text-sm`}></i>
                   </div>
                   <p className="text-xs font-bold text-slate-900 truncate">{feat.title || <span className="text-slate-300 italic">Title</span>}</p>
                   <p className="text-[10px] text-slate-500 mt-0.5 line-clamp-2">{feat.desc || <span className="text-slate-300 italic">Desc</span>}</p>
@@ -1103,7 +1103,7 @@ function AmenityForm({ initial = EMPTY_FORM, onSave, onCancel, saving, label = "
 
       <div className="flex gap-2">
         <button onClick={() => onSave(form)} disabled={saving || !form.name.trim()}
-          className="px-4 py-2 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] disabled:opacity-50 transition">
+          className="px-4 py-2 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-dark disabled:opacity-50 transition">
           {saving ? "Saving..." : label}
         </button>
         <button onClick={onCancel}
@@ -1169,7 +1169,7 @@ function ResortAmenitiesEditor() {
       <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-            <i className="fas fa-concierge-bell text-[#1e3a8a] text-sm"></i>
+            <i className="fas fa-concierge-bell text-brand text-sm"></i>
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Resort Amenities</p>
@@ -1178,7 +1178,7 @@ function ResortAmenitiesEditor() {
         </div>
         {!adding && !editingId && (
           <button onClick={() => setAdding(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#1e3a8a] rounded-lg hover:bg-[#152c6e] transition">
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-dark transition">
             <i className="fas fa-plus text-xs"></i> Add Amenity
           </button>
         )}
@@ -1297,7 +1297,7 @@ function ResortContactEditor({ content, onSave }) {
             ].map(item => (
               <div key={item.icon} className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-md bg-blue-50 flex items-center justify-center shrink-0">
-                  <i className={`fas ${item.icon} text-[#1e3a8a] text-[10px]`}></i>
+                  <i className={`fas ${item.icon} text-brand text-[10px]`}></i>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide">{item.label}</p>
@@ -1395,9 +1395,9 @@ function ResortContactEditor({ content, onSave }) {
           <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
             <p className="text-[10px] text-slate-400 uppercase tracking-wide font-medium">Live Preview</p>
             <div className="space-y-1.5 text-sm text-slate-700">
-              <p><i className="fas fa-map-marker-alt w-4 text-[#1e3a8a] mr-2"></i>{form.address || <span className="text-slate-300 italic">Address</span>}</p>
-              <p><i className="fas fa-phone w-4 text-[#1e3a8a] mr-2"></i>{form.phone || <span className="text-slate-300 italic">Phone</span>}</p>
-              <p><i className="fas fa-envelope w-4 text-[#1e3a8a] mr-2"></i>{form.email || <span className="text-slate-300 italic">Email</span>}</p>
+              <p><i className="fas fa-map-marker-alt w-4 text-brand mr-2"></i>{form.address || <span className="text-slate-300 italic">Address</span>}</p>
+              <p><i className="fas fa-phone w-4 text-brand mr-2"></i>{form.phone || <span className="text-slate-300 italic">Phone</span>}</p>
+              <p><i className="fas fa-envelope w-4 text-brand mr-2"></i>{form.email || <span className="text-slate-300 italic">Email</span>}</p>
             </div>
             {(form.osm_url || form.map_url) ? (
               <div className="rounded-xl overflow-hidden border border-slate-200">
@@ -1941,7 +1941,7 @@ function GalleryTab({ imageCount, setImageCount }) {
           <button
             onClick={handleSave}
             disabled={saving || !isDirty}
-            className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
+            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
             {saving
               ? <><i className="fas fa-spinner fa-spin text-xs"></i> Saving…</>
@@ -1958,7 +1958,7 @@ function GalleryTab({ imageCount, setImageCount }) {
           </h3>
           <div className="flex items-center gap-2">
             <button onClick={() => setShowNewFolder(v => !v)}
-              className="text-xs text-[#1e3a8a] hover:text-[#152c6e] font-medium flex items-center gap-1">
+              className="text-xs text-brand hover:text-brand-dark font-medium flex items-center gap-1">
               <i className="fas fa-plus text-[10px]" /> New Category
             </button>
           </div>
@@ -1972,7 +1972,7 @@ function GalleryTab({ imageCount, setImageCount }) {
               placeholder="Category name" autoFocus
               className="flex-1 border border-slate-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
             <button onClick={handleCreateFolder}
-              className="px-3 py-1.5 bg-[#1e3a8a] text-white text-sm rounded-lg hover:bg-[#152c6e]">Create</button>
+              className="px-3 py-1.5 bg-brand text-white text-sm rounded-lg hover:bg-brand-dark">Create</button>
             <button onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}
               className="px-3 py-1.5 text-sm text-slate-500 hover:text-slate-700">Cancel</button>
           </div>
@@ -1982,7 +1982,7 @@ function GalleryTab({ imageCount, setImageCount }) {
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setFilterCat("all")}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-              filterCat === "all" ? "bg-[#1e3a8a] text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+              filterCat === "all" ? "bg-brand text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
             <i className="fas fa-th-large text-[10px]" /> All
             <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${filterCat === "all" ? "bg-white/20" : "bg-slate-200 text-slate-500"}`}>
               {images.length}
@@ -1997,7 +1997,7 @@ function GalleryTab({ imageCount, setImageCount }) {
               <div key={cat} className="relative group">
                 <button onClick={() => setFilterCat(cat)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                    isActive ? "bg-[#1e3a8a] text-white" : isHidden ? "bg-slate-100 text-slate-400 hover:bg-slate-200 line-through" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
+                    isActive ? "bg-brand text-white" : isHidden ? "bg-slate-100 text-slate-400 hover:bg-slate-200 line-through" : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}>
                   <i className={`fas ${isHidden ? "fa-eye-slash" : "fa-folder"} text-[10px]`} />
                   {cat}
                   <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${isActive ? "bg-white/20" : "bg-slate-200 text-slate-500"}`}>
@@ -2036,7 +2036,7 @@ function GalleryTab({ imageCount, setImageCount }) {
               autoFocus
               className="flex-1 border border-slate-300 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
             <button onClick={handleRenameFolder} disabled={renaming}
-              className="px-3 py-1 bg-[#1e3a8a] text-white text-xs rounded-lg hover:bg-[#152c6e] disabled:opacity-60">
+              className="px-3 py-1 bg-brand text-white text-xs rounded-lg hover:bg-brand-dark disabled:opacity-60">
               {renaming ? "Saving..." : "Rename"}
             </button>
             <button onClick={() => setRenamingCat(null)} className="text-xs text-slate-500 hover:text-slate-700">Cancel</button>
@@ -2205,7 +2205,7 @@ function GalleryTab({ imageCount, setImageCount }) {
                   {isVideoUrl(img.image_url) ? (
                     <video src={img.image_url} className="w-full h-full object-cover" muted playsInline />
                   ) : (
-                    <img src={img.image_url} alt={img.caption || "Gallery"} className="w-full h-full object-cover"
+                    <img src={img.image_url} alt={img.caption || "Gallery"} loading="lazy" className="w-full h-full object-cover"
                       onError={e => { e.target.src = "https://placehold.co/400x300?text=No+Image"; }} />
                   )}
 
@@ -2423,7 +2423,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
       <div className="bg-white rounded-xl shadow-sm p-4">
         <div className="relative">
           <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input ref={searchRef} type="text" placeholder="Search by name, email or subject..." value={search}
+          <input ref={searchRef} type="text" aria-label="Search gallery images" placeholder="Search by name, email or subject..." value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
           {search && (
@@ -2440,7 +2440,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
         {/* Stats header */}
         <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <i className="fas fa-envelope text-sm text-[#1e3a8a]"></i>
+            <i className="fas fa-envelope text-sm text-brand"></i>
             <div>
               <p className="font-semibold text-slate-800 text-sm">All Contact Submissions</p>
               <p className="text-xs text-slate-400">{contacts.length} total</p>
@@ -2508,7 +2508,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
                       <td className="px-6 py-4 text-slate-400 whitespace-nowrap">{formatDate(c.created_at)}</td>
                       <td className="px-6 py-4">
                         <button onClick={() => setSelected(c)}
-                          className="text-[#1e3a8a] hover:underline text-sm font-medium">View</button>
+                          className="text-brand hover:underline text-sm font-medium">View</button>
                       </td>
                     </tr>
                   ))}
@@ -2521,11 +2521,11 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
                   <p className="text-xs text-slate-500">Page {safePage} of {totalPages}</p>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
-                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                      className="px-4 py-2.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
                       <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
                     </button>
                     <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-                      className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                      className="px-4 py-2.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
                       Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
                     </button>
                   </div>
@@ -2558,7 +2558,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
             </div>
             <div className="flex justify-end mt-5 gap-2">
               <a href={`mailto:${selected.email}?subject=Re: ${encodeURIComponent(selected.subject)}`}
-                className="inline-flex items-center gap-2 bg-[#1e3a8a] hover:bg-[#152c6e] text-white px-4 py-2 rounded-lg text-sm">
+                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm">
                 <i className="fas fa-reply"></i> Reply via Email
               </a>
               <button onClick={() => setSelected(null)}
@@ -2715,7 +2715,7 @@ function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
           <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input ref={searchRef} type="text" placeholder="Search by guest name, comment, or room..."
+          <input ref={searchRef} type="text" aria-label="Search testimonials" placeholder="Search by guest name, comment, or room..."
             value={search} onChange={e => setSearch(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
           {search && (
@@ -2853,11 +2853,11 @@ function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
                 <p className="text-xs text-slate-500">Page {safePage} of {totalPages}</p>
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
-                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                    className="px-4 py-2.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
                     <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
                   </button>
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-                    className="px-3 py-1.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
+                    className="px-4 py-2.5 text-xs border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-40 transition">
                     Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
                   </button>
                 </div>
@@ -2911,7 +2911,7 @@ function SitePreviewModal({ open, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-slate-900">
       {/* Toolbar */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-[#1e3a8a] text-white flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-brand text-white flex-shrink-0">
         <div className="flex items-center gap-2">
           <i className="fas fa-eye text-sm"></i>
           <span className="font-semibold text-sm">Site Preview</span>
@@ -2924,7 +2924,7 @@ function SitePreviewModal({ open, onClose }) {
               key={p.path}
               onClick={() => { setPage(p.path); setKey(k => k + 1); }}
               className={`px-3 py-1 rounded-md text-xs font-medium transition ${
-                page === p.path ? 'bg-white text-[#1e3a8a]' : 'text-white/80 hover:text-white hover:bg-white/10'
+                page === p.path ? 'bg-white text-brand' : 'text-white/80 hover:text-white hover:bg-white/10'
               }`}
             >
               {p.label}
@@ -3033,7 +3033,7 @@ export default function AdminContent() {
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Manage your website content, gallery, reviews, and contact submissions.</p>
         </div>
         <button onClick={() => setPreviewOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1e3a8a] hover:bg-[#152c6e] text-white text-sm font-semibold transition shadow-sm">
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand hover:bg-brand-dark text-white text-sm font-semibold transition shadow-sm">
           <i className="fas fa-eye text-xs"></i> Preview Site
         </button>
       </div>
@@ -3068,7 +3068,7 @@ export default function AdminContent() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <span className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center">
-                <i className="fas fa-bars text-[#1e3a8a] text-[10px]"></i>
+                <i className="fas fa-bars text-brand text-[10px]"></i>
               </span>
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Navigation Bar</h2>
               <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">top of every page</span>
@@ -3080,7 +3080,7 @@ export default function AdminContent() {
           <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-6 w-6 rounded-md bg-blue-50 flex items-center justify-center">
-                <i className="fas fa-home text-[#1e3a8a] text-[10px]"></i>
+                <i className="fas fa-home text-brand text-[10px]"></i>
               </span>
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Home Page</h2>
               <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/</span>
@@ -3097,7 +3097,7 @@ export default function AdminContent() {
           <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-6 w-6 rounded-md bg-sky-50 flex items-center justify-center">
-                <i className="fas fa-umbrella-beach text-[#1e3a8a] text-[10px]"></i>
+                <i className="fas fa-umbrella-beach text-brand text-[10px]"></i>
               </span>
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Resort Page</h2>
               <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/resort</span>
@@ -3117,7 +3117,7 @@ export default function AdminContent() {
           <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-6 w-6 rounded-md bg-indigo-50 flex items-center justify-center">
-                <i className="fas fa-bed text-[#1e3a8a] text-[10px]"></i>
+                <i className="fas fa-bed text-brand text-[10px]"></i>
               </span>
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Rooms Page</h2>
               <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/rooms</span>
@@ -3131,7 +3131,7 @@ export default function AdminContent() {
           <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-6 w-6 rounded-md bg-amber-50 flex items-center justify-center">
-                <i className="fas fa-images text-[#1e3a8a] text-[10px]"></i>
+                <i className="fas fa-images text-brand text-[10px]"></i>
               </span>
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Gallery Page</h2>
               <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">/gallery</span>
@@ -3145,7 +3145,7 @@ export default function AdminContent() {
           <div className="border-t border-dashed border-slate-200 pt-6">
             <div className="flex items-center gap-2 mb-3">
               <span className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center">
-                <i className="fas fa-shoe-prints text-[#1e3a8a] text-[10px]"></i>
+                <i className="fas fa-shoe-prints text-brand text-[10px]"></i>
               </span>
               <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Footer</h2>
               <span className="text-[10px] text-slate-300 font-normal normal-case ml-1">bottom of every page</span>
