@@ -174,17 +174,26 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       } else if (type === 'checkin') {
         const { amount: ef } = entranceFeeForBooking(booking);
         const res = await checkInBooking(booking.bookingId, ef);
-        applyUpdate({ status: 'Checked In', checkedInAt: res.checkedInAt, entrance_fee: ef });
+        // Use the full formatted booking from the backend so paidAmount /
+        // fullyPaid / entranceFee all stay in sync. Narrow-field spreads
+        // here would leave those fields stale and mislead billing.
+        applyUpdate(res.data ?? { status: 'Checked In', checkedInAt: res.checkedInAt, entranceFee: ef });
       } else if (type === 'checkout') {
         const res = await checkOutBooking(booking.bookingId);
-        applyUpdate({ status: 'Completed', checkedOutAt: res.checkedOutAt });
+        applyUpdate(res.data ?? { status: 'Completed', checkedOutAt: res.checkedOutAt });
       } else if (type === 'cancel') {
         await updateBookingStatus(booking.bookingId, 'Cancelled');
         applyUpdate({ status: 'Cancelled' });
       } else if (type === 'remove-amenity') {
         const res = await removeAmenity(booking.bookingId, amenityId);
-        const newTotal  = Number(res.newTotal);
-        const updated   = { ...booking, amenities: (booking.amenities || []).filter(a => a.id !== amenityId), total: newTotal };
+        const newTotal = Number(res.newTotal);
+        const updated  = {
+          ...booking,
+          amenities: (booking.amenities || []).filter(a => a.id !== amenityId),
+          total: newTotal,
+          fullyPaid: (typeof res.fullyPaid === 'boolean') ? res.fullyPaid : booking.fullyPaid,
+          outstanding: (res.outstanding != null) ? Number(res.outstanding) : booking.outstanding,
+        };
         setBooking(updated);
         onUpdated?.(updated);
       }
@@ -200,9 +209,13 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     setGuestLoading(true);
     try {
       const res = await updateBookingGuests(booking.bookingId, guestCount);
-      applyUpdate({ guests: res.guests });
+      // Pull the full formatted booking from the response so entranceFee,
+      // paidAmount, fullyPaid, and outstanding all reflect the backend's
+      // recomputation (otherwise the billing breakdown stays stale).
+      applyUpdate(res.data ?? { guests: res.guests });
       setGuestEdit(false);
-      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(res.guests * (ENTRANCE_RATES[booking.bookingType ?? 'day'] ?? 50))}.`);
+      const freshEntrance = Number(res.data?.entranceFee ?? res.guests * (ENTRANCE_RATES[booking.bookingType ?? 'day'] ?? 50));
+      showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(freshEntrance)}.`);
     } catch {
       showToast?.('Failed to update guest count.');
     } finally {
@@ -234,7 +247,16 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       const res = await addAmenity(booking.bookingId, addingAmenity.name, addingAmenity.qty || 1);
       const newAmenity = res.data;
       const newTotal   = Number(res.newTotal);
-      const updated    = { ...booking, amenities: [...(booking.amenities || []), newAmenity], total: newTotal };
+      // Also pull the freshly-derived fullyPaid and outstanding from the
+      // backend so the detail drawer reflects that adding a paid-up
+      // amenity reopens the balance.
+      const updated    = {
+        ...booking,
+        amenities: [...(booking.amenities || []), newAmenity],
+        total: newTotal,
+        fullyPaid: (typeof res.fullyPaid === 'boolean') ? res.fullyPaid : booking.fullyPaid,
+        outstanding: (res.outstanding != null) ? Number(res.outstanding) : booking.outstanding,
+      };
       setBooking(updated);
       onUpdated?.(updated);
       setAddingAmenity(null);
