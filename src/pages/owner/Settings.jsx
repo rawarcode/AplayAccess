@@ -109,7 +109,15 @@ export default function OwnerSettings() {
     }
     setSaving(true);
     try {
-      const payload = Object.entries(draft).map(([key, value]) => ({ key, value: String(value) }));
+      // Only submit the pricing keys the UI actually controls. Posting
+      // Object.entries(draft) would include every row GET /settings returned
+      // (content, config, etc.) at their stale snapshot values, and the
+      // backend accepts any existing settings.key — so saving pricing here
+      // could silently roll back unrelated settings edited elsewhere.
+      const pricingKeys = PRICING_FIELDS.map(f => f.key);
+      const payload = pricingKeys
+        .filter(key => draft[key] !== undefined)
+        .map(key => ({ key, value: String(draft[key]) }));
       const r = await updateAdminSettings(payload);
       const map = {};
       (r.data.data || []).forEach(s => { map[s.key] = s.value; });

@@ -98,6 +98,7 @@ export default function OwnerDashboard() {
     const nextMonthStart = localDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 1));
     const lastMonthStart = localDateStr(new Date(now.getFullYear(), now.getMonth() - 1, 1));
     const lastMonthEnd   = localDateStr(new Date(now.getFullYear(), now.getMonth(), 0));
+    const today          = localDateStr(now);
     const days30ago      = localDateStr(new Date(now.getTime() - 30 * 86400000));
 
     // Active = not Cancelled/Pending
@@ -137,9 +138,11 @@ export default function OwnerDashboard() {
     // Peak day of week (from last 30 days bookings)
     const dayOfWeekCounts = [0, 0, 0, 0, 0, 0, 0];
     const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // Only past-through-today bookings count toward "peak day" — upcoming
+    // reservations would skew this into a forecast, not a historical trend.
     bookings.forEach(b => {
       const d = b.checkIn?.slice(0, 10) ?? '';
-      if (d < days30ago) return;
+      if (d < days30ago || d > today) return;
       const dayIdx = new Date(d + 'T00:00:00').getDay();
       dayOfWeekCounts[dayIdx] += 1;
     });
@@ -150,7 +153,7 @@ export default function OwnerDashboard() {
       activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
       avgBookingValue, cancelledThisMonth, cancelRate, totalGuests,
       walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
-      dayOfWeekCounts, days30ago,
+      dayOfWeekCounts, days30ago, today,
     };
   }, [bookings, entranceRates]);
 
@@ -158,7 +161,7 @@ export default function OwnerDashboard() {
     activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
     avgBookingValue, cancelledThisMonth, cancelRate, totalGuests,
     walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
-    dayOfWeekCounts, days30ago,
+    dayOfWeekCounts, days30ago, today,
   } = derivedKpis;
 
   // Revenue breakdown from active bookings (consistent with Reports page)
@@ -206,19 +209,21 @@ export default function OwnerDashboard() {
     },
   };
 
-  // Top performing rooms (computed from active bookings, last 30 days)
+  // Top performing rooms (computed from active bookings, last 30 days).
+  // Upper bound at today so upcoming reservations don't appear in a
+  // historical "top performer" ranking.
   const topRooms = useMemo(() => {
     const map = {};
     activeBookings.forEach(b => {
       const d = b.checkIn?.slice(0, 10) ?? '';
-      if (d < days30ago) return;
+      if (d < days30ago || d > today) return;
       const key = b.roomType ?? 'Unknown';
       if (!map[key]) map[key] = { label: key, bookings: 0, revenue: 0 };
       map[key].bookings += 1;
       map[key].revenue  += bookingRevenue(b);
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  }, [activeBookings, days30ago, entranceRates]);
+  }, [activeBookings, days30ago, today, entranceRates]);
 
   // Daily revenue chart (computed from bookings, last 30 days)
   const chartData = useMemo(() => {
