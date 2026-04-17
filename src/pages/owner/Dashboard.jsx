@@ -12,18 +12,19 @@ import {
   Filler,
 } from "chart.js";
 import { getAdminBookings } from "../../lib/adminApi.js";
+import { api } from "../../lib/api";
 import { localDateStr } from "../../lib/format";
 import Toast, { useToast } from "../../components/ui/Toast";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
 
-// Entrance fee rates (unified with Billing/Reports).
+// Entrance fee fallback — live values come from /api/pricing on mount.
 // '24hr-pm' is kept for legacy bookings created before the flexible 24hr
 // start-hour; new bookings only use '24hr'. Priced the same as '24hr'.
-const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
-function calcEntrance(b) {
+const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+function calcEntrance(b, entranceRates = FALLBACK_RATES) {
   if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
-  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  const rate = entranceRates[b.bookingType ?? 'day'] ?? 50;
   return (b.guests ?? 1) * rate;
 }
 
@@ -46,6 +47,23 @@ export default function OwnerDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState(null);
 
+  // Live entrance-fee rates from /api/pricing. Falls back to FALLBACK_RATES
+  // until the fetch resolves so cards still render during the first paint.
+  const [entranceRates, setEntranceRates] = useState(FALLBACK_RATES);
+  useEffect(() => {
+    api.get('/api/pricing')
+      .then(r => {
+        const d = r.data?.data;
+        if (d) setEntranceRates({
+          day:       Number(d.entrance_fee_day   ?? 50),
+          night:     Number(d.entrance_fee_night ?? 80),
+          '24hr':    Number(d.entrance_fee_24hr  ?? 100),
+          '24hr-pm': Number(d.entrance_fee_24hr  ?? 100),
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   const load = useCallback((silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
@@ -67,13 +85,17 @@ export default function OwnerDashboard() {
   }, [load]);
 
   // ── Derived analytics — all computed from bookings array for consistency ──
-  // Helper: revenue for a booking (total + entrance fee)
-  const bookingRevenue = (b) => Number(b.total ?? 0) + calcEntrance(b);
-  const isWalkIn = (b) => b.specialRequests?.startsWith('Walk-in:') || b.reservationFee == 0 || b.reservationFee === '0';
+  // Helper: revenue for a booking (total + entrance fee). Uses live pricing.
+  const bookingRevenue = (b) => Number(b.total ?? 0) + calcEntrance(b, entranceRates);
+  // Source is emitted by the backend ('online' | 'walk-in') — use it directly
+  // instead of reverse-engineering from special_requests or reservation_fee,
+  // which misclassifies zero-fee online bookings and imported rows.
+  const isWalkIn = (b) => b.source === 'walk-in';
 
   const derivedKpis = useMemo(() => {
     const now = new Date();
     const monthStart     = localDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+    const nextMonthStart = localDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 1));
     const lastMonthStart = localDateStr(new Date(now.getFullYear(), now.getMonth() - 1, 1));
     const lastMonthEnd   = localDateStr(new Date(now.getFullYear(), now.getMonth(), 0));
     const days30ago      = localDateStr(new Date(now.getTime() - 30 * 86400000));
@@ -81,8 +103,13 @@ export default function OwnerDashboard() {
     // Active = not Cancelled/Pending
     const activeBookings = bookings.filter(b => !['Cancelled', 'Pending'].includes(b.status));
 
-    // This month bookings (by check-in date)
-    const thisMonthAll    = bookings.filter(b => (b.checkIn?.slice(0, 10) ?? '') >= monthStart);
+    // This month bookings (by check-in date). Upper bound matters — without
+    // it, a booking whose check-in is in a future month (e.g. June visits
+    // booked in April) gets counted as "this month" and inflates the KPI.
+    const thisMonthAll    = bookings.filter(b => {
+      const d = b.checkIn?.slice(0, 10) ?? '';
+      return d >= monthStart && d < nextMonthStart;
+    });
     const thisMonthActive = thisMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
     const lastMonthAll    = bookings.filter(b => { const d = b.checkIn?.slice(0, 10) ?? ''; return d >= lastMonthStart && d <= lastMonthEnd; });
     const lastMonthActive = lastMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
@@ -125,7 +152,7 @@ export default function OwnerDashboard() {
       walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
       dayOfWeekCounts, days30ago,
     };
-  }, [bookings]);
+  }, [bookings, entranceRates]);
 
   const {
     activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
@@ -144,12 +171,12 @@ export default function OwnerDashboard() {
       const disc = Number(b.discount ?? 0);
       const tot  = Number(b.total ?? 0);
       room     += tot + disc - amenityTotal;
-      entrance += calcEntrance(b);
+      entrance += calcEntrance(b, entranceRates);
       addons   += amenityTotal;
       promos   += disc;
     });
     return { room: Math.max(room, 0), entrance, addons, promos };
-  }, [activeBookings]);
+  }, [activeBookings, entranceRates]);
 
   const revGrand = revBreakdown.room + revBreakdown.entrance + revBreakdown.addons;
   const revSlices = useMemo(() => [
@@ -191,7 +218,7 @@ export default function OwnerDashboard() {
       map[key].revenue  += bookingRevenue(b);
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  }, [activeBookings, days30ago]);
+  }, [activeBookings, days30ago, entranceRates]);
 
   // Daily revenue chart (computed from bookings, last 30 days)
   const chartData = useMemo(() => {
@@ -218,7 +245,7 @@ export default function OwnerDashboard() {
         pointRadius: 2,
       }],
     };
-  }, [activeBookings]);
+  }, [activeBookings, entranceRates]);
 
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) return (
