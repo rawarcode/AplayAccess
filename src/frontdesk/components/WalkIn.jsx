@@ -38,8 +38,8 @@ function StatusBadge({ status }) {
 
 // Addons are fetched from API — no hardcoded catalog
 
-// Entrance fee rates per adult — matches Setting::pricing() defaults
-const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+// Entrance fee fallback — live values come from /api/pricing on mount
+const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
 const EMPTY_FORM = {
   fullName: '', phone: '', email: '',
@@ -85,6 +85,22 @@ export default function WalkIn() {
   const [promoResult,  setPromoResult]  = useState(null);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoError,   setPromoError]   = useState('');
+
+  // Live entrance-fee rates from /api/pricing (falls back to FALLBACK_RATES)
+  const [entranceRates, setEntranceRates] = useState(FALLBACK_RATES);
+  useEffect(() => {
+    api.get('/api/pricing')
+      .then(r => {
+        const d = r.data?.data;
+        if (d) setEntranceRates({
+          day:       Number(d.entrance_fee_day   ?? 50),
+          night:     Number(d.entrance_fee_night ?? 80),
+          '24hr':    Number(d.entrance_fee_24hr  ?? 100),
+          '24hr-pm': Number(d.entrance_fee_24hr  ?? 100),
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const today = todayStr();
 
@@ -188,7 +204,7 @@ export default function WalkIn() {
   const previewSubtotal = baseRate + amenityTotal;
   const promoDiscount   = promoResult?.discount_amount ?? 0;
   const previewTotal    = Math.max(previewSubtotal - promoDiscount, 0);
-  const entranceFeeRate = ENTRANCE_RATES[form.bookingType] ?? 50;
+  const entranceFeeRate = entranceRates[form.bookingType] ?? 50;
   const entranceFeeTotal = Number(form.guests || 1) * entranceFeeRate;
 
   async function applyPromo() {
