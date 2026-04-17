@@ -10,13 +10,15 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH")}`;
 const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
-// Money actually collected for a booking at its current state.
-//   Completed / fullyPaid  → total + persisted entrance fee
-//   Cancelled              → reservation fee forfeited (0 for walk-ins)
-//   Pending                → 0 (guest hasn't paid yet)
-//   else (Confirmed / Checked In not yet fully paid) → reservation fee only
+// Money actually collected for a booking. paidAmount is the backend's
+// single source of truth — maintained by the payment webhook, collectPayment,
+// and walk-in creation; and recomputed when fees change post-payment.
+// Falls back to the old status-based heuristic only for bookings that
+// predate the paid_amount column backfill (defensive, not expected).
 function collectedAmt(b) {
   if (!b) return 0;
+  if (b.paidAmount != null) return Number(b.paidAmount);
+  // Legacy fallback — shouldn't be hit after the paid_amount backfill.
   if (b.status === "Pending") return 0;
   if (b.status === "Cancelled") return Number(b.reservationFee || 0);
   if (b.status === "Completed" || b.fullyPaid) {

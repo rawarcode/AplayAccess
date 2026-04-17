@@ -66,7 +66,14 @@ function StatusBadge({ status, booking }) {
 function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading, entranceRates }) {
   if (!b) return null;
 
-  const balanceDue = b.fullyPaid ? 0 : Math.max(0, Number(b.total ?? 0) - Number(b.reservationFee ?? 0));
+  // Grand total = current room total + current entrance fee. Paid so far
+  // comes from the backend (paidAmount — maintained across payments + fee
+  // changes). Outstanding is what still needs to be collected at the counter.
+  const entranceNow = calcEntrance(b, entranceRates);
+  const grandTotal  = Number(b.total ?? 0) + entranceNow;
+  const paidSoFar   = Number(b.paidAmount ?? 0);
+  const outstanding = Math.max(0, grandTotal - paidSoFar);
+  const balanceDue  = outstanding; // legacy alias, kept so downstream JSX reads naturally
 
   return (
     <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto z-40 border-l border-slate-200">
@@ -158,40 +165,16 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                   </div>
                 )}
 
-                {/* Balance / status row */}
-                {b.status === 'Cancelled' ? (
-                  <div className="flex justify-between px-4 py-3 bg-rose-50 text-rose-700 font-semibold">
-                    <span>Forfeited (Non-refundable)</span>
-                    <span>{fmtMoney(b.reservationFee ?? 0)}</span>
-                  </div>
-                ) : b.status === 'Completed' ? (
-                  <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
-                    <span>Total Collected</span>
-                    <span>{fmtMoney(b.total)}</span>
-                  </div>
-                ) : b.fullyPaid ? (
-                  <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
-                    <span>Fully Paid</span>
-                    <span>{fmtMoney(b.total)}</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between px-4 py-3 bg-sky-50 text-sky-800 font-bold text-base">
-                    <span>Balance Due</span>
-                    <span>{fmtMoney(balanceDue)}</span>
-                  </div>
-                )}
-
-                {/* Entrance fee — always show (calculated from guests × rate if not yet stored) */}
+                {/* Entrance fee line (calculated from guests × rate; stored value takes precedence after check-in) */}
                 {(() => {
-                  const ef = calcEntrance(b, entranceRates);
                   const rate = entranceRates[b.bookingType ?? 'day'] ?? 50;
-                  return ef > 0 && (
+                  return entranceNow > 0 && (
                     <div className="flex justify-between px-4 py-2.5 border-t border-amber-100 bg-amber-50 text-amber-800 text-xs">
                       <span className="flex items-center gap-1.5">
                         <i className="fas fa-ticket-alt"></i>
                         Entrance Fee ({b.guests} pax × ₱{rate})
                       </span>
-                      <span className="font-semibold">{fmtMoney(ef)}</span>
+                      <span className="font-semibold">{fmtMoney(entranceNow)}</span>
                     </div>
                   );
                 })()}
@@ -199,8 +182,36 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                 {/* Grand total */}
                 <div className="flex justify-between px-4 py-3 bg-slate-800 text-white font-bold text-base">
                   <span>Grand Total</span>
-                  <span>{fmtMoney(Number(b.total ?? 0) + calcEntrance(b, entranceRates))}</span>
+                  <span>{fmtMoney(grandTotal)}</span>
                 </div>
+
+                {/* Paid so far / outstanding — status line */}
+                {b.status === 'Cancelled' ? (
+                  <div className="flex justify-between px-4 py-3 bg-rose-50 text-rose-700 font-semibold">
+                    <span>Forfeited (Non-refundable)</span>
+                    <span>{fmtMoney(b.reservationFee ?? 0)}</span>
+                  </div>
+                ) : (
+                  <>
+                    {paidSoFar > 0 && (
+                      <div className="flex justify-between px-4 py-2.5 border-t text-emerald-700">
+                        <span>Paid so far</span>
+                        <span>− {fmtMoney(paidSoFar)}</span>
+                      </div>
+                    )}
+                    {outstanding > 0 ? (
+                      <div className="flex justify-between px-4 py-3 bg-sky-50 text-sky-800 font-bold text-base">
+                        <span>Outstanding Balance</span>
+                        <span>{fmtMoney(outstanding)}</span>
+                      </div>
+                    ) : (
+                      <div className="flex justify-between px-4 py-3 bg-emerald-50 text-emerald-700 font-semibold">
+                        <span>{b.status === 'Completed' ? 'Total Collected' : 'Fully Paid'}</span>
+                        <span>{fmtMoney(paidSoFar)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             );
           })()}
@@ -342,21 +353,18 @@ export default function Billing() {
     return 0;
   }), [searchedTodayAll, sortBy, sortDir]);
 
-  // Bookings awaiting balance collection: Confirmed/Checked In that haven't been fully paid yet
+  // Bookings awaiting balance collection: Confirmed/Checked In with any
+  // outstanding balance. Using outstanding (derived from paidAmount) means
+  // a booking that was fully paid, then had extra guests added, correctly
+  // shows up here again.
   const { todayConfirmed, todayCompleted, todayCancelled, revenueToday } = useMemo(() => {
-    const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fullyPaid);
+    const outstandingFor = b =>
+      Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
+    const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && outstandingFor(b) > 0);
     const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
     const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
-    // Revenue = money actually collected, not projected totals
-    const revenueToday = todayAll.reduce((s, b) => {
-      if (b.status === 'Pending') return s;
-      if (b.status === 'Cancelled') return s + Number(b.reservationFee ?? 0);
-      // Completed or fully paid → full amount collected
-      if (b.status === 'Completed' || b.fullyPaid)
-        return s + Number(b.total ?? 0) + calcEntrance(b, entranceRates);
-      // Confirmed / Checked In not yet fully paid → only reservation fee received
-      return s + Number(b.reservationFee ?? 0);
-    }, 0);
+    // Revenue = paid_amount (backend-maintained single source of truth).
+    const revenueToday = todayAll.reduce((s, b) => s + Number(b.paidAmount ?? 0), 0);
     return { todayConfirmed, todayCompleted, todayCancelled, revenueToday };
   }, [todayAll, entranceRates]);
 
@@ -366,9 +374,11 @@ export default function Billing() {
     try {
       const ef = calcEntrance(billing, entranceRates);
       await collectPayment(billing.bookingId, payMethod, ef);
+      // Optimistically mark fully paid and bring paidAmount up to the new
+      // grand total so the UI updates without waiting on the next 20s poll.
       setBookings(prev =>
         prev.map(b => b.bookingId === billing.bookingId
-          ? { ...b, fullyPaid: true, paymentMethod: payMethod, entranceFee: ef }
+          ? { ...b, fullyPaid: true, paymentMethod: payMethod, entranceFee: ef, paidAmount: Number(b.total ?? 0) + ef }
           : b)
       );
       setBilling(null);
@@ -406,7 +416,14 @@ export default function Billing() {
     setPayMethod('Cash');
   }
 
-  const balanceDue = billing ? (billing.fullyPaid ? 0 : Math.max(0, Number(billing.total) - Number(billing.reservationFee ?? 0))) : 0;
+  // Outstanding for the collect-payment modal = grand total - paid_amount.
+  // Uses backend-maintained paidAmount so it correctly reflects staged
+  // collections (reservation fee online, then balance + entrance at the
+  // counter, then deltas when fees change post-payment).
+  const billingEntrance   = billing ? calcEntrance(billing, entranceRates) : 0;
+  const billingGrandTotal = billing ? Number(billing.total ?? 0) + billingEntrance : 0;
+  const billingPaidSoFar  = billing ? Number(billing.paidAmount ?? 0) : 0;
+  const billingOutstanding = Math.max(0, billingGrandTotal - billingPaidSoFar);
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -450,7 +467,6 @@ export default function Billing() {
                 const bAmenityTotal = (billing.amenities ?? []).reduce((s, a) => s + Number(a.total ?? (a.unitPrice * a.qty) ?? 0), 0);
                 const bDiscount     = Number(billing.discount ?? 0);
                 const bRoomRate     = Number(billing.total ?? 0) + bDiscount - bAmenityTotal;
-                const bEntrance     = calcEntrance(billing, entranceRates);
                 return (
                   <div className="border rounded mb-4 text-sm overflow-hidden">
                     <div className="flex justify-between px-4 py-2.5 border-b">
@@ -469,28 +485,28 @@ export default function Billing() {
                         <span>− {fmtMoney(bDiscount)}</span>
                       </div>
                     )}
-                    {Number(billing.reservationFee ?? 0) > 0 && (
-                      <div className="flex justify-between px-4 py-2.5 border-b text-emerald-700">
-                        <span>Reservation Fee (paid online)</span>
-                        <span>− {fmtMoney(billing.reservationFee)}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between px-4 py-3 border-b font-semibold text-sky-800 text-base">
-                      <span>Balance Due Now</span>
-                      <span>{fmtMoney(balanceDue)}</span>
-                    </div>
-                    {bEntrance > 0 && (
+                    {billingEntrance > 0 && (
                       <div className="flex justify-between px-4 py-2.5 border-b bg-amber-50 text-amber-800 text-xs">
                         <span className="flex items-center gap-1.5">
                           <i className="fas fa-ticket-alt"></i>
                           Entrance Fee ({billing.guests} pax × ₱{entranceRates[billing.bookingType ?? 'day'] ?? 50})
                         </span>
-                        <span className="font-semibold">{fmtMoney(bEntrance)}</span>
+                        <span className="font-semibold">{fmtMoney(billingEntrance)}</span>
                       </div>
                     )}
                     <div className="flex justify-between px-4 py-3 bg-slate-800 text-white font-bold text-base">
                       <span>Grand Total</span>
-                      <span>{fmtMoney(balanceDue + bEntrance)}</span>
+                      <span>{fmtMoney(billingGrandTotal)}</span>
+                    </div>
+                    {billingPaidSoFar > 0 && (
+                      <div className="flex justify-between px-4 py-2.5 border-t text-emerald-700">
+                        <span>Paid so far</span>
+                        <span>− {fmtMoney(billingPaidSoFar)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between px-4 py-3 bg-sky-600 text-white font-bold text-base">
+                      <span>Collect Now</span>
+                      <span>{fmtMoney(billingOutstanding)}</span>
                     </div>
                   </div>
                 );
@@ -527,7 +543,7 @@ export default function Billing() {
                 <button onClick={handleCollect} disabled={paying}
                   className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
                   <i className="fas fa-check mr-1"></i>
-                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue + calcEntrance(billing, entranceRates))}`}
+                  {paying ? 'Processing...' : `Collect ${fmtMoney(billingOutstanding)}`}
                 </button>
               </div>
             </div>
@@ -598,7 +614,7 @@ export default function Billing() {
                   <div className="text-right">
                     <p className="text-xs text-slate-500">Total to Collect</p>
                     <p className="font-bold text-sky-700 text-lg">
-                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b, entranceRates))}
+                      {fmtMoney(Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0)))}
                     </p>
                     <button
                       onClick={e => { e.stopPropagation(); openCollect(b); }}
@@ -669,7 +685,7 @@ export default function Billing() {
                           ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservationFee ?? 0)}</span>
                           : b.fullyPaid
                           ? <span className="text-emerald-600"><i className="fas fa-check mr-1"></i>Paid</span>
-                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b, entranceRates))}</span>
+                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0)))}</span>
                         }
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>

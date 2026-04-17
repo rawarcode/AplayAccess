@@ -478,6 +478,15 @@ export default function MyBookings() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{b.guests}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                     <div className="font-medium">₱{Number(b.total).toLocaleString()}</div>
+                    {(() => {
+                      const outstanding = Math.max(0, Number(b.total ?? 0) + Number(b.entranceFee ?? 0) - Number(b.paidAmount ?? 0));
+                      return outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
+                        <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
+                          <i className="fas fa-circle-exclamation text-[10px]"></i>
+                          ₱{outstanding.toLocaleString()} owed
+                        </div>
+                      );
+                    })()}
                     {b.promoCode && Number(b.discount) > 0 && (
                       <div className="mt-0.5 flex items-center gap-1">
                         <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">
@@ -575,6 +584,15 @@ export default function MyBookings() {
                   {b.promoCode && Number(b.discount) > 0 && (
                     <span className="ml-2 text-xs text-emerald-600 font-medium">-₱{Number(b.discount).toLocaleString()}</span>
                   )}
+                  {(() => {
+                    const outstanding = Math.max(0, Number(b.total ?? 0) + Number(b.entranceFee ?? 0) - Number(b.paidAmount ?? 0));
+                    return outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
+                      <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
+                        <i className="fas fa-circle-exclamation text-[10px]"></i>
+                        ₱{outstanding.toLocaleString()} owed
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="flex gap-2" onClick={e => e.stopPropagation()}>
                   {b.status === "Pending" && (
@@ -630,22 +648,45 @@ export default function MyBookings() {
               </button>
             </div>
             <div className="p-6 space-y-3 text-sm text-slate-700">
-              {[
-                ["Booking ID",      selected.id],
-                ["Room",            selected.roomType],
-                ["Check-in",        fmtDateTime(selected.checkIn)],
-                ["Check-out",       fmtDateTime(selected.checkOut)],
-                ["Guests",          selected.guests],
-                ["Total",           `₱${Number(selected.total).toLocaleString()}`],
-                ["Reservation Fee", `₱${Number(selected.reservationFee).toLocaleString()}`],
-                ["Payment",         selected.paymentMethod],
-                ["Status",          isExpiredPending(selected) ? "Expired" : selected.status],
-              ].map(([label, val]) => (
-                <div key={label} className="flex justify-between gap-4">
-                  <span className="text-slate-500">{label}</span>
-                  <span className="font-medium text-right">{val}</span>
-                </div>
-              ))}
+              {(() => {
+                const entrance    = Number(selected.entranceFee ?? 0);
+                const grandTotal  = Number(selected.total ?? 0) + entrance;
+                const paid        = Number(selected.paidAmount ?? 0);
+                const outstanding = Math.max(0, grandTotal - paid);
+                const rows = [
+                  ["Booking ID",      selected.id],
+                  ["Room",            selected.roomType],
+                  ["Check-in",        fmtDateTime(selected.checkIn)],
+                  ["Check-out",       fmtDateTime(selected.checkOut)],
+                  ["Guests",          selected.guests],
+                  ["Room Total",      `₱${Number(selected.total).toLocaleString()}`],
+                ];
+                if (entrance > 0) rows.push(["Entrance Fee", `₱${entrance.toLocaleString()}`]);
+                rows.push(["Grand Total", `₱${grandTotal.toLocaleString()}`]);
+                if (Number(selected.reservationFee) > 0) {
+                  rows.push(["Reservation Fee Paid", `₱${Number(selected.reservationFee).toLocaleString()}`]);
+                }
+                if (paid > 0) rows.push(["Paid so far", `₱${paid.toLocaleString()}`]);
+                if (outstanding > 0 && selected.status !== 'Cancelled' && selected.status !== 'Pending') {
+                  rows.push(["Outstanding", `₱${outstanding.toLocaleString()}`]);
+                }
+                rows.push(
+                  ["Payment",         selected.paymentMethod],
+                  ["Status",          isExpiredPending(selected) ? "Expired" : selected.status],
+                );
+                return rows.map(([label, val]) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-slate-500">{label}</span>
+                    <span className={
+                      label === "Outstanding"
+                        ? "font-semibold text-right text-sky-700"
+                        : label === "Grand Total"
+                          ? "font-semibold text-right"
+                          : "font-medium text-right"
+                    }>{val}</span>
+                  </div>
+                ));
+              })()}
               {selected.promoCode && Number(selected.discount) > 0 && (
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Promo</span>
