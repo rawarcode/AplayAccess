@@ -3,7 +3,7 @@ import { getAdminMessages, getAdminReviews } from '../lib/adminApi';
 import { getFdBookings } from '../lib/frontdeskApi';
 import { localDateStr } from '../lib/format';
 
-const POLL_MS = 10_000; // 10 seconds
+const POLL_MS = 20_000; // 20 seconds — unified polling cadence across the app
 
 const todayStr = () => localDateStr();
 

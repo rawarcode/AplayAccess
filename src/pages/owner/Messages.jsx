@@ -498,7 +498,7 @@ export default function AdminMessages() {
       getAdminMessages()
         .then(r => setThreads(r.data.data))
         .catch(() => {});
-    }, 10_000);
+    }, 20_000);
     return () => clearInterval(id);
   }, []);
 

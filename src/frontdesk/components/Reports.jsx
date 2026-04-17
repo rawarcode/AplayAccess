@@ -166,7 +166,7 @@ export default function Reports() {
         .finally(() => setLoading(false));
     }
     load();
-    const id = setInterval(load, 30000);
+    const id = setInterval(load, 20_000);
     api.get('/api/pricing')
       .then(r => {
         const d = r.data?.data;

@@ -58,7 +58,7 @@ export default function Dashboard() {
         .finally(() => setLoading(false));
     }
     load();
-    const id = setInterval(load, 10000);
+    const id = setInterval(load, 20_000);
     return () => clearInterval(id);
   }, []);
 

@@ -252,7 +252,7 @@ export default function AdminHistory() {
       if (from)            params.from     = from;
       if (to)              params.to       = to;
       load(params);
-    }, 30_000);
+    }, 20_000);
     return () => clearInterval(id);
   }, [autoRefresh, page, perPage, debouncedSearch, category, from, to, load]);
 

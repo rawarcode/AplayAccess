@@ -125,7 +125,7 @@ export default function Reservation() {
   }
   useEffect(() => {
     load();
-    const id = setInterval(load, 10000);
+    const id = setInterval(load, 20_000);
     return () => clearInterval(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -376,7 +376,7 @@ export default function FDRooms() {
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
-    const id = setInterval(load, 10000);
+    const id = setInterval(load, 20_000);
     return () => clearInterval(id);
   }, [load]);
 

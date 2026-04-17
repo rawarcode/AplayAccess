@@ -279,10 +279,18 @@ export default function Billing() {
   const [entranceRates, setEntranceRates] = useState(FALLBACK_RATES);
 
   useEffect(() => {
-    getFdBookings()
-      .then(data => { setBookings(data); setError(''); })
-      .catch(() => setError('Failed to load billing data.'))
-      .finally(() => setLoading(false));
+    function loadBookings(initial = false) {
+      getFdBookings()
+        .then(data => { setBookings(data); setError(''); })
+        .catch(() => setError('Failed to load billing data.'))
+        .finally(() => { if (initial) setLoading(false); });
+    }
+    loadBookings(true);
+    // Poll every 20s so guest-count / amenity edits from Reservation or
+    // WalkIn pages reflect here without the user reopening the drawer.
+    const id = setInterval(() => loadBookings(false), 20_000);
+
+
     api.get('/api/pricing')
       .then(r => {
         const d = r.data?.data;
@@ -294,7 +302,16 @@ export default function Billing() {
         });
       })
       .catch(() => {});
+    return () => clearInterval(id);
   }, []);
+
+  // Keep the open detail drawer / payment modal in sync with the polled
+  // bookings list — if guest count or amenities change elsewhere, the
+  // currently-open booking should reflect the new amounts immediately.
+  useEffect(() => {
+    setSelected(prev => prev ? (bookings.find(b => b.bookingId === prev.bookingId) ?? null) : prev);
+    setBilling(prev  => prev ? (bookings.find(b => b.bookingId === prev.bookingId) ?? null) : prev);
+  }, [bookings]);
 
   const today = todayStr();
 

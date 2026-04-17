@@ -214,9 +214,9 @@ export default function AdminRooms() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-refresh 30s
+  // Auto-refresh 20s
   useEffect(() => {
-    const id = setInterval(() => load(true), 30_000);
+    const id = setInterval(() => load(true), 20_000);
     return () => clearInterval(id);
   }, [load]);
 

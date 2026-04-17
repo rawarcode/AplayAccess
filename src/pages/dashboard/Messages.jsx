@@ -51,7 +51,7 @@ export default function Messages() {
       getMessages()
         .then((data) => setThreads(data))
         .catch(() => {});
-    }, 10_000);
+    }, 20_000);
     return () => clearInterval(id);
   }, []);
 

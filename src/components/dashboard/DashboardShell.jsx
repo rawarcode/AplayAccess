@@ -66,7 +66,7 @@ function NotificationBell() {
         .catch(() => {});
     }
     load();
-    const id = setInterval(load, 15_000);
+    const id = setInterval(load, 20_000);
     return () => clearInterval(id);
   }, []);
 
@@ -182,7 +182,7 @@ export default function DashboardShell() {
         .catch(() => {});
     }
     loadMsgs();
-    const id = setInterval(loadMsgs, 15_000);
+    const id = setInterval(loadMsgs, 20_000);
     return () => clearInterval(id);
   }, []);
 
