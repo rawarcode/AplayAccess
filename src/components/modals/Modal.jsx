@@ -7,7 +7,17 @@ export default function Modal({ open, onClose, maxWidth = "max-w-lg", children }
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
 
-  // Focus trap + keyboard handling
+  // Keep a ref to the latest onClose so the focus/keyboard effect below can
+  // read it without listing onClose in its dep array. Without this, parents
+  // that pass a fresh function literal (e.g. `onClose={() => setOpen(false)}`
+  // or an unmemoized handler that closes over form state) would cause the
+  // effect to re-run on every keystroke, which re-runs the autofocus logic
+  // and yanks focus to the first focusable element — typically the X close
+  // button — making text inputs un-typeable.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  // Focus trap + keyboard handling — only re-runs when `open` flips.
   useEffect(() => {
     if (!open) return;
     previousFocusRef.current = document.activeElement;
@@ -22,7 +32,7 @@ export default function Modal({ open, onClose, maxWidth = "max-w-lg", children }
     });
 
     function handleKey(e) {
-      if (e.key === "Escape") { onClose?.(); return; }
+      if (e.key === "Escape") { onCloseRef.current?.(); return; }
       if (e.key !== "Tab") return;
       const el = dialogRef.current;
       if (!el) return;
@@ -39,7 +49,7 @@ export default function Modal({ open, onClose, maxWidth = "max-w-lg", children }
       window.removeEventListener("keydown", handleKey);
       previousFocusRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
