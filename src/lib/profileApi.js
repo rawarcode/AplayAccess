@@ -16,3 +16,15 @@ export async function changePassword(currentPassword, newPassword) {
   });
   return res.data;
 }
+
+// GET /api/account/export (PDF)
+export async function exportAccountData() {
+  const res = await api.get("/api/account/export", { responseType: "blob" });
+  return res.data;
+}
+
+// DELETE /api/account
+export async function deleteAccount() {
+  const res = await api.delete("/api/account");
+  return res.data;
+}

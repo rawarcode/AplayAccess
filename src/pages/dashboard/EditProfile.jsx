@@ -1,7 +1,7 @@
 // src/pages/dashboard/EditProfile.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { updateProfile, changePassword } from "../../lib/profileApi.js";
+import { updateProfile, changePassword, exportAccountData, deleteAccount } from "../../lib/profileApi.js";
 import { uploadFile } from "../../lib/uploadApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 import Modal from "../../components/modals/Modal.jsx";
@@ -12,7 +12,7 @@ const inputBase =
   "w-full pl-10 pr-10 py-2 border rounded-xl border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-300 transition";
 
 export default function EditProfile() {
-  const { user, login } = useAuth();
+  const { user, login, logout } = useAuth();
   const fileRef = useRef(null);
   const [toast, showToast, clearToast, toastType] = useToast();
 
@@ -42,6 +42,12 @@ export default function EditProfile() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew]         = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Privacy & data state
+  const [exporting, setExporting]     = useState(false);
+  const [deleteOpen, setDeleteOpen]   = useState(false);
+  const [deleting, setDeleting]       = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   /* ── Item 5: unsaved-changes guard ── */
   const isDirty = JSON.stringify(form) !== JSON.stringify(initial);
@@ -137,6 +143,35 @@ export default function EditProfile() {
       setPwError(msg);
     } finally {
       setPwSaving(false);
+    }
+  }
+
+  async function onExportData() {
+    setExporting(true);
+    try {
+      const blob = await exportAccountData();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `aplaya-my-data-${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast("Your data has been downloaded.", "success");
+    } catch {
+      showToast("Failed to export data. Please try again.", "error");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function onDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      logout();
+    } catch {
+      showToast("Failed to delete account. Please try again.", "error");
+      setDeleting(false);
     }
   }
 
@@ -330,6 +365,107 @@ export default function EditProfile() {
           </button>
         </div>
       </div>
+
+      {/* Privacy & Data section */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b">
+          <div className="flex items-center gap-3">
+            <span className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <i className="fas fa-shield-halved text-emerald-600"></i>
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Privacy & Data</h2>
+              <p className="text-slate-500 text-sm">Manage your personal data and account.</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 space-y-4">
+          {/* Export */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 p-4">
+            <div>
+              <p className="text-sm font-medium text-slate-800">Download My Data</p>
+              <p className="text-xs text-slate-500 mt-0.5">Get a copy of your profile and booking history as a PDF file.</p>
+            </div>
+            <button
+              onClick={onExportData}
+              disabled={exporting}
+              className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-medium transition shrink-0"
+            >
+              <i className={`fas ${exporting ? "fa-spinner fa-spin" : "fa-download"}`}></i>
+              {exporting ? "Exporting..." : "Export"}
+            </button>
+          </div>
+
+          {/* Delete account */}
+          <div className="flex items-center justify-between rounded-lg border border-rose-200 bg-rose-50/50 p-4">
+            <div>
+              <p className="text-sm font-medium text-rose-800">Delete Account</p>
+              <p className="text-xs text-rose-600/70 mt-0.5">Permanently anonymize your data and cancel active bookings. This cannot be undone.</p>
+            </div>
+            <button
+              onClick={() => setDeleteOpen(true)}
+              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shrink-0"
+            >
+              <i className="fas fa-trash-alt"></i>
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete account confirmation modal */}
+      <Modal open={deleteOpen} onClose={() => { setDeleteOpen(false); setDeleteConfirmText(""); }} maxWidth="max-w-md">
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center">
+              <i className="fas fa-exclamation-triangle text-rose-600"></i>
+            </span>
+            <h3 className="text-lg font-semibold text-slate-900">Delete Your Account?</h3>
+          </div>
+
+          <div className="text-sm text-slate-600 space-y-2">
+            <p>This will:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Cancel all pending and confirmed bookings</li>
+              <li>Remove your personal information (name, email, phone)</li>
+              <li>Unsubscribe you from the newsletter</li>
+              <li>Log you out permanently</li>
+            </ul>
+            <p className="font-medium text-rose-700">This action cannot be undone.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">
+              Type <span className="font-mono font-bold text-rose-600">DELETE</span> to confirm
+            </label>
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className={inputBase}
+              autoComplete="off"
+            />
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => { setDeleteOpen(false); setDeleteConfirmText(""); }}
+              className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onDeleteAccount}
+              disabled={deleteConfirmText !== "DELETE" || deleting}
+              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+            >
+              <i className={`fas ${deleting ? "fa-spinner fa-spin" : "fa-trash-alt"}`}></i>
+              {deleting ? "Deleting..." : "Delete My Account"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Item 4: Change Password modal using shared Modal */}
       <Modal open={pwOpen} onClose={guardedPwClose} maxWidth="max-w-md">

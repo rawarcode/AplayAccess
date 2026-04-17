@@ -5,7 +5,7 @@ import AlertModal from "../components/modals/AlertModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { registerRequest } from "../lib/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { TOKEN_KEY } from "../lib/api.js";
+import { api, TOKEN_KEY } from "../lib/api.js";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -64,6 +64,11 @@ export default function Signup() {
       // Store token and user in context
       if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
       if (data.user) login(data.user);
+
+      // Subscribe to newsletter if opted in
+      if (form.newsletter && form.email) {
+        try { await api.post("/api/newsletter", { email: form.email }); } catch {}
+      }
 
       setAlert({
         open: true,

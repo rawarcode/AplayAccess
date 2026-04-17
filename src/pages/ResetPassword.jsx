@@ -74,8 +74,10 @@ export default function ResetPassword() {
       >
         {/* Logo */}
         <div className="flex flex-col items-center mb-6">
-          <img src="/logo.jpg" alt="Aplaya Cottages & Rentals" className="h-20 w-auto" />
-          <span className="text-lg font-semibold text-brand mt-2">Aplaya Cottages & Rentals</span>
+          <div className="flex items-center gap-2">
+            <i className="fas fa-umbrella-beach text-4xl text-brand"></i>
+            <span className="text-3xl font-light text-brand tracking-tight">AplayAccess</span>
+          </div>
         </div>
 
         {done ? (

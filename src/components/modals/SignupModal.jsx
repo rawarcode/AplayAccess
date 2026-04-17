@@ -4,7 +4,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { registerRequest } from "../../lib/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { TOKEN_KEY } from "../../lib/api.js";
+import { api, TOKEN_KEY } from "../../lib/api.js";
 
 export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) {
   const { loginWithGoogle } = useAuth();
@@ -76,6 +76,11 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
 
       if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
       if (data.user) onSignedUp?.(data.user);
+
+      // Subscribe to newsletter if opted in
+      if (form.newsletter && form.email) {
+        try { await api.post("/api/newsletter", { email: form.email }); } catch {}
+      }
 
       showToast("Sign up successful! Welcome to Aplaya Beach Resort.", "success");
       onClose?.();

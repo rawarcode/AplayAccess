@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAdminBookings } from "../../lib/adminApi";
-import { updateBookingStatus } from "../../lib/frontdeskApi";
+import { updateBookingStatus, checkInBooking } from "../../lib/frontdeskApi";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { fmtTime, fmtDateTime } from "../../lib/format";
 
@@ -75,7 +75,11 @@ export default function AdminDashboard() {
   async function handleAction(bookingId, status) {
     setActing(bookingId);
     try {
-      await updateBookingStatus(bookingId, status);
+      if (status === "Checked In") {
+        await checkInBooking(bookingId);
+      } else {
+        await updateBookingStatus(bookingId, status);
+      }
       showToast(`Booking ${status.toLowerCase()} successfully.`, "success");
       setViewBooking(null);
       load(true);
