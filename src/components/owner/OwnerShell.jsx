@@ -103,7 +103,7 @@ export default function OwnerShell() {
     pendingBookings:    '/owner/transactions?status=Pending',
     messages:           '/owner/messages',
     arrivals:           '/owner/transactions?status=Confirmed',
-    overdueCheckouts:   '/owner/transactions?status=Checked+In',
+    overdueCheckouts:   '/frontdesk',
     reviews:            '/owner/reviews',
   });
 
