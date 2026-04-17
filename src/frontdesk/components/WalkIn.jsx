@@ -903,7 +903,7 @@ export default function WalkIn() {
                                 : active ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
                             }`}
                           >
-                            <i className={`fas ${opt.icon} text-xs ${active && !opt.disabled ? 'text-sky-500' : 'text-slate-400'}`}></i>
+                            <i className={`fas ${opt.icon} text-xs ${active && !opt.disabled ? 'text-sky-500' : 'text-slate-400'}`} aria-hidden="true"></i>
                             {opt.label}
                           </button>
                         );
@@ -928,6 +928,7 @@ export default function WalkIn() {
                           id="walkin-checkin-hour"
                           value={form.checkInHour ?? 6}
                           onChange={e => setField('checkInHour', Number(e.target.value))}
+                          aria-required="true"
                           className="w-full px-3 py-3 md:py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                         >
                           {HOUR_OPTIONS.map(h => (

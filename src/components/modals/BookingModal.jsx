@@ -478,7 +478,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <label htmlFor="bm-guest-name" className="block text-sm font-medium text-gray-700 mb-1">
-                    Full Name <span className="text-red-500">*</span>
+                    Full Name <span className="text-red-600" aria-hidden="true">*</span>
                   </label>
                   <input
                     id="bm-guest-name"
@@ -492,7 +492,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
                 <div>
                   <label htmlFor="bm-guest-email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address <span className="text-red-500">*</span>
+                    Email Address <span className="text-red-600" aria-hidden="true">*</span>
                   </label>
                   <input
                     id="bm-guest-email"
@@ -547,7 +547,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               {/* Visit date */}
               <div className="md:col-span-2">
                 <label htmlFor="bm-visit-date" className="block text-sm font-medium text-gray-700 mb-1">
-                  Date <span className="text-red-500">*</span>
+                  Date <span className="text-red-600" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="bm-visit-date"
@@ -563,7 +563,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               {/* Booking type — compact pills */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2" id="booking-type-label">
-                  Booking Type <span className="text-red-500">*</span>
+                  Booking Type <span className="text-red-600" aria-hidden="true">*</span>
                 </label>
                 <div className="flex gap-2" role="group" aria-labelledby="booking-type-label">
                   {[
@@ -579,7 +579,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         className={`flex-1 flex items-center justify-center gap-1.5 py-3 md:py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                           active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         } ${opt.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                        <i className={`fas ${opt.icon} text-xs`}></i>
+                        <i className={`fas ${opt.icon} text-xs`} aria-hidden="true"></i>
                         {opt.label}
                       </button>
                     );
@@ -595,12 +595,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       htmlFor="booking-modal-checkin-hour"
                       className="block text-xs font-medium text-gray-600 mb-1"
                     >
-                      Start time <span className="text-red-500">*</span>
+                      Start time <span className="text-red-600" aria-hidden="true">*</span>
                     </label>
                     <select
                       id="booking-modal-checkin-hour"
                       value={checkInHour}
                       onChange={(e) => setCheckInHour(Number(e.target.value))}
+                      aria-required="true"
                       className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {HOUR_OPTIONS.map(h => (
@@ -616,7 +617,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               {/* Room / Cottage */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Room / Cottage <span className="text-red-500">*</span>
+                  Room / Cottage <span className="text-red-600" aria-hidden="true">*</span>
                   {availChecking && (
                     <span className="ml-2 text-xs text-gray-400 font-normal">
                       <i className="fas fa-spinner fa-spin mr-1"></i>Checking…
