@@ -302,8 +302,8 @@ export default function Dashboard() {
         </div>
         {/* Overdue Checkouts */}
         {!loading && overdueCheckouts.length > 0 && (
-          <div className="mt-6 bg-white rounded-xl shadow p-6 border-l-4 border-rose-400">
-            <h2 className="text-lg font-semibold text-rose-600 mb-3 flex items-center gap-2">
+          <div className="mt-6 bg-white rounded-xl shadow p-6 border-l-4 border-amber-500">
+            <h2 className="text-lg font-semibold text-amber-700 mb-3 flex items-center gap-2">
               <i className="fas fa-exclamation-triangle"></i>
               Overdue Checkouts ({overdueCheckouts.length})
             </h2>
@@ -313,10 +313,10 @@ export default function Dashboard() {
                   key={b.bookingId}
                   type="button"
                   onClick={() => navigate(`/frontdesk/reservation?booking=${b.bookingId}`)}
-                  className="w-full flex items-center justify-between bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2 text-left transition group"
+                  className="w-full flex items-center justify-between bg-amber-50 hover:bg-amber-100 rounded-lg px-4 py-2 text-left transition group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="bg-rose-100 text-rose-600 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-200">
+                    <div className="bg-amber-100 text-amber-700 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-200">
                       <i className="fas fa-user text-sm"></i>
                     </div>
                     <div>
@@ -325,8 +325,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-rose-600 bg-rose-100 px-2 py-1 rounded-full">Overdue</span>
-                    <i className="fas fa-chevron-right text-xs text-rose-400 group-hover:text-rose-600"></i>
+                    <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-2 py-1 rounded-full">Overdue</span>
+                    <i className="fas fa-chevron-right text-xs text-amber-500 group-hover:text-amber-700"></i>
                   </span>
                 </button>
               ))}

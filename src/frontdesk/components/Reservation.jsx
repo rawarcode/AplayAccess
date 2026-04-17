@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
@@ -75,7 +75,7 @@ export default function Reservation() {
   const [error, setError]                 = useState('');
   const [actionLoading, setActionLoading] = useState(null);
 
-  const [searchParams]                    = useSearchParams();
+  const [searchParams, setSearchParams]   = useSearchParams();
   const [sortBy, setSortBy]               = useState('Visit Time');
   const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
@@ -92,13 +92,20 @@ export default function Reservation() {
   }, [searchParams]);
 
   const [viewBooking, setViewBooking]     = useState(null);
+  // Remember which ?booking= param we've already auto-opened, so closing the modal
+  // (which clears the param) or a later data refresh won't reopen it.
+  const autoOpenedRef                     = useRef(null);
 
   // Auto-open detail modal when ?booking=<id> is in the URL (e.g. from dashboard overdue alert)
   useEffect(() => {
     const bookingParam = searchParams.get('booking');
     if (!bookingParam || bookings.length === 0) return;
+    if (autoOpenedRef.current === bookingParam) return; // already handled this param
     const match = bookings.find(b => String(b.bookingId) === bookingParam || b.id === bookingParam);
-    if (match) setViewBooking(match);
+    if (match) {
+      autoOpenedRef.current = bookingParam;
+      setViewBooking(match);
+    }
   }, [searchParams, bookings]);
 
   const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }
@@ -338,7 +345,15 @@ export default function Reservation() {
       {viewBooking && (
         <BookingDetailModal
           booking={viewBooking}
-          onClose={() => setViewBooking(null)}
+          onClose={() => {
+            setViewBooking(null);
+            // Clear ?booking=<id> so a future refresh doesn't reopen the modal
+            if (searchParams.get('booking')) {
+              const next = new URLSearchParams(searchParams);
+              next.delete('booking');
+              setSearchParams(next, { replace: true });
+            }
+          }}
           onUpdated={updated => {
             setViewBooking(updated);
             syncBooking(updated.bookingId, updated);
@@ -410,7 +425,7 @@ export default function Reservation() {
                     const wi = parseWalkIn(b);
                     const overdue = isOverdueCheckout(b);
                     return (
-                      <tr key={b.bookingId} role="button" tabIndex={0} className={`cursor-pointer ${overdue ? 'bg-rose-50 hover:bg-rose-100 border-l-4 border-rose-400' : 'hover:bg-slate-50'}`} onClick={() => setViewBooking(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
+                      <tr key={b.bookingId} role="button" tabIndex={0} className={`cursor-pointer ${overdue ? 'bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-500' : 'hover:bg-slate-50'}`} onClick={() => setViewBooking(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
                         <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
                           <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>
@@ -428,7 +443,7 @@ export default function Reservation() {
                           <div className="flex flex-col gap-1 items-start">
                             <StatusBadge status={b.status} booking={b} />
                             {overdue && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-700 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 flex items-center gap-1">
                                 <i className="fas fa-exclamation-triangle text-[9px]"></i>Overdue
                               </span>
                             )}
