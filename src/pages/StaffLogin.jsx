@@ -15,7 +15,7 @@ function getRoleRedirect(role) {
 }
 
 export default function StaffLogin() {
-  const { loginWithEmail, isLoggedIn, user, booting } = useAuth();
+  const { loginStaff, isLoggedIn, user, booting } = useAuth();
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -39,7 +39,7 @@ export default function StaffLogin() {
 
     setLoading(true);
     try {
-      const u = await loginWithEmail(email, password);
+      const u = await loginStaff(email, password);
       if (!ALLOWED_ROLES.includes(u?.role)) {
         setError('Access denied. This portal is for staff only.');
         return;

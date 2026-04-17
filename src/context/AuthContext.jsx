@@ -1,6 +1,6 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { loginRequest, googleLoginRequest, meRequest, logoutRequest } from "../lib/authApi";
+import { loginRequest, staffLoginRequest, googleLoginRequest, meRequest, logoutRequest } from "../lib/authApi";
 import { TOKEN_KEY } from "../lib/api";
 
 const AuthContext = createContext(null);
@@ -72,6 +72,17 @@ export function AuthProvider({ children }) {
     return u;
   }
 
+  async function loginStaff(email, password) {
+    const data = await staffLoginRequest(email, password);
+    if (data.token) {
+      localStorage.setItem(TOKEN_KEY, data.token);
+    }
+    const u = normalizeUser(data);
+    setUser(u);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+    return u;
+  }
+
   async function loginWithGoogle(credential) {
     const data = await googleLoginRequest(credential);
     if (data.token) {
@@ -107,6 +118,7 @@ export function AuthProvider({ children }) {
       isLoggedIn: !!user,
       booting,
       loginWithEmail,
+      loginStaff,
       loginWithGoogle,
       login, // existing usage
       logout,

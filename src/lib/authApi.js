@@ -7,6 +7,12 @@ export async function loginRequest(email, password) {
   return res.data;
 }
 
+// POST /api/admin/login → returns { user, token } (staff only, throttled)
+export async function staffLoginRequest(email, password) {
+  const res = await api.post("/api/admin/login", { email, password });
+  return res.data;
+}
+
 // POST /api/register → returns { user, token }
 export async function registerRequest(payload) {
   const res = await api.post("/api/register", payload);
