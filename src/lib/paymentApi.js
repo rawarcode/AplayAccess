@@ -4,7 +4,7 @@ import { api } from "./api";
 /**
  * Creates a PayMongo Payment Link for a booking.
  * Returns { checkout_url, link_id, reference_number }
- * Guest selects GCash, Maya, or card on PayMongo's hosted checkout page.
+ * Guest selects GCash or card on PayMongo's hosted checkout page.
  *
  * @param {number}  bookingId  - the booking's database ID
  * @param {boolean} payFull    - true = charge full amount, false = reservation fee only
