@@ -477,24 +477,33 @@ export default function MyBookings() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{b.guests}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
-                    <div className="font-medium">₱{Number(b.total).toLocaleString()}</div>
                     {(() => {
-                      const outstanding = Math.max(0, Number(b.total ?? 0) + Number(b.entranceFee ?? 0) - Number(b.paidAmount ?? 0));
-                      return outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
-                        <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
-                          <i className="fas fa-circle-exclamation text-[10px]"></i>
-                          ₱{outstanding.toLocaleString()} owed
-                        </div>
+                      const entrance    = Number(b.entranceFee ?? 0);
+                      const grandTotal  = Number(b.total ?? 0) + entrance;
+                      const outstanding = Math.max(0, grandTotal - Number(b.paidAmount ?? 0));
+                      return (
+                        <>
+                          <div className="font-medium">₱{grandTotal.toLocaleString()}</div>
+                          {entrance > 0 && (
+                            <div className="text-[11px] text-slate-400">incl. ₱{entrance.toLocaleString()} entrance</div>
+                          )}
+                          {outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
+                            <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
+                              <i className="fas fa-circle-exclamation text-[10px]"></i>
+                              ₱{outstanding.toLocaleString()} owed
+                            </div>
+                          )}
+                          {b.promoCode && Number(b.discount) > 0 && (
+                            <div className="mt-0.5 flex items-center gap-1">
+                              <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">
+                                <i className="fas fa-tag text-[10px]" />{b.promoCode}
+                              </span>
+                              <span className="text-xs text-emerald-600 font-medium">-₱{Number(b.discount).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </>
                       );
                     })()}
-                    {b.promoCode && Number(b.discount) > 0 && (
-                      <div className="mt-0.5 flex items-center gap-1">
-                        <span className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full font-medium">
-                          <i className="fas fa-tag text-[10px]" />{b.promoCode}
-                        </span>
-                        <span className="text-xs text-emerald-600 font-medium">-₱{Number(b.discount).toLocaleString()}</span>
-                      </div>
-                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap"><StatusLabel booking={b} /></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={e => e.stopPropagation()}>
@@ -580,17 +589,26 @@ export default function MyBookings() {
               {/* Bottom: total + actions */}
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-sm font-semibold text-slate-900">₱{Number(b.total).toLocaleString()}</span>
-                  {b.promoCode && Number(b.discount) > 0 && (
-                    <span className="ml-2 text-xs text-emerald-600 font-medium">-₱{Number(b.discount).toLocaleString()}</span>
-                  )}
                   {(() => {
-                    const outstanding = Math.max(0, Number(b.total ?? 0) + Number(b.entranceFee ?? 0) - Number(b.paidAmount ?? 0));
-                    return outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
-                      <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
-                        <i className="fas fa-circle-exclamation text-[10px]"></i>
-                        ₱{outstanding.toLocaleString()} owed
-                      </div>
+                    const entrance    = Number(b.entranceFee ?? 0);
+                    const grandTotal  = Number(b.total ?? 0) + entrance;
+                    const outstanding = Math.max(0, grandTotal - Number(b.paidAmount ?? 0));
+                    return (
+                      <>
+                        <span className="text-sm font-semibold text-slate-900">₱{grandTotal.toLocaleString()}</span>
+                        {entrance > 0 && (
+                          <span className="ml-1 text-[11px] text-slate-400">(incl. entrance)</span>
+                        )}
+                        {b.promoCode && Number(b.discount) > 0 && (
+                          <span className="ml-2 text-xs text-emerald-600 font-medium">-₱{Number(b.discount).toLocaleString()}</span>
+                        )}
+                        {outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
+                          <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
+                            <i className="fas fa-circle-exclamation text-[10px]"></i>
+                            ₱{outstanding.toLocaleString()} owed
+                          </div>
+                        )}
+                      </>
                     );
                   })()}
                 </div>

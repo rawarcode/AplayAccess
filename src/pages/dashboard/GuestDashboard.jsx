@@ -159,7 +159,8 @@ export default function GuestDashboard() {
       const ci = new Date(b.checkIn.replace(" ", "T"));
       if (b.status === "Pending") pendingCount += 1;
 
-      if (b.status === "Completed") totalSpent += Number(b.total ?? 0);
+      // Total spent = money actually collected (paid_amount, backend source of truth).
+      if (b.status === "Completed") totalSpent += Number(b.paidAmount ?? b.total ?? 0);
 
       if (ci >= now) {
         upcoming.push(b);
@@ -429,7 +430,7 @@ export default function GuestDashboard() {
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900">{"\u20B1"}{Number(b.total).toLocaleString()}</span>
+                        <span className="text-sm font-bold text-slate-900">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
                         {b.promoCode && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
                             <i className="fas fa-tag text-[9px]"></i>{b.promoCode}
@@ -505,7 +506,7 @@ export default function GuestDashboard() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">{"\u20B1"}{Number(b.total).toLocaleString()}</span>
+                      <span className="text-sm font-bold text-slate-900">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
                       {b.promoCode && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
                           <i className="fas fa-tag text-[9px]"></i>{b.promoCode}
@@ -557,23 +558,46 @@ export default function GuestDashboard() {
               </button>
             </div>
             <div className="p-6 space-y-3 text-sm text-slate-700">
-              {[
-                ["Booking ID",      selected.id],
-                ["Room",            selected.roomType],
-                ["Booking Type",    selected.bookingType],
-                ["Check-in",        fmtDateTime(selected.checkIn)],
-                ["Check-out",       fmtDateTime(selected.checkOut)],
-                ["Guests",          selected.guests],
-                ["Total",           `\u20B1${Number(selected.total).toLocaleString()}`],
-                ["Reservation Fee", `\u20B1${Number(selected.reservationFee).toLocaleString()}`],
-                ["Payment",         selected.paymentMethod],
-                ["Status",          selected.status],
-              ].map(([label, val]) => (
-                <div key={label} className="flex justify-between gap-4">
-                  <span className="text-slate-500">{label}</span>
-                  <span className="font-medium text-right">{val}</span>
-                </div>
-              ))}
+              {(() => {
+                const entrance    = Number(selected.entranceFee ?? 0);
+                const grandTotal  = Number(selected.total ?? 0) + entrance;
+                const paid        = Number(selected.paidAmount ?? 0);
+                const outstanding = Math.max(0, grandTotal - paid);
+                const rows = [
+                  ["Booking ID",      selected.id],
+                  ["Room",            selected.roomType],
+                  ["Booking Type",    selected.bookingType],
+                  ["Check-in",        fmtDateTime(selected.checkIn)],
+                  ["Check-out",       fmtDateTime(selected.checkOut)],
+                  ["Guests",          selected.guests],
+                  ["Room Total",      `\u20B1${Number(selected.total).toLocaleString()}`],
+                ];
+                if (entrance > 0) rows.push(["Entrance Fee", `\u20B1${entrance.toLocaleString()}`]);
+                rows.push(["Grand Total", `\u20B1${grandTotal.toLocaleString()}`]);
+                if (Number(selected.reservationFee) > 0) {
+                  rows.push(["Reservation Fee Paid", `\u20B1${Number(selected.reservationFee).toLocaleString()}`]);
+                }
+                if (paid > 0) rows.push(["Paid so far", `\u20B1${paid.toLocaleString()}`]);
+                if (outstanding > 0 && selected.status !== 'Cancelled' && selected.status !== 'Pending') {
+                  rows.push(["Outstanding", `\u20B1${outstanding.toLocaleString()}`]);
+                }
+                rows.push(
+                  ["Payment",         selected.paymentMethod],
+                  ["Status",          selected.status],
+                );
+                return rows.map(([label, val]) => (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-slate-500">{label}</span>
+                    <span className={
+                      label === "Outstanding"
+                        ? "font-semibold text-right text-sky-700"
+                        : label === "Grand Total"
+                          ? "font-semibold text-right"
+                          : "font-medium text-right"
+                    }>{val}</span>
+                  </div>
+                ));
+              })()}
               {selected.promoCode && Number(selected.discount) > 0 && (
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Promo</span>
