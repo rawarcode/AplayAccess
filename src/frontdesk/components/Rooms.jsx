@@ -35,15 +35,16 @@ function countdown(ms) {
   return `${mins}m`;
 }
 
-// Classify by booking_type field from backend (night, 24hr, 24hr-pm are overnight-slot)
+// Classify a booking as overnight vs. day based on actual check-in hour.
+// 'night' is always overnight; 'day' is always day.
+// For 24hr (new flexible) and legacy '24hr-pm', use the actual check-in hour:
+// starts at 6PM or later → overnight; earlier → day slot.
 function isOvernightBooking(b) {
   const type = b.bookingType ?? '';
-  if (type === 'night' || type === '24hr-pm') return true;
-  if (type === 'day') return false;
-  // 24hr bookings starting at 6AM belong to the day slot; 24hr-pm already handled above
-  if (type === '24hr') return false;
-  // Fallback for legacy bookings without bookingType: check if check-in is 6PM+
-  const ci = new Date(b.checkIn.replace(' ', 'T'));
+  if (type === 'night') return true;
+  if (type === 'day')   return false;
+  const ci = new Date((b.checkIn ?? '').replace(' ', 'T'));
+  if (isNaN(ci.getTime())) return false;
   return ci.getHours() >= 18;
 }
 

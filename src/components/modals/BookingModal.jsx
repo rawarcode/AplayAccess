@@ -26,10 +26,31 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+// Hour dropdown (0–23) for 24-hour bookings.
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => i);
+
+function formatHourLabel(h) {
+  const suffix = h < 12 ? "AM" : "PM";
+  const twelve = h % 12 === 0 ? 12 : h % 12;
+  return `${twelve}:00 ${suffix}`;
+}
+
+// Enforce the 12-hour online lead time on a selected (date, hour).
+function hourSatisfiesLead(dateStr, hour) {
+  if (!dateStr) return true;
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const candidate = new Date(y, (m || 1) - 1, d || 1, hour, 0, 0, 0);
+  const leadMs    = 12 * 60 * 60 * 1000;
+  return candidate.getTime() - Date.now() >= leadMs;
+}
+
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false }) {
   const modalRef        = useRef(null);
   const bookingResultRef = useRef(null); // stores API response after booking created
   const [bookingType, setBookingType] = useState("day"); // "day" | "night" | "24hr"
+  // For 24hr bookings the guest picks any on-the-hour start time (0–23).
+  // Defaults to a 6AM start; gets validated against the 12-hour lead rule.
+  const [checkInHour, setCheckInHour] = useState(6);
   const [visitDate, setVisitDate]     = useState("");
   const [roomType, setRoomType]       = useState(selectedRoom || "");
   const [specialRequests, setSpecialRequests] = useState("");
@@ -90,11 +111,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // Check room availability whenever date, time, or booking type changes
   useEffect(() => {
     if (!visitDate) { setAvailability(null); return; }
-    // For overnight we only need the date; for day visits we also need a time
     const params = new URLSearchParams({
       date:         visitDate,
       booking_type: bookingType,
     });
+    if (bookingType === "24hr") params.set("check_in_hour", String(checkInHour));
     setAvailChecking(true);
     api.get(`/api/availability?${params}`)
       .then(r => {
@@ -104,7 +125,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       })
       .catch(() => setAvailability(null)) // on error, show no indicators
       .finally(() => setAvailChecking(false));
-  }, [visitDate, bookingType]);
+  }, [visitDate, bookingType, checkInHour]);
 
   // Scroll modal to top whenever an error appears so it's always visible
   useEffect(() => {
@@ -237,6 +258,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       setVisitDate("");
       setError("");
       setBookingType("day");
+      setCheckInHour(6);
       setAvailability(null);
       setPaymentPopup(null);
       setTimeLeft(null);
@@ -278,7 +300,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }, [roomType]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Derived pricing — room rate only, 20% reservation fee ─────────────────
-  const is24hr   = bookingType === "24hr" || bookingType === "24hr-pm";
+  const is24hr   = bookingType === "24hr";
   const baseRate = bookingType === "night"
     ? pricing.overnight_rate
     : is24hr
@@ -329,6 +351,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
     if (!roomType)  { setError("Please select a room/cottage."); return; }
+    if (bookingType === "24hr" && !hourSatisfiesLead(visitDate, checkInHour)) {
+      setError("24-hour bookings must start at least 12 hours from now. Please pick a later time.");
+      return;
+    }
     if (availability !== null && availability[roomType] !== true) {
       setError("Selected room is not available for the chosen date. Please select another."); return;
     }
@@ -355,6 +381,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         promo_code:       promoResult ? promoInput.trim().toUpperCase() : null,
         discount:         discount,
       };
+
+      // 24hr bookings pass a start hour; the server also 12-hour-lead-checks this.
+      if (bookingType === "24hr") bookingPayload.check_in_hour = checkInHour;
 
       // Guest mode: add contact info + use public endpoint
       if (guestMode) {
@@ -546,9 +575,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   {[
                     { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: dayPassed || !typeAllowed("day")   },
                     { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !typeAllowed("night") },
-                    { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "6AM/6PM", disabled: !typeAllowed("24hr")  },
+                    { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "Any start", disabled: !typeAllowed("24hr")  },
                   ].map(opt => {
-                    const active = opt.key === "24hr" ? is24hr : bookingType === opt.key;
+                    const active = bookingType === opt.key;
                     return (
                       <button key={opt.key} type="button" disabled={opt.disabled}
                         onClick={() => { if (!opt.disabled) { setBookingType(opt.key); setPromoResult(null); setPromoInput(""); } }}
@@ -564,29 +593,29 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {/* Rate shown below */}
                 {roomType && <p className="mt-1 text-xs text-gray-500 text-center">{formatPHP(baseRate)} / {bookingType === "night" ? "night" : is24hr ? "24 hrs" : "day"}</p>}
 
-                {/* 24hr start-time sub-toggle */}
+                {/* 24hr: pick any on-the-hour start time */}
                 {is24hr && (
-                  <div className="mt-2 flex rounded-lg overflow-hidden border border-purple-200 text-xs font-medium">
-                    <button type="button"
-                      onClick={() => { setBookingType("24hr"); setPromoResult(null); setPromoInput(""); }}
-                      className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
-                        bookingType === "24hr"
-                          ? "bg-purple-600 text-white"
-                          : "bg-white text-purple-700 hover:bg-purple-50"
-                      }`}
+                  <div className="mt-3">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      Start time <span className="text-red-500">*</span>
+                      <span className="ml-1 text-[11px] text-gray-400 font-normal">
+                        (bookings start at least 12 hours from now)
+                      </span>
+                    </label>
+                    <select
+                      value={checkInHour}
+                      onChange={(e) => setCheckInHour(Number(e.target.value))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      <i className="fas fa-sun text-xs"></i> 6 AM start
-                    </button>
-                    <button type="button"
-                      onClick={() => { setBookingType("24hr-pm"); setPromoResult(null); setPromoInput(""); }}
-                      className={`flex-1 py-1.5 flex items-center justify-center gap-1.5 transition-colors ${
-                        bookingType === "24hr-pm"
-                          ? "bg-purple-600 text-white"
-                          : "bg-white text-purple-700 hover:bg-purple-50"
-                      }`}
-                    >
-                      <i className="fas fa-moon text-xs"></i> 6 PM start
-                    </button>
+                      {HOUR_OPTIONS.map(h => {
+                        const disabled = !hourSatisfiesLead(visitDate, h);
+                        return (
+                          <option key={h} value={h} disabled={disabled}>
+                            {formatHourLabel(h)}{disabled ? " — too soon" : ""} → {formatHourLabel(h)} next day
+                          </option>
+                        );
+                      })}
+                    </select>
                   </div>
                 )}
               </div>
@@ -975,11 +1004,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
         {/* ── Booking Confirmation ── */}
         {confirmOpen && (() => {
+          const hourLabel = formatHourLabel(checkInHour);
           const typeInfo = {
-            day:      { label: "Day Visit",       icon: "fa-sun",   color: "blue",   checkIn: "6:00 AM",  checkOut: "6:00 PM (same day)"  },
-            night:    { label: "Night Stay",       icon: "fa-moon",  color: "indigo", checkIn: "6:00 PM",  checkOut: "7:00 AM (next day)"  },
-            "24hr":   { label: "24 Hours (6AM)",   icon: "fa-clock", color: "purple", checkIn: "6:00 AM",  checkOut: "6:00 AM (next day)"  },
-            "24hr-pm":{ label: "24 Hours (6PM)",   icon: "fa-clock", color: "purple", checkIn: "6:00 PM",  checkOut: "6:00 PM (next day)"  },
+            day:    { label: "Day Visit",  icon: "fa-sun",   color: "blue",   checkIn: "6:00 AM", checkOut: "6:00 PM (same day)" },
+            night:  { label: "Night Stay",  icon: "fa-moon",  color: "indigo", checkIn: "6:00 PM", checkOut: "7:00 AM (next day)" },
+            "24hr": { label: `24 Hours (${hourLabel})`, icon: "fa-clock", color: "purple", checkIn: hourLabel, checkOut: `${hourLabel} (next day)` },
           }[bookingType] ?? { label: "Day Visit", icon: "fa-sun", color: "blue", checkIn: "6:00 AM", checkOut: "6:00 PM (same day)" };
           const rateLabel = bookingType === "night" ? "Overnight rate" : is24hr ? "24-hour rate" : "Day visit rate";
           return (
