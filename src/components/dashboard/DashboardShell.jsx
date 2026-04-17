@@ -1,6 +1,6 @@
 // src/components/dashboard/DashboardShell.jsx
 import { useEffect, useRef, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../../lib/notificationApi.js";
 import { getMessages } from "../../lib/messageApi.js";
@@ -39,11 +39,21 @@ function NavItem({ to, badge, children }) {
 }
 
 // ─── Notification bell + dropdown ─────────────────────────────────────────────
+const NOTIF_LINK = {
+  booking_confirmed:  "/dashboard/bookings",
+  booking_cancelled:  "/dashboard/bookings",
+  booking_checked_in: "/dashboard/bookings",
+  booking_completed:  "/dashboard/bookings",
+  payment_collected:  "/dashboard/bookings",
+  message_received:   "/dashboard/messages",
+};
+
 function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread]               = useState(0);
   const [open, setOpen]                   = useState(false);
   const ref                               = useRef(null);
+  const navigate                          = useNavigate();
 
   // Load on mount, refresh every 60s
   useEffect(() => {
@@ -121,7 +131,11 @@ function NotificationBell() {
                     "px-4 py-3 flex gap-3 cursor-pointer hover:bg-gray-50 transition",
                     !n.is_read ? "bg-blue-50" : "",
                   ].join(" ")}
-                  onClick={() => !n.is_read && handleMarkOne(n.id)}
+                  onClick={() => {
+                    if (!n.is_read) handleMarkOne(n.id);
+                    const dest = NOTIF_LINK[n.type];
+                    if (dest) { setOpen(false); navigate(dest); }
+                  }}
                 >
                   <span className="mt-0.5">
                     <i className={`fas ${
