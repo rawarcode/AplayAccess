@@ -354,14 +354,22 @@ export default function Billing() {
     return false;
   }), [bookings, today]);
 
-  const searchedTodayAll = useMemo(() => searchTerm.trim()
-    ? todayAll.filter(b => {
-        const term = searchTerm.trim().toLowerCase();
-        return (b.guest ?? '').toLowerCase().includes(term)
-          || (b.id ?? '').toLowerCase().includes(term)
-          || (b.roomType ?? '').toLowerCase().includes(term);
-      })
-    : todayAll, [todayAll, searchTerm]);
+  // When there's a search term, widen the search across ALL bookings
+  // (not just today's). This lets staff find past billings to review
+  // details or reprint a receipt without leaving the Billing page.
+  // Without a term, the view stays scoped to today + in-progress stays.
+  const isSearching = searchTerm.trim().length > 0;
+  const searchedTodayAll = useMemo(() => {
+    if (!isSearching) return todayAll;
+    const term = searchTerm.trim().toLowerCase();
+    return bookings.filter(b =>
+      (b.guest ?? '').toLowerCase().includes(term)
+        || (b.id ?? '').toLowerCase().includes(term)
+        || (b.roomType ?? '').toLowerCase().includes(term)
+        || (b.guestEmail ?? '').toLowerCase().includes(term)
+        || (b.guestPhone ?? '').includes(term.replace(/\s/g, ''))
+    );
+  }, [bookings, todayAll, searchTerm, isSearching]);
 
   const sortedTodayAll = useMemo(() => [...searchedTodayAll].sort((a, b) => {
     let aVal, bVal;
@@ -652,20 +660,48 @@ export default function Billing() {
           </div>
         )}
 
-        {/* Full today's table */}
+        {/* Full today's table — becomes a "search all" view when a term is entered */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex flex-wrap gap-3 mb-4 items-center">
-            <h2 className="text-lg font-semibold">Today's Billing Summary</h2>
-            <input type="text" aria-label="Search bookings" placeholder="Search guest, ID, room…"
-              value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
-              className="ml-auto border border-slate-200 rounded-lg px-3 py-2 text-sm w-64 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+            <div>
+              <h2 className="text-lg font-semibold">
+                {isSearching ? 'Search Results' : "Today's Billing Summary"}
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isSearching
+                  ? <>Searching across <strong>all bookings</strong>, including past. Clear to return to today.</>
+                  : <>Today + in-progress stays. Type a name / ID / room to search past billings.</>}
+              </p>
+            </div>
+            <div className="ml-auto relative">
+              <input type="text" aria-label="Search bookings" placeholder="Search guest, ID, room, email, phone…"
+                value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                className="border border-slate-200 rounded-lg pl-9 pr-9 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-sky-400" />
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              {isSearching && (
+                <button type="button" onClick={() => setSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
+                  aria-label="Clear search" title="Clear search">
+                  <i className="fas fa-times-circle text-xs"></i>
+                </button>
+              )}
+            </div>
           </div>
 
           {loading ? (
             <div className="py-10 text-center text-slate-400">
               <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading...
             </div>
-          ) : todayAll.length === 0 ? (
+          ) : isSearching && searchedTodayAll.length === 0 ? (
+            <div className="py-10 text-center text-slate-400">
+              <i className="fas fa-search text-2xl mb-2 block opacity-50"></i>
+              <p>No bookings match "<strong>{searchTerm}</strong>".</p>
+              <button type="button" onClick={() => setSearchTerm('')}
+                className="mt-2 text-sky-600 hover:underline text-sm">
+                Clear search
+              </button>
+            </div>
+          ) : !isSearching && todayAll.length === 0 ? (
             <p className="text-slate-400 text-center py-6">No bookings for today.</p>
           ) : (
             <div className="overflow-x-auto">
