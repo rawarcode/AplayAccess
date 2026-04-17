@@ -36,21 +36,25 @@ export default function GuestRecords() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Group bookings by guest email (or name if email missing)
+  // Group bookings by guest identity.
+  //  - Email is the strongest identifier and merges repeat guests.
+  //  - If no email, fall back to name+phone so distinct guests with the
+  //    same name don't merge (as long as phones differ).
+  //  - If both email and phone are missing, use the booking ID so each
+  //    truly-anonymous record stays its own row.
   const guests = useMemo(() => {
     const map = {};
     bookings.forEach(b => {
-      const wi  = parseWalkIn(b);
-      const key = wi
-        ? (wi.email !== '—' ? wi.email : wi.name)
-        : (b.guestEmail || b.guest);
+      const wi    = parseWalkIn(b);
+      const email = wi ? wi.email : (b.guestEmail || '—');
+      const phone = wi ? wi.phone : (b.guestPhone || '—');
+      const name  = wi ? wi.name  : b.guest;
+      let key;
+      if (email && email !== '—') key = `email:${email.toLowerCase()}`;
+      else if (phone && phone !== '—') key = `np:${(name || '').toLowerCase()}|${phone}`;
+      else key = `id:${b.id}`;
       if (!map[key]) {
-        map[key] = {
-          name:  wi ? wi.name  : b.guest,
-          email: wi ? wi.email : (b.guestEmail || '—'),
-          phone: wi ? wi.phone : (b.guestPhone || '—'),
-          visits: [],
-        };
+        map[key] = { name, email, phone, visits: [] };
       }
       map[key].visits.push(b);
     });
