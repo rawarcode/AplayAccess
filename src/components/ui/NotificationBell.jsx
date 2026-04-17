@@ -8,6 +8,7 @@ const COLOR_MAP = {
   blue:   'bg-blue-100 text-blue-600',
   green:  'bg-green-100 text-green-600',
   orange: 'bg-orange-100 text-orange-600',
+  red:    'bg-rose-100 text-rose-600',
 };
 
 /**

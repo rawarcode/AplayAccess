@@ -53,10 +53,10 @@ export default function Sidebar({ children, showTopBar = true }) {
   }, [mobileOpen]);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings: '/frontdesk/reservation?status=Pending',
-    messages:        '/frontdesk/messages',
-    arrivals:        '/frontdesk/reservation?status=Confirmed',
-    rooms:           '/frontdesk/rooms',
+    pendingBookings:    '/frontdesk/reservation?status=Pending',
+    messages:           '/frontdesk/messages',
+    arrivals:           '/frontdesk/reservation?status=Confirmed',
+    overdueCheckouts:   '/frontdesk',
   });
 
   const menuItems = {
@@ -65,7 +65,7 @@ export default function Sidebar({ children, showTopBar = true }) {
       { path: '/frontdesk/reservation', icon: 'fa-calendar-check',   label: 'Reservations',  badgeKey: 'pendingBookings' },
       { path: '/frontdesk/walkin',      icon: 'fa-person-walking',   label: 'Walk-ins'      },
       { path: '/frontdesk/billing',     icon: 'fa-receipt',          label: 'Billing'       },
-      { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms',         badgeKey: 'dirtyRooms'      },
+      { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms'          },
       { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
       { path: '/frontdesk/messages',    icon: 'fa-envelope',         label: 'Messages',      badgeKey: 'unreadMessages'  },
       { path: '/frontdesk/reports',     icon: 'fa-chart-bar',        label: 'Reports'       },

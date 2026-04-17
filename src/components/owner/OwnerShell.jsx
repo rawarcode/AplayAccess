@@ -100,11 +100,11 @@ export default function OwnerShell() {
 
   // Notification polling — all paths point to /owner/* now
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings: '/owner/transactions?status=Pending',
-    messages:        '/owner/messages',
-    arrivals:        '/owner/transactions?status=Confirmed',
-    rooms:           '/owner/rooms',
-    reviews:         '/owner/reviews',
+    pendingBookings:    '/owner/transactions?status=Pending',
+    messages:           '/owner/messages',
+    arrivals:           '/owner/transactions?status=Confirmed',
+    overdueCheckouts:   '/owner/transactions?status=Checked+In',
+    reviews:            '/owner/reviews',
   });
 
   // Persist collapsed preference

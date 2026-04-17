@@ -14,18 +14,20 @@ function todayStr() {
  * downward via NotificationContext — not called in leaf components.
  */
 const DEFAULT_PATHS = {
-  pendingBookings: '/owner/transactions?status=Pending',
-  messages:        '/owner/messages',
-  arrivals:        '/owner/transactions?status=Confirmed',
+  pendingBookings:  '/owner/transactions?status=Pending',
+  messages:         '/owner/messages',
+  arrivals:         '/owner/transactions?status=Confirmed',
+  overdueCheckouts: '/owner/transactions?status=Checked+In',
 };
 
 export function useStaffNotifications(paths = {}) {
   const p = { ...DEFAULT_PATHS, ...paths };
   const [counts, setCounts] = useState({
-    unreadMessages:  0,
-    pendingBookings: 0,
-    todayArrivals:   0,
-    pendingReviews:  0,
+    unreadMessages:   0,
+    pendingBookings:  0,
+    todayArrivals:    0,
+    pendingReviews:   0,
+    overdueCheckouts: 0,
   });
   const [items, setItems] = useState([]);
 
@@ -47,11 +49,16 @@ export function useStaffNotifications(paths = {}) {
     const todayArrivals   = bookings.filter(
       b => b.checkIn?.slice(0, 10) === today && b.status === 'Confirmed'
     ).length;
+    const now = new Date();
+    const overdueCheckouts = bookings.filter(b => {
+      if (b.status !== 'Checked In' || !b.checkOut) return false;
+      return new Date(b.checkOut.replace(' ', 'T')) < now;
+    }).length;
     const pendingReviews = Array.isArray(reviews)
       ? reviews.filter(r => r.status === 'pending').length
       : 0;
 
-    setCounts({ unreadMessages, pendingBookings, todayArrivals, pendingReviews });
+    setCounts({ unreadMessages, pendingBookings, todayArrivals, pendingReviews, overdueCheckouts });
 
     const next = [];
     if (pendingBookings > 0)
@@ -72,6 +79,12 @@ export function useStaffNotifications(paths = {}) {
         label: `${todayArrivals} guest arrival${todayArrivals !== 1 ? 's' : ''} today`,
         path: p.arrivals,
       });
+    if (overdueCheckouts > 0)
+      next.push({
+        id: 'overdue', icon: 'fa-exclamation-triangle', color: 'red',
+        label: `${overdueCheckouts} overdue checkout${overdueCheckouts !== 1 ? 's' : ''}`,
+        path: p.overdueCheckouts,
+      });
     if (pendingReviews > 0 && p.reviews)
       next.push({
         id: 'reviews', icon: 'fa-star', color: 'yellow',
@@ -88,7 +101,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.pendingReviews;
+  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.pendingReviews + counts.overdueCheckouts;
 
   return { counts, items, total, refresh: poll };
 }
