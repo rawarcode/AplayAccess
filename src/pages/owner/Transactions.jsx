@@ -38,7 +38,7 @@ function printTransactions(rows) {
   const total = active.reduce((s, b) => s + Number(b.total||0) + Number(b.entranceFee||0), 0);
   const efTotal = active.reduce((s, b) => s + Number(b.entranceFee||0), 0);
   const discTotal = active.reduce((s, b) => s + Number(b.discount||0), 0);
-  // Money actually collected — used for the Total Revenue KPI card
+  // Money actually collected — used for the Revenue Collected KPI card
   const revenueCollected = rows.reduce((s, b) => s + collectedAmt(b), 0);
   const statusCount = (s) => rows.filter(b => b.status === s).length;
   const tableRows = rows.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt">${esc(b.id)}</td><td>${esc((b.checkIn||'').slice(0,10))}</td><td>${esc(b.guest)}</td><td>${esc(b.roomType)}</td><td style="text-align:right">${Number(b.discount)>0?`₱${fmtN(b.discount)}`:'—'}</td><td style="text-align:right">₱${fmtN(b.total)}</td><td style="text-align:right;color:#92400e">${Number(b.entranceFee)>0?`₱${fmtN(b.entranceFee)}`:'—'}</td><td>${statusBadge(esc(b.status))}</td><td>${esc(b.paymentMethod||'—')}</td></tr>`).join('');
@@ -154,7 +154,12 @@ export default function OwnerTransactions() {
     allBookings.reduce((s, b) => s + collectedAmt(b), 0),
     [allBookings]
   );
-  const avgTx = nonCancelled.length ? totalRevenue / nonCancelled.length : 0;
+  // Average transaction = collected money ÷ number of bookings that contributed.
+  // Uses allBookings on both sides so the numerator and denominator agree:
+  // cancelled rows contribute their forfeited reservation fee via collectedAmt,
+  // so they belong in the count too. Pending bookings contribute 0 but they're
+  // still a real "attempted transaction" — including them matches intuition.
+  const avgTx = allBookings.length ? totalRevenue / allBookings.length : 0;
 
   // Revenue by Room Type — collected money, not projected value.
   const roomRevenueData = useMemo(() => {
@@ -246,7 +251,7 @@ export default function OwnerTransactions() {
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-500 text-sm">Total Revenue</p>
+              <p className="text-gray-500 text-sm">Revenue Collected</p>
               <h3 className="text-2xl font-bold mt-1">{loading ? "—" : fmt(totalRevenue)}</h3>
               <p className="text-xs text-green-500 mt-1">
                 <i className="fas fa-arrow-up mr-1"></i>
