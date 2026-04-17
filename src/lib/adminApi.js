@@ -17,7 +17,6 @@ export const getAdminRooms     = ()         => api.get('/api/admin/rooms');
 export const createAdminRoom   = (data)     => api.post('/api/admin/rooms', data);
 export const updateAdminRoom   = (id, data) => api.patch(`/api/admin/rooms/${id}`, data);
 export const deleteAdminRoom   = (id)       => api.delete(`/api/admin/rooms/${id}`);
-export const updateRoomHousekeeping = (id, status) => api.patch(`/api/admin/rooms/${id}/housekeeping`, { status });
 
 // ── Guests ───────────────────────────────────────────────────────────────────
 export const getAdminGuests    = ()         => api.get('/api/admin/guests');

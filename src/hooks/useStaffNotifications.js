@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAdminMessages, getAdminReviews } from '../lib/adminApi';
-import { getFdBookings, getFdRooms } from '../lib/frontdeskApi';
+import { getFdBookings } from '../lib/frontdeskApi';
 
 const POLL_MS = 10_000; // 10 seconds
 
@@ -17,7 +17,6 @@ const DEFAULT_PATHS = {
   pendingBookings: '/owner/transactions?status=Pending',
   messages:        '/owner/messages',
   arrivals:        '/owner/transactions?status=Confirmed',
-  rooms:           '/frontdesk/rooms',
 };
 
 export function useStaffNotifications(paths = {}) {
@@ -26,7 +25,6 @@ export function useStaffNotifications(paths = {}) {
     unreadMessages:  0,
     pendingBookings: 0,
     todayArrivals:   0,
-    dirtyRooms:      0,
     pendingReviews:  0,
   });
   const [items, setItems] = useState([]);
@@ -34,16 +32,14 @@ export function useStaffNotifications(paths = {}) {
   const poll = useCallback(async () => {
     const today = todayStr();
 
-    const [msgRes, bkRes, rmRes, rvRes] = await Promise.allSettled([
+    const [msgRes, bkRes, rvRes] = await Promise.allSettled([
       getAdminMessages(),
       getFdBookings(),
-      getFdRooms(),
       getAdminReviews(),
     ]);
 
     const threads  = msgRes.status === 'fulfilled' ? (msgRes.value?.data?.data  ?? []) : [];
     const bookings = bkRes.status  === 'fulfilled' ? (bkRes.value  ?? [])             : [];
-    const rooms    = rmRes.status  === 'fulfilled' ? (rmRes.value  ?? [])             : [];
     const reviews  = rvRes.status  === 'fulfilled' ? (rvRes.value?.data?.data ?? rvRes.value?.data ?? []) : [];
 
     const unreadMessages  = threads.filter(t => !t.is_read).length;
@@ -51,14 +47,11 @@ export function useStaffNotifications(paths = {}) {
     const todayArrivals   = bookings.filter(
       b => b.checkIn?.slice(0, 10) === today && b.status === 'Confirmed'
     ).length;
-    const dirtyRooms = rooms.filter(
-      r => r.housekeeping_status === 'dirty' || r.housekeeping_status === 'cleaning'
-    ).length;
     const pendingReviews = Array.isArray(reviews)
       ? reviews.filter(r => r.status === 'pending').length
       : 0;
 
-    setCounts({ unreadMessages, pendingBookings, todayArrivals, dirtyRooms, pendingReviews });
+    setCounts({ unreadMessages, pendingBookings, todayArrivals, pendingReviews });
 
     const next = [];
     if (pendingBookings > 0)
@@ -79,12 +72,6 @@ export function useStaffNotifications(paths = {}) {
         label: `${todayArrivals} guest arrival${todayArrivals !== 1 ? 's' : ''} today`,
         path: p.arrivals,
       });
-    if (dirtyRooms > 0)
-      next.push({
-        id: 'rooms', icon: 'fa-broom', color: 'orange',
-        label: `${dirtyRooms} room${dirtyRooms !== 1 ? 's' : ''} need housekeeping`,
-        path: p.rooms,
-      });
     if (pendingReviews > 0 && p.reviews)
       next.push({
         id: 'reviews', icon: 'fa-star', color: 'yellow',
@@ -101,7 +88,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.dirtyRooms + counts.pendingReviews;
+  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.pendingReviews;
 
   return { counts, items, total, refresh: poll };
 }

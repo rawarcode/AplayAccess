@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import Modal from '../../components/modals/Modal';
-import { getFdBookings, getFdRooms, updateHousekeeping } from '../../lib/frontdeskApi';
+import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
 import { fmtTime } from '../../lib/format';
@@ -195,16 +195,8 @@ const STATUS_CONFIG = {
   pending:  { bg: 'bg-amber-400',   border: 'border-amber-500',   text: 'text-slate-900',  label: 'PENDING',  icon: 'fa-clock'         },
 };
 
-// ─── Housekeeping badge ───────────────────────────────────────────────────────
-const HK_CONFIG = {
-  clean:   { label: 'Clean',    bg: 'bg-emerald-100', text: 'text-emerald-700', icon: 'fa-check'         },
-  dirty:   { label: 'Dirty',    bg: 'bg-orange-100',  text: 'text-orange-700',  icon: 'fa-broom'         },
-  cleaning:{ label: 'Cleaning', bg: 'bg-sky-100',     text: 'text-sky-700',     icon: 'fa-soap'          },
-};
-const HK_NEXT = { clean: 'dirty', dirty: 'cleaning', cleaning: 'clean' };
-
-// ─── HousekeepingModal — shown when card has no active booking (vacant) ───────
-function HousekeepingModal({ room, onClose, onHousekeepingChange, onWalkIn }) {
+// ─── VacantModal — shown when card has no active booking (vacant) ────────────
+function VacantModal({ room, onClose, onWalkIn }) {
   return (
     <Modal open onClose={onClose} title={room.name} maxWidth="max-w-sm">
       <div className="bg-emerald-500 rounded-lg p-4 mb-4 flex items-center gap-3">
@@ -223,24 +215,6 @@ function HousekeepingModal({ room, onClose, onHousekeepingChange, onWalkIn }) {
         Walk-in Booking for {room.name}
       </button>
 
-      <p className="text-xs font-semibold text-slate-500 uppercase mb-3">Housekeeping Status</p>
-      <div className="flex gap-2">
-        {['clean', 'dirty', 'cleaning'].map(status => {
-          const hk = HK_CONFIG[status];
-          const active = (room.housekeeping_status ?? 'clean') === status;
-          return (
-            <button
-              key={status}
-              onClick={() => { onHousekeepingChange(room.id, status); onClose(); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-medium border-2 transition-all
-                ${active ? `${hk.bg} ${hk.text} border-current` : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
-            >
-              <i className={`fas ${hk.icon}`}></i>{hk.label}
-              {active && <i className="fas fa-check text-[10px]"></i>}
-            </button>
-          );
-        })}
-      </div>
       <button onClick={onClose} className="mt-4 w-full py-2 border rounded text-sm text-slate-600 hover:bg-slate-50">
         Close
       </button>
@@ -266,9 +240,8 @@ function fmtDateLabel(dt) {
 }
 
 // ─── MultiUnitCard — for cottages / pavilions with quantity > 1 ──────────────
-function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
+function MultiUnitCard({ room, info, onWalkIn }) {
   const { quantity, occupied, incoming, pending, vacant } = info;
-  const hk = HK_CONFIG[room.housekeeping_status ?? 'clean'];
 
   const dots = [];
   for (let i = 0; i < quantity; i++) {
@@ -305,12 +278,7 @@ function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between border-t border-slate-100 pt-1.5">
-        <button onClick={() => onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean'])}
-          className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${hk.bg} ${hk.text} hover:opacity-80`}
-          title="Tap to update housekeeping">
-          <i className={`fas ${hk.icon} text-[9px]`}></i>{hk.label}
-        </button>
+      <div className="flex items-center justify-end border-t border-slate-100 pt-1.5">
         {vacant > 0
           ? <button onClick={onWalkIn} className="text-[10px] font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-0.5">
               <i className="fas fa-person-walking text-[9px]"></i> Walk-in
@@ -323,9 +291,8 @@ function MultiUnitCard({ room, info, onHousekeepingChange, onWalkIn }) {
 }
 
 // ─── RoomCard ─────────────────────────────────────────────────────────────────
-function RoomCard({ room, info, onHousekeepingChange, onClick }) {
+function RoomCard({ room, info, onClick }) {
   const config = STATUS_CONFIG[info.status];
-  const hk     = HK_CONFIG[room.housekeeping_status ?? 'clean'];
   const guest  = guestName(info.booking);
 
   return (
@@ -383,12 +350,6 @@ function RoomCard({ room, info, onHousekeepingChange, onClick }) {
         )}
       </div>
 
-      {/* Housekeeping badge */}
-      <button onClick={e => { e.stopPropagation(); onHousekeepingChange(room.id, HK_NEXT[room.housekeeping_status ?? 'clean']); }}
-        className={`self-start inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-medium ${hk.bg} ${hk.text} hover:opacity-80`}
-        title="Tap to cycle housekeeping">
-        <i className={`fas ${hk.icon} text-[9px]`}></i>{hk.label}
-      </button>
     </div>
   );
 }
@@ -411,18 +372,6 @@ export default function FDRooms() {
       .catch(() => showToast('Failed to load room data.', 'error'))
       .finally(() => setLoading(false));
   }, []);
-
-  async function handleHousekeeping(roomId, newStatus) {
-    // Optimistic update
-    setRooms(prev => prev.map(r => r.id === roomId ? { ...r, housekeeping_status: newStatus } : r));
-    try {
-      await updateHousekeeping(roomId, newStatus);
-    } catch {
-      // Revert on failure
-      load();
-      showToast('Failed to update housekeeping status.');
-    }
-  }
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => {
@@ -499,10 +448,9 @@ export default function FDRooms() {
             showToast={showToast}
           />
         ) : (
-          <HousekeepingModal
+          <VacantModal
             room={selectedSlot.room}
             onClose={() => setSelectedSlot(null)}
-            onHousekeepingChange={handleHousekeeping}
             onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: selectedSlot.room } })}
           />
         )
@@ -632,10 +580,9 @@ export default function FDRooms() {
                                     const info = item[infoKey];
                                     return info.multi ? (
                                       <MultiUnitCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
-                                        onHousekeepingChange={handleHousekeeping}
                                         onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: item.room } })} />
                                     ) : (
-                                      <RoomCard key={`${slot}-${item.room.id}`} room={item.room} info={info} onHousekeepingChange={handleHousekeeping}
+                                      <RoomCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
                                         onClick={() => setSelectedSlot({ room: item.room, info })} />
                                     );
                                   })}
@@ -660,12 +607,6 @@ export default function FDRooms() {
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-sky-500 inline-block"></span> Arriving — confirmed, not yet checked in</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Pending — booking not yet confirmed</span>
               <span className="flex items-center gap-1.5"><span className="text-base">⚡</span> Soon — vacating within 30 minutes</span>
-            </div>
-            <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-              <span className="font-medium text-slate-400">Housekeeping badge (tap to update):</span>
-              <span><span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs">Clean</span></span>
-              <span><span className="px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 text-xs">Dirty</span></span>
-              <span><span className="px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-xs">Cleaning</span></span>
             </div>
           </div>
         </div>

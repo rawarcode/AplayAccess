@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
-import { getAdminRooms, createAdminRoom, updateAdminRoom, deleteAdminRoom, updateRoomHousekeeping } from "../../lib/adminApi";
+import { getAdminRooms, createAdminRoom, updateAdminRoom, deleteAdminRoom } from "../../lib/adminApi";
 import { RESORT_ID } from "../../lib/config.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
@@ -17,14 +17,6 @@ const AVAIL = {
   reserved:    { label: "Reserved / Blocked", color: "bg-purple-100 text-purple-800",   dot: "bg-purple-500",  icon: "fa-lock"         },
   closed:      { label: "Temporarily Closed", color: "bg-slate-100 text-slate-600",     dot: "bg-slate-400",   icon: "fa-ban"          },
 };
-
-// ── Housekeeping status config ────────────────────────────────────────────
-const HK = {
-  clean:    { label: "Clean",    color: "bg-sky-100 text-sky-800",    dot: "bg-sky-500"    },
-  dirty:    { label: "Dirty",    color: "bg-rose-100 text-rose-800",  dot: "bg-rose-500"   },
-  cleaning: { label: "Cleaning", color: "bg-amber-100 text-amber-800",dot: "bg-amber-500"  },
-};
-const HK_CYCLE = ["clean", "dirty", "cleaning"];
 
 // ── Feature icon palette ──────────────────────────────────────────────────
 const FEATURE_ICONS = [
@@ -242,8 +234,7 @@ export default function AdminRooms() {
     else if (sortBy === "Day Rate")       { aVal = Number(a.day_rate);             bVal = Number(b.day_rate); }
     else if (sortBy === "Overnight Rate") { aVal = Number(a.overnight_rate);       bVal = Number(b.overnight_rate); }
     else if (sortBy === "24hr Rate")      { aVal = Number(a.rate_24hr ?? 0);       bVal = Number(b.rate_24hr ?? 0); }
-    else if (sortBy === "Availability")   { aVal = a.availability_status ?? "";    bVal = b.availability_status ?? ""; }
-    else                                  { aVal = a.housekeeping_status ?? "";    bVal = b.housekeeping_status ?? ""; }
+    else                                  { aVal = a.availability_status ?? "";    bVal = b.availability_status ?? ""; }
     if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
     if (aVal > bVal) return sortDir === "asc" ?  1 : -1;
     return 0;
@@ -448,21 +439,6 @@ export default function AdminRooms() {
         showToast(`"${room.name}" restored.`, "info");
       },
     });
-  }
-
-  // #12 — inline housekeeping toggle
-  async function cycleHousekeeping(room, e) {
-    e.stopPropagation();
-    const current = room.housekeeping_status || "clean";
-    const idx = HK_CYCLE.indexOf(current);
-    const next = HK_CYCLE[(idx + 1) % HK_CYCLE.length];
-    try {
-      await updateRoomHousekeeping(room.id, next);
-      setRooms(prev => prev.map(r => r.id === room.id ? { ...r, housekeeping_status: next } : r));
-      showToast(`${room.name} → ${HK[next].label}`, "success");
-    } catch {
-      showToast("Failed to update housekeeping.", "error");
-    }
   }
 
   async function saveRoom(e) {
@@ -677,7 +653,7 @@ export default function AdminRooms() {
                     />
                   </th>
                   <th className="px-4 py-3 text-left w-12"></th>
-                  {[["Name","Name"],["Qty","Qty"],["Capacity","Capacity"],["Day Rate","Day Rate"],["Overnight Rate","Overnight Rate"],["24hr Rate","24hr Rate"],["Availability","Availability"],["Housekeeping","Housekeeping"]].map(([label,key]) => (
+                  {[["Name","Name"],["Qty","Qty"],["Capacity","Capacity"],["Day Rate","Day Rate"],["Overnight Rate","Overnight Rate"],["24hr Rate","24hr Rate"],["Availability","Availability"]].map(([label,key]) => (
                     <th key={key} className="px-4 py-3 text-left">
                       <button onClick={() => { if(sortBy===key) setSortDir(d=>d==="asc"?"desc":"asc"); else{setSortBy(key);setSortDir("asc");} }}
                         className="flex items-center gap-1 hover:text-sky-600 transition-colors group" type="button">
@@ -694,7 +670,6 @@ export default function AdminRooms() {
               <tbody className="bg-white divide-y divide-slate-200">
                 {paginated.map((room, idx) => {
                   const avail = room.availability_status || "available";
-                  const hk    = HK[room.housekeeping_status];
                   const isUnavailable = avail !== "available";
                   const isSelected = selected.has(room.id);
                   return (
@@ -736,22 +711,6 @@ export default function AdminRooms() {
                       <td className="px-4 py-4 text-slate-600">{"\u20B1"}{Number(room.overnight_rate).toLocaleString()}</td>
                       <td className="px-4 py-4 text-slate-600">{"\u20B1"}{Number(room.rate_24hr ?? 0).toLocaleString()}</td>
                       <td className="px-4 py-4"><AvailBadge status={avail} /></td>
-                      {/* #12 — clickable HK badge to cycle status */}
-                      <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
-                        {hk ? (
-                          <button type="button" onClick={e => cycleHousekeeping(room, e)}
-                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-slate-300 transition ${hk.color}`}
-                            title="Click to cycle status">
-                            <span className={`h-2 w-2 rounded-full ${hk.dot}`} />{hk.label}
-                            <i className="fas fa-repeat text-[9px] ml-0.5 opacity-40"></i>
-                          </button>
-                        ) : (
-                          <button type="button" onClick={e => cycleHousekeeping(room, e)}
-                            className="text-slate-400 text-xs hover:text-sky-600 transition cursor-pointer" title="Set housekeeping status">
-                            {"\u2014"}
-                          </button>
-                        )}
-                      </td>
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center gap-2">
                           <button onClick={() => openEdit(room)} className="text-sky-600 hover:text-sky-800 font-medium text-xs" type="button">Edit</button>
@@ -810,7 +769,6 @@ export default function AdminRooms() {
       <Modal open={!!viewRoom} onClose={() => setViewRoom(null)} maxWidth="max-w-lg">
         {viewRoom && (() => {
           const avail = viewRoom.availability_status || "available";
-          const hk    = HK[viewRoom.housekeeping_status];
           const features = (viewRoom.features || []).map(f =>
             typeof f === "string" ? { text: f, icon: "fa-check" } : f
           );
@@ -868,7 +826,6 @@ export default function AdminRooms() {
                     { label: "Capacity",     value: viewRoom.capacity_label || `${viewRoom.capacity} pax`, icon: "fa-users",   bg: "bg-violet-50",  iconColor: "text-violet-500" },
                     { label: "Quantity",      value: `${viewRoom.quantity ?? 1} unit(s)`,                   icon: "fa-layer-group", bg: "bg-sky-50",  iconColor: "text-sky-500"    },
                     { label: "Beds",          value: viewRoom.beds || "\u2014",                             icon: "fa-bed",     bg: "bg-pink-50",    iconColor: "text-pink-500"   },
-                    { label: "Housekeeping",  value: hk ? hk.label : "\u2014",                             icon: "fa-broom",   bg: "bg-slate-50",   iconColor: "text-slate-500"  },
                   ].map(({ label, value, icon, bg, iconColor }) => (
                     <div key={label} className={`${bg} rounded-xl p-3 flex items-center gap-3`}>
                       <div className={`h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 ${iconColor}`}>

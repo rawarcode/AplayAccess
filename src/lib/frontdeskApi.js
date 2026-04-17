@@ -63,12 +63,6 @@ export async function removeAmenity(bookingId, amenityId) {
   return res.data;
 }
 
-// PATCH /api/admin/rooms/{id}/housekeeping
-export async function updateHousekeeping(roomId, status) {
-  const res = await api.patch(`/api/admin/rooms/${roomId}/housekeeping`, { status });
-  return res.data;
-}
-
 // PATCH /api/admin/bookings/{id}/transfer-room — move a Checked In booking to another room
 export async function transferRoom(bookingId, roomId) {
   const res = await api.patch(`/api/admin/bookings/${bookingId}/transfer-room`, { room_id: roomId });
