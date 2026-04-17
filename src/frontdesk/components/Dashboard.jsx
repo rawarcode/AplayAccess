@@ -75,7 +75,20 @@ export default function Dashboard() {
   const today = todayStr();
 
   const { todayBookings, arriving, checkedIn, completed, allPending, walkIns, todayRevenue, overdueCheckouts } = useMemo(() => {
-    const todayBookings  = bookings.filter(b => b.checkIn?.slice(0, 10) === today);
+    // "Today" includes bookings checking in today AND any still-Checked-In
+    // stays from earlier days — so an overnight guest who arrived at
+    // 11:50 PM yesterday doesn't disappear from the dashboard at 12:01 AM.
+    const now = new Date();
+    const todayBookings = bookings.filter(b => {
+      if (b.checkIn?.slice(0, 10) === today) return true;
+      if (b.status === 'Checked In') return true;
+      if (b.status === 'Completed' && b.checkedOutAt?.slice(0, 10) === today) return true;
+      if (b.status === 'Confirmed' && b.checkOut) {
+        const co = new Date(String(b.checkOut).replace(' ', 'T'));
+        if (!isNaN(co.getTime()) && co > now) return true;
+      }
+      return false;
+    });
     const arriving       = todayBookings.filter(b => b.status === 'Confirmed');
     const checkedIn      = todayBookings.filter(b => b.status === 'Checked In');
     const completed      = todayBookings.filter(b => b.status === 'Completed');
@@ -97,7 +110,6 @@ export default function Dashboard() {
     }, 0);
 
     // Overdue checkouts — checked in but checkout time has passed
-    const now = new Date();
     const overdueCheckouts = bookings.filter(b => {
       if (b.status !== 'Checked In' || !b.checkOut) return false;
       return new Date(b.checkOut.replace(' ', 'T')) < now;

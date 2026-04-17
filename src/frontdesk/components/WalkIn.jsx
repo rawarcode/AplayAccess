@@ -182,9 +182,12 @@ export default function WalkIn() {
     if (!allowed.includes(form.bookingType)) setField('bookingType', allowed[0]);
   }, [form.roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "Today's walk-ins" — check-in date is today OR the guest is still
+  // checked in (a walk-in that started at 11:50 PM yesterday shouldn't
+  // disappear from this page at 12:01 AM while the guest is still on-site).
   const todayBookings = [...bookings.filter(b =>
-    b.checkIn?.slice(0, 10) === today &&
-    b.specialRequests?.startsWith('Walk-in:')
+    b.specialRequests?.startsWith('Walk-in:') &&
+    (b.checkIn?.slice(0, 10) === today || b.status === 'Checked In')
   )].sort((a, b) => {
     let aVal, bVal;
     if (sortBy === 'Guest')  { aVal = walkInName(a).toLowerCase(); bVal = walkInName(b).toLowerCase(); }

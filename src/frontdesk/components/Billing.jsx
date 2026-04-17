@@ -326,10 +326,26 @@ export default function Billing() {
 
   const today = todayStr();
 
-  const todayAll = useMemo(() => bookings.filter(b =>
-    b.checkIn?.slice(0, 10) === today ||
-    (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === today)
-  ), [bookings, today]);
+  // Which bookings count as "today's billing"?
+  //   - Any booking with a check-in date of today (past, present, or future that day)
+  //   - Any Checked-In booking regardless of when it started — the guest is
+  //     still here, balance may still be outstanding, and staff needs it
+  //     visible past midnight (a 24hr stay that started at 11:50 PM yesterday
+  //     shouldn't disappear from billing at 12:01 AM).
+  //   - Confirmed bookings whose check-out window is still open (similar
+  //     reasoning — active reservations shouldn't fall off overnight).
+  //   - Bookings that completed or were cancelled today (recent history).
+  const todayAll = useMemo(() => bookings.filter(b => {
+    if (b.checkIn?.slice(0, 10) === today) return true;
+    if (b.status === 'Checked In') return true;
+    if (b.status === 'Confirmed' && b.checkOut) {
+      const co = new Date(String(b.checkOut).replace(' ', 'T'));
+      if (!isNaN(co.getTime()) && co > new Date()) return true;
+    }
+    if (b.status === 'Completed' && b.checkedOutAt?.slice(0, 10) === today) return true;
+    if (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === today) return true;
+    return false;
+  }), [bookings, today]);
 
   const searchedTodayAll = useMemo(() => searchTerm.trim()
     ? todayAll.filter(b => {
