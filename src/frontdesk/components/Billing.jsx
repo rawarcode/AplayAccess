@@ -242,19 +242,26 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
               <i className="fas fa-check-circle mr-2"></i>Fully Paid Online
             </div>
           )}
-          {b.status === 'Completed' && (
+          {/* Receipt — available for any booking with collected money
+              (Confirmed / Checked In / Completed / Cancelled). Sits next
+              to the primary action so staff can reprint receipts inline
+              without leaving the billing drawer. */}
+          {b.status !== 'Pending' && (
             <button
               onClick={() => onDownloadReceipt(b.bookingId)}
               disabled={downloading === b.bookingId}
-              className="flex-1 py-2.5 bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 disabled:opacity-60 transition"
+              className={`py-2.5 ${b.status === 'Completed' ? 'flex-1' : 'px-4'} bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 disabled:opacity-60 transition`}
+              title="Download receipt (PDF)"
             >
               <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i>
-              {downloading === b.bookingId ? 'Preparing...' : 'Download Receipt'}
+              {downloading === b.bookingId
+                ? 'Preparing...'
+                : b.status === 'Completed' ? 'Download Receipt' : 'Receipt'}
             </button>
           )}
           {b.status === 'Cancelled' && (
             <p className="flex-1 text-center text-sm text-rose-600 py-2">
-              <i className="fas fa-ban mr-1"></i>Booking cancelled — reservation fee forfeited
+              <i className="fas fa-ban mr-1"></i>Reservation fee forfeited
             </p>
           )}
           {b.status === 'Pending' && (
@@ -717,11 +724,12 @@ export default function Billing() {
                         {b.status === 'Confirmed' && b.fullyPaid && (
                           <span className="text-xs text-emerald-600 font-medium"><i className="fas fa-check-circle mr-1"></i>Paid</span>
                         )}
-                        {b.status === 'Completed' && (
+                        {b.status !== 'Pending' && (
                           <button
                             onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
                             disabled={downloading === b.bookingId}
                             className="px-3 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-60 flex items-center gap-1"
+                            title="Download receipt (PDF)"
                           >
                             <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
                             Receipt
