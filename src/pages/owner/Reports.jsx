@@ -111,7 +111,10 @@ export default function OwnerReports() {
   }, []);
 
   const active         = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
-  const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0), 0), [active]);
+  const revenue        = useMemo(() => active.reduce((s, b) => {
+    if (b.status === "Completed") return s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+    return s + Number(b.reservationFee ?? 0);
+  }, 0), [active]);
   const avgVal         = active.length ? revenue / active.length : 0;
   const nights         = useMemo(() => active.reduce((s, b) => s + Number(b.nights ?? 0), 0), [active]);
   const totalDiscounts = useMemo(() => active.reduce((s, b) => s + Number(b.discount ?? 0), 0), [active]);
@@ -124,7 +127,10 @@ export default function OwnerReports() {
     active.forEach((b) => {
       if (!b.checkIn) return;
       const day = parseInt(b.checkIn.split("-")[2], 10);
-      map[day] = (map[day] ?? 0) + Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+      const val = b.status === "Completed"
+        ? Number(b.total ?? 0) + Number(b.entranceFee ?? 0)
+        : Number(b.reservationFee ?? 0);
+      map[day] = (map[day] ?? 0) + val;
     });
     return Array.from({ length: daysInMonth }, (_, i) => ({
       day: i + 1,
@@ -134,7 +140,10 @@ export default function OwnerReports() {
 
   // Room type breakdown
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
-  const roomRevenue  = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0), 0)), [roomTypes, active]);
+  const roomRevenue  = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).reduce((s, b) => {
+    if (b.status === "Completed") return s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+    return s + Number(b.reservationFee ?? 0);
+  }, 0)), [roomTypes, active]);
   const roomBookings = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).length), [roomTypes, active]);
 
   const roomBarData = useMemo(() => ({
