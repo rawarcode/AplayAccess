@@ -192,12 +192,17 @@ export default function OwnerTransactions() {
     scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true } },
   };
 
-  // Collected vs Outstanding revenue
-  const collectedRevenue    = useMemo(() => allBookings.filter(b => b.status === "Completed").reduce((s, b) => s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0), 0), [allBookings]);
-  const reservedRevenue     = useMemo(() => allBookings.filter(b => ["Confirmed", "Checked In"].includes(b.status)).reduce((s, b) => s + Number(b.reservationFee ?? 0), 0), [allBookings]);
-  const pendingRevenue      = useMemo(() => allBookings.filter(b => b.status === "Pending").reduce((s, b) => s + Number(b.reservationFee ?? 0), 0), [allBookings]);
-  const outstandingBalance  = useMemo(() => allBookings.filter(b => ["Confirmed", "Checked In"].includes(b.status)).reduce((s, b) => s + Math.max(0, Number(b.total ?? 0) - Number(b.reservationFee ?? 0)), 0), [allBookings]);
-  const forfeitedFees       = useMemo(() => allBookings.filter(b => b.status === "Cancelled").reduce((s, b) => s + Number(b.reservationFee ?? 0), 0), [allBookings]);
+  // Revenue breakdown — all amounts derived from paid_amount (backend's
+  // source of truth for money actually collected) plus outstanding for
+  // money still owed. This matches Revenue Collected KPI and page totals.
+  const collectedRevenue    = useMemo(() => allBookings.filter(b => b.status === "Completed").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
+  const reservedRevenue     = useMemo(() => allBookings.filter(b => ["Confirmed", "Checked In"].includes(b.status)).reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
+  const pendingRevenue      = useMemo(() => allBookings.filter(b => b.status === "Pending").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
+  const outstandingBalance  = useMemo(() => allBookings.filter(b => !["Cancelled", "Completed"].includes(b.status)).reduce((s, b) => {
+    const grand = Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+    return s + Math.max(0, grand - Number(b.paidAmount ?? 0));
+  }, 0), [allBookings]);
+  const forfeitedFees       = useMemo(() => allBookings.filter(b => b.status === "Cancelled").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
 
   const collectedBarData = {
     labels: ["Fully Collected", "Reservation Fees\n(Confirmed)", "Outstanding\nBalance", "Pending Fees", "Forfeited\n(Cancelled)"],

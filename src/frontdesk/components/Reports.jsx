@@ -189,18 +189,13 @@ export default function Reports() {
 
   // Revenue actually collected per booking:
   //   Completed / fullyPaid  → total + persisted entrance fee
-  //   Cancelled              → reservation fee forfeited (0 for walk-ins)
-  //   Pending                → 0 (guest hasn't paid yet)
-  //   else (Confirmed / Checked In not yet fully paid) → reservation fee only
+  // Revenue collected = SUM(paidAmount). paidAmount is the backend's single
+  // source of truth for money actually in-hand — updated by the payment
+  // webhook, collectPayment, and walk-in creation. Using it here keeps the
+  // daily report in lockstep with the Billing page + owner Revenue Collected.
   const totalRevenue = useMemo(() =>
-    dateBookings.reduce((s, b) => {
-      if (b.status === 'Pending') return s;
-      if (b.status === 'Cancelled') return s + Number(b.reservationFee ?? 0);
-      if (b.status === 'Completed' || b.fullyPaid)
-        return s + Number(b.total ?? 0) + calcEntrance(b, entranceRates);
-      return s + Number(b.reservationFee ?? 0);
-    }, 0),
-  [dateBookings, entranceRates]);
+    dateBookings.reduce((s, b) => s + Number(b.paidAmount ?? 0), 0),
+  [dateBookings]);
 
   const { labels, confirmed, completed, cancelled } = useMemo(() => buildWeekChart(bookings), [bookings]);
   const chartData = useMemo(() => ({

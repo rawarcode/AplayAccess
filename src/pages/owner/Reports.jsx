@@ -111,26 +111,22 @@ export default function OwnerReports() {
   }, []);
 
   const active         = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
-  const revenue        = useMemo(() => active.reduce((s, b) => {
-    if (b.status === "Completed") return s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
-    return s + Number(b.reservationFee ?? 0);
-  }, 0), [active]);
+  // Revenue = money actually collected. bookings include paidAmount from the
+  // backend (maintained by payment webhook, collectPayment, walk-in flow).
+  const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [active]);
   const avgVal         = active.length ? revenue / active.length : 0;
   const nights         = useMemo(() => active.reduce((s, b) => s + Math.max(1, Number(b.nights ?? 0)), 0), [active]);
   const totalDiscounts = useMemo(() => active.reduce((s, b) => s + Number(b.discount ?? 0), 0), [active]);
   const period  = `${MONTH_NAMES[month - 1]} ${year}`;
 
-  // Daily revenue trend — group active bookings by check_in day
+  // Daily revenue trend — group active bookings by check_in day using paidAmount.
   const dailyRevenueData = useMemo(() => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const map = {};
     active.forEach((b) => {
       if (!b.checkIn) return;
       const day = parseInt(b.checkIn.split("-")[2], 10);
-      const val = b.status === "Completed"
-        ? Number(b.total ?? 0) + Number(b.entranceFee ?? 0)
-        : Number(b.reservationFee ?? 0);
-      map[day] = (map[day] ?? 0) + val;
+      map[day] = (map[day] ?? 0) + Number(b.paidAmount ?? 0);
     });
     return Array.from({ length: daysInMonth }, (_, i) => ({
       day: i + 1,

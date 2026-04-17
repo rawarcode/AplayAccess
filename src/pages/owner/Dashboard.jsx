@@ -85,8 +85,11 @@ export default function OwnerDashboard() {
   }, [load]);
 
   // ── Derived analytics — all computed from bookings array for consistency ──
-  // Helper: revenue for a booking (total + entrance fee). Uses live pricing.
-  const bookingRevenue = (b) => Number(b.total ?? 0) + calcEntrance(b, entranceRates);
+  // Helper: money actually collected for a booking. paidAmount is the backend's
+  // single source of truth (maintained by payment webhook, collectPayment,
+  // walk-in creation, and guest-count updates), so every revenue figure on
+  // this dashboard falls out of it.
+  const bookingRevenue = (b) => Number(b.paidAmount ?? 0);
   // Source is emitted by the backend ('online' | 'walk-in') — use it directly
   // instead of reverse-engineering from special_requests or reservation_fee,
   // which misclassifies zero-fee online bookings and imported rows.
@@ -164,22 +167,28 @@ export default function OwnerDashboard() {
     dayOfWeekCounts, days30ago, today,
   } = derivedKpis;
 
-  // Revenue breakdown from active bookings (consistent with Reports page)
+  // Revenue breakdown — decomposes COLLECTED revenue into room/entrance/addons.
+  // Only bookings whose grand total is fully paid contribute; partially-paid
+  // bookings are excluded so the segments sum to paidAmount of those rows
+  // (matching the Revenue Collected KPI, not gross booking value).
   const revBreakdown = useMemo(() => {
     let room = 0, entrance = 0, addons = 0, promos = 0;
     activeBookings.forEach(b => {
+      const grand = Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+      const paid  = Number(b.paidAmount ?? 0);
+      if (paid <= 0 || paid + 0.01 < grand) return; // skip unpaid + partial
       const amenityTotal = Array.isArray(b.amenities)
         ? b.amenities.reduce((s, a) => s + Number(a.total ?? (Number(a.unitPrice ?? 0) * Number(a.qty ?? 0))), 0)
         : 0;
       const disc = Number(b.discount ?? 0);
       const tot  = Number(b.total ?? 0);
       room     += tot + disc - amenityTotal;
-      entrance += calcEntrance(b, entranceRates);
+      entrance += Number(b.entranceFee ?? 0);
       addons   += amenityTotal;
       promos   += disc;
     });
     return { room: Math.max(room, 0), entrance, addons, promos };
-  }, [activeBookings, entranceRates]);
+  }, [activeBookings]);
 
   const revGrand = revBreakdown.room + revBreakdown.entrance + revBreakdown.addons;
   const revSlices = useMemo(() => [
