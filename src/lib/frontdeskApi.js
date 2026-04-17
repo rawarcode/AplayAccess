@@ -22,8 +22,10 @@ export async function checkInBooking(bookingId, entranceFee) {
 }
 
 // POST /api/admin/bookings/{id}/collect-payment
-export async function collectPayment(bookingId, paymentMethod) {
-  const res = await api.post(`/api/admin/bookings/${bookingId}/collect-payment`, { payment_method: paymentMethod });
+export async function collectPayment(bookingId, paymentMethod, entranceFee) {
+  const body = { payment_method: paymentMethod };
+  if (entranceFee != null) body.entrance_fee = entranceFee;
+  const res = await api.post(`/api/admin/bookings/${bookingId}/collect-payment`, body);
   return res.data;
 }
 

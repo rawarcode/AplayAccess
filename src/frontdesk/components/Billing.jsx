@@ -2,17 +2,18 @@ import { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
+import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtMoney, fmtDate, fmtDateTime } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
-function calcEntrance(b) {
+function calcEntrance(b, entranceRates = FALLBACK_RATES) {
   // Use stored value if available (after check-in), otherwise compute from guests × rate
   if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
-  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  const rate = entranceRates[b.bookingType ?? 'day'] ?? 50;
   return (b.guests ?? 1) * rate;
 }
 
@@ -60,7 +61,7 @@ function StatusBadge({ status, booking }) {
 }
 
 // ─── detail drawer ────────────────────────────────────────────────────────────
-function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading }) {
+function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading, entranceRates }) {
   if (!b) return null;
 
   const balanceDue = b.fullyPaid ? 0 : Math.max(0, Number(b.total ?? 0) - Number(b.reservationFee ?? 0));
@@ -180,7 +181,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
 
                 {/* Entrance fee — always show (calculated from guests × rate if not yet stored) */}
                 {(() => {
-                  const ef = calcEntrance(b);
+                  const ef = calcEntrance(b, entranceRates);
                   const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
                   return ef > 0 && (
                     <div className="flex justify-between px-4 py-2.5 border-t border-amber-100 bg-amber-50 text-amber-800 text-xs">
@@ -196,7 +197,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                 {/* Grand total */}
                 <div className="flex justify-between px-4 py-3 bg-slate-800 text-white font-bold text-base">
                   <span>Grand Total</span>
-                  <span>{fmtMoney(Number(b.total ?? 0) + calcEntrance(b))}</span>
+                  <span>{fmtMoney(Number(b.total ?? 0) + calcEntrance(b, entranceRates))}</span>
                 </div>
               </div>
             );
@@ -273,12 +274,24 @@ export default function Billing() {
   const [downloading, setDownloading] = useState(null); // bookingId being downloaded
 
   const [toast, showToast, clearToast, toastType] = useToast();
+  const [entranceRates, setEntranceRates] = useState(FALLBACK_RATES);
 
   useEffect(() => {
     getFdBookings()
       .then(data => { setBookings(data); setError(''); })
       .catch(() => setError('Failed to load billing data.'))
       .finally(() => setLoading(false));
+    api.get('/api/pricing')
+      .then(r => {
+        const d = r.data?.data;
+        if (d) setEntranceRates({
+          day:      Number(d.entrance_fee_day   ?? 50),
+          night:    Number(d.entrance_fee_night  ?? 80),
+          '24hr':   Number(d.entrance_fee_24hr   ?? 100),
+          '24hr-pm': Number(d.entrance_fee_24hr  ?? 100),
+        });
+      })
+      .catch(() => {});
   }, []);
 
   const today = todayStr();
@@ -315,21 +328,28 @@ export default function Billing() {
     const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && !b.fullyPaid);
     const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
     const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
-    const todayActive     = todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
-    const revenueToday =
-      todayActive.reduce((s, b) => s + Number(b.total ?? 0) + calcEntrance(b), 0) +
-      todayCancelled.reduce((s, b) => s + Number(b.reservationFee ?? 0), 0);
+    // Revenue = money actually collected, not projected totals
+    const revenueToday = todayAll.reduce((s, b) => {
+      if (b.status === 'Pending') return s;
+      if (b.status === 'Cancelled') return s + Number(b.reservationFee ?? 0);
+      // Completed or fully paid → full amount collected
+      if (b.status === 'Completed' || b.fullyPaid)
+        return s + Number(b.total ?? 0) + calcEntrance(b, entranceRates);
+      // Confirmed / Checked In not yet fully paid → only reservation fee received
+      return s + Number(b.reservationFee ?? 0);
+    }, 0);
     return { todayConfirmed, todayCompleted, todayCancelled, revenueToday };
-  }, [todayAll]);
+  }, [todayAll, entranceRates]);
 
   async function handleCollect() {
     if (!billing) return;
     setPaying(true);
     try {
-      await collectPayment(billing.bookingId, payMethod);
+      const ef = calcEntrance(billing, entranceRates);
+      await collectPayment(billing.bookingId, payMethod, ef);
       setBookings(prev =>
         prev.map(b => b.bookingId === billing.bookingId
-          ? { ...b, fullyPaid: true, paymentMethod: payMethod }
+          ? { ...b, fullyPaid: true, paymentMethod: payMethod, entranceFee: ef }
           : b)
       );
       setBilling(null);
@@ -382,6 +402,7 @@ export default function Billing() {
         onCollect={openCollect}
         onDownloadReceipt={(id) => handleDownloadReceipt(id, selected?.id)}
         downloading={downloading}
+        entranceRates={entranceRates}
       />
 
       {/* ── Payment Collection Modal ── */}
@@ -410,7 +431,7 @@ export default function Billing() {
                 const bAmenityTotal = (billing.amenities ?? []).reduce((s, a) => s + Number(a.total ?? (a.unitPrice * a.qty) ?? 0), 0);
                 const bDiscount     = Number(billing.discount ?? 0);
                 const bRoomRate     = Number(billing.total ?? 0) + bDiscount - bAmenityTotal;
-                const bEntrance     = calcEntrance(billing);
+                const bEntrance     = calcEntrance(billing, entranceRates);
                 return (
                   <div className="border rounded mb-4 text-sm overflow-hidden">
                     <div className="flex justify-between px-4 py-2.5 border-b">
@@ -463,7 +484,6 @@ export default function Billing() {
                   {[
                     { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-emerald-600' },
                     { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-sky-500'  },
-                    { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-emerald-500' },
                   ].map(opt => (
                     <button key={opt.value} type="button"
                       onClick={() => setPayMethod(opt.value)}
@@ -488,7 +508,7 @@ export default function Billing() {
                 <button onClick={handleCollect} disabled={paying}
                   className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
                   <i className="fas fa-check mr-1"></i>
-                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue + calcEntrance(billing))}`}
+                  {paying ? 'Processing...' : `Collect ${fmtMoney(balanceDue + calcEntrance(billing, entranceRates))}`}
                 </button>
               </div>
             </div>
@@ -559,7 +579,7 @@ export default function Billing() {
                   <div className="text-right">
                     <p className="text-xs text-slate-500">Total to Collect</p>
                     <p className="font-bold text-sky-700 text-lg">
-                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b))}
+                      {fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b, entranceRates))}
                     </p>
                     <button
                       onClick={e => { e.stopPropagation(); openCollect(b); }}
@@ -630,7 +650,7 @@ export default function Billing() {
                           ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservationFee ?? 0)}</span>
                           : b.fullyPaid
                           ? <span className="text-emerald-600"><i className="fas fa-check mr-1"></i>Paid</span>
-                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b))}</span>
+                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total) - Number(b.reservationFee ?? 0)) + calcEntrance(b, entranceRates))}</span>
                         }
                       </td>
                       <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
@@ -669,7 +689,7 @@ export default function Billing() {
                   <tr>
                     <td colSpan={4} className="px-4 py-3 text-right text-slate-600">Totals:</td>
                     <td className="px-4 py-3">
-                      {fmtMoney(todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total || 0) + calcEntrance(b), 0))}
+                      {fmtMoney(todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total || 0) + calcEntrance(b, entranceRates), 0))}
                     </td>
                     <td className="px-4 py-3 text-emerald-700">
                       {fmtMoney(revenueToday)} earned

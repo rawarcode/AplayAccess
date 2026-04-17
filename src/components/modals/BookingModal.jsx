@@ -68,6 +68,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [step, setStep] = useState(1);
   const [showRequests, setShowRequests] = useState(false);
 
+  // Fetch admin-configured pricing on mount (reservation_fee_pct, entrance fees, etc.)
+  useEffect(() => {
+    api.get("/api/pricing")
+      .then(r => setRawPricing(r.data?.data ?? null))
+      .catch(() => {});
+  }, []);
+
   // Derive rates from the selected room in the rooms prop (already fetched by parent)
   useEffect(() => {
     const r = rooms.find(rm => rm.name === roomType);
@@ -76,9 +83,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       day_rate:            Number(r.day_rate        ?? DEFAULTS.day_rate),
       overnight_rate:      Number(r.overnight_rate  ?? DEFAULTS.overnight_rate),
       rate_24hr:           Number(r.rate_24hr       ?? DEFAULTS.rate_24hr),
-      reservation_fee_pct: DEFAULTS.reservation_fee_pct,
+      reservation_fee_pct: Number(rawPricing?.reservation_fee_pct ?? DEFAULTS.reservation_fee_pct),
     });
-  }, [rooms, roomType]);
+  }, [rooms, roomType, rawPricing]);
 
   // Check room availability whenever date, time, or booking type changes
   useEffect(() => {
@@ -834,7 +841,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <span>
                   A secure <span className="font-medium">PayMongo</span> checkout window will open for you to pay{" "}
                   <span className="font-medium">{formatPHP(amountDue)}</span> via{" "}
-                  <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.
+                  <span className="font-medium">GCash or Credit/Debit Card</span>.
                   This page will stay open in the background.
                 </span>
               </div>
@@ -1089,7 +1096,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {/* Payment note */}
                 <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
                   <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0"></i>
-                  <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash, Maya, or Credit/Debit Card</span>.</span>
+                  <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash or Credit/Debit Card</span>.</span>
                 </div>
               </div>
 

@@ -393,7 +393,6 @@ export default function WalkIn() {
                   {[
                     { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-emerald-600' },
                     { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-sky-500'  },
-                    { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-emerald-500' },
                   ].map(opt => (
                     <button key={opt.value} type="button"
                       onClick={() => setCollectPayMethod(opt.value)}
@@ -984,8 +983,7 @@ export default function WalkIn() {
                       {[
                         { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-emerald-600' },
                         { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-sky-500'  },
-                        { value: 'Maya',  icon: 'fa-mobile-alt',      color: 'text-emerald-500' },
-                      ].map(opt => (
+                          ].map(opt => (
                         <button key={opt.value} type="button"
                           onClick={() => setField('payMethod', opt.value)}
                           className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-xs font-medium transition-colors ${

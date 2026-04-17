@@ -18,7 +18,7 @@ function makeSampleBookings() {
                   'Carlo Mendoza', 'Elena Torres', 'Miguel Cruz', 'Luz Bautista', 'Ramon Aquino',
                   'Celine Ramos', 'Dante Villanueva', 'Marites Ocampo', 'Ferdie Castillo', 'Liza Diaz'];
   const statuses = ['Completed','Completed','Completed','Confirmed','Cancelled','Completed','Confirmed'];
-  const payments = ['gcash','cash','maya','gcash','cash'];
+  const payments = ['gcash','cash','gcash','cash','gcash'];
   const slots    = ['08:00','09:00','10:00','11:00','13:00','14:00'];
 
   let id = 9001;
