@@ -82,10 +82,19 @@ export default function Dashboard() {
     const allPending     = bookings.filter(b => b.status === 'Pending');
     const walkIns        = todayBookings.filter(b => b.source === 'walk-in' || b.source === 'walkin');
 
-    // Today's revenue
-    const todayRevenue   = todayBookings
-      .filter(b => ['Confirmed', 'Checked In', 'Completed'].includes(b.status))
-      .reduce((sum, b) => sum + Number(b.totalAmount ?? b.total ?? 0), 0);
+    // Today's revenue — money actually collected today
+    // Completed or fully paid → total + entrance fee
+    // Confirmed / Checked In not yet fully paid → reservation fee only
+    // Cancelled → reservation fee (forfeited)
+    // Pending → 0 (guest hasn't paid)
+    const todayRevenue = todayBookings.reduce((sum, b) => {
+      if (b.status === 'Pending') return sum;
+      if (b.status === 'Cancelled') return sum + Number(b.reservationFee ?? 0);
+      if (b.status === 'Completed' || b.fullyPaid) {
+        return sum + Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+      }
+      return sum + Number(b.reservationFee ?? 0);
+    }, 0);
 
     // Overdue checkouts — checked in but checkout time has passed
     const now = new Date();
