@@ -6,6 +6,7 @@ import {
 } from 'chart.js';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
+import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtMoney, fmtTime } from '../../lib/format';
 
@@ -76,10 +77,10 @@ const SAMPLE_BOOKINGS = import.meta.env.DEV ? makeSampleBookings() : [];
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
-const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
-function calcEntrance(b) {
+const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+function calcEntrance(b, entranceRates = FALLBACK_RATES) {
   if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
-  const rate = ENTRANCE_RATES[b.bookingType ?? 'day'] ?? 50;
+  const rate = entranceRates[b.bookingType ?? 'day'] ?? 50;
   return (b.guests ?? 1) * rate;
 }
 
@@ -112,7 +113,7 @@ function buildWeekChart(bookings) {
 // ── HTML escape helper (prevent stored XSS in document.write exports) ───────
 const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
-function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
+function printDailyReport(dateBookings, reportDateLabel, totalRevenue, entranceRates = FALLBACK_RATES) {
   const now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
   const fmtM = n => '₱' + Number(n).toLocaleString('en-PH', { minimumFractionDigits: 2 });
   const fmtT = dt => { if (!dt) return '—'; return new Date(dt.replace(' ','T')).toLocaleTimeString('en-PH',{hour:'numeric',minute:'2-digit',hour12:true}); };
@@ -123,10 +124,10 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue) {
   };
   const statusCount = (s) => dateBookings.filter(b => b.status === s).length;
   // Gross = full value of all bookings regardless of status (shows potential earnings)
-  const grossTotal = dateBookings.reduce((s,b) => s + Number(b.total||0) + calcEntrance(b), 0);
-  const efTotal = dateBookings.reduce((s,b) => s + calcEntrance(b), 0);
+  const grossTotal = dateBookings.reduce((s,b) => s + Number(b.total||0) + calcEntrance(b, entranceRates), 0);
+  const efTotal = dateBookings.reduce((s,b) => s + calcEntrance(b, entranceRates), 0);
   const totalGuests = dateBookings.reduce((s,b) => s + (b.guests||0), 0);
-  const tableRows = dateBookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt;color:#64748b">${esc(b.id)}</td><td>${esc(b.guest)}</td><td>${esc(b.roomType)}</td><td>${fmtT(b.checkIn)}</td><td>${fmtT(b.checkOut)}</td><td style="text-align:center">${calcDuration(b.checkIn, b.checkOut)}</td><td style="text-align:center">${b.guests}</td><td style="text-align:right">${fmtM(b.total)}</td><td style="text-align:right;color:#92400e">${fmtM(calcEntrance(b))}</td><td>${statusBadge(esc(b.status))}</td></tr>`).join('');
+  const tableRows = dateBookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt;color:#64748b">${esc(b.id)}</td><td>${esc(b.guest)}</td><td>${esc(b.roomType)}</td><td>${fmtT(b.checkIn)}</td><td>${fmtT(b.checkOut)}</td><td style="text-align:center">${calcDuration(b.checkIn, b.checkOut)}</td><td style="text-align:center">${b.guests}</td><td style="text-align:right">${fmtM(b.total)}</td><td style="text-align:right;color:#92400e">${fmtM(calcEntrance(b, entranceRates))}</td><td>${statusBadge(esc(b.status))}</td></tr>`).join('');
   const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10pt;color:#1a1a1a;padding:32px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px}.co{font-size:18pt;font-weight:bold;color:#1e3a8a}.cosub{font-size:9pt;color:#64748b;margin-top:3px}.rt{text-align:right}.rt h2{font-size:13pt;font-weight:bold;color:#1e3a8a}.rt p{font-size:10pt;color:#334155;margin-top:2px}.rt small{font-size:8pt;color:#94a3b8}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px}.card{border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px}.lbl{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.val{font-size:16pt;font-weight:bold;color:#0f172a;margin-top:4px}.hint{font-size:8pt;color:#94a3b8;margin-top:2px}.srow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}.sbox{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}.sbox .n{font-size:18pt;font-weight:bold;color:#0f172a}.sbox .s{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.sech{font-size:9pt;font-weight:bold;color:#1e3a8a;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:9pt}th{background:#1e3a8a;color:#fff;padding:7px 8px;text-align:left;font-size:8pt;text-transform:uppercase;letter-spacing:.04em}td{padding:6px 8px;border-bottom:1px solid #f1f5f9}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#1e3a8a!important;color:#fff!important;font-weight:bold;padding:7px 8px}.ftr{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}@page{margin:1.5cm}`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Daily Report — ${reportDateLabel}</title><style>${css}</style></head><body>
 <div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Front Desk</div></div><div class="rt"><h2>Daily Activity Report</h2><p>${reportDateLabel}</p><small>Generated: ${now}</small></div></div>
@@ -146,6 +147,7 @@ export default function Reports() {
   const [reportDate, setReportDate] = useState(todayStr());
   const [toast, showToast, clearToast, toastType] = useToast();
   const [usingDemo, setUsingDemo]     = useState(false);
+  const [entranceRates, setEntranceRates] = useState(FALLBACK_RATES);
 
   useEffect(() => {
     function load() {
@@ -163,6 +165,17 @@ export default function Reports() {
     }
     load();
     const id = setInterval(load, 30000);
+    api.get('/api/pricing')
+      .then(r => {
+        const d = r.data?.data;
+        if (d) setEntranceRates({
+          day:       Number(d.entrance_fee_day   ?? 50),
+          night:     Number(d.entrance_fee_night ?? 80),
+          '24hr':    Number(d.entrance_fee_24hr  ?? 100),
+          '24hr-pm': Number(d.entrance_fee_24hr  ?? 100),
+        });
+      })
+      .catch(() => {});
     return () => clearInterval(id);
   }, []);
 
@@ -172,12 +185,20 @@ export default function Reports() {
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
   ), [bookings, reportDate]);
 
-  // Revenue: all non-cancelled bookings (total + entrance fee) + cancelled forfeitures
-  const cancelledAmt = (b) => b.fullyPaid ? Number(b.total ?? 0) : Number(b.reservationFee ?? 0);
+  // Revenue actually collected per booking:
+  //   Completed / fullyPaid  → total + persisted entrance fee
+  //   Cancelled              → reservation fee forfeited (0 for walk-ins)
+  //   Pending                → 0 (guest hasn't paid yet)
+  //   else (Confirmed / Checked In not yet fully paid) → reservation fee only
   const totalRevenue = useMemo(() =>
-    dateBookings.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total ?? 0) + calcEntrance(b), 0) +
-    dateBookings.filter(b => b.status === 'Cancelled').reduce((s, b) => s + cancelledAmt(b), 0),
-  [dateBookings]);
+    dateBookings.reduce((s, b) => {
+      if (b.status === 'Pending') return s;
+      if (b.status === 'Cancelled') return s + Number(b.reservationFee ?? 0);
+      if (b.status === 'Completed' || b.fullyPaid)
+        return s + Number(b.total ?? 0) + calcEntrance(b, entranceRates);
+      return s + Number(b.reservationFee ?? 0);
+    }, 0),
+  [dateBookings, entranceRates]);
 
   const { labels, confirmed, completed, cancelled } = useMemo(() => buildWeekChart(bookings), [bookings]);
   const chartData = useMemo(() => ({
@@ -264,7 +285,7 @@ export default function Reports() {
               ))}
             </div>
             <button
-              onClick={() => printDailyReport(dateBookings, reportDateLabel, totalRevenue)}
+              onClick={() => printDailyReport(dateBookings, reportDateLabel, totalRevenue, entranceRates)}
               disabled={loading || dateBookings.length === 0}
               className="mt-4 w-full px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark disabled:opacity-50"
             >
@@ -306,7 +327,7 @@ export default function Reports() {
                       <td className="px-4 py-3 text-sm text-slate-500">{calcDuration(b.checkIn, b.checkOut)}</td>
                       <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
                       <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
-                      <td className="px-4 py-3 text-sm text-amber-700">{fmtMoney(calcEntrance(b))}</td>
+                      <td className="px-4 py-3 text-sm text-amber-700">{fmtMoney(calcEntrance(b, entranceRates))}</td>
                       <td className="px-4 py-3">
                         <span className={`px-2 py-1 rounded text-xs font-medium ${
                           b.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
@@ -328,7 +349,7 @@ export default function Reports() {
                       {fmtMoney(dateBookings.reduce((s, b) => s + Number(b.total || 0), 0))}
                     </td>
                     <td className="px-4 py-3 text-amber-700">
-                      {fmtMoney(dateBookings.reduce((s, b) => s + calcEntrance(b), 0))}
+                      {fmtMoney(dateBookings.reduce((s, b) => s + calcEntrance(b, entranceRates), 0))}
                     </td>
                     <td className="px-4 py-3 text-emerald-700">
                       {fmtMoney(totalRevenue)} collected
