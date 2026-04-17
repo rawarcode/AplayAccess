@@ -35,15 +35,6 @@ function formatHourLabel(h) {
   return `${twelve}:00 ${suffix}`;
 }
 
-// Enforce the 12-hour online lead time on a selected (date, hour).
-function hourSatisfiesLead(dateStr, hour) {
-  if (!dateStr) return true;
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const candidate = new Date(y, (m || 1) - 1, d || 1, hour, 0, 0, 0);
-  const leadMs    = 12 * 60 * 60 * 1000;
-  return candidate.getTime() - Date.now() >= leadMs;
-}
-
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false }) {
   const modalRef        = useRef(null);
   const bookingResultRef = useRef(null); // stores API response after booking created
@@ -351,10 +342,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
     if (!roomType)  { setError("Please select a room/cottage."); return; }
-    if (bookingType === "24hr" && !hourSatisfiesLead(visitDate, checkInHour)) {
-      setError("24-hour bookings must start at least 12 hours from now. Please pick a later time.");
-      return;
-    }
     if (availability !== null && availability[roomType] !== true) {
       setError("Selected room is not available for the chosen date. Please select another."); return;
     }
@@ -598,23 +585,17 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-600 mb-1">
                       Start time <span className="text-red-500">*</span>
-                      <span className="ml-1 text-[11px] text-gray-400 font-normal">
-                        (bookings start at least 12 hours from now)
-                      </span>
                     </label>
                     <select
                       value={checkInHour}
                       onChange={(e) => setCheckInHour(Number(e.target.value))}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
-                      {HOUR_OPTIONS.map(h => {
-                        const disabled = !hourSatisfiesLead(visitDate, h);
-                        return (
-                          <option key={h} value={h} disabled={disabled}>
-                            {formatHourLabel(h)}{disabled ? " — too soon" : ""} → {formatHourLabel(h)} next day
-                          </option>
-                        );
-                      })}
+                      {HOUR_OPTIONS.map(h => (
+                        <option key={h} value={h}>
+                          {formatHourLabel(h)} → {formatHourLabel(h)} next day
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )}
