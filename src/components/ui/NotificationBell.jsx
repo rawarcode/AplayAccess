@@ -72,7 +72,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
         className={`relative p-2 focus:outline-none focus:ring-2 focus:ring-brand/50 transition-colors ${bellClass} ${className}`}
         title="Notifications"
       >
-        <i className="fas fa-bell text-xl"></i>
+        <i className="fas fa-bell-concierge text-xl"></i>
         {visibleTotal > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full
             bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center
@@ -92,7 +92,7 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
             <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-              <i className="fas fa-bell text-gray-500"></i>
+              <i className="fas fa-bell-concierge text-gray-500"></i>
               Notifications
             </h3>
             {visibleTotal > 0 && (

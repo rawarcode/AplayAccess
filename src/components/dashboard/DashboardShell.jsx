@@ -98,7 +98,7 @@ function NotificationBell() {
         className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
         aria-label="Notifications"
       >
-        <i className="fas fa-bell text-lg"></i>
+        <i className="fas fa-bell-concierge text-lg"></i>
         {unread > 0 && (
           <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
             {unread > 9 ? "9+" : unread}
