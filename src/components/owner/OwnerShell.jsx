@@ -102,7 +102,7 @@ export default function OwnerShell() {
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
     pendingBookings:    '/owner/transactions?status=Pending',
     messages:           '/owner/messages',
-    arrivals:           '/owner/transactions?status=Confirmed',
+    arrivals:           '/frontdesk/reservation?status=Confirmed',
     overdueCheckouts:   '/frontdesk',
     reviews:            '/owner/reviews',
   });
