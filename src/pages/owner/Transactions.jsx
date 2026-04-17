@@ -192,41 +192,46 @@ export default function OwnerTransactions() {
     scales: { y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true } },
   };
 
-  // Revenue breakdown — all amounts derived from paid_amount (backend's
-  // source of truth for money actually collected) plus outstanding for
-  // money still owed. This matches Revenue Collected KPI and page totals.
-  const collectedRevenue    = useMemo(() => allBookings.filter(b => b.status === "Completed").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
-  const reservedRevenue     = useMemo(() => allBookings.filter(b => ["Confirmed", "Checked In"].includes(b.status)).reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
-  const pendingRevenue      = useMemo(() => allBookings.filter(b => b.status === "Pending").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
-  const outstandingBalance  = useMemo(() => allBookings.filter(b => !["Cancelled", "Completed"].includes(b.status)).reduce((s, b) => {
-    const grand = Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
-    return s + Math.max(0, grand - Number(b.paidAmount ?? 0));
-  }, 0), [allBookings]);
-  const forfeitedFees       = useMemo(() => allBookings.filter(b => b.status === "Cancelled").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [allBookings]);
+  // ── Revenue breakdown ────────────────────────────────────────────────
+  // Redesigned around two clear questions the owner is actually asking:
+  //   1. How much money is already in the till?   (COLLECTED)
+  //   2. How much is on the books but not in hand? (OUTSTANDING)
+  //
+  // Each is broken down by where it came from, using paid_amount (the
+  // backend's single source of truth). The old chart mixed status labels
+  // ("Fully Collected" = status Completed) with fee-type labels
+  // ("Reservation Fees" = amount type), so a Checked-In fully-paid
+  // booking showed up as "Reservation Fees" at its full grand total —
+  // which was the core of the misleading read.
+  const collected = useMemo(() => {
+    const buckets = { completed: 0, inProgress: 0, upcoming: 0, forfeited: 0 };
+    for (const b of allBookings) {
+      const paid = Number(b.paidAmount ?? 0);
+      if (paid <= 0) continue;
+      if (b.status === "Completed")      buckets.completed  += paid;
+      else if (b.status === "Checked In") buckets.inProgress += paid;
+      else if (b.status === "Confirmed")  buckets.upcoming   += paid;
+      else if (b.status === "Cancelled")  buckets.forfeited  += paid;
+    }
+    const total = buckets.completed + buckets.inProgress + buckets.upcoming + buckets.forfeited;
+    return { ...buckets, total };
+  }, [allBookings]);
 
-  const collectedBarData = {
-    labels: ["Fully Collected", "Reservation Fees\n(Confirmed)", "Outstanding\nBalance", "Pending Fees", "Forfeited\n(Cancelled)"],
-    datasets: [{
-      label: "Amount (₱)",
-      data: [collectedRevenue, reservedRevenue, outstandingBalance, pendingRevenue, forfeitedFees],
-      backgroundColor: [
-        "rgba(16,185,129,0.8)",
-        "rgba(59,130,246,0.8)",
-        "rgba(251,191,36,0.8)",
-        "rgba(139,92,246,0.7)",
-        "rgba(239,68,68,0.7)",
-      ],
-      borderRadius: 6,
-    }],
-  };
-  const collectedBarOptions = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { font: { size: 10 } } },
-      y: { ticks: { callback: (v) => `₱${(v / 1000).toFixed(0)}k` }, beginAtZero: true },
-    },
-  };
+  const outstanding = useMemo(() => {
+    const buckets = { partial: 0, unpaid: 0 };
+    for (const b of allBookings) {
+      if (["Cancelled", "Completed"].includes(b.status)) continue;
+      const grand = Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
+      const owed  = Math.max(0, grand - Number(b.paidAmount ?? 0));
+      if (owed <= 0) continue;
+      // Partial = has paid something but not everything.
+      // Unpaid  = has paid nothing (typically Pending rows before PayMongo clears).
+      if (Number(b.paidAmount ?? 0) > 0) buckets.partial += owed;
+      else                                buckets.unpaid  += owed;
+    }
+    const total = buckets.partial + buckets.unpaid;
+    return { ...buckets, total };
+  }, [allBookings]);
 
   const clearFilters = () => { setSearch(""); setStatusFilter(""); setDateFrom(""); setDateTo(""); setCurrentPage(1); };
   const handleSearch = (v) => { setSearch(v);      setCurrentPage(1); };
@@ -516,37 +521,136 @@ export default function OwnerTransactions() {
           )}
         </div>
 
-        {/* Collected vs Outstanding */}
+        {/* Revenue Breakdown — money in vs money owed */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-slate-800">Revenue Breakdown</h2>
-          <p className="text-xs text-slate-400 mb-4">Collected, pending, and outstanding balances</p>
-          <div className="h-56">
-            {loading ? (
-              <p className="text-sm text-gray-400">Loading...</p>
-            ) : allBookings.length > 0 ? (
-              <Bar data={collectedBarData} options={collectedBarOptions} />
-            ) : (
-              <p className="text-sm text-gray-400 text-center pt-16">No data available.</p>
-            )}
-          </div>
-          {!loading && allBookings.length > 0 && (
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1">
-              {[
-                { label: "Fully Collected",    value: collectedRevenue,   color: "bg-emerald-500" },
-                { label: "Reservation Fees",   value: reservedRevenue,    color: "bg-blue-500" },
-                { label: "Outstanding Balance", value: outstandingBalance, color: "bg-yellow-400" },
-                { label: "Pending",            value: pendingRevenue,     color: "bg-violet-500" },
-                { label: "Forfeited (Cancel)", value: forfeitedFees,      color: "bg-red-400" },
-              ].map(({ label, value, color }) => (
-                <div key={label} className="flex items-center justify-between text-xs text-slate-600">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${color}`} />
-                    <span>{label}</span>
-                  </div>
-                  <span className="font-semibold text-slate-800 ml-1">{fmt(value)}</span>
-                </div>
-              ))}
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-800">Revenue Breakdown</h2>
+              <p className="text-xs text-slate-400">What's collected vs. what's still owed.</p>
             </div>
+            <span
+              className="text-xs text-slate-400 cursor-help"
+              title="Collected = money actually received (paid_amount). Outstanding = grand total − paid_amount on active bookings. Forfeited reservation fees are kept when a guest cancels."
+            >
+              <i className="fas fa-circle-info"></i>
+            </span>
+          </div>
+
+          {loading ? (
+            <p className="text-sm text-gray-400 text-center py-12">Loading...</p>
+          ) : allBookings.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-12">No data available.</p>
+          ) : (
+            <>
+              {/* ── In-hand vs On-the-books headline bars ─────────────── */}
+              {(() => {
+                const grandTotal = collected.total + outstanding.total;
+                const collectedPct   = grandTotal > 0 ? (collected.total / grandTotal) * 100 : 0;
+                const outstandingPct = 100 - collectedPct;
+                return (
+                  <>
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Collected</span>
+                      <span className="text-xs font-semibold uppercase tracking-wide text-amber-600">Outstanding</span>
+                    </div>
+                    <div className="flex items-baseline justify-between mb-2">
+                      <span className="text-xl font-bold text-slate-800">{fmt(collected.total)}</span>
+                      <span className="text-xl font-bold text-slate-800">{fmt(outstanding.total)}</span>
+                    </div>
+                    {/* single stacked bar — emerald for collected, amber for outstanding */}
+                    <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden flex">
+                      {collected.total > 0 && (
+                        <div
+                          className="h-full bg-emerald-500"
+                          style={{ width: `${collectedPct}%` }}
+                          title={`Collected: ${fmt(collected.total)} (${collectedPct.toFixed(1)}%)`}
+                        />
+                      )}
+                      {outstanding.total > 0 && (
+                        <div
+                          className="h-full bg-amber-400"
+                          style={{ width: `${outstandingPct}%` }}
+                          title={`Outstanding: ${fmt(outstanding.total)} (${outstandingPct.toFixed(1)}%)`}
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between mt-1 text-[11px] text-slate-500">
+                      <span>{collectedPct.toFixed(1)}% of booking value</span>
+                      <span>{outstandingPct.toFixed(1)}% owed</span>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {/* ── Two columns: collected sources + outstanding sources ─── */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Collected sources */}
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-2 flex items-center gap-1.5">
+                    <i className="fas fa-check-circle"></i> Where it came from
+                  </h3>
+                  <ul className="space-y-2">
+                    {[
+                      { label: "Completed stays",     value: collected.completed,  color: "bg-emerald-600" },
+                      { label: "In-progress stays",   value: collected.inProgress, color: "bg-emerald-500" },
+                      { label: "Upcoming (paid)",     value: collected.upcoming,   color: "bg-sky-500"     },
+                      { label: "Forfeited fees",      value: collected.forfeited,  color: "bg-rose-400"    },
+                    ].filter(r => r.value > 0).map(({ label, value, color }) => {
+                      const pct = collected.total > 0 ? (value / collected.total) * 100 : 0;
+                      return (
+                        <li key={label}>
+                          <div className="flex items-center justify-between text-xs text-slate-600">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${color}`} />
+                              <span>{label}</span>
+                            </div>
+                            <span className="font-semibold text-slate-800">{fmt(value)}</span>
+                          </div>
+                          <div className="mt-1 h-1 bg-slate-100 rounded overflow-hidden">
+                            <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {collected.total === 0 && (
+                      <li className="text-xs text-slate-400 italic">No payments collected yet.</li>
+                    )}
+                  </ul>
+                </div>
+
+                {/* Outstanding sources */}
+                <div>
+                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 mb-2 flex items-center gap-1.5">
+                    <i className="fas fa-clock"></i> What's still owed
+                  </h3>
+                  <ul className="space-y-2">
+                    {[
+                      { label: "Partially paid (balance at counter)", value: outstanding.partial, color: "bg-amber-500" },
+                      { label: "Unpaid pending",                      value: outstanding.unpaid,  color: "bg-amber-300" },
+                    ].filter(r => r.value > 0).map(({ label, value, color }) => {
+                      const pct = outstanding.total > 0 ? (value / outstanding.total) * 100 : 0;
+                      return (
+                        <li key={label}>
+                          <div className="flex items-center justify-between text-xs text-slate-600">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`w-2.5 h-2.5 rounded-sm shrink-0 ${color}`} />
+                              <span>{label}</span>
+                            </div>
+                            <span className="font-semibold text-slate-800">{fmt(value)}</span>
+                          </div>
+                          <div className="mt-1 h-1 bg-slate-100 rounded overflow-hidden">
+                            <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                    {outstanding.total === 0 && (
+                      <li className="text-xs text-slate-400 italic">No outstanding balances. Nice.</li>
+                    )}
+                  </ul>
+                </div>
+              </div>
+            </>
           )}
         </div>
 
