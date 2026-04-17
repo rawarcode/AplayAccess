@@ -8,6 +8,8 @@ import { fmtMoney, fmtDate, fmtDateTime } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+// '24hr-pm' is kept for legacy bookings created before the flexible 24hr
+// start-hour; new bookings only use '24hr'. Priced the same as '24hr'.
 const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
 function calcEntrance(b, entranceRates = FALLBACK_RATES) {

@@ -77,6 +77,8 @@ const SAMPLE_BOOKINGS = import.meta.env.DEV ? makeSampleBookings() : [];
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
+// '24hr-pm' is kept for legacy bookings created before the flexible 24hr
+// start-hour; new bookings only use '24hr'. Priced the same as '24hr'.
 const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 function calcEntrance(b, entranceRates = FALLBACK_RATES) {
   if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);

@@ -897,7 +897,7 @@ export default function WalkIn() {
                             disabled={opt.disabled}
                             aria-pressed={active}
                             onClick={() => { if (!opt.disabled) setField('bookingType', opt.type); }}
-                            className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
+                            className={`flex-1 flex items-center justify-center gap-1.5 py-3 md:py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                               opt.disabled
                                 ? 'border-slate-100 bg-slate-50 opacity-50 cursor-not-allowed'
                                 : active ? 'border-sky-500 bg-sky-50 text-sky-700' : 'border-slate-200 text-slate-600 hover:border-slate-300'
@@ -928,7 +928,7 @@ export default function WalkIn() {
                           id="walkin-checkin-hour"
                           value={form.checkInHour ?? 6}
                           onChange={e => setField('checkInHour', Number(e.target.value))}
-                          className="w-full px-3 py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                          className="w-full px-3 py-3 md:py-2 border border-slate-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                         >
                           {HOUR_OPTIONS.map(h => (
                             <option key={h} value={h}>

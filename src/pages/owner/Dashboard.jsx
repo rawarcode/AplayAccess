@@ -16,7 +16,9 @@ import Toast, { useToast } from "../../components/ui/Toast";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
 
-// Entrance fee rates (unified with Billing/Reports)
+// Entrance fee rates (unified with Billing/Reports).
+// '24hr-pm' is kept for legacy bookings created before the flexible 24hr
+// start-hour; new bookings only use '24hr'. Priced the same as '24hr'.
 const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 function calcEntrance(b) {
   if (b.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);

@@ -99,7 +99,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     });
   }, [rooms, roomType, rawPricing]);
 
-  // Check room availability whenever date, time, or booking type changes
+  // Check room availability whenever date, time, or booking type changes.
+  // Debounced so keyboard-scrolling the hour dropdown doesn't fire one
+  // request per value; settles on the final pick after ~300ms.
   useEffect(() => {
     if (!visitDate) { setAvailability(null); return; }
     const params = new URLSearchParams({
@@ -107,15 +109,20 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       booking_type: bookingType,
     });
     if (bookingType === "24hr") params.set("check_in_hour", String(checkInHour));
+
     setAvailChecking(true);
-    api.get(`/api/availability?${params}`)
-      .then(r => {
-        const map = {};
-        (r.data?.data ?? []).forEach(rm => { map[rm.name] = rm.available; });
-        setAvailability(map);
-      })
-      .catch(() => setAvailability(null)) // on error, show no indicators
-      .finally(() => setAvailChecking(false));
+    const timer = setTimeout(() => {
+      api.get(`/api/availability?${params}`)
+        .then(r => {
+          const map = {};
+          (r.data?.data ?? []).forEach(rm => { map[rm.name] = rm.available; });
+          setAvailability(map);
+        })
+        .catch(() => setAvailability(null)) // on error, show no indicators
+        .finally(() => setAvailChecking(false));
+    }, 300);
+
+    return () => { clearTimeout(timer); };
   }, [visitDate, bookingType, checkInHour]);
 
   // Scroll modal to top whenever an error appears so it's always visible
@@ -569,7 +576,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       <button key={opt.key} type="button" disabled={opt.disabled}
                         aria-pressed={active}
                         onClick={() => { if (!opt.disabled) { setBookingType(opt.key); setPromoResult(null); setPromoInput(""); } }}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
+                        className={`flex-1 flex items-center justify-center gap-1.5 py-3 md:py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                           active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         } ${opt.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
                         <i className={`fas ${opt.icon} text-xs`}></i>
@@ -594,7 +601,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       id="booking-modal-checkin-hour"
                       value={checkInHour}
                       onChange={(e) => setCheckInHour(Number(e.target.value))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       {HOUR_OPTIONS.map(h => (
                         <option key={h} value={h}>
