@@ -652,16 +652,19 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select Room / Cottage / Pavilion / Tent</option>
+                  <option value="">Select Room / Cottage / Pavilion</option>
                   {(() => {
-                    const visible = rooms.filter(r => availability === null || availability?.[String(r.id)] === true);
-                    // Include all 4 live backend categories. Fallback resolver
-                    // also detects "tent" so legacy rooms without an explicit
-                    // category still group correctly.
+                    // Tent rooms are walk-in only (backend rejects tent
+                    // bookings from this endpoint with "Tent pitching is
+                    // available for walk-in only"), so filter them out of
+                    // the public picker entirely.
+                    const visible = rooms.filter(r =>
+                      r.category !== 'tent' &&
+                      (availability === null || availability?.[String(r.id)] === true)
+                    );
                     const getCategory = r => {
                       if (r.category) return r.category;
                       const n = (r.name || "").toLowerCase();
-                      if (n.includes("tent"))     return "tent";
                       if (n.includes("cottage"))  return "cottage";
                       if (n.includes("pavilion")) return "pavilion";
                       return "room";
@@ -670,7 +673,6 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       { key: "room",     label: "\uD83D\uDECF\uFE0F  Rooms"     },
                       { key: "cottage",  label: "\u26F1\uFE0F  Cottages"  },
                       { key: "pavilion", label: "\uD83C\uDFDB\uFE0F  Pavilions" },
-                      { key: "tent",     label: "\u26FA\uFE0F  Tents"     },
                     ];
                     return groups.map(g => {
                       const items = visible.filter(r => getCategory(r) === g.key);
