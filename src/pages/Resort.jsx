@@ -629,9 +629,10 @@ export default function Resort() {
             ) : null}
           </div>
 
-          {/* Scroll-down cue */}
+          {/* Scroll-down cue — section is now always rendered below, so
+              the scroll target is unconditional. */}
           <button
-            onClick={() => document.getElementById(announcements?.length ? "announcements" : "about")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => document.getElementById("announcements")?.scrollIntoView({ behavior: "smooth" })}
             className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-pulse"
             aria-label="Scroll down"
           >
@@ -639,66 +640,120 @@ export default function Resort() {
           </button>
         </section>
 
-        {/* Wave divider */}
-        <WaveDivider color={announcements?.length ? "#f0f9ff" : "#ffffff"} />
+        {/* Wave divider — matches the announcements section background */}
+        <WaveDivider color="#f0f9ff" />
 
-        {/* WHAT'S NEW — Announcements preview (hidden if no announcements or still loading) */}
-        {announcements !== null && announcements.length > 0 && (
-          <section id="announcements" className="py-16 bg-sky-50 relative overflow-hidden">
-            {/* Decorative blobs */}
-            <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              {/* Section header */}
-              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
-                <div>
-                  <h2 className="text-3xl font-bold text-slate-900 mb-1">
-                    📢 What's New
-                  </h2>
-                  <div className="w-12 h-1.5 rounded-full bg-sky-400 mb-2" />
-                  <p className="text-slate-500 text-sm">Latest updates, events & promos</p>
-                </div>
+        {/* WHAT'S NEW — Announcements preview
+             Always rendered now (previously hidden when empty, which made
+             the page jump around depending on CMS content). Three states:
+               - null:         loading skeleton (3 placeholder cards)
+               - []:           empty state card ("No announcements yet")
+               - [items...]:   real cards + "See All" link
+             The section header + bg + wave transition stay consistent so
+             the page feels the same whether or not there are posts. */}
+        <section id="announcements" className="py-16 bg-sky-50 relative overflow-hidden">
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Section header */}
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
+              <div>
+                <h2 className="text-3xl font-bold text-slate-900 mb-1">
+                  📢 What's New
+                </h2>
+                <div className="w-12 h-1.5 rounded-full bg-sky-400 mb-2" />
+                <p className="text-slate-500 text-sm">Latest updates, events & promos</p>
+              </div>
+              {/* See-all link only makes sense when there's something to browse */}
+              {announcements?.length > 0 && (
                 <Link
                   to="/announcements"
                   className="text-sm font-semibold text-sky-600 hover:text-sky-800 whitespace-nowrap transition"
                 >
                   See All Announcements →
                 </Link>
-              </div>
+              )}
+            </div>
 
-              {/* Cards */}
+            {/* ── LOADING STATE ── */}
+            {announcements === null && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6" aria-busy="true" aria-label="Loading announcements">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-md animate-pulse">
+                    <div className="h-40 bg-slate-200" />
+                    <div className="p-5 space-y-3">
+                      <div className="h-3 w-20 bg-slate-200 rounded-full" />
+                      <div className="h-4 w-3/4 bg-slate-200 rounded" />
+                      <div className="h-3 w-full bg-slate-200 rounded" />
+                      <div className="h-3 w-2/3 bg-slate-200 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* ── EMPTY STATE ──
+                Friendly, on-brand placeholder so the section doesn't feel
+                broken when the CMS has no active posts. Pairs a soft
+                illustration (large megaphone in a gradient ring) with a
+                clear message and a subtle call to subscribe — turns dead
+                air into a signup opportunity. */}
+            {announcements !== null && announcements.length === 0 && (
+              <div className="relative mx-auto max-w-2xl">
+                {/* Decorative background circles — sit behind the card */}
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <div className="w-96 h-96 rounded-full bg-sky-200/40 blur-3xl" />
+                </div>
+
+                <div className="relative bg-white rounded-3xl shadow-md border border-slate-100 px-8 py-12 md:px-12 md:py-14 text-center">
+                  {/* Icon — gradient ring + glyph */}
+                  <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center mb-5 ring-8 ring-sky-50">
+                    <i className="fas fa-bullhorn text-sky-500 text-2xl" aria-hidden="true"></i>
+                  </div>
+
+                  <h3 className="text-xl font-bold text-slate-800 mb-2">All caught up</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed max-w-md mx-auto">
+                    No announcements right now. Promos, events, and new features show up here first —
+                    check back soon, or subscribe below to get them in your inbox.
+                  </p>
+
+                  {/* Decorative dotted divider */}
+                  <div className="my-6 mx-auto w-24 border-t border-dashed border-slate-200" aria-hidden="true" />
+
+                  <a
+                    href="#newsletter"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById("newsletter")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="inline-flex items-center gap-2 text-sm font-semibold text-sky-600 hover:text-sky-800 transition"
+                  >
+                    <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                    Subscribe for updates
+                  </a>
+                </div>
+              </div>
+            )}
+
+            {/* ── POPULATED STATE ── */}
+            {announcements !== null && announcements.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {announcements.slice(0, 3).map((item) => (
                   <div
                     key={item.id}
                     className="bg-white rounded-2xl overflow-hidden shadow-md hover:-translate-y-1 transition-transform duration-300 flex flex-col"
                   >
-                    {/* Media */}
                     {item.media_url && (
                       <div className="bg-slate-900 flex items-center justify-center rounded-t-2xl overflow-hidden min-h-52">
                         {isVideoUrl(item.media_url) ? (
-                          <video
-                            src={item.media_url}
-                            controls
-                            playsInline
-                            className="w-full object-contain"
-                          />
+                          <video src={item.media_url} controls playsInline className="w-full object-contain" />
                         ) : (
-                          <img
-                            src={item.media_url}
-                            alt={item.title}
-                            className="w-full object-contain max-h-[420px]"
-                            loading="lazy"
-                          />
+                          <img src={item.media_url} alt={item.title} className="w-full object-contain max-h-[420px]" loading="lazy" />
                         )}
                       </div>
                     )}
-
-                    {/* Body */}
                     <div className="p-5 flex flex-col flex-1">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         {item.is_pinned && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
-                            📌 Pinned
-                          </span>
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">📌 Pinned</span>
                         )}
                         {item.published_at && (
                           <span className="text-xs text-slate-400">
@@ -718,9 +773,9 @@ export default function Resort() {
                   </div>
                 ))}
               </div>
-            </div>
-          </section>
-        )}
+            )}
+          </div>
+        </section>
 
         {/* Announcement detail modal */}
         <Modal open={!!announcementModal} onClose={() => setAnnouncementModal(null)} maxWidth="max-w-xl">
@@ -1326,7 +1381,7 @@ export default function Resort() {
 
         {/* NEWSLETTER */}
         {pc.newsletter.visible !== false && (
-        <section className="py-16 bg-sky-600">
+        <section id="newsletter" className="py-16 bg-sky-600">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-2xl shadow-lg px-8 py-10 max-w-2xl mx-auto text-center">
               <h2 className="text-2xl font-bold text-slate-900 mb-3">{pc.newsletter.title}</h2>
