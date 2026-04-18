@@ -22,6 +22,21 @@ const formatDiscount = (code) =>
 const formatDate = (d) =>
   d ? new Date(d).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "\u2014";
 
+// Convert the <input type="date"> value ("YYYY-MM-DD") into a UTC ISO
+// string representing end-of-day in the user's local timezone. Backend
+// app timezone is UTC and the expires_at column is a `datetime` cast —
+// sending the bare "2026-04-18" makes Carbon store it as UTC 00:00:00
+// on that date, which in Asia/Manila (UTC+8) is 08:00 local. The
+// promo then expires ~16 hours before the user intended. End-of-day
+// local preserves "promo valid through all of April 18 Manila" intent.
+function dateToLocalEndOfDayIso(dateStr) {
+  if (!dateStr) return null;
+  // new Date("YYYY-MM-DDTHH:MM:SS") without a Z is parsed as local time.
+  const d = new Date(dateStr + "T23:59:59");
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 const isExpired = (code) => code.expires_at && new Date(code.expires_at) < new Date();
 
 /* ── Pagination ellipsis helper ── */
@@ -223,7 +238,10 @@ export default function PromoCodes() {
         type: form.type,
         value: parseFloat(form.value),
         max_uses: form.max_uses ? parseInt(form.max_uses) : null,
-        expires_at: form.expires_at || null,
+        // Convert picked date to local end-of-day UTC ISO — without
+        // this the backend stored the bare date as UTC midnight and
+        // promos expired ~16 hours early for Asia/Manila users.
+        expires_at: dateToLocalEndOfDayIso(form.expires_at),
       };
       await createPromoCode(payload);
       setConfirmOpen(false);
@@ -246,7 +264,9 @@ export default function PromoCodes() {
     try {
       const payload = {
         max_uses: form.max_uses ? parseInt(form.max_uses) : null,
-        expires_at: form.expires_at || null,
+        // Same local-end-of-day conversion as createPromoCode so edits
+        // don't round-trip a promo's expiry into the early-expire trap.
+        expires_at: dateToLocalEndOfDayIso(form.expires_at),
       };
       await updatePromoCode(editTarget.id, payload);
       setEditTarget(null);
