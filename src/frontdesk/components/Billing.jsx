@@ -374,6 +374,20 @@ export default function Billing() {
   const [pastSearched, setPastSearched] = useState(false);
   const [pastDownloading, setPastDownloading] = useState(null);
 
+  // Esc-to-close for the two custom dialogs on this page (Collect Payment
+  // modal and Search Past side panel). Matches platform convention and the
+  // behavior already baked into the shared <Modal> component used elsewhere.
+  useEffect(() => {
+    if (!billing && !searchPanelOpen) return;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      if (billing)         setBilling(null);
+      else if (searchPanelOpen) setSearchPanelOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [billing, searchPanelOpen]);
+
   async function runPastSearch(e) {
     if (e) e.preventDefault();
     const q = pastQuery.trim();
@@ -609,13 +623,17 @@ export default function Billing() {
 
       {/* ── Payment Collection Modal ── */}
       {billing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Collect payment">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="collect-title">
           <div className="bg-white rounded-lg w-full max-w-md">
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Collect Payment — {billing.id}</h3>
-                <button onClick={() => setBilling(null)} className="text-slate-500 hover:text-slate-700" aria-label="Close">
-                  <i className="fas fa-times"></i>
+                <h3 id="collect-title" className="text-lg font-semibold">Collect Payment — {billing.id}</h3>
+                <button
+                  onClick={() => setBilling(null)}
+                  className="inline-flex w-8 h-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  aria-label="Close collect payment dialog"
+                >
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 
@@ -703,12 +721,12 @@ export default function Billing() {
 
               <div className="flex justify-end gap-3">
                 <button onClick={() => setBilling(null)}
-                  className="px-4 py-2 border rounded text-sm text-slate-700">
+                  className="min-h-[40px] px-4 py-2 border rounded text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1">
                   Cancel
                 </button>
                 <button onClick={handleCollect} disabled={paying}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
-                  <i className="fas fa-check mr-1"></i>
+                  className="inline-flex items-center gap-1 min-h-[40px] px-4 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1">
+                  <i className="fas fa-check" aria-hidden="true"></i>
                   {paying ? 'Processing...' : `Collect ${fmtMoney(billingOutstanding)}`}
                 </button>
               </div>
@@ -762,36 +780,62 @@ export default function Billing() {
         {!loading && todayConfirmed.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <h2 className="text-lg font-semibold mb-4 text-sky-700">
-              <i className="fas fa-exclamation-circle mr-2"></i>
+              <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>
               Awaiting Payment Collection ({todayConfirmed.length})
             </h2>
-            <div className="space-y-3">
-              {todayConfirmed.map(b => (
-                <div key={b.bookingId}
-                  onClick={() => setSelected(b)}
-                  className="flex items-center justify-between p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition">
-                  <div>
-                    <p className="font-medium">{walkInName(b)}</p>
-                    <p className="text-sm text-slate-600">{b.roomType} · {b.guests} pax</p>
-                    <p className="text-xs text-slate-500">
-                      {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500">Total to Collect</p>
-                    <p className="font-bold text-sky-700 text-lg">
-                      {fmtMoney(Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0)))}
-                    </p>
-                    <button
-                      onClick={e => { e.stopPropagation(); openCollect(b); }}
-                      className="mt-2 px-4 py-1 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700"
+            <ul className="space-y-3">
+              {todayConfirmed.map(b => {
+                const paid       = Number(b.paidAmount ?? 0);
+                const grand      = Number(b.total ?? 0) + calcEntrance(b, entranceRates);
+                const toCollect  = Math.max(0, grand - paid);
+                const guestLabel = walkInName(b);
+                const openDetail = () => setSelected(b);
+                return (
+                  <li key={b.bookingId}>
+                    {/* role="button" + keydown handler turns the card into
+                        a keyboard-activatable region. The nested Collect
+                        button uses stopPropagation so Enter on it won't
+                        also open the detail modal. */}
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={openDetail}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); } }}
+                      aria-label={`View billing detail for ${b.id}, ${guestLabel}`}
+                      className="flex items-center gap-3 p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1"
                     >
-                      <i className="fas fa-hand-holding-usd mr-1"></i>Collect
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium">{guestLabel}</p>
+                        <p className="text-sm text-slate-600">{b.roomType} · {b.guests} pax</p>
+                        <p className="text-xs text-slate-500">
+                          {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-slate-500">Total to Collect</p>
+                        <p className="font-bold text-sky-700 text-lg">
+                          {fmtMoney(toCollect)}
+                        </p>
+                        {paid > 0 && (
+                          <p className="text-[11px] text-slate-500">
+                            ({fmtMoney(paid)} paid)
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); openCollect(b); }}
+                          onKeyDown={(e) => e.stopPropagation()}
+                          aria-label={`Collect ${fmtMoney(toCollect)} for ${b.id}`}
+                          className="mt-2 inline-flex items-center gap-1 min-h-[36px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
+                        >
+                          <i className="fas fa-hand-holding-usd" aria-hidden="true"></i>Collect
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
         )}
 
@@ -991,22 +1035,25 @@ export default function Billing() {
           <aside
             role="dialog"
             aria-modal="true"
-            aria-label="Search past billings"
+            aria-labelledby="past-search-title"
             className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200"
           >
             <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-                  <i className="fas fa-clock-rotate-left text-sky-600"></i>
+                <h3 id="past-search-title" className="font-semibold text-slate-800 flex items-center gap-2">
+                  <i className="fas fa-clock-rotate-left text-sky-600" aria-hidden="true"></i>
                   Search Past Billings
                 </h3>
                 <p className="text-[11px] text-slate-500 mt-0.5">
                   Finds any booking — past or present. No auto-refresh.
                 </p>
               </div>
-              <button onClick={() => setSearchPanelOpen(false)}
-                className="text-slate-400 hover:text-slate-700 p-1" aria-label="Close">
-                <i className="fas fa-times"></i>
+              <button
+                onClick={() => setSearchPanelOpen(false)}
+                className="inline-flex w-8 h-8 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                aria-label="Close search past billings panel"
+              >
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
 
