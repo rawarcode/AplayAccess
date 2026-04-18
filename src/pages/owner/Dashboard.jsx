@@ -129,8 +129,19 @@ export default function OwnerDashboard() {
       ? Math.round(thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0) / thisMonthActive.length)
       : 0;
 
-    const cancelledThisMonth = thisMonthAll.filter(b => b.status === 'Cancelled').length;
-    const cancelRate = txThisMonth > 0 ? Math.round((cancelledThisMonth / txThisMonth) * 100) : 0;
+    // Top-booked room of the month. Counts active bookings (not Pending/
+    // Cancelled) grouped by roomType; ties broken alphabetically so the
+    // surfaced name is stable across refreshes while volume is still low.
+    const roomCounts = {};
+    for (const b of thisMonthActive) {
+      const name = b.roomType || 'Unknown';
+      roomCounts[name] = (roomCounts[name] ?? 0) + 1;
+    }
+    const sortedRooms   = Object.entries(roomCounts).sort(
+      (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
+    );
+    const topRoomName   = sortedRooms[0]?.[0] ?? null;
+    const topRoomCount  = sortedRooms[0]?.[1] ?? 0;
 
     const totalGuests = activeBookings.reduce((s, b) => s + Number(b.guests ?? 0), 0);
 
@@ -154,7 +165,7 @@ export default function OwnerDashboard() {
 
     return {
       activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
-      avgBookingValue, cancelledThisMonth, cancelRate, totalGuests,
+      avgBookingValue, topRoomName, topRoomCount, totalGuests,
       walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
       dayOfWeekCounts, days30ago, today,
     };
@@ -162,7 +173,7 @@ export default function OwnerDashboard() {
 
   const {
     activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
-    avgBookingValue, cancelledThisMonth, cancelRate, totalGuests,
+    avgBookingValue, topRoomName, topRoomCount, totalGuests,
     walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
     dayOfWeekCounts, days30ago, today,
   } = derivedKpis;
@@ -368,14 +379,29 @@ export default function OwnerDashboard() {
 
       {/* KPI Cards — Row 2: Operations & Growth */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        {/* Top-booked Room (MTD) — replaced Cancellation Rate, which only
+            ever reflected PayMongo payment-flow abandonment (online rows
+            auto-cancel 5 min after checkout without payment). That's
+            downstream of a technical state owners can't act on, so it
+            failed the SMART test. Top Room reuses data the dashboard
+            already loads and answers "what's selling right now?" — an
+            actual pricing / marketing lever. */}
         <div className="bg-white rounded-xl shadow p-5 hover:shadow-md transition">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-slate-500 text-sm">Cancellation Rate</p>
-              <h3 className="text-2xl font-bold mt-1">{cancelRate}%</h3>
-              <p className="text-xs text-slate-400 mt-1">{cancelledThisMonth} cancelled this month</p>
+            <div className="min-w-0">
+              <p className="text-slate-500 text-sm">Top Room (MTD)</p>
+              <h3 className="text-2xl font-bold mt-1 truncate" title={topRoomName ?? undefined}>
+                {topRoomName ?? '—'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                {topRoomCount > 0
+                  ? `${topRoomCount} booking${topRoomCount === 1 ? '' : 's'} this month`
+                  : 'No bookings yet this month'}
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-rose-100 text-rose-600"><i className="fas fa-ban text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0">
+              <i className="fas fa-bed text-xl" aria-hidden="true"></i>
+            </div>
           </div>
         </div>
 
