@@ -201,37 +201,30 @@ export default function Bookings() {
         );
       });
     }
-    return [...list].sort((a, b) => {
-      let valA, valB;
-      if (sortBy === 'ID') {
-        valA = a.id ?? ''; valB = b.id ?? '';
-        return sortDir === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-      } else if (sortBy === 'Guest') {
-        const wiA = parseWalkIn(a), wiB = parseWalkIn(b);
-        valA = ((wiA ? wiA.name : a.guest) ?? '').toLowerCase();
-        valB = ((wiB ? wiB.name : b.guest) ?? '').toLowerCase();
-      } else if (sortBy === 'Room') {
-        valA = (a.roomType ?? '').toLowerCase();
-        valB = (b.roomType ?? '').toLowerCase();
-      } else if (sortBy === 'Visit Time') {
-        valA = a.checkIn ?? ''; valB = b.checkIn ?? '';
-      } else if (sortBy === 'Guests') {
-        valA = Number(a.guests ?? 0); valB = Number(b.guests ?? 0);
-        return sortDir === 'asc' ? valA - valB : valB - valA;
-      } else if (sortBy === 'Total') {
-        valA = Number(a.total ?? 0); valB = Number(b.total ?? 0);
-        return sortDir === 'asc' ? valA - valB : valB - valA;
-      } else if (sortBy === 'Status') {
-        const ORDER = { Pending: 0, 'Checked In': 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
-        valA = ORDER[a.status] ?? 5; valB = ORDER[b.status] ?? 5;
-        return sortDir === 'asc' ? valA - valB : valB - valA;
-      } else {
-        valA = ''; valB = '';
-      }
-      if (valA < valB) return sortDir === 'asc' ? -1 : 1;
-      if (valA > valB) return sortDir === 'asc' ?  1 : -1;
-      return 0;
+    // Pre-compute the sort key per row in a single O(n) pass so the
+    // comparator stays O(1) — previously toLowerCase() ran twice per
+    // compare × N log N compares, which is wasteful on long lists.
+    const STATUS_ORDER = { Pending: 0, 'Checked In': 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
+    const keyed = list.map(b => {
+      let key;
+      if      (sortBy === 'ID')         key = b.id ?? '';
+      else if (sortBy === 'Guest')      { const wi = parseWalkIn(b); key = ((wi ? wi.name : b.guest) ?? '').toLowerCase(); }
+      else if (sortBy === 'Room')       key = (b.roomType ?? '').toLowerCase();
+      else if (sortBy === 'Visit Time') key = b.checkIn ?? '';
+      else if (sortBy === 'Guests')     key = Number(b.guests ?? 0);
+      else if (sortBy === 'Total')      key = Number(b.total ?? 0);
+      else if (sortBy === 'Status')     key = STATUS_ORDER[b.status] ?? 5;
+      else                              key = '';
+      return { b, key };
     });
+    const dir = sortDir === 'asc' ? 1 : -1;
+    keyed.sort((a, b) => {
+      if (typeof a.key === 'string' && typeof b.key === 'string') {
+        return a.key.localeCompare(b.key) * dir;
+      }
+      return ((a.key > b.key) - (a.key < b.key)) * dir;
+    });
+    return keyed.map(x => x.b);
   }, [bookings, filterStatus, filterSource, searchTerm, sortBy, sortDir]);
 
   // Source-count badges for the segmented toggle
@@ -449,16 +442,21 @@ export default function Bookings() {
               </span>
             </div>
             <button
+              type="button"
               onClick={() => navigate('/frontdesk/walkin')}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm min-h-[40px] focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
             >
-              <i className="fas fa-plus"></i>New Walk-in
+              <i className="fas fa-plus" aria-hidden="true"></i>New Walk-in
             </button>
           </div>
 
           {/* Source segmented toggle — primary slicer */}
           <div className="mb-4">
-            <div className="inline-flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <div
+              role="group"
+              aria-label="Filter bookings by source"
+              className="inline-flex items-center gap-1 bg-slate-100 rounded-lg p-1"
+            >
               {[
                 { key: 'all',    label: 'All',     icon: null,                 active: 'bg-white shadow text-slate-900',    dot: 'bg-slate-400' },
                 { key: 'online', label: 'Online',  icon: 'fa-globe',           active: 'bg-white shadow text-sky-700',       dot: 'bg-sky-500'    },
@@ -469,12 +467,14 @@ export default function Bookings() {
                 return (
                   <button
                     key={opt.key}
+                    type="button"
+                    aria-pressed={isActive}
                     onClick={() => changeSource(opt.key)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[36px] ${
                       isActive ? opt.active : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >
-                    {opt.icon && <i className={`fas ${opt.icon} text-xs`}></i>}
+                    {opt.icon && <i className={`fas ${opt.icon} text-xs`} aria-hidden="true"></i>}
                     <span>{opt.label}</span>
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? opt.dot + ' text-white' : 'bg-slate-200 text-slate-600'}`}>
                       {count}
@@ -491,6 +491,7 @@ export default function Bookings() {
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="border rounded px-3 py-2 text-sm flex-1 min-w-[160px]" />
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+              aria-label="Filter by status"
               className="border rounded px-3 py-2 text-sm">
               <option value="All">All Statuses</option>
               <option>Pending</option>
@@ -520,20 +521,30 @@ export default function Bookings() {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Total', 'Status'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                        <button onClick={() => handleSort(h)}
-                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
-                          {h}
-                          <span className="text-slate-400 group-hover:text-sky-400">
-                            {sortBy === h
-                              ? <i className={`fas fa-arrow-${sortDir === 'asc' ? 'up' : 'down'} text-sky-500`}></i>
-                              : <i className="fas fa-sort opacity-40"></i>}
-                          </span>
-                        </button>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
+                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Total', 'Status'].map(h => {
+                      const isSorted = sortBy === h;
+                      const ariaSort = isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
+                      return (
+                        <th
+                          key={h}
+                          scope="col"
+                          aria-sort={ariaSort}
+                          className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                        >
+                          <button onClick={() => handleSort(h)}
+                            aria-label={`Sort by ${h}, currently ${ariaSort}`}
+                            className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
+                            {h}
+                            <span className="text-slate-400 group-hover:text-sky-400" aria-hidden="true">
+                              {isSorted
+                                ? <i className={`fas fa-arrow-${sortDir === 'asc' ? 'up' : 'down'} text-sky-500`}></i>
+                                : <i className="fas fa-sort opacity-40"></i>}
+                            </span>
+                          </button>
+                        </th>
+                      );
+                    })}
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
@@ -553,16 +564,32 @@ export default function Bookings() {
                         ? 'bg-amber-50/60 hover:bg-amber-100/80 border-l-4 border-amber-400'
                         : 'bg-white hover:bg-slate-50 border-l-4 border-sky-200';
 
+                    // Suppress source pill when the filter is already source-
+                    // locked — the information is redundant on that view.
+                    const showSourcePill = filterSource === 'all';
+                    const guestLabel = wi ? wi.name : (b.guest || 'Guest');
+
                     return (
-                      <tr key={b.bookingId} role="button" tabIndex={0}
+                      <tr key={b.bookingId}
                           className={`cursor-pointer ${rowCls}`}
-                          onClick={() => setViewBooking(b)}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
-                        <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{b.id}</td>
+                          onClick={() => setViewBooking(b)}>
+                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                          {/* Primary keyboard affordance for opening the
+                              detail modal. Native button = proper focus ring,
+                              semantic announcement, keyboard-activatable. */}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setViewBooking(b); }}
+                            className="font-mono text-slate-600 hover:text-sky-700 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                            aria-label={`View booking ${b.id} for ${guestLabel}`}
+                          >
+                            {b.id}
+                          </button>
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>
-                            <SourcePill source={b.source} />
+                            <p className="text-sm font-medium text-slate-900">{guestLabel}</p>
+                            {showSourcePill && <SourcePill source={b.source} />}
                           </div>
                           <p className="text-xs text-slate-500">{wi ? wi.email : b.guestEmail}</p>
                         </td>
@@ -584,54 +611,66 @@ export default function Bookings() {
                           </div>
                         </td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          <div className="flex items-center gap-2">
-                            <button onClick={() => setViewBooking(b)} title="View details"
-                              className="text-sky-600 hover:text-sky-800">
-                              <i className="fas fa-eye"></i>
+                          {/* Icon-only actions are wrapped in a 36x36 tap
+                              target (WCAG 2.5.8 AA). Each has aria-label
+                              because title tooltips aren't reliably announced
+                              by screen readers. */}
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => setViewBooking(b)}
+                              title="View details" aria-label={`View details for ${b.id}`}
+                              className="inline-flex w-9 h-9 items-center justify-center rounded text-sky-600 hover:bg-sky-50 hover:text-sky-800">
+                              <i className="fas fa-eye" aria-hidden="true"></i>
                             </button>
                             {b.status === 'Pending' && Number(b.paidAmount ?? 0) > 0 && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'confirm', booking: b })}
                                 disabled={actionLoading === b.bookingId}
-                                title="Confirm" className="text-sky-600 hover:text-sky-800 disabled:opacity-40">
-                                <i className="fas fa-check"></i>
+                                title="Confirm" aria-label={`Confirm booking ${b.id}`}
+                                className="inline-flex w-9 h-9 items-center justify-center rounded text-sky-600 hover:bg-sky-50 hover:text-sky-800 disabled:opacity-40">
+                                <i className="fas fa-check" aria-hidden="true"></i>
                               </button>
                             )}
                             {b.status === 'Confirmed' && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'checkin', booking: b })}
                                 disabled={actionLoading === b.bookingId}
-                                title="Check In" className="text-purple-600 hover:text-purple-800 disabled:opacity-40">
-                                <i className="fas fa-door-open"></i>
+                                title="Check In" aria-label={`Check in guest for ${b.id}`}
+                                className="inline-flex w-9 h-9 items-center justify-center rounded text-purple-600 hover:bg-purple-50 hover:text-purple-800 disabled:opacity-40">
+                                <i className="fas fa-door-open" aria-hidden="true"></i>
                               </button>
                             )}
                             {b.status === 'Checked In' && (
                               <>
-                                <span title="Go to Billing to collect payment &amp; complete" className="text-emerald-500 cursor-default opacity-60">
-                                  <i className="fas fa-file-invoice-dollar"></i>
+                                <span title="Go to Billing to collect payment &amp; complete"
+                                  aria-label="Billing handles payment collection for checked-in guests"
+                                  className="inline-flex w-9 h-9 items-center justify-center text-emerald-500 cursor-default opacity-60">
+                                  <i className="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                                 </span>
                                 <button
                                   onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
                                   disabled={actionLoading === b.bookingId}
                                   title="Transfer to another room"
-                                  className="text-indigo-600 hover:text-indigo-800 disabled:opacity-40">
-                                  <i className="fas fa-exchange-alt"></i>
+                                  aria-label={`Transfer ${b.id} to another room`}
+                                  className="inline-flex w-9 h-9 items-center justify-center rounded text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 disabled:opacity-40">
+                                  <i className="fas fa-exchange-alt" aria-hidden="true"></i>
                                 </button>
                               </>
                             )}
                             {b.status === 'Pending' && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'cancel', booking: b })}
                                 disabled={actionLoading === b.bookingId}
-                                title="Cancel" className="text-rose-600 hover:text-rose-800 disabled:opacity-40">
-                                <i className="fas fa-ban"></i>
+                                title="Cancel" aria-label={`Cancel booking ${b.id}`}
+                                className="inline-flex w-9 h-9 items-center justify-center rounded text-rose-600 hover:bg-rose-50 hover:text-rose-800 disabled:opacity-40">
+                                <i className="fas fa-ban" aria-hidden="true"></i>
                               </button>
                             )}
                             {b.status !== 'Pending' && (
                               <button onClick={() => handleDownloadReceipt(b)}
                                 disabled={receiptLoadingId === b.bookingId}
                                 title="Download receipt (PDF)"
-                                className="text-slate-500 hover:text-slate-800 disabled:opacity-40">
+                                aria-label={`Download receipt for ${b.id}`}
+                                className="inline-flex w-9 h-9 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40">
                                 {receiptLoadingId === b.bookingId
-                                  ? <i className="fas fa-spinner fa-spin"></i>
-                                  : <i className="fas fa-file-pdf"></i>}
+                                  ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                                  : <i className="fas fa-file-pdf" aria-hidden="true"></i>}
                               </button>
                             )}
                           </div>
@@ -644,20 +683,20 @@ export default function Bookings() {
             </div>
           )}
 
-          {/* Legend */}
+          {/* Legend — only the rows that actually carry a visible accent
+              appear here. Online rows are the default (white background),
+              so flagging them in the legend would send users hunting for a
+              band that isn't really there. */}
           <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1 h-4 bg-sky-300 rounded"></span>
-              <i className="fas fa-globe text-sky-500 text-[10px]"></i> Online
+              <span className="inline-block w-1 h-4 bg-amber-400 rounded" aria-hidden="true"></span>
+              <i className="fas fa-person-walking text-amber-500 text-[10px]" aria-hidden="true"></i> Walk-in
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1 h-4 bg-amber-400 rounded"></span>
-              <i className="fas fa-person-walking text-amber-500 text-[10px]"></i> Walk-in
+              <span className="inline-block w-1 h-4 bg-rose-500 rounded" aria-hidden="true"></span>
+              <i className="fas fa-exclamation-triangle text-rose-500 text-[10px]" aria-hidden="true"></i> Overdue checkout
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block w-1 h-4 bg-rose-500 rounded"></span>
-              <i className="fas fa-exclamation-triangle text-rose-500 text-[10px]"></i> Overdue checkout
-            </span>
+            <span className="text-slate-400">· Online rows are the default (no accent).</span>
           </div>
         </div>
       </main>

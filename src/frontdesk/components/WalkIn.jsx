@@ -1,45 +1,18 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
-import { getFdBookings, getFdRooms, createWalkInBooking, updateBookingStatus, transferRoom } from '../../lib/frontdeskApi';
+import { getFdRooms, createWalkInBooking } from '../../lib/frontdeskApi';
 import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
-import BookingDetailModal from './BookingDetailModal';
 import Modal from '../../components/modals/Modal';
-import { fmtMoney, fmtDateTime, localDateStr } from '../../lib/format';
+import { fmtMoney, localDateStr } from '../../lib/format';
 import HourGridPicker from '../../components/ui/HourGridPicker.jsx';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const todayStr = () => localDateStr();
 
-// Display name for a walk-in. specialRequests is user-controlled on
-// normal online bookings, so only trust the "Walk-in: <name>" prefix
-// when the backend has attributed this booking as a walk-in via
-// source. Otherwise fall back to the canonical guest field.
-function walkInName(b) {
-  if (b?.source === 'walk-in' && b.specialRequests?.startsWith('Walk-in:')) {
-    const m = b.specialRequests.match(/^Walk-in:\s*([^,]+)/);
-    return m ? m[1].trim() : b.guest;
-  }
-  return b.guest;
-}
-
-function StatusBadge({ status }) {
-  const cls = {
-    'Checked In': 'bg-violet-100 text-violet-800',
-    Confirmed:    'bg-sky-100 text-sky-800',
-    Completed:    'bg-emerald-100 text-emerald-800',
-    Cancelled:    'bg-rose-100 text-rose-800',
-    Pending:      'bg-amber-100 text-amber-800',
-  };
-  return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${cls[status] ?? 'bg-slate-100 text-slate-800'}`}>
-      {status}
-    </span>
-  );
-}
 
 // Addons are fetched from API — no hardcoded catalog
 
@@ -70,24 +43,18 @@ export default function WalkIn() {
   const navigate = useNavigate();
   const preselectedRoom = location.state?.preselectedRoom ?? null;
 
-  const [sortBy,  setSortBy]  = useState('ID');
-  const [sortDir, setSortDir] = useState('desc');
-  const [bookings, setBookings]           = useState([]);
+  // Wizard-only page: no table, no row actions — so none of the bookings,
+  // sort, transfer, view-detail, or per-row status state lives here anymore.
   const [rooms, setRooms]                 = useState([]);
   const [loading, setLoading]             = useState(true);
   const [formOpen, setFormOpen]           = useState(false);
   const [submitting,   setSubmitting]     = useState(false);
   const [confirmOpen,  setConfirmOpen]   = useState(false);
-  const [actionLoading, setActionLoading] = useState(null);
-  const [transferBooking, setTransferBooking] = useState(null); // booking being transferred
-  const [transferRoomId, setTransferRoomId]   = useState('');
-  const [transferring, setTransferring]       = useState(false);
   const [error, setError]                 = useState('');
   const [formError, setFormError]         = useState('');
   const [form, setForm]                   = useState(EMPTY_FORM);
   const [wiStep, setWiStep]               = useState(1);
   const [showWiNotes, setShowWiNotes]     = useState(false);
-  const [viewWalkin, setViewWalkin]       = useState(null);
   const [toast, showToast, clearToast, toastType] = useToast();
 
   // Promo code
@@ -117,11 +84,13 @@ export default function WalkIn() {
 
   const today = todayStr();
 
+  // Wizard needs rooms (picker), addons (amenities), pricing (fetched
+  // separately below). It no longer needs the bookings list — availability
+  // is checked via /api/availability, not client-side overlap scanning.
   function loadAll() {
     setLoading(true);
-    Promise.all([getFdBookings(), getFdRooms(), api.get('/api/addons')])
-      .then(([bk, rm, adRes]) => {
-        setBookings(bk);
+    Promise.all([getFdRooms(), api.get('/api/addons')])
+      .then(([rm, adRes]) => {
         setRooms(rm);
         const fetchedAddons = adRes.data?.data ?? [];
         setAddons(fetchedAddons);
@@ -198,30 +167,6 @@ export default function WalkIn() {
     if (!allowed) return;
     if (!allowed.includes(form.bookingType)) setField('bookingType', allowed[0]);
   }, [form.roomId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // "Today's walk-ins" — check-in date is today OR the guest is still
-  // checked in (a walk-in that started at 11:50 PM yesterday shouldn't
-  // disappear from this page at 12:01 AM while the guest is still on-site).
-  //
-  // Walk-in identity comes from the backend-attributed `source` field,
-  // not the user-controlled specialRequests prefix. Online bookings can
-  // write "Walk-in:" into their special requests, but source is derived
-  // server-side and can't be spoofed.
-  const todayBookings = [...bookings.filter(b =>
-    b.source === 'walk-in' &&
-    (b.checkIn?.slice(0, 10) === today || b.status === 'Checked In')
-  )].sort((a, b) => {
-    let aVal, bVal;
-    if (sortBy === 'Guest')  { aVal = walkInName(a).toLowerCase(); bVal = walkInName(b).toLowerCase(); }
-    else if (sortBy === 'Room')   { aVal = (a.roomType ?? '').toLowerCase(); bVal = (b.roomType ?? '').toLowerCase(); }
-    else if (sortBy === 'Guests') { aVal = Number(a.guests ?? 0);            bVal = Number(b.guests ?? 0); }
-    else if (sortBy === 'Total')  { aVal = Number(a.total ?? 0);             bVal = Number(b.total ?? 0); }
-    else if (sortBy === 'Status') { aVal = a.status ?? '';                   bVal = b.status ?? ''; }
-    else { aVal = a.id ?? ''; bVal = b.id ?? ''; }
-    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
-    return 0;
-  });
 
   // Pricing preview — room rate only; entrance fees collected at check-in by frontdesk
   const selectedRoom  = rooms.find(r => String(r.id) === String(form.roomId));
@@ -360,74 +305,9 @@ export default function WalkIn() {
     }
   }
 
-  const [cancelBooking, setCancelBooking] = useState(null);
-  const [cancelling,    setCancelling]    = useState(false);
-  const [shortStayAck,  setShortStayAck]  = useState(false);
-
-  async function handleStatus(bookingId, status) {
-    setActionLoading(bookingId);
-    try {
-      await updateBookingStatus(bookingId, status);
-      setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, status } : b));
-    } catch {
-      showToast('Failed to update status. Please try again.');
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleCancel() {
-    if (!cancelBooking) return;
-    setCancelling(true);
-    try {
-      await updateBookingStatus(cancelBooking.bookingId, 'Cancelled');
-      setBookings(prev => prev.map(b =>
-        b.bookingId === cancelBooking.bookingId ? { ...b, status: 'Cancelled' } : b
-      ));
-      setCancelBooking(null);
-      showToast('Booking cancelled successfully.', 'success');
-    } catch {
-      showToast('Failed to cancel booking. Please try again.', 'error');
-    } finally {
-      setCancelling(false);
-    }
-  }
-
-  async function handleAction(bookingId, status) {
-    setActionLoading(bookingId);
-    try {
-      await updateBookingStatus(bookingId, status);
-      setBookings(prev => prev.map(b =>
-        b.bookingId === bookingId ? { ...b, status } : b
-      ));
-      showToast(`Booking ${status.toLowerCase()} successfully.`, 'success');
-    } catch {
-      showToast(`Failed to update booking.`, 'error');
-    } finally {
-      setActionLoading(null);
-    }
-  }
-
-  async function handleTransfer() {
-    if (!transferBooking || !transferRoomId) return;
-    setTransferring(true);
-    try {
-      const res = await transferRoom(transferBooking.bookingId, Number(transferRoomId));
-      const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
-      setBookings(prev => prev.map(b =>
-        b.bookingId === transferBooking.bookingId
-          ? { ...b, roomType: newRoomName, roomId: Number(transferRoomId) }
-          : b
-      ));
-      setTransferBooking(null);
-      setTransferRoomId('');
-      showToast(`Guest transferred to ${newRoomName}.`, 'success');
-    } catch (err) {
-      showToast(err?.response?.data?.message ?? 'Failed to transfer. Room may be occupied.', 'error');
-    } finally {
-      setTransferring(false);
-    }
-  }
+  // Confirm-step ack for short stays (wizard UI). No row-action handlers
+  // here anymore — those moved to the Bookings page.
+  const [shortStayAck, setShortStayAck] = useState(false);
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -435,106 +315,8 @@ export default function WalkIn() {
       <Helmet><title>Walk-in — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
-      {/* ── Cancel / Undo Booking Modal ── */}
-      {cancelBooking && (
-        <Modal open onClose={() => setCancelBooking(null)} title="Cancel Booking" maxWidth="max-w-md">
-            <div className="p-6">
-              <div className="p-4 bg-rose-50 border border-rose-200 rounded-lg mb-4 text-sm">
-                <p className="font-semibold text-rose-900 mb-1">Are you sure you want to cancel this booking?</p>
-                <p className="text-rose-700">This will free up the room and void the transaction.</p>
-              </div>
-              <div className="p-4 bg-slate-50 rounded-lg mb-4 text-sm space-y-1">
-                <p className="font-medium text-slate-800">{walkInName(cancelBooking)}</p>
-                <p className="text-slate-600">{cancelBooking.roomType} · {cancelBooking.guests} pax</p>
-                <p className="text-slate-600">{cancelBooking.id} · {fmtMoney(cancelBooking.total)}</p>
-                <p className="text-slate-500 text-xs">{fmtDateTime(cancelBooking.checkIn)} → {fmtDateTime(cancelBooking.checkOut)}</p>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setCancelBooking(null)} className="px-4 py-2 border rounded text-sm text-slate-700 hover:bg-slate-50">
-                  Go Back
-                </button>
-                <button onClick={handleCancel} disabled={cancelling}
-                  className="px-4 py-2 bg-rose-600 text-white rounded text-sm hover:bg-rose-700 disabled:opacity-60">
-                  <i className="fas fa-times-circle mr-1"></i>
-                  {cancelling ? 'Cancelling...' : 'Yes, Cancel Booking'}
-                </button>
-              </div>
-            </div>
-        </Modal>
-      )}
-
-      {/* ── Transfer Room Modal ── */}
-      {transferBooking && (() => {
-        // Quantity-aware overlap count, matching the backend's
-        // transferRoom guard and the Reservation page's picker:
-        //   - skip this booking itself
-        //   - skip Cancelled / Completed (backend's whereNotIn clause);
-        //     Pending rows are INCLUDED because they hold inventory until
-        //     they auto-cancel or confirm
-        //   - parse "YYYY-MM-DD HH:mm" safely via .replace(' ', 'T') so
-        //     Safari / strict engines don't return Invalid Date
-        //   - allow a target when overlap count < room.quantity, so
-        //     multi-unit cottages/pavilions aren't hidden at 1/N occupancy
-        const parseDT = (s) => new Date(String(s ?? '').replace(' ', 'T'));
-        const transferStart = parseDT(transferBooking.checkIn);
-        const transferEnd   = parseDT(transferBooking.checkOut);
-        const overlapCounts = new Map();
-        for (const b of bookings) {
-          if (b.bookingId === transferBooking.bookingId) continue;
-          if (['Cancelled', 'Completed'].includes(b.status)) continue;
-          const s = parseDT(b.checkIn);
-          const e = parseDT(b.checkOut);
-          if (isNaN(s.getTime()) || isNaN(e.getTime())) continue;
-          if (s < transferEnd && e > transferStart) {
-            overlapCounts.set(b.roomId, (overlapCounts.get(b.roomId) ?? 0) + 1);
-          }
-        }
-        const availableRooms = rooms.filter(r => {
-          if (String(r.id) === String(transferBooking.roomId)) return false;
-          const taken = overlapCounts.get(r.id) ?? 0;
-          const qty   = Number(r.quantity ?? 1);
-          return taken < qty;
-        });
-        return (
-          <Modal open onClose={() => { setTransferBooking(null); setTransferRoomId(''); }} title={`Transfer Guest — ${transferBooking.id}`} maxWidth="max-w-md">
-              <div className="p-6">
-                <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
-                  <p className="font-medium text-slate-800">{walkInName(transferBooking)}</p>
-                  <p className="text-slate-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
-                </div>
-                <div className="mb-5">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Transfer to Room</label>
-                  {availableRooms.length === 0 ? (
-                    <p className="text-sm text-rose-600">No other rooms are available for this time slot.</p>
-                  ) : (
-                    <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-                      <option value="">Select a room...</option>
-                      {availableRooms.map(r => {
-                        const qty   = Number(r.quantity ?? 1);
-                        const taken = overlapCounts.get(r.id) ?? 0;
-                        const free  = Math.max(0, qty - taken);
-                        const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
-                        return (
-                          <option key={r.id} value={r.id}>{r.name}{suffix}</option>
-                        );
-                      })}
-                    </select>
-                  )}
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="px-4 py-2 border rounded text-sm text-slate-700">Cancel</button>
-                  <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-60">
-                    <i className="fas fa-exchange-alt mr-1"></i>
-                    {transferring ? 'Transferring...' : 'Transfer'}
-                  </button>
-                </div>
-              </div>
-          </Modal>
-        );
-      })()}
+      {/* Cancel / Transfer row-action modals removed — those flows live on
+          the consolidated Bookings page now. */}
 
       {/* ── Walk-in Confirmation Modal ── */}
       {confirmOpen && (() => {
@@ -778,18 +560,7 @@ export default function WalkIn() {
         );
       })()}
 
-      {/* ── View Booking Modal ── */}
-      {viewWalkin && (
-        <BookingDetailModal
-          booking={viewWalkin}
-          onClose={() => setViewWalkin(null)}
-          onUpdated={updated => {
-            setViewWalkin(updated);
-            setBookings(prev => prev.map(b => b.bookingId === updated.bookingId ? { ...b, ...updated } : b));
-          }}
-          showToast={showToast}
-        />
-      )}
+      {/* Detail modal removed — guests are viewed from the Bookings page. */}
 
       {/* ── New Walk-in Modal ── */}
       {formOpen && (
