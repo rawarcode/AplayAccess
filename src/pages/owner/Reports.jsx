@@ -134,12 +134,16 @@ export default function OwnerReports() {
     }));
   }, [active, month, year]);
 
-  // Room type breakdown
+  // Room type breakdown — collected money per room. paidAmount is the
+  // backend's single source of truth (set by payment webhook,
+  // collectPayment, and walk-in creation). The old Completed ? total +
+  // entrance : reservationFee heuristic missed fully-paid Checked-In
+  // stays and walk-ins paid up front, making the chart + printed
+  // breakdown materially understate post-headline metrics.
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
-  const roomRevenue  = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).reduce((s, b) => {
-    if (b.status === "Completed") return s + Number(b.total ?? 0) + Number(b.entranceFee ?? 0);
-    return s + Number(b.reservationFee ?? 0);
-  }, 0)), [roomTypes, active]);
+  const roomRevenue  = useMemo(() => roomTypes.map((r) =>
+    active.filter((b) => b.room === r).reduce((s, b) => s + Number(b.paidAmount ?? 0), 0)
+  ), [roomTypes, active]);
   const roomBookings = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).length), [roomTypes, active]);
 
   const roomBarData = useMemo(() => ({

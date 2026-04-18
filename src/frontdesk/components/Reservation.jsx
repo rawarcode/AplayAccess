@@ -10,7 +10,12 @@ import { fmtDateTime, fmtTime, fmtMoney } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
+// Gate on the backend-attributed `source` — special_requests is user-
+// controlled on online bookings, so a guest could craft "Walk-in: …" to
+// forge identity/contact display here. `source` is derived server-side
+// and can't be spoofed by payload.
 function parseWalkIn(b) {
+  if (b?.source !== 'walk-in') return null;
   if (!b.specialRequests?.startsWith('Walk-in:')) return null;
   const name  = (b.specialRequests.match(/^Walk-in:\s*([^,]+)/) || [])[1]?.trim() || b.guest;
   const phone = (b.specialRequests.match(/Phone:\s*([^,]+)/) || [])[1]?.trim() || '—';

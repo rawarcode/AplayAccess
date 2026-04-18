@@ -10,8 +10,17 @@ function initials(name) {
   return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 }
 
-// Parse real guest info from walk-in special_requests
+// Parse real guest info from the walk-in metadata blob that
+// WalkInController builds into special_requests at creation time.
+//
+// Gate on the backend-attributed `source` field first — special_requests
+// is user-controlled on online bookings, so a guest could craft
+// "Walk-in: Forged Name, Phone: 555, Email: …" and trick this UI into
+// displaying their chosen identity and grouping their visits under the
+// wrong person. `source` is derived server-side from reservation_fee +
+// paymongo_link_id and can't be forged by booking payload.
 function parseWalkIn(b) {
+  if (b?.source !== 'walk-in') return null;
   if (!b.specialRequests?.startsWith('Walk-in:')) return null;
   const name  = (b.specialRequests.match(/^Walk-in:\s*([^,]+)/) || [])[1]?.trim() || b.guest;
   const phone = (b.specialRequests.match(/Phone:\s*([^,]+)/) || [])[1]?.trim() || '—';

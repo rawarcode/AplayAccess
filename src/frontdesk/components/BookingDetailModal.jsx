@@ -25,8 +25,13 @@ function entranceFeeForBooking(booking) {
 }
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+// Gate on the backend-attributed `source` — special_requests is user-
+// controlled on online bookings, so a guest could craft "Walk-in: …" to
+// forge identity/contact display. `source` is derived server-side from
+// reservation_fee + paymongo_link_id and can't be spoofed by payload.
 function parseWalkIn(b) {
-  if (!b?.specialRequests?.startsWith('Walk-in:')) return null;
+  if (b?.source !== 'walk-in') return null;
+  if (!b.specialRequests?.startsWith('Walk-in:')) return null;
   const name  = (b.specialRequests.match(/^Walk-in:\s*([^,]+)/) || [])[1]?.trim() || b.guest;
   const phone = (b.specialRequests.match(/Phone:\s*([^,]+)/)    || [])[1]?.trim() || '—';
   const email = (b.specialRequests.match(/Email:\s*([^,]+)/)    || [])[1]?.trim() || '—';
