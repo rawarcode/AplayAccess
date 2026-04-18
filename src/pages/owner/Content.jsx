@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { getAdminGallery, updateAdminGallery, batchCreateGallery, renameCategoryGallery, toggleCategoryHidden, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
 import { RESORT_ID } from "../../lib/config.js";
@@ -566,6 +567,103 @@ const WHY_ICON_OPTIONS = [
   "fa-tree", "fa-car", "fa-plane", "fa-map-marked-alt", "fa-heart", "fa-star",
 ];
 
+// Visual icon picker — portal-based popover so it escapes any transform
+// or overflow ancestor (matches the pattern in owner/Rooms.jsx). The
+// previous <select> element rendered icon names as plain text
+// ("umbrella-beach"), which told the owner nothing about what the icon
+// looks like until they saved and checked the live preview.
+function IconPickerField({ value, onChange, options = WHY_ICON_OPTIONS }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos]   = useState({ top: 0, left: 0 });
+  const triggerRef = useRef(null);
+  const popoverRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e) => {
+      if (popoverRef.current?.contains(e.target)) return;
+      if (triggerRef.current?.contains(e.target)) return;
+      setOpen(false);
+    };
+    const onKey = (e) => { if (e.key === "Escape") setOpen(false); };
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const reposition = () => {
+      const btn = triggerRef.current;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const W = 240; // popover width
+      const H = 200; // popover approx height
+      let top = r.bottom + 8;
+      if (top + H > window.innerHeight - 8) top = Math.max(8, r.top - H - 8);
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - W - 8));
+      setPos({ top, left });
+    };
+    reposition();
+    window.addEventListener("resize", reposition);
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
+  }, [open]);
+
+  const label = value?.replace(/^fa-/, "") || "pick icon";
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-label={`Icon: ${label}. Click to change.`}
+        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 flex items-center gap-2 transition"
+      >
+        <i className={`fas ${value || "fa-question"} text-sky-500 w-4 text-center`} aria-hidden="true"></i>
+        <span className="text-slate-700 flex-1 text-left truncate">{label}</span>
+        <i className={`fas fa-chevron-down text-[10px] text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true"></i>
+      </button>
+      {open && createPortal(
+        <div
+          ref={popoverRef}
+          role="listbox"
+          aria-label="Icon options"
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: 240 }}
+          className="z-[10000] bg-white border border-slate-200 rounded-xl shadow-xl p-2 grid grid-cols-6 gap-1"
+        >
+          {options.map(icon => {
+            const selected = icon === value;
+            return (
+              <button
+                key={icon}
+                type="button"
+                title={icon.replace(/^fa-/, "")}
+                aria-label={icon.replace(/^fa-/, "")}
+                aria-selected={selected}
+                onClick={() => { onChange(icon); setOpen(false); }}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm transition ${selected ? "bg-sky-100 text-sky-600 ring-2 ring-sky-300" : "hover:bg-slate-100 text-slate-500"}`}
+              >
+                <i className={`fas ${icon}`} aria-hidden="true"></i>
+              </button>
+            );
+          })}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
+
 function HomeWhyEditor({ content, onSave }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(content);
@@ -635,12 +733,10 @@ function HomeWhyEditor({ content, onSave }) {
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <div>
                       <label className="block text-xs font-medium text-slate-500 mb-1">Icon</label>
-                      <select value={feat.icon} onChange={e => updateFeature(i, "icon", e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400">
-                        {WHY_ICON_OPTIONS.map(ico => (
-                          <option key={ico} value={ico}>{ico.replace("fa-", "")}</option>
-                        ))}
-                      </select>
+                      <IconPickerField
+                        value={feat.icon}
+                        onChange={(ico) => updateFeature(i, "icon", ico)}
+                      />
                     </div>
                     <Field label="Title" value={feat.title} onChange={v => updateFeature(i, "title", v)} maxLength={50} />
                     <Field label="Description" value={feat.desc} onChange={v => updateFeature(i, "desc", v)} maxLength={120} />
