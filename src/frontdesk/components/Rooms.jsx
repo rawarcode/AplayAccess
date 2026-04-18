@@ -219,7 +219,7 @@ function fmtDateLabel(dt) {
 }
 
 // ─── MultiUnitCard — for cottages / pavilions with quantity > 1 ──────────────
-function MultiUnitCard({ room, info, onWalkIn }) {
+function MultiUnitCard({ room, info, onOpen, onWalkIn }) {
   const { quantity, occupied, incoming, pending, vacant } = info;
 
   const dots = [];
@@ -231,7 +231,13 @@ function MultiUnitCard({ room, info, onWalkIn }) {
   }
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2">
+    <div
+      onClick={onOpen}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } }}
+      className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2 cursor-pointer transition-all duration-200 hover:border-slate-300 hover:shadow-md hover:scale-[1.015]"
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="font-semibold text-slate-800 text-xs leading-tight truncate">{room.name}</p>
@@ -257,15 +263,138 @@ function MultiUnitCard({ room, info, onWalkIn }) {
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end border-t border-slate-100 pt-1.5">
+      <div className="flex items-center justify-between border-t border-slate-100 pt-1.5">
+        <span className="text-[10px] text-slate-400 font-medium">
+          <i className="fas fa-list text-[9px] mr-1"></i>Details
+        </span>
         {vacant > 0
-          ? <button onClick={onWalkIn} className="text-[10px] font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-0.5">
+          ? <button
+              onClick={(e) => { e.stopPropagation(); onWalkIn?.(); }}
+              className="text-[10px] font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-0.5"
+            >
               <i className="fas fa-person-walking text-[9px]"></i> Walk-in
             </button>
           : <span className="text-[10px] text-rose-500 font-semibold">Full</span>
         }
       </div>
     </div>
+  );
+}
+
+// ─── MultiUnitModal — details + per-booking list for multi-unit rooms ────────
+function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenBooking }) {
+  const now = new Date();
+  const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
+
+  const occupied = [], incoming = [], pending = [];
+  bookings
+    .filter(b =>
+      b.roomType === room.name &&
+      b.status !== 'Cancelled' &&
+      b.status !== 'Completed' &&
+      overlapsWindow(b, ws, we)
+    )
+    .forEach(b => {
+      const r = bookingRange(b);
+      if (!r) return;
+      if (now >= r.ci && now < r.co)       occupied.push(b);
+      else if (now < r.ci) {
+        if (b.status === 'Pending')        pending.push(b);
+        else                               incoming.push(b);
+      }
+    });
+
+  const cat = getCat(room);
+  const icon = cat === 'cottage' ? 'fa-umbrella-beach' : cat === 'pavilion' ? 'fa-archway' : 'fa-bed';
+
+  const KIND = {
+    occupied: { pill: 'bg-rose-500 text-white',        label: 'OCCUPIED', row: 'bg-rose-50 border-rose-200 hover:bg-rose-100'    },
+    incoming: { pill: 'bg-sky-500 text-white',         label: 'ARRIVING', row: 'bg-sky-50 border-sky-200 hover:bg-sky-100'       },
+    pending:  { pill: 'bg-amber-400 text-slate-900',   label: 'PENDING',  row: 'bg-amber-50 border-amber-200 hover:bg-amber-100' },
+  };
+
+  function renderRow(b, kind) {
+    const guest = guestName(b) || b.guest || b.guest_name || 'Guest';
+    const typeLabel = bookingSlotLabel(b);
+    const cfg = KIND[kind];
+    return (
+      <button
+        key={b.bookingId}
+        onClick={() => onOpenBooking(b)}
+        className={`w-full text-left rounded-lg border p-3 transition-all ${cfg.row}`}
+      >
+        <div className="flex items-center justify-between mb-1.5">
+          <span className={`text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${cfg.pill}`}>
+            {cfg.label}
+          </span>
+          <span className="text-[10px] text-slate-500 font-mono">{b.id}</span>
+        </div>
+        <p className="font-semibold text-slate-900 text-sm leading-tight">
+          <i className="fas fa-user text-slate-400 text-xs mr-1"></i>{guest}
+        </p>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-xs text-slate-600">
+          <span><i className="fas fa-clock mr-1 opacity-60"></i>{fmtTime(b.checkIn)} → {fmtTime(b.checkOut)}</span>
+          <span className="text-slate-300">·</span>
+          <span>{typeLabel}</span>
+          <span className="text-slate-300">·</span>
+          <span>{b.guests} guest{b.guests !== 1 ? 's' : ''}</span>
+        </div>
+      </button>
+    );
+  }
+
+  const total = occupied.length + incoming.length + pending.length;
+
+  return (
+    <Modal open onClose={onClose} title={room.name} maxWidth="max-w-lg">
+      {/* Header strip with counts */}
+      <div className="bg-slate-50 rounded-lg p-3 mb-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <i className={`fas ${icon} text-slate-500`}></i>
+          <span className="font-semibold text-slate-800 text-sm">{room.name}</span>
+          <span className="text-[10px] font-bold text-slate-400">×{info.quantity}</span>
+        </div>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {info.occupied > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">{info.occupied} Occ</span>}
+          {info.incoming > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700">{info.incoming} Arr</span>}
+          {info.pending  > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{info.pending} Pend</span>}
+          {info.vacant   > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{info.vacant} Free</span>}
+        </div>
+      </div>
+
+      {/* Booking list */}
+      <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+        {occupied.map(b => renderRow(b, 'occupied'))}
+        {incoming.map(b => renderRow(b, 'incoming'))}
+        {pending.map(b  => renderRow(b, 'pending'))}
+        {total === 0 && (
+          <div className="py-8 text-center text-slate-400 text-sm">
+            <i className="fas fa-calendar-check block text-3xl mb-2 text-slate-300"></i>
+            No active bookings in this slot.
+          </div>
+        )}
+      </div>
+
+      {/* Walk-in + close */}
+      <div className="mt-4 flex flex-col gap-2">
+        {info.vacant > 0 ? (
+          <button
+            onClick={onWalkIn}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-sm"
+          >
+            <i className="fas fa-person-walking"></i>
+            Walk-in Booking for {room.name}
+          </button>
+        ) : (
+          <div className="text-center text-rose-600 text-sm font-semibold py-2 bg-rose-50 rounded-lg">
+            <i className="fas fa-ban mr-1"></i>All units are booked for this slot.
+          </div>
+        )}
+        <button onClick={onClose} className="w-full py-2 border rounded text-sm text-slate-600 hover:bg-slate-50">
+          Close
+        </button>
+      </div>
+    </Modal>
   );
 }
 
@@ -342,6 +471,7 @@ export default function FDRooms() {
   const [lastRefresh, setLastRefresh] = useState(new Date());
   const [filter, setFilter]     = useState('all');
   const [selectedSlot, setSelectedSlot] = useState(null); // { room, info }
+  const [selectedMulti, setSelectedMulti] = useState(null); // { room, info, slot }
   const [toast, showToast, clearToast, toastType] = useToast();
 
   const load = useCallback(() => {
@@ -433,6 +563,25 @@ export default function FDRooms() {
             onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: selectedSlot.room } })}
           />
         )
+      )}
+      {selectedMulti && !selectedSlot && (
+        <MultiUnitModal
+          room={selectedMulti.room}
+          info={selectedMulti.info}
+          bookings={bookings}
+          slot={selectedMulti.slot}
+          onClose={() => setSelectedMulti(null)}
+          onWalkIn={() => {
+            const r = selectedMulti.room;
+            setSelectedMulti(null);
+            navigate('/frontdesk/walkin', { state: { preselectedRoom: r } });
+          }}
+          onOpenBooking={(b) => {
+            // Hand off to BookingDetailModal, keep selectedMulti so closing returns here
+            const info = { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' };
+            setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info });
+          }}
+        />
       )}
       <main className="p-6 flex gap-6 min-h-0">
 
@@ -559,6 +708,7 @@ export default function FDRooms() {
                                     const info = item[infoKey];
                                     return info.multi ? (
                                       <MultiUnitCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
+                                        onOpen={() => setSelectedMulti({ room: item.room, info, slot })}
                                         onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: item.room } })} />
                                     ) : (
                                       <RoomCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
