@@ -54,6 +54,22 @@ function getRoomCategory(r) {
   return "room";
 }
 
+// Which booking types (day / night / 24hr) this room actually offers.
+// A room can be restricted via `allowed_booking_types`:
+//   null / undefined / empty → all types allowed (unrestricted)
+//   array of strings         → only those types allowed
+// We AND this with "rate exists" so a room with overnight_rate = 0
+// doesn't advertise Night even if it's technically allowed.
+function roomOffers(r, type) {
+  const allowed = r.allowed_booking_types;
+  const unrestricted = !allowed || allowed.length === 0;
+  const typeAllowed  = unrestricted || allowed.includes(type);
+  if (!typeAllowed) return false;
+  if (type === 'night') return Number(r.overnight_rate) > 0;
+  if (type === '24hr')  return Number(r.rate_24hr)      > 0;
+  return Number(r.day_rate) > 0; // day
+}
+
 /* ------------------------------------------------------------------ */
 /*  Scroll-triggered reveal                                           */
 /* ------------------------------------------------------------------ */
@@ -299,17 +315,20 @@ export default function Rooms() {
                           className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy" />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
-                        {/* Badges */}
+                        {/* Badges — respect allowed_booking_types so a night-only
+                            or 24hr-only room isn't merchandised as day-use. */}
                         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
-                          <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
-                            Day Use
-                          </span>
-                          {Number(r.overnight_rate) > 0 && (
+                          {roomOffers(r, 'day') && (
+                            <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                              Day Use
+                            </span>
+                          )}
+                          {roomOffers(r, 'night') && (
                             <span className="bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                               Overnight
                             </span>
                           )}
-                          {Number(r.rate_24hr) > 0 && (
+                          {roomOffers(r, '24hr') && (
                             <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
                               24 Hours
                             </span>
@@ -328,19 +347,21 @@ export default function Rooms() {
                         <h3 className="text-lg font-bold text-slate-900 mb-1">{r.name}</h3>
                         <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
 
-                        {/* Pricing row */}
+                        {/* Pricing row — only types the room actually offers */}
                         <div className="flex flex-wrap gap-2 mb-4">
-                          <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
-                            <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day</p>
-                            <p className="text-sm font-bold text-sky-700">{formatPHP(r.day_rate)}</p>
-                          </div>
-                          {Number(r.overnight_rate) > 0 && (
+                          {roomOffers(r, 'day') && (
+                            <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
+                              <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide">Day</p>
+                              <p className="text-sm font-bold text-sky-700">{formatPHP(r.day_rate)}</p>
+                            </div>
+                          )}
+                          {roomOffers(r, 'night') && (
                             <div className="flex-1 min-w-[80px] bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
                               <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide">Night</p>
                               <p className="text-sm font-bold text-indigo-700">{formatPHP(r.overnight_rate)}</p>
                             </div>
                           )}
-                          {Number(r.rate_24hr) > 0 && (
+                          {roomOffers(r, '24hr') && (
                             <div className="flex-1 min-w-[80px] bg-amber-50 rounded-xl px-3 py-2 text-center border border-amber-100">
                               <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide">24 Hrs</p>
                               <p className="text-sm font-bold text-amber-700">{formatPHP(r.rate_24hr)}</p>
@@ -386,11 +407,13 @@ export default function Rooms() {
                       className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-                      <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">Day Use</span>
-                      {Number(detailRoom.overnight_rate) > 0 && (
+                      {roomOffers(detailRoom, 'day') && (
+                        <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">Day Use</span>
+                      )}
+                      {roomOffers(detailRoom, 'night') && (
                         <span className="bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Overnight</span>
                       )}
-                      {Number(detailRoom.rate_24hr) > 0 && (
+                      {roomOffers(detailRoom, '24hr') && (
                         <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">24 Hours</span>
                       )}
                     </div>
@@ -440,17 +463,19 @@ export default function Rooms() {
                     {/* Pricing */}
                     <div className="border-t border-slate-100 pt-6">
                       <div className="flex flex-wrap gap-3 mb-5">
-                        <div className="flex-1 min-w-[100px] bg-sky-50 rounded-2xl p-4 text-center border border-sky-100">
-                          <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide mb-0.5">Day Use</p>
-                          <p className="text-2xl font-bold text-sky-700">{formatPHP(detailRoom.day_rate)}</p>
-                        </div>
-                        {Number(detailRoom.overnight_rate) > 0 && (
+                        {roomOffers(detailRoom, 'day') && (
+                          <div className="flex-1 min-w-[100px] bg-sky-50 rounded-2xl p-4 text-center border border-sky-100">
+                            <p className="text-[10px] text-sky-600 font-semibold uppercase tracking-wide mb-0.5">Day Use</p>
+                            <p className="text-2xl font-bold text-sky-700">{formatPHP(detailRoom.day_rate)}</p>
+                          </div>
+                        )}
+                        {roomOffers(detailRoom, 'night') && (
                           <div className="flex-1 min-w-[100px] bg-indigo-50 rounded-2xl p-4 text-center border border-indigo-100">
                             <p className="text-[10px] text-indigo-600 font-semibold uppercase tracking-wide mb-0.5">Overnight</p>
                             <p className="text-2xl font-bold text-indigo-700">{formatPHP(detailRoom.overnight_rate)}</p>
                           </div>
                         )}
-                        {Number(detailRoom.rate_24hr) > 0 && (
+                        {roomOffers(detailRoom, '24hr') && (
                           <div className="flex-1 min-w-[100px] bg-amber-50 rounded-2xl p-4 text-center border border-amber-100">
                             <p className="text-[10px] text-amber-600 font-semibold uppercase tracking-wide mb-0.5">24 Hours</p>
                             <p className="text-2xl font-bold text-amber-700">{formatPHP(detailRoom.rate_24hr)}</p>
