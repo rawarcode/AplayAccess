@@ -81,13 +81,18 @@ function walkInName(b) {
 }
 
 // Payment-state cell. Renders as a single consistent pill shape across
-// all states so a scan down the column compares apples to apples:
-//   Paid • Due ₱X • Collected • Forfeited ₱X
+// all states so a scan down the column compares apples to apples.
+// Each cell carries both the state label AND the money amount so staff
+// can answer "how much?" without opening the detail modal:
+//   Paid ₱X • Collected ₱X • Due ₱X • Forfeited ₱X • No payment
 function PaymentCell({ booking, entranceRates }) {
+  const paid = Number(booking.paidAmount ?? 0);
+
   if (booking.status === 'Completed') {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>Collected
+        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>
+        Collected {fmtMoney(paid)}
       </span>
     );
   }
@@ -102,14 +107,25 @@ function PaymentCell({ booking, entranceRates }) {
   if (booking.fullyPaid) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>Paid
+        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>
+        Paid {fmtMoney(paid)}
       </span>
     );
   }
-  const due = Math.max(0, Number(booking.total ?? 0) + calcEntrance(booking, entranceRates) - Number(booking.paidAmount ?? 0));
+  // Partially paid or unpaid — show both what's been paid so far (if any)
+  // and what's still due. "Due ₱1,900 (₱300 paid)" gives staff the full
+  // picture at a glance without math.
+  const grand = Number(booking.total ?? 0) + calcEntrance(booking, entranceRates);
+  const due   = Math.max(0, grand - paid);
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
-      <i className="fas fa-coins text-[10px]" aria-hidden="true"></i>Due {fmtMoney(due)}
+      <i className="fas fa-coins text-[10px]" aria-hidden="true"></i>
+      Due {fmtMoney(due)}
+      {paid > 0 && (
+        <span className="text-[10px] font-normal text-sky-700/80">
+          ({fmtMoney(paid)} paid)
+        </span>
+      )}
     </span>
   );
 }
