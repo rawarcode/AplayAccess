@@ -5,10 +5,25 @@ import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
 import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom, downloadStaffReceipt } from '../../lib/frontdeskApi';
+import { api } from '../../lib/api';
 import { fmtDateTime, fmtTime, fmtMoney } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
+// '24hr-pm' is kept for legacy rows created before the flexible 24hr
+// start hour — priced the same as '24hr'.
+const FALLBACK_ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+
+// Gate fee payable on arrival. Uses backend-persisted entranceFee when
+// present (set at check-in) and falls back to guests × per-head rate so
+// the Total column isn't silently ₱0 for Pending / Confirmed rows —
+// mirrors the pattern used on Billing.jsx.
+function calcEntrance(b, rates = FALLBACK_ENTRANCE_RATES) {
+  if (b?.entranceFee != null && Number(b.entranceFee) > 0) return Number(b.entranceFee);
+  const rate = rates[b?.bookingType ?? 'day'] ?? 50;
+  return Number(b?.guests ?? 1) * rate;
+}
+
 
 // Gate on the backend-attributed `source` — special_requests is user-
 // controlled on online bookings, so a guest could craft "Walk-in: …" to
@@ -85,6 +100,7 @@ export default function Bookings() {
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState('');
   const [actionLoading, setActionLoading] = useState(null);
+  const [entranceRates, setEntranceRates] = useState(FALLBACK_ENTRANCE_RATES);
 
   const [searchParams, setSearchParams]   = useSearchParams();
   const [sortBy, setSortBy]               = useState('Visit Time');
@@ -159,6 +175,20 @@ export default function Bookings() {
   useEffect(() => {
     load();
     const id = setInterval(load, 20_000);
+    // Fetch once — the entrance-fee rates rarely change. Falls back to
+    // FALLBACK_ENTRANCE_RATES on error so the Total column always has
+    // something reasonable to render.
+    api.get('/api/pricing')
+      .then(r => {
+        const d = r.data?.data;
+        if (d) setEntranceRates({
+          day:       Number(d.entrance_fee_day   ?? 50),
+          night:     Number(d.entrance_fee_night ?? 80),
+          '24hr':    Number(d.entrance_fee_24hr  ?? 100),
+          '24hr-pm': Number(d.entrance_fee_24hr  ?? 100),
+        });
+      })
+      .catch(() => {});
     return () => clearInterval(id);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -212,7 +242,7 @@ export default function Bookings() {
       else if (sortBy === 'Room')       key = (b.roomType ?? '').toLowerCase();
       else if (sortBy === 'Visit Time') key = b.checkIn ?? '';
       else if (sortBy === 'Guests')     key = Number(b.guests ?? 0);
-      else if (sortBy === 'Total')      key = Number(b.total ?? 0);
+      else if (sortBy === 'Total')      key = Number(b.total ?? 0) + calcEntrance(b, entranceRates);
       else if (sortBy === 'Status')     key = STATUS_ORDER[b.status] ?? 5;
       else                              key = '';
       return { b, key };
@@ -225,7 +255,7 @@ export default function Bookings() {
       return ((a.key > b.key) - (a.key < b.key)) * dir;
     });
     return keyed.map(x => x.b);
-  }, [bookings, filterStatus, filterSource, searchTerm, sortBy, sortDir]);
+  }, [bookings, filterStatus, filterSource, searchTerm, sortBy, sortDir, entranceRates]);
 
   // Source-count badges for the segmented toggle
   const sourceCounts = useMemo(() => {
@@ -313,7 +343,9 @@ export default function Bookings() {
                     ['Booking ID', b.id],
                     ['Guest',      guest],
                     ['Room',       b.roomType],
-                    ['Total',      fmtMoney(b.total)],
+                    // Grand total mirrors the table column so staff see the
+                    // same number before confirming as they did on the row.
+                    ['Total',      fmtMoney(Number(b.total ?? 0) + calcEntrance(b, entranceRates))],
                   ].map(([label, val]) => (
                     <div key={label} className="flex justify-between px-4 py-2">
                       <span className="text-slate-500">{label}</span>
@@ -599,7 +631,27 @@ export default function Bookings() {
                           <span className="text-slate-400">→ {fmtTime(b.checkOut)}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
-                        <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{fmtMoney(b.total)}</td>
+                        {/* Grand total = room + amenities − discount + entrance fee.
+                            Staff need the full amount collectible (the old column
+                            showed only the room portion, which was misleading for
+                            anyone who hadn't memorised that entrance is separate).
+                            Breakdown sublabel keeps the room vs. entrance split
+                            visible without forcing staff to open the detail modal. */}
+                        <td className="px-4 py-3 text-sm whitespace-nowrap">
+                          {(() => {
+                            const entrance   = calcEntrance(b, entranceRates);
+                            const grandTotal = Number(b.total ?? 0) + entrance;
+                            return (
+                              <>
+                                <div className="font-semibold text-slate-800">{fmtMoney(grandTotal)}</div>
+                                <div className="text-[10px] text-slate-400 leading-tight">
+                                  {fmtMoney(b.total)} room
+                                  {entrance > 0 && <> + {fmtMoney(entrance)} gate</>}
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1 items-start">
                             <StatusBadge status={b.status} booking={b} />
