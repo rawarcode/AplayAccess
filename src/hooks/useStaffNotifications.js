@@ -18,6 +18,12 @@ const todayStr = () => localDateStr();
 // deadline — avoiding the scramble that triggers the overdue notification.
 const CHECKOUT_SOON_WINDOW_MIN = 30;
 
+// Reviews created within this many days count as "new" for the awareness
+// notification. 7 days matches a typical weekly check-in cadence — longer
+// lets stale reviews linger, shorter risks owners missing one over a
+// weekend. Separate from moderation-queue counts (which look at status).
+const NEW_REVIEW_WINDOW_DAYS = 7;
+
 const DEFAULT_PATHS = {
   pendingBookings:  '/owner/transactions?status=Pending',
   messages:         '/owner/messages',
@@ -32,6 +38,7 @@ export function useStaffNotifications(paths = {}) {
     unreadMessages:   0,
     pendingBookings:  0,
     todayArrivals:    0,
+    newReviews:       0,
     pendingReviews:   0,
     soonCheckouts:    0,
     overdueCheckouts: 0,
@@ -68,11 +75,26 @@ export function useStaffNotifications(paths = {}) {
       if (msUntil <= 0)                              overdueCheckouts++;
       else if (msUntil <= soonWindowMs)              soonCheckouts++;
     }
-    const pendingReviews = Array.isArray(reviews)
-      ? reviews.filter(r => r.status === 'pending').length
-      : 0;
+    // Reviews carry awareness (new this week) AND moderation-queue
+    // (status=Pending) semantics separately. Most submissions default to
+    // Approved so pendingReviews is usually 0 — that's fine; the
+    // "N new reviews" count covers the "review just came in" case even
+    // when moderation is off. Case-insensitive status comparison guards
+    // against the DB storing 'Pending' while older code used 'pending'.
+    const newReviewCutoffMs = now.getTime() - NEW_REVIEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    let newReviews = 0;
+    let pendingReviews = 0;
+    if (Array.isArray(reviews)) {
+      for (const r of reviews) {
+        const created = r.createdAt ? new Date(r.createdAt) : (r.date ? new Date(r.date) : null);
+        if (created && !isNaN(created.getTime()) && created.getTime() >= newReviewCutoffMs) {
+          newReviews++;
+        }
+        if (String(r.status ?? '').toLowerCase() === 'pending') pendingReviews++;
+      }
+    }
 
-    setCounts({ unreadMessages, pendingBookings, todayArrivals, pendingReviews, soonCheckouts, overdueCheckouts });
+    setCounts({ unreadMessages, pendingBookings, todayArrivals, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
 
     const next = [];
     if (pendingBookings > 0)
@@ -114,6 +136,16 @@ export function useStaffNotifications(paths = {}) {
         label: `${pendingReviews} review${pendingReviews !== 1 ? 's' : ''} pending approval`,
         path: p.reviews,
       });
+    // Awareness notification — fires when a review lands regardless of
+    // whether moderation is on. Keeps owners in the loop even when
+    // reviews auto-approve (the default). Pending-approval notification
+    // above still fires when moderation IS on.
+    if (newReviews > 0 && p.reviews)
+      next.push({
+        id: 'new-reviews', icon: 'fa-star', color: 'yellow',
+        label: `${newReviews} new review${newReviews !== 1 ? 's' : ''} this week`,
+        path: p.reviews,
+      });
 
     setItems(next);
   }, []);
@@ -124,7 +156,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
+  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.newReviews + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
 
   return { counts, items, total, refresh: poll };
 }
