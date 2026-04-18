@@ -145,6 +145,34 @@ export default function OwnerDashboard() {
 
     const totalGuests = activeBookings.reduce((s, b) => s + Number(b.guests ?? 0), 0);
 
+    // New Customers (MTD) — unique guests whose FIRST booking (by check-in
+    // date) falls within this month. Dedupe on userId first, falling back
+    // to email / phone so walk-ins that entered contact info still count
+    // against the same identity. Anonymous walk-ins with no identifier are
+    // excluded (we can't tell if they're new or returning) — the subtext
+    // says "identifiable" so the number isn't overclaimed.
+    const identityOf = (b) => {
+      const id = b.userId ?? b.user_id;
+      if (id != null && id !== '') return `u:${id}`;
+      const email = (b.guestEmail || '').trim().toLowerCase();
+      if (email) return `e:${email}`;
+      const phone = (b.guestPhone || '').replace(/\D/g, '');
+      if (phone) return `p:${phone}`;
+      return null;
+    };
+    const firstSeenDate = {};
+    for (const b of bookings) {
+      const key = identityOf(b);
+      if (!key) continue;
+      const d = b.checkIn?.slice(0, 10) ?? '';
+      if (!d) continue;
+      if (!firstSeenDate[key] || d < firstSeenDate[key]) firstSeenDate[key] = d;
+    }
+    let newCustomersThisMonth = 0;
+    for (const d of Object.values(firstSeenDate)) {
+      if (d >= monthStart && d < nextMonthStart) newCustomersThisMonth++;
+    }
+
     const walkinBookings  = bookings.filter(b => isWalkIn(b)).length;
     const onlineBookings  = bookings.length - walkinBookings;
     const onlinePct       = bookings.length > 0 ? Math.round((onlineBookings / bookings.length) * 100) : 0;
@@ -165,7 +193,7 @@ export default function OwnerDashboard() {
 
     return {
       activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
-      avgBookingValue, topRoomName, topRoomCount, totalGuests,
+      avgBookingValue, topRoomName, topRoomCount, newCustomersThisMonth,
       walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
       dayOfWeekCounts, days30ago, today,
     };
@@ -173,7 +201,7 @@ export default function OwnerDashboard() {
 
   const {
     activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
-    avgBookingValue, topRoomName, topRoomCount, totalGuests,
+    avgBookingValue, topRoomName, topRoomCount, newCustomersThisMonth,
     walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
     dayOfWeekCounts, days30ago, today,
   } = derivedKpis;
@@ -416,14 +444,28 @@ export default function OwnerDashboard() {
           </div>
         </div>
 
+        {/* New Customers (MTD) — replaced "Registered Guests", whose label
+            claimed "total accounts" but whose value was actually a sum of
+            guest-counts across every active booking ever (a lifetime pax
+            tally that just grows and tells the owner nothing actionable).
+            New Customers answers "who found us this month?" — the
+            acquisition lens that pairs with Monthly Revenue (money) and
+            a future retention KPI. Dedupes on userId → email → phone so
+            walk-ins with contact info aren't counted twice. */}
         <div className="bg-white rounded-xl shadow p-5 hover:shadow-md transition">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-500 text-sm">Registered Guests</p>
-              <h3 className="text-2xl font-bold mt-1">{totalGuests}</h3>
-              <p className="text-xs text-slate-400 mt-1">total accounts</p>
+              <p className="text-slate-500 text-sm">New Customers (MTD)</p>
+              <h3 className="text-2xl font-bold mt-1">{newCustomersThisMonth}</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                {newCustomersThisMonth === 0
+                  ? 'No identifiable new guests yet'
+                  : `${newCustomersThisMonth === 1 ? 'new guest' : 'new guests'} this month (identifiable)`}
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-teal-100 text-teal-600"><i className="fas fa-users text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-teal-100 text-teal-600">
+              <i className="fas fa-user-plus text-xl" aria-hidden="true"></i>
+            </div>
           </div>
         </div>
 
@@ -432,9 +474,17 @@ export default function OwnerDashboard() {
             <div>
               <p className="text-slate-500 text-sm">Peak Day</p>
               <h3 className="text-2xl font-bold mt-1">{peakDay}</h3>
-              <p className="text-xs text-slate-400 mt-1">{dayOfWeekCounts[peakDayIdx]} bookings (30d)</p>
+              {/* Previous subtext "2 bookings (30d)" read as if Saturday had
+                  2 bookings total across all time. What it actually means
+                  is: sum of bookings whose check-in fell on any Saturday in
+                  the last 30 days. Clarified so the owner knows the scope. */}
+              <p className="text-xs text-slate-400 mt-1">
+                {dayOfWeekCounts[peakDayIdx] === 0
+                  ? 'No bookings in the last 30 days'
+                  : `${dayOfWeekCounts[peakDayIdx]} booking${dayOfWeekCounts[peakDayIdx] === 1 ? '' : 's'} on ${peakDay}s (last 30 days)`}
+              </p>
             </div>
-            <div className="p-3 rounded-xl bg-amber-100 text-amber-600"><i className="fas fa-fire text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-600"><i className="fas fa-fire text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
       </div>
