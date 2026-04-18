@@ -165,9 +165,16 @@ export default function AdminAnnouncements() {
   }
 
   function openEdit(item) {
+    // Published At defaults to NOW whenever the modal opens — the
+    // common case is staff re-publishing after a typo fix. The
+    // stored original is still derivable (the item hasn't been
+    // touched until save), and staff can paste back the old date or
+    // pick a scheduled future one if they need to. Matches the
+    // openNew behavior so the field's default state is consistent
+    // regardless of entry point.
     const obj = {
       ...item,
-      published_at: toLocalDatetimeInput(item.published_at || new Date()),
+      published_at: toLocalDatetimeInput(new Date()),
     };
     setEditing(obj);
     editSnapshot.current = JSON.stringify(obj);
