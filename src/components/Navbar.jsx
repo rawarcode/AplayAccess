@@ -39,8 +39,12 @@ export default function Navbar() {
   return (
     <nav className="fixed w-full z-40 bg-white shadow-sm">
       <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
-        {/* Logo */}
-        <Link to="/resort" className="flex items-center gap-2">
+        {/* Logo — routes to / (Home). Convention is that the brand
+            lockup always takes users back to the site root; previously
+            this pointed at /resort, which made clicking the logo a
+            no-op when the user was already on the resort page and
+            hid the Home route entirely. */}
+        <Link to="/" className="flex items-center gap-2">
           {brand.logoImage
             ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" />
             : <span className="text-2xl">🏖️</span>
@@ -50,6 +54,7 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
+          <Link to="/" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Home</Link>
           <Link to="/resort" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Resort</Link>
           <Link to="/rooms" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Rooms</Link>
           <Link to="/gallery" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Gallery</Link>
@@ -93,6 +98,9 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden bg-white border-t shadow-lg">
           <div className="px-4 py-3 space-y-1" onClick={() => setMenuOpen(false)}>
+            <Link to="/" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
+              <i className="fas fa-home w-5 text-center mr-2 text-gray-400"></i>Home
+            </Link>
             <Link to="/resort" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
               <i className="fas fa-umbrella-beach w-5 text-center mr-2 text-gray-400"></i>Resort
             </Link>
