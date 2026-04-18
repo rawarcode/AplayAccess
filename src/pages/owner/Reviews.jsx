@@ -4,6 +4,13 @@ import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { getAdminReviews, updateAdminReview, deleteAdminReview } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
+import { useNotifications } from "../../context/NotificationContext.jsx";
+
+// Matches useStaffNotifications' REVIEWS_SEEN_KEY — visiting this page
+// timestamps "reviews seen up to now", which clears the "N new reviews
+// this week" notification. Per-device via localStorage; no backend
+// column needed for a single-owner capstone deployment.
+const REVIEWS_SEEN_KEY = "aplaya_reviews_last_seen_at";
 
 const PAGE_SIZE = 10;
 
@@ -25,6 +32,17 @@ const RATING_PILLS = [
 
 export default function AdminReviews() {
   const [toast, showToast, clearToast, toastType, toastAction] = useToast(5000);
+  const { refresh: refreshNotifications } = useNotifications();
+
+  // Mark all current reviews as "seen" by stamping the visit time. The
+  // notification hook (useStaffNotifications) reads this on each poll
+  // and uses it as the cutoff for the "N new reviews this week" badge.
+  // Calling refresh() re-polls immediately so the bell drops to 0
+  // without waiting up to 20 s for the next scheduled poll.
+  useEffect(() => {
+    try { localStorage.setItem(REVIEWS_SEEN_KEY, String(Date.now())); } catch { /* quota / private-mode */ }
+    refreshNotifications?.();
+  }, [refreshNotifications]);
 
   /* ── state ── */
   const [reviews,      setReviews]      = useState([]);

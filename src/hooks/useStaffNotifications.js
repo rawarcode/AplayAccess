@@ -19,10 +19,30 @@ const todayStr = () => localDateStr();
 const CHECKOUT_SOON_WINDOW_MIN = 30;
 
 // Reviews created within this many days count as "new" for the awareness
-// notification. 7 days matches a typical weekly check-in cadence — longer
-// lets stale reviews linger, shorter risks owners missing one over a
-// weekend. Separate from moderation-queue counts (which look at status).
+// notification — auto-decay safety net for the never-visited case.
+// When the owner visits /owner/reviews we timestamp the visit, and from
+// that point the "new" cutoff is whichever is MORE RECENT: the visit
+// or 7 days ago. So visiting the page clears the badge for everything
+// currently there.
 const NEW_REVIEW_WINDOW_DAYS = 7;
+
+// Browser-local timestamp of when the owner last opened the Reviews page.
+// Written by pages/owner/Reviews.jsx on mount. Read here as the "seen
+// watermark". Per-device by design — no backend column needed for a
+// single-owner capstone, and cross-device drift isn't worth the
+// additional API surface.
+const REVIEWS_SEEN_KEY = 'aplaya_reviews_last_seen_at';
+
+function getReviewsSeenCutoffMs() {
+  try {
+    const raw = localStorage.getItem(REVIEWS_SEEN_KEY);
+    if (!raw) return 0;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  } catch {
+    return 0;
+  }
+}
 
 const DEFAULT_PATHS = {
   pendingBookings:  '/owner/transactions?status=Pending',
@@ -81,7 +101,15 @@ export function useStaffNotifications(paths = {}) {
     // "N new reviews" count covers the "review just came in" case even
     // when moderation is off. Case-insensitive status comparison guards
     // against the DB storing 'Pending' while older code used 'pending'.
-    const newReviewCutoffMs = now.getTime() - NEW_REVIEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    //
+    // Cutoff = max(lastSeenVisit, 7-days-ago). Visiting /owner/reviews
+    // writes the timestamp to localStorage, which becomes the new
+    // baseline — everything older than the visit drops off the badge.
+    // The 7-day floor is the auto-decay fallback for owners who never
+    // visit the Reviews page.
+    const weekAgoMs          = now.getTime() - NEW_REVIEW_WINDOW_DAYS * 24 * 60 * 60 * 1000;
+    const seenCutoffMs       = getReviewsSeenCutoffMs();
+    const newReviewCutoffMs  = Math.max(seenCutoffMs, weekAgoMs);
     let newReviews = 0;
     let pendingReviews = 0;
     if (Array.isArray(reviews)) {
