@@ -32,7 +32,17 @@ function calcEntrance(b, rates = FALLBACK_RATES) {
 // payment column so staff moving between the two pages see consistent
 // language and colors.
 export default function PaymentPill({ booking, entranceRates }) {
-  const paid = Number(booking?.paidAmount ?? 0);
+  const paid  = Number(booking?.paidAmount ?? 0);
+  const grand = Number(booking?.total ?? 0) + calcEntrance(booking, entranceRates);
+
+  // Derive "fully paid" from math, not from the backend flag. There was a
+  // bug where checkIn updated entrance_fee without re-deriving
+  // booking.fully_paid, leaving flag=true while paid_amount < grand total.
+  // The pill then rendered "Paid ₱<room-only>" because it trusted the
+  // stale flag. Computing from paid vs grand keeps the display honest
+  // even if some future mutation re-introduces the drift.
+  // 0.01 tolerance handles float noise (matches Booking::computeFullyPaid).
+  const isFullyPaid = paid + 0.01 >= grand && grand > 0;
 
   if (booking?.status === 'Completed') {
     return (
@@ -50,7 +60,7 @@ export default function PaymentPill({ booking, entranceRates }) {
       </span>
     );
   }
-  if (booking?.fullyPaid) {
+  if (isFullyPaid) {
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
         <i className="fas fa-check text-[10px]" aria-hidden="true"></i>
@@ -58,8 +68,7 @@ export default function PaymentPill({ booking, entranceRates }) {
       </span>
     );
   }
-  const grand = Number(booking?.total ?? 0) + calcEntrance(booking, entranceRates);
-  const due   = Math.max(0, grand - paid);
+  const due = Math.max(0, grand - paid);
   return (
     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
       <i className="fas fa-coins text-[10px]" aria-hidden="true"></i>
