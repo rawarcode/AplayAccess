@@ -143,6 +143,81 @@ const DEFAULT_PC = {
   newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },
 };
 
+/* ------------------------------------------------------------------ */
+/*  TestimonialCard                                                   */
+/*                                                                    */
+/*  Two variants:                                                     */
+/*   - default: used in the 2–3 column grid and in the 4+ carousel.   */
+/*   - hero:    used when only ONE review is featured, so a single    */
+/*              card doesn't float lonely against a wide empty band.  */
+/*              Wider, bigger type, brighter quote glyph.             */
+/*                                                                    */
+/*  Design notes:                                                     */
+/*   - Decorative left-quote mark is positioned as a watermark so it  */
+/*     reads as texture, not content (aria-hidden).                   */
+/*   - Stars use Font Awesome solid to avoid the rendering-difference */
+/*     you get with a text "★" glyph across OSes.                     */
+/*   - Date shows in a muted footer line with a calendar icon so      */
+/*     guests can gauge freshness without scanning noise.             */
+/* ------------------------------------------------------------------ */
+function TestimonialCard({ t, variant = "default" }) {
+  const isHero = variant === "hero";
+  const rating = Math.min(5, Math.max(1, Number(t?.rating || 5)));
+
+  return (
+    <figure
+      className={[
+        "relative overflow-hidden",
+        "bg-white/10 backdrop-blur-sm ring-1 ring-white/15",
+        "rounded-2xl text-white",
+        "transition duration-300 hover:ring-white/30 hover:bg-white/15",
+        isHero ? "w-full max-w-2xl p-8 md:p-10" : "h-full p-6",
+      ].join(" ")}
+    >
+      {/* Decorative watermark quote — purely visual, hidden from AT */}
+      <span
+        aria-hidden="true"
+        className={[
+          "absolute font-serif leading-none select-none pointer-events-none text-white/10",
+          isHero ? "-top-4 -left-2 text-[180px]" : "-top-3 -left-1 text-[120px]",
+        ].join(" ")}
+      >
+        &ldquo;
+      </span>
+
+      {/* Rating — drawn with FA icons so stars render the same everywhere */}
+      <div className="relative flex items-center gap-0.5 mb-4 text-amber-300" aria-label={`${rating} out of 5 stars`}>
+        {Array.from({ length: 5 }).map((_, i) => (
+          <i key={i} className={`fas fa-star ${i < rating ? "" : "opacity-25"} ${isHero ? "text-lg" : "text-sm"}`} aria-hidden="true" />
+        ))}
+      </div>
+
+      {/* Quote */}
+      <blockquote className="relative">
+        <p className={`leading-relaxed text-sky-50 ${isHero ? "text-xl md:text-2xl" : "text-base"}`}>
+          {t?.quote || "\u00A0"}
+        </p>
+      </blockquote>
+
+      {/* Footer — avatar · name · date */}
+      <figcaption className="relative mt-6 pt-5 border-t border-white/15 flex items-center gap-3">
+        <div className={`rounded-full overflow-hidden ring-2 ring-white/25 shrink-0 ${isHero ? "w-14 h-14" : "w-11 h-11"}`}>
+          <img src={t?.img} alt={t?.name ?? "Guest"} className="w-full h-full object-cover" loading="lazy" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className={`font-semibold text-white truncate ${isHero ? "text-base" : "text-sm"}`}>{t?.name ?? "Guest"}</p>
+          {t?.date && (
+            <p className={`text-sky-200/80 flex items-center gap-1.5 ${isHero ? "text-xs" : "text-[11px]"}`}>
+              <i className="far fa-calendar text-[10px]" aria-hidden="true" />
+              {t.date}
+            </p>
+          )}
+        </div>
+      </figcaption>
+    </figure>
+  );
+}
+
 export default function Resort() {
   const { user, login } = useAuth();
   const isLoggedIn = !!user;
@@ -259,7 +334,12 @@ export default function Resort() {
       name:  r.user_name ?? "Guest",
       img:   r.user_avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(r.user_name ?? "Guest")}&background=3b82f6&color=fff`,
       stars: "★".repeat(Math.min(5, Math.max(1, Number(r.rating || 5)))),
+      rating: Math.min(5, Math.max(1, Number(r.rating || 5))),
       quote: r.comment ?? "",
+      // Backend returns r.created_at pre-formatted as "MMM d, yyyy"
+      // so we just pass it through. Card renders with a small calendar
+      // icon + date so guests can gauge review freshness.
+      date:  r.created_at ?? "",
     }));
   }, [reviewsApi]);
 
@@ -892,65 +972,144 @@ export default function Resort() {
         </section>
         )}
 
-        {/* TESTIMONIALS */}
-        {pc.reviews.visible !== false && testimonialsDisplay.length > 0 && (
-        <section className="py-20 bg-sky-600 text-white overflow-hidden">
-          <div ref={reviewsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">{pc.reviews.sectionTitle}</h2>
-              <p className="text-xl text-sky-100 max-w-3xl mx-auto">{pc.reviews.sectionSubtitle}</p>
-            </div>
+        {/* TESTIMONIALS
+             Layout adapts to the review count so a single featured review
+             doesn't float awkwardly against a sea of empty space:
+               1 review  → one centered hero-card (max-w-2xl)
+               2 reviews → side-by-side grid (max-w-5xl)
+               3+        → 3-col grid; carousel + nav arrows when > 3
+             Stats strip above the heading shows actual average rating
+             and review count — real signal, not fake social proof. */}
+        {pc.reviews.visible !== false && testimonialsDisplay.length > 0 && (() => {
+          // Compute average rating + count from the reviews the public
+          // endpoint returned (already filtered to featured 4+ star rows).
+          const count  = testimonialsDisplay.length;
+          const avg    = count > 0
+            ? testimonialsDisplay.reduce((s, t) => s + (Number(t.rating) || 0), 0) / count
+            : 0;
+          const avgStr = avg.toFixed(1);
 
-            {/* Carousel wrapper */}
-            <div className="relative">
-              {testimonialsDisplay.length > 3 && (
-                <>
-                  <button
-                    onClick={() => scrollRef.current?.scrollBy({ left: -320, behavior: "smooth" })}
-                    className="absolute -left-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
-                    aria-label="Previous review"
-                  >
-                    <i className="fas fa-chevron-left text-sm"></i>
-                  </button>
-                  <button
-                    onClick={() => scrollRef.current?.scrollBy({ left: 320, behavior: "smooth" })}
-                    className="absolute -right-2 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition"
-                    aria-label="Next review"
-                  >
-                    <i className="fas fa-chevron-right text-sm"></i>
-                  </button>
-                </>
-              )}
+          return (
+        <section className="relative py-24 overflow-hidden">
+          {/* Layered background — sky-600 base + soft radial highlights
+              for depth. Simple, not AI-slop. */}
+          <div className="absolute inset-0 bg-sky-600" />
+          <div
+            className="absolute inset-0 opacity-70"
+            style={{
+              backgroundImage:
+                "radial-gradient(ellipse at 15% 0%, rgba(186,230,253,0.35) 0%, transparent 50%), radial-gradient(ellipse at 85% 100%, rgba(12,74,110,0.45) 0%, transparent 55%)",
+            }}
+          />
+          {/* Top wave — softens the transition from the section above */}
+          <svg
+            aria-hidden="true"
+            className="absolute top-0 left-0 w-full h-10 md:h-16 text-white/70"
+            viewBox="0 0 1440 80"
+            preserveAspectRatio="none"
+          >
+            <path fill="currentColor" d="M0 0L1440 0L1440 34C1200 64 960 80 720 64C480 48 240 12 0 34L0 0Z" />
+          </svg>
 
-              <div
-                ref={scrollRef}
-                onMouseEnter={() => setCarouselPaused(true)}
-                onMouseLeave={() => setCarouselPaused(false)}
-                className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 scrollbar-hide"
-                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-              >
-                {testimonialsDisplay.map((t, i) => (
-                  <div
-                    key={`${t.name}-${i}`}
-                    className="bg-white/10 p-6 rounded-xl hover:scale-[1.03] transition flex-shrink-0 snap-start w-[300px] md:w-[calc(33.333%-16px)]"
-                  >
-                    <div className="flex items-center mb-4">
-                      <div className="w-12 h-12 rounded-full overflow-hidden mr-4">
-                        <img src={t.img} alt={t.name} className="w-full h-full object-cover" loading="lazy" />
-                      </div>
-                      <div>
-                        <h4 className="font-bold">{t.name}</h4>
-                        <div className="text-amber-300">{t.stars}</div>
-                      </div>
-                    </div>
-                    <p className="text-sky-100">&ldquo;{t.quote}&rdquo;</p>
+          <div ref={reviewsRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 md:pt-12 text-white">
+            <div className="text-center mb-14">
+              <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-sky-200/80">
+                <span className="h-px w-8 bg-sky-200/40" />
+                Guest voices
+                <span className="h-px w-8 bg-sky-200/40" />
+              </span>
+              <h2 className="text-3xl md:text-4xl font-bold mt-3">{pc.reviews.sectionTitle}</h2>
+              <p className="text-lg text-sky-100 max-w-2xl mx-auto mt-3">{pc.reviews.sectionSubtitle}</p>
+
+              {/* Rating stats — average across the featured reviews on
+                  the page. Shows the same glyphs the cards use, so the
+                  top-of-section summary and the per-card ratings feel
+                  like one system. */}
+              <div className="inline-flex items-center gap-5 mt-7 px-6 py-3 rounded-full bg-white/10 backdrop-blur-sm ring-1 ring-white/15">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold leading-none">{avgStr}</span>
+                  <div className="flex items-center gap-0.5 text-amber-300" aria-label={`${avgStr} out of 5`}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <i
+                        key={i}
+                        className={`fas fa-star text-xs ${i < Math.round(avg) ? "" : "opacity-25"}`}
+                        aria-hidden="true"
+                      />
+                    ))}
                   </div>
-                ))}
+                </div>
+                <span className="h-6 w-px bg-white/20" aria-hidden="true" />
+                <span className="text-sm text-sky-100">
+                  {count} featured {count === 1 ? "review" : "reviews"}
+                </span>
               </div>
             </div>
+
+            {testimonialsDisplay.length === 1 ? (
+              // ── Single review — center as a hero card ─────────────────
+              <div className="flex justify-center">
+                <TestimonialCard t={testimonialsDisplay[0]} variant="hero" />
+              </div>
+            ) : testimonialsDisplay.length <= 3 ? (
+              // ── 2–3 reviews — centered grid, no carousel needed ───────
+              <div
+                className={`grid gap-6 mx-auto ${
+                  testimonialsDisplay.length === 2
+                    ? "max-w-4xl md:grid-cols-2"
+                    : "max-w-6xl md:grid-cols-3"
+                }`}
+              >
+                {testimonialsDisplay.map((t, i) => (
+                  <TestimonialCard key={`${t.name}-${i}`} t={t} />
+                ))}
+              </div>
+            ) : (
+              // ── 4+ reviews — scroll carousel with nav arrows ──────────
+              <div className="relative">
+                <button
+                  onClick={() => scrollRef.current?.scrollBy({ left: -340, behavior: "smooth" })}
+                  className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white/15 backdrop-blur hover:bg-white/25 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/40"
+                  aria-label="Previous review"
+                >
+                  <i className="fas fa-chevron-left text-sm"></i>
+                </button>
+                <button
+                  onClick={() => scrollRef.current?.scrollBy({ left: 340, behavior: "smooth" })}
+                  className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white/15 backdrop-blur hover:bg-white/25 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/40"
+                  aria-label="Next review"
+                >
+                  <i className="fas fa-chevron-right text-sm"></i>
+                </button>
+                <div
+                  ref={scrollRef}
+                  onMouseEnter={() => setCarouselPaused(true)}
+                  onMouseLeave={() => setCarouselPaused(false)}
+                  className="flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 scrollbar-hide"
+                  style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+                >
+                  {testimonialsDisplay.map((t, i) => (
+                    <div key={`${t.name}-${i}`} className="flex-shrink-0 snap-start w-[300px] md:w-[calc(33.333%-16px)]">
+                      <TestimonialCard t={t} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Bottom wave — mirrors the top, transitions into the
+              Gallery section's dark slate-900 band below cleanly. */}
+          <svg
+            aria-hidden="true"
+            className="absolute bottom-0 left-0 w-full h-10 md:h-16 text-slate-900"
+            viewBox="0 0 1440 80"
+            preserveAspectRatio="none"
+          >
+            <path fill="currentColor" d="M0 80L1440 80L1440 46C1200 16 960 0 720 16C480 32 240 68 0 46L0 80Z" />
+          </svg>
         </section>
-        )}
+          );
+        })()}
 
         {/* GALLERY */}
         <section id="gallery" className="py-24 bg-slate-900">
