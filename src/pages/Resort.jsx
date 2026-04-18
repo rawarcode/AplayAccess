@@ -89,24 +89,34 @@ function roomOffers(r, type) {
 /* ------------------------------------------------------------------ */
 /*  Scroll-triggered reveal animation                                 */
 /* ------------------------------------------------------------------ */
+// Callback-ref based reveal. Previously used useRef + useEffect(..., []),
+// which read ref.current ONCE on mount. For sections whose JSX is
+// conditional on async data (e.g. the reviews carousel, which is wrapped
+// in {testimonialsDisplay.length > 0 && ...}), the DOM node doesn't
+// exist on first mount — the effect read null and returned, and no
+// IntersectionObserver ever attached. The section then stuck at the
+// opacity:0 / translateY(32px) from .reveal-section forever, rendering
+// as a blank blue band with invisible cards inside.
+//
+// setNode is invoked by React whenever the element mounts (even async),
+// which re-runs the effect with a live node and attaches the observer.
 function useReveal() {
-  const ref = useRef(null);
+  const [node, setNode] = useState(null);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    if (!node) return;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.classList.add("reveal-visible");
-          io.unobserve(el);
+          node.classList.add("reveal-visible");
+          io.unobserve(node);
         }
       },
       { threshold: 0.15 },
     );
-    io.observe(el);
+    io.observe(node);
     return () => io.disconnect();
-  }, []);
-  return ref;
+  }, [node]);
+  return setNode;
 }
 
 /* ------------------------------------------------------------------ */

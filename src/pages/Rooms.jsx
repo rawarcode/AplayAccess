@@ -73,24 +73,27 @@ function roomOffers(r, type) {
 /* ------------------------------------------------------------------ */
 /*  Scroll-triggered reveal                                           */
 /* ------------------------------------------------------------------ */
+// Callback-ref reveal — fires on element mount even when the parent
+// section is conditionally rendered after an async fetch. See
+// pages/Resort.jsx for the exact bug that motivated moving off
+// useRef + useEffect-with-null-guard.
 function useReveal() {
-  const ref = useRef(null);
+  const [node, setNode] = useState(null);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    if (!node) return;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.classList.add("reveal-visible");
-          io.unobserve(el);
+          node.classList.add("reveal-visible");
+          io.unobserve(node);
         }
       },
       { threshold: 0.15 },
     );
-    io.observe(el);
+    io.observe(node);
     return () => io.disconnect();
-  }, []);
-  return ref;
+  }, [node]);
+  return setNode;
 }
 
 /* ------------------------------------------------------------------ */

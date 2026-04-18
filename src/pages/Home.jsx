@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { isVideoUrl } from "../lib/uploadApi.js";
@@ -38,24 +38,26 @@ const HOME_DEFAULTS = {
 /* ------------------------------------------------------------------ */
 /*  #8 — Intersection Observer hook for scroll-triggered animations   */
 /* ------------------------------------------------------------------ */
+// Callback-ref reveal — handles conditionally-rendered sections whose
+// DOM node doesn't exist on mount (see Resort.jsx for the exact bug
+// this fixes on the reviews carousel).
 function useReveal() {
-  const ref = useRef(null);
+  const [node, setNode] = useState(null);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    if (!node) return;
     const io = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          el.classList.add("reveal-visible");
-          io.unobserve(el);
+          node.classList.add("reveal-visible");
+          io.unobserve(node);
         }
       },
       { threshold: 0.15 },
     );
-    io.observe(el);
+    io.observe(node);
     return () => io.disconnect();
-  }, []);
-  return ref;
+  }, [node]);
+  return setNode;
 }
 
 /* ------------------------------------------------------------------ */
