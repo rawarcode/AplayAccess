@@ -646,32 +646,64 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               </div>
             )}
 
-            {['Confirmed', 'Checked In'].includes(booking.status) && addonCatalog.length > 0 && (
-              addingAmenity ? (
+            {['Confirmed', 'Checked In'].includes(booking.status) && addonCatalog.length > 0 && (() => {
+              // Guard against duplicate add-on rows. The backend's addAmenity
+              // endpoint creates a new BookingAmenity row every call, so
+              // "add Parking Fee ×5" then "add Parking Fee ×5" leaves two
+              // separate ₱400 lines — confusing for staff and cash collection.
+              //
+              // There's no `update qty` endpoint to merge client-side, so we
+              // block the picker for add-ons already attached and point staff
+              // to the existing row if they want a different quantity.
+              const attachedNames = new Set((booking.amenities || []).map(a => a.name));
+              const pickable      = addonCatalog.filter(c => !attachedNames.has(c.name));
+              const isAttached    = (name) => attachedNames.has(name);
+              const noneLeft      = pickable.length === 0;
+
+              return addingAmenity ? (
                 <div className="border rounded-lg p-3 bg-sky-50">
                   <p className="text-xs font-medium text-slate-700 mb-2">Add Add-on</p>
                   <div className="flex gap-2 flex-wrap mb-2">
-                    {addonCatalog.map(cat => (
-                      <button key={cat.id} type="button"
-                        onClick={() => setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
-                        className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
-                          addingAmenity.name === cat.name
-                            ? 'border-sky-500 bg-sky-100 text-sky-700'
-                            : 'border-slate-300 bg-white text-slate-600'
-                        }`}
-                      >
-                        <i className={`fas ${cat.icon || 'fa-tag'} mr-1`}></i>{cat.name}
-                        <br /><span className="text-slate-400">₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</span>
-                      </button>
-                    ))}
+                    {addonCatalog.map(cat => {
+                      const attached = isAttached(cat.name);
+                      const selected = addingAmenity.name === cat.name;
+                      return (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          disabled={attached}
+                          onClick={() => !attached && setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
+                          title={attached ? 'Already on this booking — remove the existing line to re-add with a different quantity.' : undefined}
+                          aria-label={attached ? `${cat.name} — already added to this booking` : `Select ${cat.name}`}
+                          className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
+                            attached
+                              ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
+                              : selected
+                                ? 'border-sky-500 bg-sky-100 text-sky-700'
+                                : 'border-slate-300 bg-white text-slate-600'
+                          }`}
+                        >
+                          <i className={`fas ${cat.icon || 'fa-tag'} mr-1`} aria-hidden="true"></i>{cat.name}
+                          <br />
+                          <span className="text-slate-400">
+                            {attached
+                              ? 'Already added'
+                              : <>₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</>
+                            }
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                   {!addingAmenity.per_booking && (
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-xs text-slate-600">Qty:</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
+                        aria-label="Decrease quantity"
                         className="w-11 h-11 border rounded text-sm">−</button>
                       <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
+                        aria-label="Increase quantity"
                         className="w-11 h-11 border rounded text-sm">+</button>
                       <span className="ml-auto text-xs font-medium text-sky-700">
                         {/* State shape is unit_price (snake) — reading
@@ -681,27 +713,34 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                       </span>
                     </div>
                   )}
+                  {/* Disable Add if the currently-selected add-on is already
+                      attached — defensive in case the picker state desyncs. */}
                   <div className="flex gap-2">
                     <button onClick={() => setAddingAmenity(null)}
                       className="px-3 py-1 border rounded text-xs text-slate-600">Cancel</button>
-                    <button onClick={handleAddAmenity} disabled={amenityLoading}
+                    <button onClick={handleAddAmenity} disabled={amenityLoading || isAttached(addingAmenity.name)}
+                      title={isAttached(addingAmenity.name) ? 'Already on this booking.' : undefined}
                       className="px-3 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-40">
                       {amenityLoading ? 'Adding...' : 'Add'}
                     </button>
                   </div>
                 </div>
+              ) : noneLeft ? (
+                <p className="text-xs text-slate-400 italic">
+                  All add-ons are already on this booking. Remove one above to re-add with a different quantity.
+                </p>
               ) : (
                 <button
                   onClick={() => {
-                    const first = addonCatalog[0];
+                    const first = pickable[0];
                     setAddingAmenity({ id: first.id, name: first.name, qty: 1, unit_price: first.price, per_booking: first.per_booking, max_qty: first.max_qty, icon: first.icon });
                   }}
-                  className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1"
+                  className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
                 >
-                  <i className="fas fa-plus-circle"></i> Add add-on
+                  <i className="fas fa-plus-circle" aria-hidden="true"></i> Add add-on
                 </button>
-              )
-            )}
+              );
+            })()}
           </div>
 
           {/* Transfer Room Panel */}
