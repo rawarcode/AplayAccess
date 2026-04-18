@@ -35,150 +35,123 @@ function countdown(ms) {
   return `${mins}m`;
 }
 
-// Classify a booking as overnight vs. day based on actual check-in hour.
-// 'night' is always overnight; 'day' is always day.
-// For 24hr (new flexible) and legacy '24hr-pm', use the actual check-in hour:
-// starts at 6PM or later → overnight; earlier → day slot.
-function isOvernightBooking(b) {
-  const type = b.bookingType ?? '';
-  if (type === 'night') return true;
-  if (type === 'day')   return false;
-  const ci = new Date((b.checkIn ?? '').replace(' ', 'T'));
-  if (isNaN(ci.getTime())) return false;
-  return ci.getHours() >= 18;
+// ─── Slot windows ─────────────────────────────────────────────────────────────
+// Day Visit   = today 06:00 – today 18:00
+// Overnight   = today 18:00 – tomorrow 07:00 (or yesterday 18:00 – today 07:00
+//               if the viewer is currently in the small-hours window)
+// A booking "occupies" a slot iff its [checkIn, checkOut) range overlaps the
+// slot window. This correctly handles 24hr bookings that straddle both slots.
+function dayWindow(now) {
+  const d = now;
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 6,  0, 0, 0);
+  const end   = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 18, 0, 0, 0);
+  return [start, end];
 }
 
-// ─── Day slot status ───────────────────────────────────────────────────────────
-// Looks at today's bookings that check out by 5PM (day visits)
-function getDayStatus(roomName, bookings) {
-  const now     = new Date();
-  const today   = todayStr();
+function overnightWindow(now) {
+  const d = now;
+  // Before 7 AM the "current overnight" is last night, not tonight.
+  if (d.getHours() < 7) {
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1, 18, 0, 0, 0);
+    const end   = new Date(d.getFullYear(), d.getMonth(), d.getDate(),      7, 0, 0, 0);
+    return [start, end];
+  }
+  const start = new Date(d.getFullYear(), d.getMonth(), d.getDate(),     18, 0, 0, 0);
+  const end   = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1,  7, 0, 0, 0);
+  return [start, end];
+}
 
-  const dayBk = bookings.filter(b =>
+function bookingRange(b) {
+  if (!b?.checkIn || !b?.checkOut) return null;
+  const ci = new Date(b.checkIn.replace(' ', 'T'));
+  const co = new Date(b.checkOut.replace(' ', 'T'));
+  if (isNaN(ci.getTime()) || isNaN(co.getTime())) return null;
+  return { ci, co };
+}
+
+function overlapsWindow(b, ws, we) {
+  const r = bookingRange(b);
+  return !!r && r.ci < we && r.co > ws;
+}
+
+// Label classifier for the upcoming-bookings panel badge.
+// 24hr bookings are their own category; legacy untyped bookings fall back
+// to check-in hour.
+function bookingSlotLabel(b) {
+  const type = b?.bookingType ?? '';
+  if (type === '24hr') return '24 Hour';
+  if (type === 'night') return 'Overnight';
+  if (type === 'day')   return 'Day Visit';
+  const r = bookingRange(b);
+  if (!r) return 'Booking';
+  return r.ci.getHours() >= 18 ? 'Overnight' : 'Day Visit';
+}
+
+// ─── Single-unit slot status ──────────────────────────────────────────────────
+function getSlotStatus(roomName, bookings, slot) {
+  const now      = new Date();
+  const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
+
+  const matching = bookings.filter(b =>
     b.roomType === roomName &&
-    b.checkIn?.slice(0, 10) === today &&
     b.status !== 'Cancelled' &&
     b.status !== 'Completed' &&
-    !isOvernightBooking(b)
+    overlapsWindow(b, ws, we)
   );
 
-  for (const b of dayBk) {
-    const ci = new Date(b.checkIn.replace(' ', 'T'));
-    const co = new Date(b.checkOut.replace(' ', 'T'));
-
-    if (now >= ci && now < co) {
-      const ms = co - now;
-      return {
-        status:    'occupied',
-        booking:   b,
-        vacatesAt: b.checkOut,
-        remaining: countdown(ms),
-        urgency:   ms < 30 * 60000 ? 'soon' : 'normal',
-      };
-    }
-    if (now < ci) {
-      return {
-        status:    b.status === 'Pending' ? 'pending' : 'incoming',
-        booking:   b,
-        arrivesAt: b.checkIn,
-        eta:       countdown(ci - now),
-      };
+  // Priority: currently in progress > confirmed future > pending future
+  let inProgress = null, incoming = null, pending = null;
+  for (const b of matching) {
+    const r = bookingRange(b);
+    if (!r) continue;
+    if (now >= r.ci && now < r.co) {
+      if (!inProgress) inProgress = { b, ...r };
+    } else if (now < r.ci) {
+      if (b.status === 'Pending') { if (!pending)  pending  = { b, ...r }; }
+      else                        { if (!incoming) incoming = { b, ...r }; }
     }
   }
 
-  return { status: 'vacant' };
-}
-
-// ─── Overnight slot status ─────────────────────────────────────────────────────
-// Looks at tonight's overnight booking (6PM today → 6AM tomorrow)
-// or a currently-in-progress overnight (started yesterday 6PM, ends 6AM today)
-function getOvernightStatus(roomName, bookings) {
-  const now   = new Date();
-  const today = todayStr();
-
-  const ovBk = bookings.filter(b => {
-    if (b.roomType !== roomName || b.status === 'Cancelled' || b.status === 'Completed') return false;
-    if (!isOvernightBooking(b)) return false;
-    const ci = new Date(b.checkIn.replace(' ', 'T'));
-    const co = new Date(b.checkOut.replace(' ', 'T'));
-    // Relevant if currently in progress OR check-in is today (tonight)
-    return (now >= ci && now < co) || localDateStr(ci) === today;
-  });
-
-  for (const b of ovBk) {
-    const ci = new Date(b.checkIn.replace(' ', 'T'));
-    const co = new Date(b.checkOut.replace(' ', 'T'));
-
-    if (now >= ci && now < co) {
-      const ms = co - now;
-      return {
-        status:    'occupied',
-        booking:   b,
-        vacatesAt: b.checkOut,
-        remaining: countdown(ms),
-        urgency:   ms < 30 * 60000 ? 'soon' : 'normal',
-      };
-    }
-    if (now < ci) {
-      return {
-        status:    b.status === 'Pending' ? 'pending' : 'incoming',
-        booking:   b,
-        arrivesAt: b.checkIn,
-        eta:       countdown(ci - now),
-      };
-    }
+  if (inProgress) {
+    const { b, co } = inProgress;
+    const ms = co - now;
+    return {
+      status:    'occupied',
+      booking:   b,
+      vacatesAt: b.checkOut,
+      remaining: countdown(ms),
+      urgency:   ms < 30 * 60000 ? 'soon' : 'normal',
+    };
   }
-
+  if (incoming) {
+    const { b, ci } = incoming;
+    return { status: 'incoming', booking: b, arrivesAt: b.checkIn, eta: countdown(ci - now) };
+  }
+  if (pending) {
+    const { b, ci } = pending;
+    return { status: 'pending',  booking: b, arrivesAt: b.checkIn, eta: countdown(ci - now) };
+  }
   return { status: 'vacant' };
 }
 
 // ─── Multi-unit aggregate status (cottages, pavilions with quantity > 1) ──────
-function getMultiDayStatus(roomName, quantity, bookings) {
-  const now   = new Date();
-  const today = todayStr();
+function getMultiSlotStatus(roomName, quantity, bookings, slot) {
+  const now      = new Date();
+  const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
   let occupied = 0, incoming = 0, pending = 0;
 
   bookings.filter(b =>
     b.roomType === roomName &&
-    b.checkIn?.slice(0, 10) === today &&
     b.status !== 'Cancelled' &&
     b.status !== 'Completed' &&
-    !isOvernightBooking(b)
+    overlapsWindow(b, ws, we)
   ).forEach(b => {
-    const ci = new Date(b.checkIn.replace(' ', 'T'));
-    const co = new Date(b.checkOut.replace(' ', 'T'));
-    if (now >= ci && now < co)        occupied++;
-    else if (now < ci) {
-      if (b.status === 'Pending')     pending++;
-      else                            incoming++;
-    }
-  });
-
-  const booked = occupied + incoming + pending;
-  const vacant = Math.max(0, quantity - booked);
-  // summarised status for filter matching
-  const status = occupied > 0 ? 'occupied' : incoming > 0 ? 'incoming' : pending > 0 ? 'pending' : 'vacant';
-  return { multi: true, quantity, occupied, incoming, pending, vacant, status };
-}
-
-function getMultiNightStatus(roomName, quantity, bookings) {
-  const now   = new Date();
-  const today = todayStr();
-  let occupied = 0, incoming = 0, pending = 0;
-
-  bookings.filter(b => {
-    if (b.roomType !== roomName || b.status === 'Cancelled' || b.status === 'Completed') return false;
-    if (!isOvernightBooking(b)) return false;
-    const ci = new Date(b.checkIn.replace(' ', 'T'));
-    const co = new Date(b.checkOut.replace(' ', 'T'));
-    return (now >= ci && now < co) || localDateStr(ci) === today;
-  }).forEach(b => {
-    const ci = new Date(b.checkIn.replace(' ', 'T'));
-    const co = new Date(b.checkOut.replace(' ', 'T'));
-    if (now >= ci && now < co)        occupied++;
-    else if (now < ci) {
-      if (b.status === 'Pending')     pending++;
-      else                            incoming++;
+    const r = bookingRange(b);
+    if (!r) return;
+    if (now >= r.ci && now < r.co)       occupied++;
+    else if (now < r.ci) {
+      if (b.status === 'Pending')        pending++;
+      else                               incoming++;
     }
   });
 
@@ -187,6 +160,11 @@ function getMultiNightStatus(roomName, quantity, bookings) {
   const status = occupied > 0 ? 'occupied' : incoming > 0 ? 'incoming' : pending > 0 ? 'pending' : 'vacant';
   return { multi: true, quantity, occupied, incoming, pending, vacant, status };
 }
+
+const getDayStatus        = (roomName, bookings)           => getSlotStatus(roomName, bookings, 'day');
+const getOvernightStatus  = (roomName, bookings)           => getSlotStatus(roomName, bookings, 'night');
+const getMultiDayStatus   = (roomName, quantity, bookings) => getMultiSlotStatus(roomName, quantity, bookings, 'day');
+const getMultiNightStatus = (roomName, quantity, bookings) => getMultiSlotStatus(roomName, quantity, bookings, 'night');
 
 // ─── status card config ───────────────────────────────────────────────────────
 const STATUS_CONFIG = {
@@ -643,7 +621,9 @@ export default function FDRooms() {
               </div>
             ) : upcomingBookings.map(b => {
               const isToday   = b.checkIn?.slice(0, 10) === todayStr();
-              const overnight = isOvernightBooking(b);
+              const slotLabel = bookingSlotLabel(b);
+              const is24hr    = slotLabel === '24 Hour';
+              const overnight = slotLabel === 'Overnight';
               const name      = b.guest || b.guest_name || 'Guest';
               const isPending = b.status === 'Pending';
 
@@ -668,12 +648,14 @@ export default function FDRooms() {
                       {b.status}
                     </span>
                     <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
-                      overnight
-                        ? 'bg-indigo-50 text-indigo-600'
-                        : 'bg-amber-50 text-amber-600'
+                      is24hr
+                        ? 'bg-violet-50 text-violet-600'
+                        : overnight
+                          ? 'bg-indigo-50 text-indigo-600'
+                          : 'bg-amber-50 text-amber-600'
                     }`}>
-                      <i className={`fas ${overnight ? 'fa-moon' : 'fa-sun'} text-[9px]`}></i>
-                      {overnight ? 'Overnight' : 'Day Visit'}
+                      <i className={`fas ${is24hr ? 'fa-clock' : overnight ? 'fa-moon' : 'fa-sun'} text-[9px]`}></i>
+                      {slotLabel}
                     </span>
                   </div>
 
