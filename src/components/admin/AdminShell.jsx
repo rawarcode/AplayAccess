@@ -72,7 +72,8 @@ export default function AdminShell() {
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
     pendingBookings:    '/owner/transactions?status=Pending',
     messages:           '/owner/messages',
-    arrivals:           '/frontdesk/reservation?status=Confirmed',
+    arrivals:           '/frontdesk/bookings?status=Confirmed',
+    soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
     overdueCheckouts:   '/frontdesk',
     reviews:            '/owner/reviews',
   });

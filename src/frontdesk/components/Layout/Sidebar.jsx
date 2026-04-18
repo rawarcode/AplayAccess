@@ -57,6 +57,7 @@ export default function Sidebar({ children, showTopBar = true }) {
     pendingBookings:    '/frontdesk/bookings?status=Pending',
     messages:           '/frontdesk/messages',
     arrivals:           '/frontdesk/bookings?status=Confirmed',
+    soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
     overdueCheckouts:   '/frontdesk',
   });
 

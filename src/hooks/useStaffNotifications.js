@@ -12,10 +12,17 @@ const todayStr = () => localDateStr();
  * Designed to be called once per portal shell (AdminShell / frontdesk Sidebar) and shared
  * downward via NotificationContext — not called in leaf components.
  */
+// Bookings whose scheduled checkout is this many minutes (or less) away
+// get the amber "Checkout soon" heads-up. 30 minutes gives staff time to
+// prep the room, remind the guest, or offer a stay extension before the
+// deadline — avoiding the scramble that triggers the overdue notification.
+const CHECKOUT_SOON_WINDOW_MIN = 30;
+
 const DEFAULT_PATHS = {
   pendingBookings:  '/owner/transactions?status=Pending',
   messages:         '/owner/messages',
   arrivals:         '/owner/transactions?status=Confirmed',
+  soonCheckouts:    '/owner/transactions?status=Checked+In',
   overdueCheckouts: '/owner/transactions?status=Checked+In',
 };
 
@@ -26,6 +33,7 @@ export function useStaffNotifications(paths = {}) {
     pendingBookings:  0,
     todayArrivals:    0,
     pendingReviews:   0,
+    soonCheckouts:    0,
     overdueCheckouts: 0,
   });
   const [items, setItems] = useState([]);
@@ -49,15 +57,22 @@ export function useStaffNotifications(paths = {}) {
       b => b.checkIn?.slice(0, 10) === today && b.status === 'Confirmed'
     ).length;
     const now = new Date();
-    const overdueCheckouts = bookings.filter(b => {
-      if (b.status !== 'Checked In' || !b.checkOut) return false;
-      return new Date(b.checkOut.replace(' ', 'T')) < now;
-    }).length;
+    const soonWindowMs = CHECKOUT_SOON_WINDOW_MIN * 60 * 1000;
+    let overdueCheckouts = 0;
+    let soonCheckouts    = 0;
+    for (const b of bookings) {
+      if (b.status !== 'Checked In' || !b.checkOut) continue;
+      const co = new Date(String(b.checkOut).replace(' ', 'T'));
+      if (isNaN(co.getTime())) continue;
+      const msUntil = co.getTime() - now.getTime();
+      if (msUntil <= 0)                              overdueCheckouts++;
+      else if (msUntil <= soonWindowMs)              soonCheckouts++;
+    }
     const pendingReviews = Array.isArray(reviews)
       ? reviews.filter(r => r.status === 'pending').length
       : 0;
 
-    setCounts({ unreadMessages, pendingBookings, todayArrivals, pendingReviews, overdueCheckouts });
+    setCounts({ unreadMessages, pendingBookings, todayArrivals, pendingReviews, soonCheckouts, overdueCheckouts });
 
     const next = [];
     if (pendingBookings > 0)
@@ -84,6 +99,15 @@ export function useStaffNotifications(paths = {}) {
         label: `${overdueCheckouts} overdue checkout${overdueCheckouts !== 1 ? 's' : ''}`,
         path: p.overdueCheckouts,
       });
+    // Amber-tier signal: amber is between neutral info (blue/green) and
+    // urgent action (red), which matches the "act soon, not now" vibe.
+    // Shown AFTER overdue so overdue sits on top when both exist.
+    if (soonCheckouts > 0)
+      next.push({
+        id: 'soon', icon: 'fa-clock', color: 'yellow',
+        label: `${soonCheckouts} checkout${soonCheckouts !== 1 ? 's' : ''} in <${CHECKOUT_SOON_WINDOW_MIN} min`,
+        path: p.soonCheckouts,
+      });
     if (pendingReviews > 0 && p.reviews)
       next.push({
         id: 'reviews', icon: 'fa-star', color: 'yellow',
@@ -100,7 +124,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.pendingReviews + counts.overdueCheckouts;
+  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
 
   return { counts, items, total, refresh: poll };
 }
