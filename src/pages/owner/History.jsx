@@ -1,57 +1,91 @@
 import { useCallback, useEffect, useState } from "react";
-import { getAdminHistory } from "../../lib/adminApi";
+import { getAdminHistory, getAdminHistoryFacets } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
 import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { fmtDateTime } from "../../lib/format";
 
 // ── Category config ──────────────────────────────────────────────────────────
+// When adding a new category, also add a QUICK_FILTERS entry below AND a
+// CATEGORY_STYLES entry. Unknown categories render with the "system" style
+// as a fallback so nothing breaks if the backend logs a fresh category the
+// frontend hasn't learned about yet.
 const CATEGORIES = [
-  { value: "",         label: "All Categories" },
-  { value: "booking",  label: "Booking" },
-  { value: "payment",  label: "Payment" },
-  { value: "room",     label: "Rooms" },
-  { value: "user",     label: "Users" },
-  { value: "promo",    label: "Promo Codes" },
-  { value: "settings", label: "Settings" },
-  { value: "content",  label: "Content" },
-  { value: "review",   label: "Reviews" },
-  { value: "system",   label: "System" },
+  { value: "",             label: "All Categories" },
+  { value: "booking",      label: "Booking" },
+  { value: "payment",      label: "Payment" },
+  { value: "room",         label: "Rooms" },
+  { value: "user",         label: "Users" },
+  { value: "auth",         label: "Auth" },
+  { value: "promo",        label: "Promo Codes" },
+  { value: "settings",     label: "Settings" },
+  { value: "content",      label: "Content" },
+  { value: "gallery",      label: "Gallery" },
+  { value: "announcement", label: "Announcements" },
+  { value: "newsletter",   label: "Newsletter" },
+  { value: "upload",       label: "Media Uploads" },
+  { value: "message",      label: "Messages" },
+  { value: "review",       label: "Reviews" },
+  { value: "system",       label: "System" },
 ];
 
 const CATEGORY_STYLES = {
-  booking:  { bg: "bg-blue-100",    text: "text-blue-800",    icon: "fa-calendar-check" },
-  payment:  { bg: "bg-emerald-100", text: "text-emerald-800", icon: "fa-money-bill-wave" },
-  room:     { bg: "bg-purple-100",  text: "text-purple-800",  icon: "fa-bed" },
-  user:     { bg: "bg-amber-100",   text: "text-amber-800",   icon: "fa-user" },
-  promo:    { bg: "bg-green-100",   text: "text-green-800",   icon: "fa-tag" },
-  settings: { bg: "bg-orange-100",  text: "text-orange-800",  icon: "fa-sliders-h" },
-  content:  { bg: "bg-pink-100",    text: "text-pink-800",    icon: "fa-globe" },
-  review:   { bg: "bg-yellow-100",  text: "text-yellow-800",  icon: "fa-star" },
-  system:   { bg: "bg-slate-100",   text: "text-slate-700",   icon: "fa-cog" },
+  booking:      { bg: "bg-blue-100",    text: "text-blue-800",    icon: "fa-calendar-check" },
+  payment:      { bg: "bg-emerald-100", text: "text-emerald-800", icon: "fa-money-bill-wave" },
+  room:         { bg: "bg-purple-100",  text: "text-purple-800",  icon: "fa-bed" },
+  user:         { bg: "bg-amber-100",   text: "text-amber-800",   icon: "fa-user" },
+  auth:         { bg: "bg-red-100",     text: "text-red-800",     icon: "fa-lock" },
+  promo:        { bg: "bg-green-100",   text: "text-green-800",   icon: "fa-tag" },
+  settings:     { bg: "bg-orange-100",  text: "text-orange-800",  icon: "fa-sliders-h" },
+  content:      { bg: "bg-pink-100",    text: "text-pink-800",    icon: "fa-globe" },
+  gallery:      { bg: "bg-fuchsia-100", text: "text-fuchsia-800", icon: "fa-images" },
+  announcement: { bg: "bg-cyan-100",    text: "text-cyan-800",    icon: "fa-bullhorn" },
+  newsletter:   { bg: "bg-teal-100",    text: "text-teal-800",    icon: "fa-envelope-open-text" },
+  upload:       { bg: "bg-indigo-100",  text: "text-indigo-800",  icon: "fa-cloud-upload-alt" },
+  message:      { bg: "bg-lime-100",    text: "text-lime-800",    icon: "fa-comment-dots" },
+  review:       { bg: "bg-yellow-100",  text: "text-yellow-800",  icon: "fa-star" },
+  system:       { bg: "bg-slate-100",   text: "text-slate-700",   icon: "fa-cog" },
 };
 
 const ROLE_STYLES = {
   owner:      { bg: "bg-emerald-100", text: "text-emerald-800" },
   admin:      { bg: "bg-blue-100",    text: "text-blue-800" },
   front_desk: { bg: "bg-sky-100",     text: "text-sky-800" },
+  guest:      { bg: "bg-amber-100",   text: "text-amber-800" },
   system:     { bg: "bg-slate-100",   text: "text-slate-600" },
 };
+
+// Role filter dropdown — "guest" is included because user-surface actions
+// (profile edits, reviews, cancellations) flow through the activity log
+// under role=guest, and staff need to filter them in and out.
+const ROLES = [
+  { value: "",           label: "All Roles" },
+  { value: "owner",      label: "Owner" },
+  { value: "front_desk", label: "Front Desk" },
+  { value: "guest",      label: "Guest" },
+  { value: "system",     label: "System" },
+];
 
 const PER_PAGE_OPTIONS = [10, 25, 50];
 
 // ── Quick-filter pill config (#10) ───────────────────────────────────────────
 const QUICK_FILTERS = [
-  { value: "",         label: "All",       icon: "fa-layer-group" },
-  { value: "booking",  label: "Booking",   icon: "fa-calendar-check" },
-  { value: "payment",  label: "Payment",   icon: "fa-money-bill-wave" },
-  { value: "room",     label: "Rooms",     icon: "fa-bed" },
-  { value: "user",     label: "Users",     icon: "fa-user" },
-  { value: "promo",    label: "Promo",     icon: "fa-tag" },
-  { value: "settings", label: "Settings",  icon: "fa-sliders-h" },
-  { value: "content",  label: "Content",   icon: "fa-globe" },
-  { value: "review",   label: "Reviews",   icon: "fa-star" },
-  { value: "system",   label: "System",    icon: "fa-cog" },
+  { value: "",             label: "All",           icon: "fa-layer-group" },
+  { value: "booking",      label: "Booking",       icon: "fa-calendar-check" },
+  { value: "payment",      label: "Payment",       icon: "fa-money-bill-wave" },
+  { value: "room",         label: "Rooms",         icon: "fa-bed" },
+  { value: "user",         label: "Users",         icon: "fa-user" },
+  { value: "auth",         label: "Auth",          icon: "fa-lock" },
+  { value: "promo",        label: "Promo",         icon: "fa-tag" },
+  { value: "settings",     label: "Settings",      icon: "fa-sliders-h" },
+  { value: "content",      label: "Content",       icon: "fa-globe" },
+  { value: "gallery",      label: "Gallery",       icon: "fa-images" },
+  { value: "announcement", label: "Announcements", icon: "fa-bullhorn" },
+  { value: "newsletter",   label: "Newsletter",    icon: "fa-envelope-open-text" },
+  { value: "upload",       label: "Uploads",       icon: "fa-cloud-upload-alt" },
+  { value: "message",      label: "Messages",      icon: "fa-comment-dots" },
+  { value: "review",       label: "Reviews",       icon: "fa-star" },
+  { value: "system",       label: "System",        icon: "fa-cog" },
 ];
 
 function CategoryBadge({ category }) {
@@ -66,7 +100,9 @@ function CategoryBadge({ category }) {
 
 function RoleBadge({ role }) {
   const s = ROLE_STYLES[role] ?? ROLE_STYLES.system;
-  const label = role === "front_desk" ? "Front Desk" : (role?.charAt(0).toUpperCase() + role?.slice(1));
+  const label = role === "front_desk"
+    ? "Front Desk"
+    : (role ? (role.charAt(0).toUpperCase() + role.slice(1)) : "System");
   return (
     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${s.bg} ${s.text}`}>
       {label}
@@ -96,6 +132,8 @@ function exportPDF(logs, filters) {
   const filterSummary = [
     filters.search && `Search: "${esc(filters.search)}"`,
     filters.category && `Category: ${esc(filters.category)}`,
+    filters.role && `Role: ${esc(filters.role)}`,
+    filters.action && `Action: ${esc(filters.action)}`,
     filters.from && `From: ${esc(filters.from)}`,
     filters.to && `To: ${esc(filters.to)}`,
   ].filter(Boolean).join(" · ") || "All entries";
@@ -202,10 +240,18 @@ export default function AdminHistory() {
   // Filters
   const [search,   setSearch]   = useState("");
   const [category, setCategory] = useState("");
+  const [role,     setRole]     = useState("");
+  const [action,   setAction]   = useState("");
   const [from,     setFrom]     = useState("");
   const [to,       setTo]       = useState("");
   const [page,     setPage]     = useState(1);
   const [perPage,  setPerPage]  = useState(25);
+
+  // Facets for the Action dropdown. Scoped by the currently-selected
+  // category so the action list shrinks to only what's relevant (e.g.
+  // picking `booking` narrows the Action menu to "Booking Confirmed",
+  // "Booking Cancelled", "Guest Checked In", …).
+  const [actionFacets, setActionFacets] = useState([]);
 
   // Auto-refresh
   const [autoRefresh, setAutoRefresh] = useState(false);
@@ -213,7 +259,7 @@ export default function AdminHistory() {
   const debouncedSearch = useDebounce(search, 400);
 
   // #11 — active filter count
-  const activeFilterCount = [search, category, from, to].filter(Boolean).length;
+  const activeFilterCount = [search, category, role, action, from, to].filter(Boolean).length;
 
   const load = useCallback(async (params) => {
     setLoading(true);
@@ -234,13 +280,30 @@ export default function AdminHistory() {
     const params = { page, per_page: perPage };
     if (debouncedSearch) params.search   = debouncedSearch;
     if (category)        params.category = category;
+    if (role)            params.role     = role;
+    if (action)          params.action   = action;
     if (from)            params.from     = from;
     if (to)              params.to       = to;
     load(params);
-  }, [page, perPage, debouncedSearch, category, from, to, load]);
+  }, [page, perPage, debouncedSearch, category, role, action, from, to, load]);
 
   // Reset page on filter change
-  useEffect(() => { setPage(1); }, [debouncedSearch, category, from, to, perPage]);
+  useEffect(() => { setPage(1); }, [debouncedSearch, category, role, action, from, to, perPage]);
+
+  // Re-fetch action facets when the category changes. Picking a category
+  // trims the Action dropdown to only that category's actions; clearing
+  // category re-fetches the full set. Silent failure is fine — the
+  // dropdown just stays empty and the user falls back to the text search.
+  useEffect(() => {
+    const params = {};
+    if (category) params.category = category;
+    getAdminHistoryFacets(params)
+      .then((res) => setActionFacets(Array.isArray(res.data.actions) ? res.data.actions : []))
+      .catch(() => setActionFacets([]));
+    // If the selected action is no longer valid under the new category
+    // scope, clear it so results aren't silently blank.
+    setAction("");
+  }, [category]);
 
   // Auto-refresh polling
   useEffect(() => {
@@ -249,19 +312,21 @@ export default function AdminHistory() {
       const params = { page, per_page: perPage };
       if (debouncedSearch) params.search   = debouncedSearch;
       if (category)        params.category = category;
+      if (role)            params.role     = role;
+      if (action)          params.action   = action;
       if (from)            params.from     = from;
       if (to)              params.to       = to;
       load(params);
     }, 20_000);
     return () => clearInterval(id);
-  }, [autoRefresh, page, perPage, debouncedSearch, category, from, to, load]);
+  }, [autoRefresh, page, perPage, debouncedSearch, category, role, action, from, to, load]);
 
   // Pagination helpers
   const startRow = meta.total === 0 ? 0 : (meta.current_page - 1) * (meta.per_page || perPage) + 1;
   const endRow = Math.min(meta.current_page * (meta.per_page || perPage), meta.total);
 
   function clearAllFilters() {
-    setSearch(""); setCategory(""); setFrom(""); setTo("");
+    setSearch(""); setCategory(""); setRole(""); setAction(""); setFrom(""); setTo("");
   }
 
   // ── Skeleton loading ──────────────────────────────────────────────────────
@@ -316,7 +381,7 @@ export default function AdminHistory() {
           {/* PDF Export */}
           <button
             onClick={() => {
-              exportPDF(logs, { search: debouncedSearch, category, from, to });
+              exportPDF(logs, { search: debouncedSearch, category, role, action, from, to });
               showToast("PDF export opened in new tab.", "info");
             }}
             disabled={logs.length === 0}
@@ -371,6 +436,34 @@ export default function AdminHistory() {
                 className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
               />
             </div>
+          </div>
+
+          {/* Role filter — who performed the action */}
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">Role</label>
+            <select
+              value={role}
+              onChange={e => setRole(e.target.value)}
+              className="px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white"
+            >
+              {ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+
+          {/* Action filter — populated from the facets endpoint, scoped to category */}
+          <div className="min-w-[200px]">
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              Action {category && <span className="text-slate-400">(in {category})</span>}
+            </label>
+            <select
+              value={action}
+              onChange={e => setAction(e.target.value)}
+              disabled={actionFacets.length === 0}
+              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 bg-white disabled:bg-slate-50 disabled:text-slate-400"
+            >
+              <option value="">All Actions</option>
+              {actionFacets.map(a => <option key={a} value={a}>{a}</option>)}
+            </select>
           </div>
 
           {/* Date range */}
@@ -434,6 +527,18 @@ export default function AdminHistory() {
                 <button onClick={() => setCategory("")} className="hover:text-purple-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
               </span>
             )}
+            {role && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">
+                <i className="fas fa-user-tag text-[9px]"></i>Role: {role === "front_desk" ? "Front Desk" : role}
+                <button onClick={() => setRole("")} className="hover:text-emerald-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+              </span>
+            )}
+            {action && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium">
+                <i className="fas fa-bolt text-[9px]"></i>Action: {action}
+                <button onClick={() => setAction("")} className="hover:text-amber-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+              </span>
+            )}
             {from && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-xs font-medium">
                 <i className="fas fa-calendar text-[9px]"></i>From: {from}
@@ -470,7 +575,7 @@ export default function AdminHistory() {
           <div className="p-12 text-center">
             <i className="fas fa-history text-3xl mb-3 block text-slate-300"></i>
             <p className="text-slate-400">
-              {search || category || from || to
+              {activeFilterCount > 0
                 ? "No entries match your filters."
                 : "No activity logged yet. Actions will appear here as staff use the system."}
             </p>

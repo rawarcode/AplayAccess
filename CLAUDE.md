@@ -14,9 +14,8 @@ Aplaya Beach Resort booking system — Capstone project.
 | Email | Password | Role |
 |---|---|---|
 | test@example.com | password | guest |
-| frontdesk@aplaya.com | password | front_desk |
-| admin@aplaya.com | password | admin |
-| owner@aplaya.com | password | owner |
+| frontdesk@aplayaccess.test | password | front_desk |
+| owner@aplayaccess.test | password | owner |
 
 ## Architecture
 - `src/main.jsx` → BrowserRouter > AuthProvider > App

@@ -4,7 +4,11 @@ import { api } from './api';
 export const getAdminStats     = ()         => api.get('/api/admin/stats');
 
 // ── Activity History ─────────────────────────────────────────────────────────
-export const getAdminHistory   = (params)   => api.get('/api/admin/history', { params });
+export const getAdminHistory       = (params) => api.get('/api/admin/history', { params });
+// facets populates the Role + Action dropdown filters; pass { category }
+// to scope actions to a chosen category (e.g. only "Booking *" actions
+// show up when the user already picked booking).
+export const getAdminHistoryFacets = (params) => api.get('/api/admin/history/facets', { params });
 
 // ── Resort Amenities (site builder) ──────────────────────────────────────────
 export const getResortAmenities    = ()              => api.get('/api/admin/resort-amenities');
