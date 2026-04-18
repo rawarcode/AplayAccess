@@ -68,6 +68,52 @@ function StatusBadge({ status, booking }) {
   );
 }
 
+// Display-name resolution for walk-in bookings. specialRequests is
+// user-editable on online bookings, so only trust the "Walk-in: <name>"
+// prefix when the backend-attributed `source` confirms it's a walk-in —
+// otherwise fall back to b.guest. Matches the Bookings page behavior.
+function walkInName(b) {
+  if (b?.source === 'walk-in' && b.specialRequests?.startsWith('Walk-in:')) {
+    const m = b.specialRequests.match(/^Walk-in:\s*([^,]+)/);
+    if (m) return m[1].trim();
+  }
+  return b?.guest || 'Guest';
+}
+
+// Payment-state cell. Renders as a single consistent pill shape across
+// all states so a scan down the column compares apples to apples:
+//   Paid • Due ₱X • Collected • Forfeited ₱X
+function PaymentCell({ booking, entranceRates }) {
+  if (booking.status === 'Completed') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>Collected
+      </span>
+    );
+  }
+  if (booking.status === 'Cancelled') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
+        <i className="fas fa-ban text-[10px]" aria-hidden="true"></i>
+        Forfeited {fmtMoney(booking.reservationFee ?? 0)}
+      </span>
+    );
+  }
+  if (booking.fullyPaid) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>Paid
+      </span>
+    );
+  }
+  const due = Math.max(0, Number(booking.total ?? 0) + calcEntrance(booking, entranceRates) - Number(booking.paidAmount ?? 0));
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
+      <i className="fas fa-coins text-[10px]" aria-hidden="true"></i>Due {fmtMoney(due)}
+    </span>
+  );
+}
+
 // ─── detail drawer ────────────────────────────────────────────────────────────
 function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading, entranceRates }) {
   if (!b) return null;
@@ -105,7 +151,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
 
           {/* Guest info */}
           <div className="bg-slate-50 rounded-lg p-4 space-y-1 text-sm">
-            <p className="font-semibold text-slate-800 text-base">{b.guest}</p>
+            <p className="font-semibold text-slate-800 text-base">{walkInName(b)}</p>
             <p className="text-slate-500">{b.roomType} · {b.guests} pax</p>
             <p className="text-slate-400 text-xs mt-1">
               {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
@@ -421,7 +467,11 @@ export default function Billing() {
     if (!isSearching) return todayAll;
     const term = searchTerm.trim().toLowerCase();
     return todayAll.filter(b =>
-      (b.guest ?? '').toLowerCase().includes(term)
+      // walkInName resolves to the staff-entered name for walk-ins and
+      // falls back to b.guest for online bookings, so a single search
+      // matches both the "Walk-in: Juan" prefix and the canonical guest.
+      walkInName(b).toLowerCase().includes(term)
+        || (b.guest ?? '').toLowerCase().includes(term)
         || (b.id ?? '').toLowerCase().includes(term)
         || (b.roomType ?? '').toLowerCase().includes(term)
         || (b.guestEmail ?? '').toLowerCase().includes(term)
@@ -432,7 +482,7 @@ export default function Billing() {
   const sortedTodayAll = useMemo(() => [...searchedTodayAll].sort((a, b) => {
     let aVal, bVal;
     if (sortBy === 'Booking ID') { aVal = a.id ?? '';             bVal = b.id ?? ''; }
-    else if (sortBy === 'Guest')      { aVal = (a.guest ?? '').toLowerCase();      bVal = (b.guest ?? '').toLowerCase(); }
+    else if (sortBy === 'Guest')      { aVal = walkInName(a).toLowerCase();        bVal = walkInName(b).toLowerCase(); }
     else if (sortBy === 'Room')       { aVal = (a.roomType ?? '').toLowerCase();   bVal = (b.roomType ?? '').toLowerCase(); }
     else if (sortBy === 'Booking Total') { aVal = Number(a.total ?? 0);            bVal = Number(b.total ?? 0); }
     else if (sortBy === 'To Collect') {
@@ -705,7 +755,7 @@ export default function Billing() {
                   onClick={() => setSelected(b)}
                   className="flex items-center justify-between p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition">
                   <div>
-                    <p className="font-medium">{b.guest}</p>
+                    <p className="font-medium">{walkInName(b)}</p>
                     <p className="text-sm text-slate-600">{b.roomType} · {b.guests} pax</p>
                     <p className="text-xs text-slate-500">
                       {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
@@ -774,102 +824,135 @@ export default function Billing() {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    {/* Header order must match the row cell order below.
-                        Previously "Status" and "To Collect" were swapped
-                        relative to their cells, making the third column
-                        render amounts under "Status" and booking statuses
-                        under "To Collect". Also renamed "Visit Rate" to
-                        "Booking Total" — the cell shows b.total (room rate
-                        + amenities − discount), not a per-unit rate. */}
-                    {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Time Slot','Time Slot'],['Booking Total','Booking Total'],['Payment','To Collect']].map(([label,key]) => (
-                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
-                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
-                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
-                          {label}
-                          <span className="text-slate-400 group-hover:text-sky-400">
-                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
-                          </span>
-                        </button>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
-                      <button onClick={() => { if(sortBy==='Status') setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy('Status');setSortDir('asc');} }}
-                        className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
-                        Status
-                        <span className="text-slate-400 group-hover:text-sky-400">
-                          {sortBy==='Status' ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
-                        </span>
-                      </button>
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Action</th>
+                    {/* Sortable headers with aria-sort + descriptive
+                        aria-label so screen readers announce "Sort by
+                        Guest, currently ascending" etc. Non-sorted columns
+                        just say "Sort by Guest" — "currently none" reads
+                        awkwardly. */}
+                    {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Time Slot','Time Slot'],['Booking Total','Booking Total'],['Payment','To Collect'],['Status','Status']].map(([label,key]) => {
+                      const isSorted = sortBy === key;
+                      const ariaSort = isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
+                      return (
+                        <th
+                          key={key}
+                          scope="col"
+                          aria-sort={ariaSort}
+                          className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase"
+                        >
+                          <button
+                            onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                            aria-label={isSorted ? `Sort by ${label}, currently ${ariaSort}` : `Sort by ${label}`}
+                            className="flex items-center gap-1 hover:text-sky-600 transition-colors group focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                          >
+                            {label}
+                            <span className="text-slate-400 group-hover:text-sky-400" aria-hidden="true">
+                              {isSorted ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                            </span>
+                          </button>
+                        </th>
+                      );
+                    })}
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {sortedTodayAll.map(b => (
-                    <tr key={b.bookingId}
-                      className="hover:bg-slate-50 cursor-pointer"
-                      onClick={() => setSelected(b)}
-                    >
-                      <td className="px-4 py-3 text-xs text-slate-500">{b.id}</td>
-                      <td className="px-4 py-3 text-sm font-medium">{b.guest}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{b.roomType}</td>
-                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                        {fmtDateTime(b.checkIn)}<br />
-                        <span className="text-slate-400">→ {fmtDateTime(b.checkOut)}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
-                      <td className="px-4 py-3 text-sm font-medium">
-                        {b.status === 'Completed'
-                          ? <span className="text-emerald-600"><i className="fas fa-check mr-1"></i>Collected</span>
-                          : b.status === 'Cancelled'
-                          ? <span className="text-rose-600"><i className="fas fa-ban mr-1"></i>Forfeited {fmtMoney(b.reservationFee ?? 0)}</span>
-                          : b.fullyPaid
-                          ? <span className="text-emerald-600"><i className="fas fa-check mr-1"></i>Paid</span>
-                          : <span className="text-sky-700">{fmtMoney(Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0)))}</span>
-                        }
-                      </td>
-                      <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        {b.status === 'Confirmed' && !b.fullyPaid && (
+                  {sortedTodayAll.map(b => {
+                    const guestLabel = walkInName(b);
+                    return (
+                      <tr key={b.bookingId}
+                        className="hover:bg-slate-50 cursor-pointer"
+                        onClick={() => setSelected(b)}
+                      >
+                        <td className="px-4 py-3 text-xs whitespace-nowrap">
+                          {/* Native button = keyboard-activatable primary
+                              action for opening the detail modal. Matches
+                              the Bookings page pattern. */}
                           <button
-                            onClick={() => openCollect(b)}
-                            className="px-3 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700"
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setSelected(b); }}
+                            className="font-mono text-slate-600 hover:text-sky-700 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                            aria-label={`View billing detail for ${b.id}, guest ${guestLabel}`}
                           >
-                            Collect
+                            {b.id}
                           </button>
-                        )}
-                        {b.status === 'Confirmed' && b.fullyPaid && (
-                          <span className="text-xs text-emerald-600 font-medium"><i className="fas fa-check-circle mr-1"></i>Paid</span>
-                        )}
-                        {b.status !== 'Pending' && (
-                          <button
-                            onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
-                            disabled={downloading === b.bookingId}
-                            className="px-3 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-60 flex items-center gap-1"
-                            title="Download receipt (PDF)"
-                          >
-                            <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
-                            Receipt
-                          </button>
-                        )}
-                        {b.status === 'Cancelled' && (
-                          <span className="text-xs text-rose-500">
-                            <i className="fas fa-ban mr-1"></i>Cancelled
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-sm font-medium">{guestLabel}</td>
+                        <td className="px-4 py-3 text-sm text-slate-600">{b.roomType}</td>
+                        <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+                          {fmtDateTime(b.checkIn)}<br />
+                          <span className="text-slate-400">→ {fmtDateTime(b.checkOut)}</span>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
+                        <td className="px-4 py-3">
+                          <PaymentCell booking={b} entranceRates={entranceRates} />
+                        </td>
+                        <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
+                        <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                          {/* Pills use min-h-[36px] so tap targets clear
+                              WCAG 2.5.8 AA on touch. aria-labels name the
+                              booking so title tooltips aren't the only
+                              affordance for assistive tech. */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {b.status === 'Confirmed' && !b.fullyPaid && (
+                              <button
+                                onClick={() => openCollect(b)}
+                                aria-label={`Collect payment for ${b.id}`}
+                                className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                              >
+                                <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
+                              </button>
+                            )}
+                            {b.status === 'Confirmed' && b.fullyPaid && (
+                              <span className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 text-xs text-emerald-700 font-medium">
+                                <i className="fas fa-check-circle" aria-hidden="true"></i>Paid — awaiting check-in
+                              </span>
+                            )}
+                            {b.status === 'Pending' && (
+                              <span
+                                aria-label="Awaiting payment clearance"
+                                className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
+                              >
+                                <i className="fas fa-hourglass-half text-[11px]" aria-hidden="true"></i>Awaiting payment
+                              </span>
+                            )}
+                            {b.status !== 'Pending' && (
+                              <button
+                                onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
+                                disabled={downloading === b.bookingId}
+                                aria-label={`Download receipt PDF for ${b.id}`}
+                                className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                                title="Download receipt (PDF)"
+                              >
+                                <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} text-[11px]`} aria-hidden="true"></i>
+                                Receipt
+                              </button>
+                            )}
+                            {b.status === 'Cancelled' && (
+                              <span className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 text-xs text-rose-600">
+                                <i className="fas fa-ban" aria-hidden="true"></i>Cancelled
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 <tfoot className="bg-slate-50 text-sm font-semibold">
                   <tr>
                     <td colSpan={4} className="px-4 py-3 text-right text-slate-600">
-                      Billed (excl. cancelled / pending):
+                      <span className="inline-flex items-center gap-1.5">
+                        Billed
+                        <i
+                          className="fas fa-circle-info text-slate-400 text-[11px] cursor-help"
+                          title="Excludes cancelled and pending bookings. Entrance fees are collected at the gate and tracked separately."
+                          aria-label="Excludes cancelled and pending bookings. Entrance fees are collected at the gate and tracked separately."
+                        ></i>
+                        :
+                      </span>
                     </td>
                     {/* Sum just b.total so the footer matches the visible
-                        column cells (which also show b.total). Entrance
-                        fees surface in the Awaiting Collection card above
-                        and per-booking in the detail modal, not here. */}
+                        column cells (which also show b.total). */}
                     <td className="px-4 py-3">
                       {fmtMoney(todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total || 0), 0))}
                     </td>
@@ -967,7 +1050,7 @@ export default function Billing() {
                           <div className="flex items-start justify-between gap-2">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <p className="font-semibold text-slate-800 truncate">{b.guest || 'Guest'}</p>
+                                <p className="font-semibold text-slate-800 truncate">{walkInName(b)}</p>
                                 <StatusBadge status={b.status} booking={b} />
                               </div>
                               <p className="text-[11px] font-mono text-slate-500">{b.id}</p>
