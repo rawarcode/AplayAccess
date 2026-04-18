@@ -308,19 +308,41 @@ export default function Reservation() {
 
       {/* ── Transfer Room Modal ── */}
       {transferBooking && (() => {
-        const busyRoomIds = new Set(
-          bookings
-            .filter(b =>
-              b.bookingId !== transferBooking.bookingId &&
-              ['Confirmed', 'Checked In'].includes(b.status) &&
-              new Date(b.checkIn)  < new Date(transferBooking.checkOut) &&
-              new Date(b.checkOut) > new Date(transferBooking.checkIn)
-            )
-            .map(b => b.roomId)
-        );
-        const availableRooms = rooms.filter(r =>
-          String(r.id) !== String(transferBooking.roomId) && !busyRoomIds.has(r.id)
-        );
+        // Count overlapping bookings PER room id, then compare against
+        // room.quantity — matches the backend's transferRoom guard:
+        //   activeBookings.count() >= room.quantity → reject
+        // The old code used a Set and excluded any room with ≥1 overlap,
+        // so multi-unit cottages / pavilions looked full at 1/N occupancy.
+        //
+        // Status filter mirrors the backend's whereNotIn(Cancelled,
+        // Completed) so Pending rows (which hold the inventory until they
+        // auto-cancel or confirm) also count toward occupancy here.
+        //
+        // new Date() on "YYYY-MM-DD HH:mm" is implementation-dependent in
+        // browsers — normalise to the ISO form with `T` first so Safari
+        // and strict engines parse it reliably.
+        const parseDT = (s) => new Date(String(s ?? '').replace(' ', 'T'));
+        const transferStart = parseDT(transferBooking.checkIn);
+        const transferEnd   = parseDT(transferBooking.checkOut);
+
+        const overlapCounts = new Map();
+        for (const b of bookings) {
+          if (b.bookingId === transferBooking.bookingId) continue;
+          if (['Cancelled', 'Completed'].includes(b.status)) continue;
+          const s = parseDT(b.checkIn);
+          const e = parseDT(b.checkOut);
+          if (isNaN(s.getTime()) || isNaN(e.getTime())) continue;
+          if (s < transferEnd && e > transferStart) {
+            overlapCounts.set(b.roomId, (overlapCounts.get(b.roomId) ?? 0) + 1);
+          }
+        }
+
+        const availableRooms = rooms.filter(r => {
+          if (String(r.id) === String(transferBooking.roomId)) return false;
+          const taken = overlapCounts.get(r.id) ?? 0;
+          const qty   = Number(r.quantity ?? 1);
+          return taken < qty;
+        });
         return (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Transfer room">
             <div className="bg-white rounded-lg w-full max-w-md">
@@ -343,9 +365,17 @@ export default function Reservation() {
                       aria-label="Transfer to room"
                       className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                       <option value="">Select a room...</option>
-                      {availableRooms.map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
+                      {availableRooms.map(r => {
+                        const qty   = Number(r.quantity ?? 1);
+                        const taken = overlapCounts.get(r.id) ?? 0;
+                        const free  = Math.max(0, qty - taken);
+                        // Only mention capacity when the room has more than one unit —
+                        // "Deluxe Room — 1 of 1 free" would be noise.
+                        const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
+                        return (
+                          <option key={r.id} value={r.id}>{r.name}{suffix}</option>
+                        );
+                      })}
                     </select>
                   )}
                 </div>
