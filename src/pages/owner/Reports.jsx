@@ -40,7 +40,7 @@ function printReport({ bookings, active, revenue, avgVal, nights, period, roomTy
 <div class="cards"><div class="card"><div class="lbl">Total Revenue</div><div class="val">₱${fmtN(revenue)}</div><div class="hint">Excluding cancelled</div></div><div class="card"><div class="lbl">Total Bookings</div><div class="val">${bookings.length}</div><div class="hint">${active.length} active · ${bookings.length-active.length} cancelled</div></div><div class="card"><div class="lbl">Avg. Stay Value</div><div class="val">₱${fmtN(Math.round(avgVal))}</div><div class="hint">Per active booking</div></div><div class="card"><div class="lbl">Total Guest-Days</div><div class="val">${Math.round(nights)}</div><div class="hint">Active bookings only</div></div></div>
 <div class="sec"><div class="sech">Booking Status Breakdown</div><div class="srow">${['Confirmed','Checked In','Completed','Pending','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div></div>
 <div class="sec"><div class="sech">Revenue by Room</div><table><thead><tr><th>Room</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${active.length}</td><td style="text-align:right">₱${fmtN(revenue)}</td><td style="text-align:right">₱${active.length?fmtN(Math.round(revenue/active.length)):'—'}</td></tr></tfoot></table></div>
-<div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Duration</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(revenue - active.reduce((s,b)=>s+Number(b.entranceFee??0),0))}</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.entranceFee??0),0))}</td><td></td></tr></tfoot></table></div>
+<div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Duration</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.total??0),0))}</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.entranceFee??0),0))}</td><td></td></tr></tfoot></table></div>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
@@ -474,7 +474,7 @@ export default function OwnerReports() {
                   <th className="px-6 py-3 text-left">Room</th>
                   <th className="px-6 py-3 text-left">Payment</th>
                   <th className="px-6 py-3 text-left">Duration</th>
-                  <th className="px-6 py-3 text-left">Amount</th>
+                  <th className="px-6 py-3 text-left">Collected</th>
                   <th className="px-6 py-3 text-left">Status</th>
                 </tr>
               </thead>
@@ -490,9 +490,14 @@ export default function OwnerReports() {
                     <td className="px-6 py-3 text-slate-500">{b.payment || "—"}</td>
                     <td className="px-6 py-3">{b.bookingType === 'day' ? '1 day' : `${b.nights || 1} night${(b.nights || 1) !== 1 ? 's' : ''}`}</td>
                     <td className="px-6 py-3 font-medium">
+                      {/* Show collected money per row so non-cancelled rows
+                          add up to the footer total (which is SUM(paidAmount)
+                          on active bookings). Cancelled rows render the
+                          forfeited fee with line-through since it's excluded
+                          from the footer. */}
                       {b.status === "Cancelled"
-                        ? <span className="line-through text-slate-400">{fmt(b.total)}</span>
-                        : fmt(b.total)}
+                        ? <span className="line-through text-slate-400">{fmt(Number(b.paidAmount ?? 0))}</span>
+                        : fmt(Number(b.paidAmount ?? 0))}
                     </td>
                     <td className="px-6 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_CLASSES[b.status] || "bg-gray-100 text-gray-800"}`}>
