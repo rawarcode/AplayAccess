@@ -163,10 +163,15 @@ export default function OwnerTransactions() {
   // still a real "attempted transaction" — including them matches intuition.
   const avgTx = allBookings.length ? totalRevenue / allBookings.length : 0;
 
-  // Revenue by Room Type — collected money, not projected value.
+  // Revenue by Room Type — collected money, not projected value. Matches
+  // the chart subtitle "All time · excluding cancelled" by skipping
+  // Cancelled rows (their forfeited reservation fee shows in the
+  // Revenue Breakdown's "Forfeited" bucket instead, where that
+  // semantic belongs).
   const roomRevenueData = useMemo(() => {
     const map = {};
     allBookings.forEach((b) => {
+      if (b.status === "Cancelled") return;
       const amt = collectedAmt(b);
       if (amt === 0) return;
       const room = b.roomType || "Unknown";
@@ -448,7 +453,8 @@ export default function OwnerTransactions() {
             {!loading && currentRows.length > 0 && (
               <tfoot className="bg-slate-50 border-t-2 border-slate-300 text-sm font-semibold">
                 <tr>
-                  <td colSpan={5} className="px-6 py-3 text-slate-700">
+                  {/* 8 columns: Booking ID · Check-in · Guest · Room · Discount · Amount · Status · Payment */}
+                  <td colSpan={4} className="px-6 py-3 text-slate-700">
                     Page total ({currentRows.length} rows)
                   </td>
                   <td className="px-6 py-3 text-emerald-700 font-semibold">
@@ -457,6 +463,7 @@ export default function OwnerTransactions() {
                   <td className="px-6 py-3 text-slate-900">
                     {fmt(currentRows.reduce((s, b) => s + collectedAmt(b), 0))}
                   </td>
+                  <td />
                   <td />
                 </tr>
               </tfoot>
