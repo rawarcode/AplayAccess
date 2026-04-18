@@ -36,6 +36,12 @@ function PayIcon({ method }) {
 function isExpiredPending(b) {
   if (b.status !== 'Pending') return false;
   if (b.fullyPaid) return false;
+  // A booking with an active PayMongo checkout link is still being paid
+  // for — the guest may still be on the PayMongo page. Don't label those
+  // as Expired even after five minutes; the webhook / polling / stale-
+  // pending job will clear them correctly. Mirrors the same guard in
+  // Reservation and BookingDetailModal.
+  if (b.paymongoLinkId) return false;
   const created = new Date(b.createdAt);
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }

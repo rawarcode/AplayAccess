@@ -514,7 +514,12 @@ export default function Reservation() {
                               className="text-sky-600 hover:text-sky-800">
                               <i className="fas fa-eye"></i>
                             </button>
-                            {b.status === 'Pending' && (
+                            {/* Manual Confirm is only available once payment
+                                has been recorded (paidAmount > 0). Before
+                                that, Pending rows wait on the payment
+                                webhook to move them to Confirmed. Backend
+                                also rejects this path on unpaid rows. */}
+                            {b.status === 'Pending' && Number(b.paidAmount ?? 0) > 0 && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'confirm', booking: b })}
                                 disabled={actionLoading === b.bookingId}
                                 title="Confirm" className="text-sky-600 hover:text-sky-800 disabled:opacity-40">
