@@ -219,7 +219,7 @@ function fmtDateLabel(dt) {
 }
 
 // ─── MultiUnitCard — for cottages / pavilions with quantity > 1 ──────────────
-function MultiUnitCard({ room, info, onOpen, onWalkIn }) {
+function MultiUnitCard({ room, info, onOpen }) {
   const { quantity, occupied, incoming, pending, vacant } = info;
 
   const dots = [];
@@ -260,22 +260,6 @@ function MultiUnitCard({ room, info, onOpen, onWalkIn }) {
         ].filter(Boolean).map(({ n, label, cls }) => (
           <span key={label} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cls}`}>{n} {label}</span>
         ))}
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-slate-100 pt-1.5">
-        <span className="text-[10px] text-slate-400 font-medium">
-          <i className="fas fa-list text-[9px] mr-1"></i>Details
-        </span>
-        {vacant > 0
-          ? <button
-              onClick={(e) => { e.stopPropagation(); onWalkIn?.(); }}
-              className="text-[10px] font-semibold text-sky-600 hover:text-sky-800 flex items-center gap-0.5"
-            >
-              <i className="fas fa-person-walking text-[9px]"></i> Walk-in
-            </button>
-          : <span className="text-[10px] text-rose-500 font-semibold">Full</span>
-        }
       </div>
     </div>
   );
@@ -708,8 +692,7 @@ export default function FDRooms() {
                                     const info = item[infoKey];
                                     return info.multi ? (
                                       <MultiUnitCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
-                                        onOpen={() => setSelectedMulti({ room: item.room, info, slot })}
-                                        onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: item.room } })} />
+                                        onOpen={() => setSelectedMulti({ room: item.room, info, slot })} />
                                     ) : (
                                       <RoomCard key={`${slot}-${item.room.id}`} room={item.room} info={info}
                                         onClick={() => setSelectedSlot({ room: item.room, info })} />
