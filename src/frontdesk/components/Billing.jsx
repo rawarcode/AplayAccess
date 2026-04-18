@@ -4,6 +4,7 @@ import Sidebar from './Layout/Sidebar';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
+import PaymentCell from '../../components/ui/PaymentPill';
 import { fmtMoney, fmtDate, fmtDateTime, localDateStr } from '../../lib/format';
 
 
@@ -80,55 +81,8 @@ function walkInName(b) {
   return b?.guest || 'Guest';
 }
 
-// Payment-state cell. Renders as a single consistent pill shape across
-// all states so a scan down the column compares apples to apples.
-// Each cell carries both the state label AND the money amount so staff
-// can answer "how much?" without opening the detail modal:
-//   Paid ₱X • Collected ₱X • Due ₱X • Forfeited ₱X • No payment
-function PaymentCell({ booking, entranceRates }) {
-  const paid = Number(booking.paidAmount ?? 0);
-
-  if (booking.status === 'Completed') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>
-        Collected {fmtMoney(paid)}
-      </span>
-    );
-  }
-  if (booking.status === 'Cancelled') {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
-        <i className="fas fa-ban text-[10px]" aria-hidden="true"></i>
-        Forfeited {fmtMoney(booking.reservationFee ?? 0)}
-      </span>
-    );
-  }
-  if (booking.fullyPaid) {
-    return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-        <i className="fas fa-check text-[10px]" aria-hidden="true"></i>
-        Paid {fmtMoney(paid)}
-      </span>
-    );
-  }
-  // Partially paid or unpaid — show both what's been paid so far (if any)
-  // and what's still due. "Due ₱1,900 (₱300 paid)" gives staff the full
-  // picture at a glance without math.
-  const grand = Number(booking.total ?? 0) + calcEntrance(booking, entranceRates);
-  const due   = Math.max(0, grand - paid);
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
-      <i className="fas fa-coins text-[10px]" aria-hidden="true"></i>
-      Due {fmtMoney(due)}
-      {paid > 0 && (
-        <span className="text-[10px] font-normal text-sky-700/80">
-          ({fmtMoney(paid)} paid)
-        </span>
-      )}
-    </span>
-  );
-}
+// PaymentCell moved to components/ui/PaymentPill.jsx (imported at
+// top as PaymentCell alias) so Bookings can reuse the same pill shape.
 
 // ─── detail drawer ────────────────────────────────────────────────────────────
 function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt, downloading, entranceRates }) {
@@ -790,30 +744,49 @@ export default function Billing() {
                 const toCollect  = Math.max(0, grand - paid);
                 const guestLabel = walkInName(b);
                 const openDetail = () => setSelected(b);
+                // Overdue = checked-in and scheduled checkout has already
+                // passed. Parallel to the Bookings / Dashboard definition.
+                // Confirmed bookings can't be overdue (haven't arrived yet),
+                // so this is effectively only meaningful for Checked In.
+                const overdue = b.status === 'Checked In' && b.checkOut
+                  && new Date(String(b.checkOut).replace(' ', 'T')) < new Date();
+                const cardCls = overdue
+                  ? 'flex items-center gap-3 p-4 border border-rose-300 rounded-lg bg-rose-50 cursor-pointer hover:bg-rose-100 transition focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1'
+                  : 'flex items-center gap-3 p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1';
                 return (
                   <li key={b.bookingId}>
                     {/* role="button" + keydown handler turns the card into
                         a keyboard-activatable region. The nested Collect
                         button uses stopPropagation so Enter on it won't
-                        also open the detail modal. */}
+                        also open the detail modal. Rose styling takes over
+                        when the checked-in guest's scheduled checkout has
+                        already passed — staff should chase the room. */}
                     <div
                       role="button"
                       tabIndex={0}
                       onClick={openDetail}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); } }}
-                      aria-label={`View billing detail for ${b.id}, ${guestLabel}`}
-                      className="flex items-center gap-3 p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1"
+                      aria-label={`View billing detail for ${b.id}, ${guestLabel}${overdue ? ' — overdue checkout' : ''}`}
+                      className={cardCls}
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium">{guestLabel}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="font-medium">{guestLabel}</p>
+                          {overdue && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white">
+                              <i className="fas fa-triangle-exclamation text-[9px]" aria-hidden="true"></i>OVERDUE
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-slate-600">{b.roomType} · {b.guests} pax</p>
-                        <p className="text-xs text-slate-500">
+                        <p className={`text-xs ${overdue ? 'text-rose-600 font-medium' : 'text-slate-500'}`}>
                           {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
+                          {overdue && ' (past checkout)'}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-xs text-slate-500">Total to Collect</p>
-                        <p className="font-bold text-sky-700 text-lg">
+                        <p className={`font-bold text-lg ${overdue ? 'text-rose-700' : 'text-sky-700'}`}>
                           {fmtMoney(toCollect)}
                         </p>
                         {paid > 0 && (

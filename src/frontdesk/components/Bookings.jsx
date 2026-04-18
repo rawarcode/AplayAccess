@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
+import PaymentPill from '../../components/ui/PaymentPill';
 import BookingDetailModal from './BookingDetailModal';
 import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
@@ -242,7 +243,13 @@ export default function Bookings() {
       else if (sortBy === 'Room')       key = (b.roomType ?? '').toLowerCase();
       else if (sortBy === 'Visit Time') key = b.checkIn ?? '';
       else if (sortBy === 'Guests')     key = Number(b.guests ?? 0);
-      else if (sortBy === 'Total')      key = Number(b.total ?? 0) + calcEntrance(b, entranceRates);
+      else if (sortBy === 'Payment')    {
+        // Sort by outstanding (DESC-friendly semantics): paid / completed
+        // rows sort as 0 so the column surfaces "what still needs
+        // collecting" at the top when clicked descending.
+        if (b.status === 'Completed' || b.status === 'Cancelled' || b.fullyPaid) key = 0;
+        else key = Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
+      }
       else if (sortBy === 'Status')     key = STATUS_ORDER[b.status] ?? 5;
       else                              key = '';
       return { b, key };
@@ -343,8 +350,11 @@ export default function Bookings() {
                     ['Booking ID', b.id],
                     ['Guest',      guest],
                     ['Room',       b.roomType],
-                    // Grand total mirrors the table column so staff see the
-                    // same number before confirming as they did on the row.
+                    // The confirm dialog keeps "Total" as the grand sum
+                    // (room + gate) even though the table column shifted
+                    // to payment pills — when staff is about to confirm
+                    // an action they want the full collectible number,
+                    // not just the outstanding balance.
                     ['Total',      fmtMoney(Number(b.total ?? 0) + calcEntrance(b, entranceRates))],
                   ].map(([label, val]) => (
                     <div key={label} className="flex justify-between px-4 py-2">
@@ -553,7 +563,7 @@ export default function Bookings() {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Total', 'Status'].map(h => {
+                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Payment', 'Status'].map(h => {
                       const isSorted = sortBy === h;
                       const ariaSort = isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
                       return (
@@ -631,26 +641,15 @@ export default function Bookings() {
                           <span className="text-slate-400">→ {fmtTime(b.checkOut)}</span>
                         </td>
                         <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
-                        {/* Grand total = room + amenities − discount + entrance fee.
-                            Staff need the full amount collectible (the old column
-                            showed only the room portion, which was misleading for
-                            anyone who hadn't memorised that entrance is separate).
-                            Breakdown sublabel keeps the room vs. entrance split
-                            visible without forcing staff to open the detail modal. */}
-                        <td className="px-4 py-3 text-sm whitespace-nowrap">
-                          {(() => {
-                            const entrance   = calcEntrance(b, entranceRates);
-                            const grandTotal = Number(b.total ?? 0) + entrance;
-                            return (
-                              <>
-                                <div className="font-semibold text-slate-800">{fmtMoney(grandTotal)}</div>
-                                <div className="text-[10px] text-slate-400 leading-tight">
-                                  {fmtMoney(b.total)} room
-                                  {entrance > 0 && <> + {fmtMoney(entrance)} gate</>}
-                                </div>
-                              </>
-                            );
-                          })()}
+                        {/* Payment column — matches Billing's pill shape so
+                            staff jumping between Bookings and Billing see
+                            the same language + color coding. Fully-paid
+                            rows go emerald, outstanding rows go sky (with
+                            the amount still due), cancelled rows go rose.
+                            Grand total (room + gate) is available on hover
+                            via the pill's computed value. */}
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <PaymentPill booking={b} entranceRates={entranceRates} />
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex flex-col gap-1 items-start">
