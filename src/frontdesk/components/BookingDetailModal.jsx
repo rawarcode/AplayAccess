@@ -3,20 +3,22 @@ import { useState, useEffect } from 'react';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
   addAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
-  getFdRooms, transferRoom,
+  getFdRooms, getFdBookings, transferRoom,
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
 import { fmtDateTime, fmtMoney } from '../../lib/format';
 
 // Entrance fee rates per adult — matches Setting::pricing() defaults.
-// '24hr-pm' is kept for legacy bookings created before the flexible 24hr
-// start-hour; new bookings only use '24hr'. Priced the same as '24hr'.
-const ENTRANCE_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+// Fallback rates for pre-mount / offline render. Live rates come from
+// /api/pricing and are passed in explicitly so staff never see stale
+// numbers when the owner has updated the Settings. '24hr-pm' is kept
+// for legacy bookings created before the flexible 24hr start-hour.
+const FALLBACK_RATES = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
 
-function entranceFeeForBooking(booking) {
+function entranceFeeForBooking(booking, rates = FALLBACK_RATES) {
   const type   = booking.bookingType ?? 'day';
-  const rate   = ENTRANCE_RATES[type] ?? 50;
+  const rate   = rates[type] ?? FALLBACK_RATES[type] ?? 50;
   // Use stored DB value when available (after check-in/walk-in); otherwise compute expected
   const amount = (booking.entranceFee != null && Number(booking.entranceFee) > 0)
     ? Number(booking.entranceFee)
@@ -138,10 +140,24 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const [addonCatalog,     setAddonCatalog]     = useState([]);
   const [actionLoading,    setActionLoading]    = useState(false);
   const [addingAmenity,    setAddingAmenity]    = useState(null);
+  // Live entrance rates from /api/pricing so the modal never displays or
+  // sends stale hardcoded numbers after the owner updates pricing.
+  const [entranceRates,    setEntranceRates]    = useState(FALLBACK_RATES);
 
   useEffect(() => {
     api.get('/api/addons')
       .then(r => setAddonCatalog(r.data?.data ?? []))
+      .catch(() => {});
+    api.get('/api/pricing')
+      .then(r => {
+        const d = r.data?.data;
+        if (d) setEntranceRates({
+          day:       Number(d.entrance_fee_day   ?? 50),
+          night:     Number(d.entrance_fee_night ?? 80),
+          '24hr':    Number(d.entrance_fee_24hr  ?? 100),
+          '24hr-pm': Number(d.entrance_fee_24hr  ?? 100),
+        });
+      })
       .catch(() => {});
   }, []);
   const [amenityLoading,   setAmenityLoading]   = useState(false);
@@ -159,6 +175,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const [transferring,     setTransferring]     = useState(false);
   const [rooms,            setRooms]            = useState([]);
   const [roomsLoading,     setRoomsLoading]     = useState(false);
+  // All bookings — only fetched when the Transfer picker opens, so the
+  // filter can count overlaps per target room against its quantity.
+  const [allBookings,      setAllBookings]      = useState([]);
 
   function applyUpdate(updates) {
     const updated = { ...booking, ...updates };
@@ -177,8 +196,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         await updateBookingStatus(booking.bookingId, 'Confirmed');
         applyUpdate({ status: 'Confirmed' });
       } else if (type === 'checkin') {
-        const { amount: ef } = entranceFeeForBooking(booking);
-        const res = await checkInBooking(booking.bookingId, ef);
+        // Don't pass entrance_fee — the backend computes it from the
+        // current Setting::pricing() rate so staff can't accidentally
+        // persist a stale hardcoded amount that bypasses the owner's
+        // pricing settings.
+        const res = await checkInBooking(booking.bookingId);
         // Use the full formatted booking from the backend so paidAmount /
         // fullyPaid / entranceFee all stay in sync. Narrow-field spreads
         // here would leave those fields stale and mislead billing.
@@ -290,13 +312,20 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   function openTransfer() {
     setTransferOpen(true);
     setTransferRoomId('');
-    if (rooms.length === 0) {
-      setRoomsLoading(true);
-      getFdRooms()
-        .then(data => setRooms(data))
-        .catch(() => {})
-        .finally(() => setRoomsLoading(false));
-    }
+    setRoomsLoading(true);
+    // Also fetch the full bookings list so the transfer filter can
+    // count overlapping stays per room and compare to room.quantity —
+    // matches the safer check the main Reservation page uses and the
+    // backend's transferRoom guard (which rejects when overlap count
+    // >= quantity). Always refetch so stale cached data doesn't hide
+    // newly-created conflicts.
+    Promise.all([getFdRooms(), getFdBookings()])
+      .then(([roomsData, bookingsData]) => {
+        setRooms(roomsData);
+        setAllBookings(bookingsData);
+      })
+      .catch(() => {})
+      .finally(() => setRoomsLoading(false));
   }
 
   async function handleTransfer() {
@@ -360,7 +389,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <span className="font-semibold">{booking.roomType}</span>
                 </div>
                 {pendingAction.type === 'checkin' && (() => {
-                  const { rate, amount } = entranceFeeForBooking(booking);
+                  const { rate, amount } = entranceFeeForBooking(booking, entranceRates);
                   return (
                     <>
                       <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
@@ -518,7 +547,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
           {/* Guest Count + Entrance Fee — shown for active bookings */}
           {['Pending', 'Confirmed', 'Checked In'].includes(booking.status) && (() => {
-            const { rate, amount } = entranceFeeForBooking(booking);
+            const { rate, amount } = entranceFeeForBooking(booking, entranceRates);
             return (
               <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg overflow-hidden">
                 {/* Guest count editor */}
@@ -667,16 +696,56 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               </div>
               {roomsLoading ? (
                 <p className="text-xs text-violet-600"><i className="fas fa-spinner fa-spin mr-1"></i>Loading rooms...</p>
-              ) : (
-                <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-                  aria-label="Transfer to room"
-                  className="w-full border border-violet-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
-                  <option value="">Select a room...</option>
-                  {rooms
-                    .filter(r => String(r.id) !== String(booking.roomId))
-                    .map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
-              )}
+              ) : (() => {
+                // Match the Reservation page / backend transferRoom guard:
+                // count overlapping active stays per room id, then allow
+                // the room only while count < room.quantity. Parse date
+                // strings via .replace(' ', 'T') so Safari / strict engines
+                // don't return Invalid Date on "YYYY-MM-DD HH:mm".
+                const parseDT = (s) => new Date(String(s ?? '').replace(' ', 'T'));
+                const transferStart = parseDT(booking.checkIn);
+                const transferEnd   = parseDT(booking.checkOut);
+                const overlapCounts = new Map();
+                for (const b of allBookings) {
+                  if (b.bookingId === booking.bookingId) continue;
+                  if (['Cancelled', 'Completed'].includes(b.status)) continue;
+                  const s = parseDT(b.checkIn);
+                  const e = parseDT(b.checkOut);
+                  if (isNaN(s.getTime()) || isNaN(e.getTime())) continue;
+                  if (s < transferEnd && e > transferStart) {
+                    overlapCounts.set(b.roomId, (overlapCounts.get(b.roomId) ?? 0) + 1);
+                  }
+                }
+                const available = rooms.filter(r => {
+                  if (String(r.id) === String(booking.roomId)) return false;
+                  const taken = overlapCounts.get(r.id) ?? 0;
+                  const qty   = Number(r.quantity ?? 1);
+                  return taken < qty;
+                });
+                if (available.length === 0) {
+                  return (
+                    <p className="text-sm text-rose-700 mb-3">
+                      No other rooms have free units for this time slot.
+                    </p>
+                  );
+                }
+                return (
+                  <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                    aria-label="Transfer to room"
+                    className="w-full border border-violet-200 rounded-lg px-3 py-2 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white">
+                    <option value="">Select a room...</option>
+                    {available.map(r => {
+                      const qty   = Number(r.quantity ?? 1);
+                      const taken = overlapCounts.get(r.id) ?? 0;
+                      const free  = Math.max(0, qty - taken);
+                      const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
+                      return (
+                        <option key={r.id} value={r.id}>{r.name}{suffix}</option>
+                      );
+                    })}
+                  </select>
+                );
+              })()}
               <div className="flex gap-2">
                 <button onClick={() => { setTransferOpen(false); setTransferRoomId(''); }}
                   className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50">
@@ -695,7 +764,12 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           {/* Actions — hidden while confirmation is pending */}
           {!pendingAction && (
             <div className="flex justify-end gap-2 pt-4 border-t">
-              {['Pending', 'Confirmed'].includes(booking.status) && !isExpiredPending(booking) && (
+              {/* Check In is only offered for Confirmed bookings — Pending
+                  means payment hasn't been verified yet. Staff must collect
+                  payment first (which moves the booking to Confirmed), then
+                  check in. The backend enforces this too; this hides the
+                  button so staff don't try the disallowed path. */}
+              {booking.status === 'Confirmed' && !isExpiredPending(booking) && (
                 <button onClick={() => setPendingAction({ type: 'checkin' })}
                   disabled={actionLoading}
                   className="px-3 py-2 bg-violet-600 text-white rounded text-sm hover:bg-violet-700 disabled:opacity-50">
