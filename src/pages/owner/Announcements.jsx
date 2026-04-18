@@ -24,6 +24,20 @@ function toLocalDatetimeInput(input) {
          `T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Inverse of toLocalDatetimeInput: converts the bare "YYYY-MM-DDTHH:mm"
+// local wall-clock value back into a proper UTC ISO timestamp to send
+// to the backend. Backend app timezone is UTC (config/app.php), so
+// shipping the raw local string makes Carbon parse "05:36" as UTC 5:36
+// — which rolls back to 1:36 PM Manila on read, an 8-hour drift.
+// new Date(localStr) parses a local-naive string as local time, and
+// toISOString() then gives the correct UTC equivalent.
+function localDatetimeToUtcIso(localStr) {
+  if (!localStr) return null;
+  const d = new Date(localStr);
+  if (isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 const BLANK = {
   title: "",
   body: "",
@@ -223,7 +237,10 @@ export default function AdminAnnouncements() {
         media_url: editing.media_url || null,
         is_active: editing.is_active,
         is_pinned: editing.is_pinned,
-        published_at: editing.published_at || null,
+        // Backend app timezone is UTC; convert the local wall-clock
+        // value from <input type="datetime-local"> to a proper UTC
+        // ISO string so round-tripping preserves the intended moment.
+        published_at: localDatetimeToUtcIso(editing.published_at),
       };
       if (editing.id) {
         await updateAdminAnnouncement(editing.id, payload);
