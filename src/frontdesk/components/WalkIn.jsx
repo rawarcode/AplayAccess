@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
@@ -67,6 +67,7 @@ const EMPTY_FORM = {
 // ─── component ────────────────────────────────────────────────────────────────
 export default function WalkIn() {
   const location = useLocation();
+  const navigate = useNavigate();
   const preselectedRoom = location.state?.preselectedRoom ?? null;
 
   const [sortBy,  setSortBy]  = useState('ID');
@@ -132,14 +133,18 @@ export default function WalkIn() {
   }
   useEffect(() => { loadAll(); }, []);
 
-  // Auto-open form with the pre-selected room when coming from Rooms board
+  // Auto-open form with the pre-selected room when coming from Rooms board.
+  // Clear the navigation state immediately after so that later re-renders
+  // (e.g. loadAll() toggling `loading` after a successful booking) don't
+  // re-trigger this effect and pop the form open again.
   useEffect(() => {
     if (!preselectedRoom || loading) return;
     setForm(f => ({ ...f, roomId: String(preselectedRoom.id) }));
     setFormOpen(true);
     setWiStep(1);
     setShowWiNotes(false);
-  }, [preselectedRoom, loading]);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [preselectedRoom, loading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Room availability — same check as BookingModal
   const [availability,  setAvailability]  = useState(null);
