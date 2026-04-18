@@ -241,7 +241,16 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       // recomputation (otherwise the billing breakdown stays stale).
       applyUpdate(res.data ?? { guests: res.guests });
       setGuestEdit(false);
-      const freshEntrance = Number(res.data?.entranceFee ?? res.guests * (ENTRANCE_RATES[booking.bookingType ?? 'day'] ?? 50));
+      // Backend only persists entrance_fee after check-in. For Pending /
+      // Confirmed rows it returns 0 in res.data.entranceFee, which `??`
+      // treats as a real value and bypasses the client-side fallback —
+      // producing a misleading "Entrance fee: ₱0.00" toast. Treat any
+      // non-positive backend value as absent and compute from the new
+      // guest count × per-head rate instead.
+      const backendEntrance = Number(res.data?.entranceFee ?? 0);
+      const freshEntrance   = backendEntrance > 0
+        ? backendEntrance
+        : res.guests * (ENTRANCE_RATES[booking.bookingType ?? 'day'] ?? 50);
       showToast?.(`Guest count updated to ${res.guests}. Entrance fee: ${fmtMoney(freshEntrance)}.`);
     } catch {
       showToast?.('Failed to update guest count.');
@@ -349,7 +358,17 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const guestName  = wi ? wi.name  : booking.guest;
   const guestEmail = wi ? wi.email : (booking.guestEmail || '—');
   const guestPhone = wi ? wi.phone : (booking.guestPhone || '—');
-  const balanceDue = Math.max(0, (booking.total || 0) - (booking.reservationFee || 0));
+  // Room balance remaining before check-in. paidAmount is the backend's
+  // authoritative ledger of money actually collected (reservation fee +
+  // counter payments + promo credits), so it stays accurate after promo
+  // changes, partial counter collections, guest-count edits, or amenity
+  // additions. Falls back to the reservation-fee heuristic only when the
+  // backend didn't attach paidAmount (legacy cached rows).
+  // Entrance fee is shown as a separate line and collected at the gate,
+  // so we compare against total (room + add-ons − discount), not the
+  // grand total that outstanding() uses.
+  const collectedAgainstRoom = Number(booking.paidAmount ?? booking.reservationFee ?? 0);
+  const balanceDue           = Math.max(0, Number(booking.total || 0) - collectedAgainstRoom);
 
   const cfg   = pendingAction ? ACTION_CONFIG[pendingAction.type] : null;
   const clr   = cfg ? COLOR[cfg.color] : null;
@@ -655,7 +674,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                       <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
                         className="w-11 h-11 border rounded text-sm">+</button>
                       <span className="ml-auto text-xs font-medium text-sky-700">
-                        ₱{((addingAmenity.qty || 1) * addingAmenity.unitPrice).toLocaleString()}
+                        {/* State shape is unit_price (snake) — reading
+                            unitPrice (camel) here produced qty × undefined
+                            = NaN, rendering as "₱NaN" in the preview. */}
+                        ₱{(Number(addingAmenity.qty || 1) * Number(addingAmenity.unit_price || 0)).toLocaleString()}
                       </span>
                     </div>
                   )}
