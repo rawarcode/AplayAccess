@@ -14,8 +14,12 @@ import HourGridPicker from '../../components/ui/HourGridPicker.jsx';
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const todayStr = () => localDateStr();
 
+// Display name for a walk-in. specialRequests is user-controlled on
+// normal online bookings, so only trust the "Walk-in: <name>" prefix
+// when the backend has attributed this booking as a walk-in via
+// source. Otherwise fall back to the canonical guest field.
 function walkInName(b) {
-  if (b.specialRequests?.startsWith('Walk-in:')) {
+  if (b?.source === 'walk-in' && b.specialRequests?.startsWith('Walk-in:')) {
     const m = b.specialRequests.match(/^Walk-in:\s*([^,]+)/);
     return m ? m[1].trim() : b.guest;
   }
@@ -153,8 +157,11 @@ export default function WalkIn() {
     setAvailChecking(true);
     api.get(`/api/availability?${params}`)
       .then(r => {
+        // Key by id — room names aren't unique in the admin controller,
+        // so two rooms sharing a name would otherwise collapse into one
+        // availability slot and hide / mis-allow the wrong record.
         const map = {};
-        (r.data?.data ?? []).forEach(rm => { map[rm.name] = rm.available; });
+        (r.data?.data ?? []).forEach(rm => { map[String(rm.id)] = rm.available; });
         setAvailability(map);
       })
       .catch(() => setAvailability(null))
@@ -185,8 +192,13 @@ export default function WalkIn() {
   // "Today's walk-ins" — check-in date is today OR the guest is still
   // checked in (a walk-in that started at 11:50 PM yesterday shouldn't
   // disappear from this page at 12:01 AM while the guest is still on-site).
+  //
+  // Walk-in identity comes from the backend-attributed `source` field,
+  // not the user-controlled specialRequests prefix. Online bookings can
+  // write "Walk-in:" into their special requests, but source is derived
+  // server-side and can't be spoofed.
   const todayBookings = [...bookings.filter(b =>
-    b.specialRequests?.startsWith('Walk-in:') &&
+    b.source === 'walk-in' &&
     (b.checkIn?.slice(0, 10) === today || b.status === 'Checked In')
   )].sort((a, b) => {
     let aVal, bVal;
@@ -279,7 +291,7 @@ export default function WalkIn() {
       setFormError('That start time is already past. Pick a later hour today or a future date.'); return;
     }
     const selRoom = rooms.find(r => String(r.id) === String(form.roomId));
-    if (availability !== null && (!selRoom || availability[selRoom.name] !== true)) {
+    if (availability !== null && (!selRoom || availability[String(selRoom.id)] !== true)) {
       setFormError('This room is not available for the selected date and booking type.'); return;
     }
     setShortStayAck(false);
@@ -506,21 +518,36 @@ export default function WalkIn() {
 
       {/* ── Transfer Room Modal ── */}
       {transferBooking && (() => {
-        // Available rooms: all rooms except the current one, minus rooms that have
-        // conflicting Checked In / Confirmed bookings overlapping this booking's slot.
-        const busyRoomIds = new Set(
-          bookings
-            .filter(b =>
-              b.bookingId !== transferBooking.bookingId &&
-              ['Confirmed', 'Checked In'].includes(b.status) &&
-              new Date(b.checkIn)  < new Date(transferBooking.checkOut) &&
-              new Date(b.checkOut) > new Date(transferBooking.checkIn)
-            )
-            .map(b => b.roomId)
-        );
-        const availableRooms = rooms.filter(r =>
-          String(r.id) !== String(transferBooking.roomId) && !busyRoomIds.has(r.id)
-        );
+        // Quantity-aware overlap count, matching the backend's
+        // transferRoom guard and the Reservation page's picker:
+        //   - skip this booking itself
+        //   - skip Cancelled / Completed (backend's whereNotIn clause);
+        //     Pending rows are INCLUDED because they hold inventory until
+        //     they auto-cancel or confirm
+        //   - parse "YYYY-MM-DD HH:mm" safely via .replace(' ', 'T') so
+        //     Safari / strict engines don't return Invalid Date
+        //   - allow a target when overlap count < room.quantity, so
+        //     multi-unit cottages/pavilions aren't hidden at 1/N occupancy
+        const parseDT = (s) => new Date(String(s ?? '').replace(' ', 'T'));
+        const transferStart = parseDT(transferBooking.checkIn);
+        const transferEnd   = parseDT(transferBooking.checkOut);
+        const overlapCounts = new Map();
+        for (const b of bookings) {
+          if (b.bookingId === transferBooking.bookingId) continue;
+          if (['Cancelled', 'Completed'].includes(b.status)) continue;
+          const s = parseDT(b.checkIn);
+          const e = parseDT(b.checkOut);
+          if (isNaN(s.getTime()) || isNaN(e.getTime())) continue;
+          if (s < transferEnd && e > transferStart) {
+            overlapCounts.set(b.roomId, (overlapCounts.get(b.roomId) ?? 0) + 1);
+          }
+        }
+        const availableRooms = rooms.filter(r => {
+          if (String(r.id) === String(transferBooking.roomId)) return false;
+          const taken = overlapCounts.get(r.id) ?? 0;
+          const qty   = Number(r.quantity ?? 1);
+          return taken < qty;
+        });
         return (
           <Modal open onClose={() => { setTransferBooking(null); setTransferRoomId(''); }} title={`Transfer Guest — ${transferBooking.id}`} maxWidth="max-w-md">
               <div className="p-6">
@@ -536,9 +563,15 @@ export default function WalkIn() {
                     <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
                       className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
                       <option value="">Select a room...</option>
-                      {availableRooms.map(r => (
-                        <option key={r.id} value={r.id}>{r.name}</option>
-                      ))}
+                      {availableRooms.map(r => {
+                        const qty   = Number(r.quantity ?? 1);
+                        const taken = overlapCounts.get(r.id) ?? 0;
+                        const free  = Math.max(0, qty - taken);
+                        const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
+                        return (
+                          <option key={r.id} value={r.id}>{r.name}{suffix}</option>
+                        );
+                      })}
                     </select>
                   )}
                 </div>
@@ -964,7 +997,7 @@ export default function WalkIn() {
                       <option value="">Select room / cottage / pavilion
                       </option>
                       {(() => {
-                        const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
+                        const visible = rooms.filter(r => availability === null || availability?.[String(r.id)] === true);
                         const getCat  = r => r.category || (r.name.toLowerCase().includes('cottage') ? 'cottage' : r.name.toLowerCase().includes('pavilion') ? 'pavilion' : 'room');
                         const groups  = [
                           { key: 'room',     label: '🛏️  Rooms'     },
@@ -989,7 +1022,7 @@ export default function WalkIn() {
                     </select>
                     {(() => {
                       const sel = rooms.find(r => String(r.id) === String(form.roomId));
-                      const avail = sel ? availability?.[sel.name] : undefined;
+                      const avail = sel ? availability?.[String(sel.id)] : undefined;
                       if (avail === false) return (
                         <p className="mt-1 text-xs text-rose-600 flex items-center gap-1">
                           <i className="fas fa-times-circle"></i>
