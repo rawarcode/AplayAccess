@@ -42,7 +42,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // Defaults to a 6AM start; gets validated against the 12-hour lead rule.
   const [checkInHour, setCheckInHour] = useState(6);
   const [visitDate, setVisitDate]     = useState("");
-  const [roomType, setRoomType]       = useState(selectedRoom || "");
+  // Room selection is tracked by its primary-key id so duplicate names
+  // can't collapse availability / metadata / submitted-id onto the wrong
+  // record. The optional `selectedRoom` prop is a display name from
+  // the Resort / Rooms pages — resolved to an id when the modal opens.
+  const initialRoomId = selectedRoom
+    ? (rooms.find(r => r.name === selectedRoom)?.id ?? "")
+    : "";
+  const [roomId,   setRoomId]   = useState(initialRoomId);
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
@@ -88,7 +95,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
   // Derive rates from the selected room in the rooms prop (already fetched by parent)
   useEffect(() => {
-    const r = rooms.find(rm => rm.name === roomType);
+    const r = rooms.find(rm => String(rm.id) === String(roomId));
     if (!r) return;
     setPricing({
       day_rate:            Number(r.day_rate        ?? DEFAULTS.day_rate),
@@ -96,7 +103,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       rate_24hr:           Number(r.rate_24hr       ?? DEFAULTS.rate_24hr),
       reservation_fee_pct: Number(rawPricing?.reservation_fee_pct ?? DEFAULTS.reservation_fee_pct),
     });
-  }, [rooms, roomType, rawPricing]);
+  }, [rooms, roomId, rawPricing]);
 
   // Check room availability whenever date, time, or booking type changes.
   // Debounced so keyboard-scrolling the hour dropdown doesn't fire one
@@ -113,8 +120,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     const timer = setTimeout(() => {
       api.get(`/api/availability?${params}`)
         .then(r => {
+          // Key by id, not name — duplicate names otherwise collapse to the
+          // last entry in the list and mask one of the rooms as unavailable.
           const map = {};
-          (r.data?.data ?? []).forEach(rm => { map[rm.name] = rm.available; });
+          (r.data?.data ?? []).forEach(rm => { map[String(rm.id)] = rm.available; });
           setAvailability(map);
         })
         .catch(() => setAvailability(null)) // on error, show no indicators
@@ -251,7 +260,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // Reset form when modal opens
   useEffect(() => {
     if (open) {
-      setRoomType(selectedRoom || "");
+      setRoomId(selectedRoom ? (rooms.find(r => r.name === selectedRoom)?.id ?? "") : "");
       setVisitDate("");
       setError("");
       setBookingType("day");
@@ -274,7 +283,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }, [open, selectedRoom]);
 
   // ── Selected room metadata ─────────────────────────────────────────────────
-  const selectedRoomObj = useMemo(() => rooms.find(r => r.name === roomType) ?? null, [rooms, roomType]);
+  const selectedRoomObj = useMemo(
+    () => rooms.find(r => String(r.id) === String(roomId)) ?? null,
+    [rooms, roomId]
+  );
+  const roomName = selectedRoomObj?.name ?? "";
 
   // null = unrestricted; array = only those types allowed for this room
   const allowedTypes = selectedRoomObj?.allowed_booking_types ?? null;
@@ -294,7 +307,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   useEffect(() => {
     if (!allowedTypes) return;
     if (!allowedTypes.includes(bookingType)) setBookingType(allowedTypes[0]);
-  }, [roomType]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [roomId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // When the selected date is today, hours earlier than "now" are disabled
   // in the hour-grid picker. Pre-existing auto-switch from Day → Night at
@@ -363,23 +376,22 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
     }
     if (!visitDate) { setError("Please select a visit date."); return; }
-    if (!roomType)  { setError("Please select a room/cottage."); return; }
+    if (!roomId)    { setError("Please select a room/cottage."); return; }
     if (is24hr && isTodaySelected && checkInHour < minHourToday) {
       setError("The chosen start time is already past. Pick a later hour today or a future date.");
       return;
     }
-    if (availability !== null && availability[roomType] !== true) {
+    if (availability !== null && availability[String(roomId)] !== true) {
       setError("Selected room is not available for the chosen date. Please select another."); return;
     }
-    const room = rooms.find((r) => r.name === roomType);
-    if (!room?.id)  { setError("Could not determine room. Please try again."); return; }
+    if (!selectedRoomObj?.id) { setError("Could not determine room. Please try again."); return; }
     setConfirmOpen(true);
   }
 
   // ── Step 2: confirmed → call API ───────────────────────────────────────────
   async function handleConfirm() {
     setError("");
-    const room = rooms.find((r) => r.name === roomType);
+    const room = selectedRoomObj;
     if (!room?.id) { setError("Could not determine room. Please try again."); return; }
 
     setConfirmOpen(false);
@@ -605,7 +617,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   })}
                 </div>
                 {/* Rate shown below */}
-                {roomType && <p className="mt-1 text-xs text-gray-500 text-center">{formatPHP(baseRate)} / {bookingType === "night" ? "night" : is24hr ? "24 hrs" : "day"}</p>}
+                {roomId && <p className="mt-1 text-xs text-gray-500 text-center">{formatPHP(baseRate)} / {bookingType === "night" ? "night" : is24hr ? "24 hrs" : "day"}</p>}
 
                 {/* 24hr: pick any on-the-hour start time */}
                 {is24hr && (
@@ -635,19 +647,30 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   )}
                 </label>
                 <select
-                  value={roomType}
-                  onChange={(e) => { setRoomType(e.target.value); setPromoResult(null); setPromoInput(""); }}
+                  value={roomId}
+                  onChange={(e) => { setRoomId(e.target.value); setPromoResult(null); setPromoInput(""); }}
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="">Select Room / Cottage / Pavilion</option>
+                  <option value="">Select Room / Cottage / Pavilion / Tent</option>
                   {(() => {
-                    const visible = rooms.filter(r => availability === null || availability?.[r.name] === true);
-                    const getCategory = r => r.category || (r.name.toLowerCase().includes("cottage") ? "cottage" : r.name.toLowerCase().includes("pavilion") ? "pavilion" : "room");
+                    const visible = rooms.filter(r => availability === null || availability?.[String(r.id)] === true);
+                    // Include all 4 live backend categories. Fallback resolver
+                    // also detects "tent" so legacy rooms without an explicit
+                    // category still group correctly.
+                    const getCategory = r => {
+                      if (r.category) return r.category;
+                      const n = (r.name || "").toLowerCase();
+                      if (n.includes("tent"))     return "tent";
+                      if (n.includes("cottage"))  return "cottage";
+                      if (n.includes("pavilion")) return "pavilion";
+                      return "room";
+                    };
                     const groups = [
                       { key: "room",     label: "\uD83D\uDECF\uFE0F  Rooms"     },
                       { key: "cottage",  label: "\u26F1\uFE0F  Cottages"  },
                       { key: "pavilion", label: "\uD83C\uDFDB\uFE0F  Pavilions" },
+                      { key: "tent",     label: "\u26FA\uFE0F  Tents"     },
                     ];
                     return groups.map(g => {
                       const items = visible.filter(r => getCategory(r) === g.key);
@@ -655,7 +678,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       return (
                         <optgroup key={g.key} label={g.label}>
                           {items.map(r => (
-                            <option key={r.name} value={r.name}>
+                            <option key={r.id} value={r.id}>
                               {r.name}{r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
                             </option>
                           ))}
@@ -669,10 +692,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
                     <i className="fas fa-users text-[10px]"></i>
                     Recommended: {selectedRoomObj.capacity_label ?? selectedRoomObj.occupancy ?? `Up to ${selectedRoomObj.capacity} guests`}
-                    {availability !== null && roomType && (
-                      availability[roomType] === false
+                    {availability !== null && roomId && (
+                      availability[String(roomId)] === false
                         ? <span className="ml-2 text-red-600"><i className="fas fa-times-circle mr-0.5"></i>Not available</span>
-                        : availability[roomType] === true
+                        : availability[String(roomId)] === true
                           ? <span className="ml-2 text-green-600"><i className="fas fa-check-circle mr-0.5"></i>Available</span>
                           : null
                     )}
@@ -715,8 +738,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       if (!emailRegex.test(guestEmail.trim())) { setError("Please enter a valid email address."); return; }
                     }
                     if (!visitDate) { setError("Please select a visit date."); return; }
-                    if (!roomType)  { setError("Please select a room/cottage."); return; }
-                    if (availability !== null && availability[roomType] !== true) {
+                    if (!roomId)    { setError("Please select a room/cottage."); return; }
+                    if (availability !== null && availability[String(roomId)] !== true) {
                       setError("Selected room is not available for the chosen date. Please select another."); return;
                     }
                     setStep(2);
@@ -1052,7 +1075,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <tbody className="divide-y divide-gray-100">
                       <tr>
                         <td className="px-4 py-2.5 text-gray-500 font-medium w-36">Room</td>
-                        <td className="px-4 py-2.5 font-semibold text-gray-900">{roomType}</td>
+                        <td className="px-4 py-2.5 font-semibold text-gray-900">{roomName}</td>
                       </tr>
                       <tr>
                         <td className="px-4 py-2.5 text-gray-500 font-medium">Date</td>
