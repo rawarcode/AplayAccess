@@ -129,19 +129,29 @@ export default function OwnerDashboard() {
       ? Math.round(thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0) / thisMonthActive.length)
       : 0;
 
-    // Top-booked room of the month. Counts active bookings (not Pending/
-    // Cancelled) grouped by roomType; ties broken alphabetically so the
-    // surfaced name is stable across refreshes while volume is still low.
+    // Top-booked room(s) of the month. Counts active bookings (not
+    // Pending / Cancelled) grouped by roomType. Previously only the
+    // alphabetically-first room was surfaced on a tie, which at low
+    // booking volume just picked a name arbitrarily and implied
+    // significance that didn't exist. Now:
+    //   - If every room has only 1 booking, nothing has actually "won" yet
+    //     → "Too early to tell, X rooms tied at 1".
+    //   - If 2–3 rooms share the top count (>1), list them all with
+    //     "(tied)" in the subtext.
+    //   - If 4+ share the top count, collapse to "N rooms tied" to avoid
+    //     a wall of names.
+    //   - Otherwise single name as before.
     const roomCounts = {};
     for (const b of thisMonthActive) {
       const name = b.roomType || 'Unknown';
       roomCounts[name] = (roomCounts[name] ?? 0) + 1;
     }
-    const sortedRooms   = Object.entries(roomCounts).sort(
+    const sortedRooms  = Object.entries(roomCounts).sort(
       (a, b) => b[1] - a[1] || a[0].localeCompare(b[0])
     );
-    const topRoomName   = sortedRooms[0]?.[0] ?? null;
-    const topRoomCount  = sortedRooms[0]?.[1] ?? 0;
+    const topRoomCount = sortedRooms[0]?.[1] ?? 0;
+    const topRoomNames = sortedRooms.filter(([, c]) => c === topRoomCount).map(([n]) => n);
+    const everyRoomAtOne = topRoomCount === 1 && topRoomNames.length === sortedRooms.length && sortedRooms.length > 1;
 
     const totalGuests = activeBookings.reduce((s, b) => s + Number(b.guests ?? 0), 0);
 
@@ -193,7 +203,7 @@ export default function OwnerDashboard() {
 
     return {
       activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
-      avgBookingValue, topRoomName, topRoomCount, newCustomersThisMonth,
+      avgBookingValue, topRoomNames, topRoomCount, everyRoomAtOne, newCustomersThisMonth,
       walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
       dayOfWeekCounts, days30ago, today,
     };
@@ -201,7 +211,7 @@ export default function OwnerDashboard() {
 
   const {
     activeBookings, revThisMonth, revMoM, txThisMonth, txMoM,
-    avgBookingValue, topRoomName, topRoomCount, newCustomersThisMonth,
+    avgBookingValue, topRoomNames, topRoomCount, everyRoomAtOne, newCustomersThisMonth,
     walkinBookings, onlineBookings, onlinePct, peakDay, peakDayIdx,
     dayOfWeekCounts, days30ago, today,
   } = derivedKpis;
@@ -407,31 +417,56 @@ export default function OwnerDashboard() {
 
       {/* KPI Cards — Row 2: Operations & Growth */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {/* Top-booked Room (MTD) — replaced Cancellation Rate, which only
-            ever reflected PayMongo payment-flow abandonment (online rows
-            auto-cancel 5 min after checkout without payment). That's
-            downstream of a technical state owners can't act on, so it
-            failed the SMART test. Top Room reuses data the dashboard
-            already loads and answers "what's selling right now?" — an
-            actual pricing / marketing lever. */}
-        <div className="bg-white rounded-xl shadow p-5 hover:shadow-md transition">
-          <div className="flex items-center justify-between">
-            <div className="min-w-0">
-              <p className="text-slate-500 text-sm">Top Room (MTD)</p>
-              <h3 className="text-2xl font-bold mt-1 truncate" title={topRoomName ?? undefined}>
-                {topRoomName ?? '—'}
-              </h3>
-              <p className="text-xs text-slate-400 mt-1">
-                {topRoomCount > 0
-                  ? `${topRoomCount} booking${topRoomCount === 1 ? '' : 's'} this month`
-                  : 'No bookings yet this month'}
-              </p>
+        {/* Top-booked Room (MTD) — replaced Cancellation Rate (a
+            non-actionable webhook-timing metric). Surfaces the best-
+            selling room this month; handles ties explicitly so low-volume
+            months don't arbitrarily elevate one name. */}
+        {(() => {
+          // Pick display + subtext based on the tie shape.
+          let value, sub, fullTitle;
+          if (topRoomCount === 0) {
+            value = '—';
+            sub   = 'No bookings yet this month';
+          } else if (everyRoomAtOne) {
+            value = 'Too early to tell';
+            sub   = `${topRoomNames.length} rooms tied at 1 booking each`;
+            fullTitle = topRoomNames.join(', ');
+          } else if (topRoomNames.length === 1) {
+            value = topRoomNames[0];
+            sub   = `${topRoomCount} booking${topRoomCount === 1 ? '' : 's'} this month`;
+            fullTitle = topRoomNames[0];
+          } else if (topRoomNames.length <= 3) {
+            value = topRoomNames.join(', ');
+            sub   = `${topRoomCount} bookings each (tied)`;
+            fullTitle = topRoomNames.join(', ');
+          } else {
+            value = `${topRoomNames.length} rooms tied`;
+            sub   = `${topRoomCount} bookings each`;
+            fullTitle = topRoomNames.join(', ');
+          }
+
+          return (
+            <div className="bg-white rounded-xl shadow p-5 hover:shadow-md transition">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0">
+                  <p className="text-slate-500 text-sm">Top Room (MTD)</p>
+                  <h3
+                    className="text-2xl font-bold mt-1 truncate"
+                    title={fullTitle}
+                  >
+                    {value}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-1" title={fullTitle}>
+                    {sub}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0">
+                  <i className="fas fa-bed text-xl" aria-hidden="true"></i>
+                </div>
+              </div>
             </div>
-            <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0">
-              <i className="fas fa-bed text-xl" aria-hidden="true"></i>
-            </div>
-          </div>
-        </div>
+          );
+        })()}
 
         <div className="bg-white rounded-xl shadow p-5 hover:shadow-md transition">
           <div className="flex items-center justify-between">
