@@ -933,9 +933,26 @@ export default function AdminAnnouncements() {
                 </div>
                 <div className="p-4 space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Published At</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wide">Published At</label>
+                      {/* One-click "set to current time" — avoids staff
+                          manually typing today's date/time just to
+                          publish immediately, which is the common case.
+                          Uses the same toLocalDatetimeInput helper as the
+                          rest of the form so timezone handling is
+                          consistent. */}
+                      <button
+                        type="button"
+                        onClick={() => setField("published_at", toLocalDatetimeInput(new Date()))}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-50 transition focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      >
+                        <i className="fas fa-clock text-[10px]" aria-hidden="true"></i>
+                        Publish now
+                      </button>
+                    </div>
                     <input type="datetime-local" value={editing.published_at ?? ""} onChange={(e) => setField("published_at", e.target.value)}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 text-sm transition" />
+                    <p className="text-[10px] text-slate-400 mt-1">Leave in the future to schedule. Click “Publish now” to post immediately.</p>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Pinned toggle */}
