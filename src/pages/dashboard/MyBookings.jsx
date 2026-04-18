@@ -508,7 +508,11 @@ export default function MyBookings() {
                   <td className="px-6 py-4 whitespace-nowrap"><StatusLabel booking={b} /></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={e => e.stopPropagation()}>
                     <div className="flex flex-wrap gap-2">
-                      {b.status === "Pending" && (
+                      {/* Backend allows self-cancel for Pending + Confirmed;
+                          blocks Checked In / Completed / Cancelled. Button
+                          visibility mirrors that so the UI doesn't promise
+                          an action the API will reject at submit time. */}
+                      {(b.status === "Pending" || b.status === "Confirmed") && (
                         <button onClick={() => setCancelling(b)}
                           className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-200">Cancel</button>
                       )}
@@ -613,7 +617,7 @@ export default function MyBookings() {
                   })()}
                 </div>
                 <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                  {b.status === "Pending" && (
+                  {(b.status === "Pending" || b.status === "Confirmed") && (
                     <button onClick={() => setCancelling(b)} className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-lg">Cancel</button>
                   )}
                   {b.status === "Completed" && !b.hasReview && (
@@ -720,7 +724,7 @@ export default function MyBookings() {
                   {checkingIn ? <><i className="fas fa-spinner fa-spin mr-1" />Checking in...</> : <><i className="fas fa-door-open mr-1" />Check In</>}
                 </button>
               )}
-              {selected.status === "Pending" && (
+              {(selected.status === "Pending" || selected.status === "Confirmed") && (
                 <button onClick={() => { setSelected(null); setCancelling(selected); }}
                   className="px-4 py-2 bg-rose-100 text-rose-700 rounded-xl text-sm hover:bg-rose-200">Cancel Booking</button>
               )}
