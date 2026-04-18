@@ -74,7 +74,7 @@ export default function Dashboard() {
   // ── derived metrics ─────────────────────────────────────────────────────────
   const today = todayStr();
 
-  const { todayBookings, arriving, checkedIn, completed, allPending, walkIns, todayRevenue, overdueCheckouts } = useMemo(() => {
+  const { todayBookings, arriving, checkedIn, completed, walkIns, todayRevenue, overdueCheckouts } = useMemo(() => {
     // "Today" includes bookings checking in today AND any still-Checked-In
     // stays from earlier days — so an overnight guest who arrived at
     // 11:50 PM yesterday doesn't disappear from the dashboard at 12:01 AM.
@@ -92,7 +92,10 @@ export default function Dashboard() {
     const arriving       = todayBookings.filter(b => b.status === 'Confirmed');
     const checkedIn      = todayBookings.filter(b => b.status === 'Checked In');
     const completed      = todayBookings.filter(b => b.status === 'Completed');
-    const allPending     = bookings.filter(b => b.status === 'Pending');
+    // Removed allPending from the KPI row — pending bookings are auto-cleared
+    // by the PayMongo webhook (≤5 min) or auto-cancelled by a backend job
+    // (>5 min unpaid), so the count isn't actionable for front desk. The
+    // card it used to populate now surfaces overdueCheckouts instead.
     const walkIns        = todayBookings.filter(b => b.source === 'walk-in' || b.source === 'walkin');
 
     // Today's revenue = SUM(paidAmount). paidAmount is the backend's single
@@ -100,13 +103,15 @@ export default function Dashboard() {
     // Billing page's revenueToday and the owner Revenue Collected KPI.
     const todayRevenue = todayBookings.reduce((sum, b) => sum + Number(b.paidAmount ?? 0), 0);
 
-    // Overdue checkouts — checked in but checkout time has passed
+    // Overdue checkouts — checked in but checkout time has passed. This is
+    // the KPI-actionable state front desk can actually do something about
+    // (call the room, assess late fee, free it for the next guest).
     const overdueCheckouts = bookings.filter(b => {
       if (b.status !== 'Checked In' || !b.checkOut) return false;
       return new Date(b.checkOut.replace(' ', 'T')) < now;
     });
 
-    return { todayBookings, arriving, checkedIn, completed, allPending, walkIns, todayRevenue, overdueCheckouts };
+    return { todayBookings, arriving, checkedIn, completed, walkIns, todayRevenue, overdueCheckouts };
   }, [bookings, today]);
 
   // Occupancy
@@ -214,25 +219,80 @@ export default function Dashboard() {
               </div>
             ))
           ) : (
-            [
-              { label: 'Occupancy',          value: `${occupancyPct}%`,                    bg: 'bg-sky-100',     text: 'text-sky-600',     icon: 'fa-chart-pie',     sub: `${occupiedRooms} / ${totalRooms} rooms` },
-              { label: 'Available Rooms',     value: availableRooms,                        bg: 'bg-emerald-100', text: 'text-emerald-600', icon: 'fa-door-open'      },
-              { label: "Today's Revenue",     value: `₱${todayRevenue.toLocaleString()}`,   bg: 'bg-teal-100',    text: 'text-teal-600',    icon: 'fa-peso-sign'      },
-              { label: 'Arriving Today',      value: arriving.length,                       bg: 'bg-indigo-100',  text: 'text-indigo-600',  icon: 'fa-plane-arrival',  sub: 'Confirmed' },
-              { label: 'Walk-ins Today',      value: walkIns.length,                        bg: 'bg-amber-100',   text: 'text-amber-600',   icon: 'fa-walking'        },
-              { label: 'Pending (All)',        value: allPending.length,                     bg: 'bg-violet-100',  text: 'text-violet-600',  icon: 'fa-clock'          },
-            ].map(card => (
-              <div key={card.label} className="bg-white rounded-xl shadow p-5 flex items-center">
-                <div className={`p-3 rounded-xl ${card.bg} ${card.text} mr-4`}>
-                  <i className={`fas ${card.icon} text-xl`}></i>
-                </div>
-                <div>
-                  <p className="text-slate-500 text-sm">{card.label}</p>
-                  <h3 className="text-2xl font-bold">{card.value}</h3>
-                  {card.sub && <p className="text-xs text-slate-400">{card.sub}</p>}
-                </div>
-              </div>
-            ))
+            (() => {
+              // Replaced Pending (All) — a non-actionable count of bookings
+              // the PayMongo webhook / auto-cancel job already handles —
+              // with Overdue Checkout. Staff CAN act on this one: call the
+              // room, assess late fee, free the room for the next arrival.
+              // Click targets /bookings?status=Overdue which is already a
+              // valid filter on the consolidated Bookings page.
+              const overdue      = overdueCheckouts.length;
+              const overdueCard  = overdue > 0
+                ? {
+                    label:   'Overdue Checkout',
+                    value:   overdue,
+                    bg:      'bg-rose-100',
+                    text:    'text-rose-600',
+                    icon:    'fa-triangle-exclamation',
+                    sub:     overdue === 1 ? 'Needs attention' : `${overdue} guests overdue — needs attention`,
+                    href:    '/frontdesk/bookings?status=Overdue',
+                    urgent:  true,
+                  }
+                : {
+                    label:   'Overdue Checkout',
+                    value:   0,
+                    bg:      'bg-slate-100',
+                    text:    'text-slate-500',
+                    icon:    'fa-check',
+                    sub:     'All on schedule',
+                  };
+              return [
+                { label: 'Occupancy',          value: `${occupancyPct}%`,                    bg: 'bg-sky-100',     text: 'text-sky-600',     icon: 'fa-chart-pie',     sub: `${occupiedRooms} / ${totalRooms} rooms` },
+                { label: 'Available Rooms',     value: availableRooms,                        bg: 'bg-emerald-100', text: 'text-emerald-600', icon: 'fa-door-open'      },
+                { label: "Today's Revenue",     value: `₱${todayRevenue.toLocaleString()}`,   bg: 'bg-teal-100',    text: 'text-teal-600',    icon: 'fa-peso-sign'      },
+                { label: 'Arriving Today',      value: arriving.length,                       bg: 'bg-indigo-100',  text: 'text-indigo-600',  icon: 'fa-plane-arrival',  sub: 'Confirmed' },
+                { label: 'Walk-ins Today',      value: walkIns.length,                        bg: 'bg-amber-100',   text: 'text-amber-600',   icon: 'fa-walking'        },
+                overdueCard,
+              ];
+            })().map(card => {
+              const interactive = !!card.href;
+              const cardCls = [
+                'bg-white rounded-xl shadow p-5 flex items-center transition-colors',
+                interactive ? 'cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1' : '',
+                card.urgent ? 'ring-2 ring-rose-200' : '',
+              ].join(' ');
+
+              const body = (
+                <>
+                  <div className={`p-3 rounded-xl ${card.bg} ${card.text} mr-4`}>
+                    <i className={`fas ${card.icon} text-xl`} aria-hidden="true"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-slate-500 text-sm">{card.label}</p>
+                    <h3 className={`text-2xl font-bold ${card.urgent ? 'text-rose-700' : ''}`}>{card.value}</h3>
+                    {card.sub && (
+                      <p className={`text-xs ${card.urgent ? 'text-rose-600 font-medium' : 'text-slate-400'}`}>
+                        {card.sub}
+                      </p>
+                    )}
+                  </div>
+                </>
+              );
+
+              return interactive ? (
+                <button
+                  key={card.label}
+                  type="button"
+                  onClick={() => navigate(card.href)}
+                  aria-label={`${card.label}: ${card.value}${card.sub ? `. ${card.sub}` : ''}. Open bookings list.`}
+                  className={`${cardCls} text-left w-full`}
+                >
+                  {body}
+                </button>
+              ) : (
+                <div key={card.label} className={cardCls}>{body}</div>
+              );
+            })
           )}
         </div>
 
@@ -315,7 +375,7 @@ export default function Dashboard() {
                 <button
                   key={b.bookingId}
                   type="button"
-                  onClick={() => navigate(`/frontdesk/reservation?booking=${b.bookingId}`)}
+                  onClick={() => navigate(`/frontdesk/bookings?booking=${b.bookingId}`)}
                   className="w-full flex items-center justify-between bg-amber-50 hover:bg-amber-100 rounded-lg px-4 py-2 text-left transition group"
                 >
                   <div className="flex items-center gap-3">
