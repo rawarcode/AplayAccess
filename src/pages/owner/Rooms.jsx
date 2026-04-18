@@ -170,7 +170,13 @@ export default function AdminRooms() {
   const [featureInput,   setFeatureInput]   = useState("");
   const [selectedIcon,   setSelectedIcon]   = useState("fa-check");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
-  const iconPickerRef = useRef(null);
+  const iconPickerRef    = useRef(null);
+  const iconButtonRef    = useRef(null);
+  // Viewport-relative coordinates for the floating icon picker. We use
+  // fixed positioning (not absolute) so the popover escapes the modal
+  // form's overflow-y-auto clipping, which was cropping the bottom rows
+  // of the grid.
+  const [iconPickerPos, setIconPickerPos] = useState({ top: 0, left: 0 });
 
   // Bulk selection (#13)
   const [selected, setSelected] = useState(new Set());
@@ -178,14 +184,48 @@ export default function AdminRooms() {
   // Pagination (#6)
   const [page, setPage] = useState(1);
 
-  // Click-outside closes icon picker
+  // Click-outside closes icon picker. Both the trigger button and the
+  // floating popover are valid click targets — excluding both prevents
+  // the popover from closing when clicking an icon inside it.
   useEffect(() => {
     if (!iconPickerOpen) return;
     const handler = (e) => {
-      if (iconPickerRef.current && !iconPickerRef.current.contains(e.target)) setIconPickerOpen(false);
+      if (iconPickerRef.current && iconPickerRef.current.contains(e.target)) return;
+      if (iconButtonRef.current && iconButtonRef.current.contains(e.target)) return;
+      setIconPickerOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
+  }, [iconPickerOpen]);
+
+  // Compute viewport coordinates for the popover when it opens, plus
+  // reposition on window resize / scroll so the picker stays anchored
+  // to the trigger button even if the underlying form scrolls.
+  useEffect(() => {
+    if (!iconPickerOpen) return;
+    const reposition = () => {
+      const btn = iconButtonRef.current;
+      if (!btn) return;
+      const r = btn.getBoundingClientRect();
+      const POPOVER_W = 208;   // w-52 = 13rem = 208px
+      const POPOVER_H = 180;   // 4 rows × 36px + padding
+      // Default: below the trigger. If that would overflow the viewport
+      // bottom, flip above.
+      let top = r.bottom + 8;
+      if (top + POPOVER_H > window.innerHeight - 8) top = Math.max(8, r.top - POPOVER_H - 8);
+      // Clamp horizontally so the popover doesn't run off the right edge.
+      const left = Math.max(8, Math.min(r.left, window.innerWidth - POPOVER_W - 8));
+      setIconPickerPos({ top, left });
+    };
+    reposition();
+    window.addEventListener("resize", reposition);
+    // Capture-phase scroll so nested scroll containers (the modal form)
+    // also trigger a reposition while the picker is open.
+    window.addEventListener("scroll", reposition, true);
+    return () => {
+      window.removeEventListener("resize", reposition);
+      window.removeEventListener("scroll", reposition, true);
+    };
   }, [iconPickerOpen]);
 
   // Click-outside closes add menu
@@ -1125,19 +1165,35 @@ export default function AdminRooms() {
               </div>
               <div className="p-5 space-y-3">
                 <div className="flex gap-2">
-                  <div className="relative" ref={iconPickerRef}>
-                    <button type="button" onClick={() => setIconPickerOpen(p => !p)}
-                      className="h-[42px] px-3 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 flex items-center gap-2 text-sm text-slate-700 shrink-0 transition">
-                      <i className={`fas ${selectedIcon} text-sky-500`}></i>
-                      <i className="fas fa-chevron-down text-[10px] text-slate-400"></i>
+                  <div className="relative">
+                    <button ref={iconButtonRef} type="button" onClick={() => setIconPickerOpen(p => !p)}
+                      aria-haspopup="true"
+                      aria-expanded={iconPickerOpen}
+                      aria-label="Pick an icon for this feature"
+                      className="h-[42px] px-3 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 flex items-center gap-2 text-sm text-slate-700 shrink-0 transition focus:outline-none focus:ring-2 focus:ring-sky-400">
+                      <i className={`fas ${selectedIcon} text-sky-500`} aria-hidden="true"></i>
+                      <i className="fas fa-chevron-down text-[10px] text-slate-400" aria-hidden="true"></i>
                     </button>
+                    {/* position: fixed (via inline style) anchors the popover
+                        to the viewport, so it escapes the modal form's
+                        overflow-y-auto clipping. Previously the grid was
+                        being cropped at the bottom, making the lower icon
+                        rows (Bath/Shower/Pool/etc.) invisible. */}
                     {iconPickerOpen && (
-                      <div className="absolute left-0 top-12 z-20 bg-white border border-slate-200 rounded-xl shadow-xl p-2.5 grid grid-cols-5 gap-1 w-52">
+                      <div
+                        ref={iconPickerRef}
+                        role="listbox"
+                        aria-label="Feature icon options"
+                        style={{ position: 'fixed', top: iconPickerPos.top, left: iconPickerPos.left }}
+                        className="z-[100] bg-white border border-slate-200 rounded-xl shadow-xl p-2.5 grid grid-cols-5 gap-1 w-52"
+                      >
                         {FEATURE_ICONS.map(({ icon, label }) => (
                           <button key={icon} type="button" title={label}
+                            aria-label={label}
+                            aria-selected={selectedIcon === icon}
                             onClick={() => { setSelectedIcon(icon); setIconPickerOpen(false); }}
                             className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm transition ${selectedIcon === icon ? "bg-sky-100 text-sky-600 ring-2 ring-sky-300" : "hover:bg-slate-100 text-slate-500"}`}>
-                            <i className={`fas ${icon}`}></i>
+                            <i className={`fas ${icon}`} aria-hidden="true"></i>
                           </button>
                         ))}
                       </div>
