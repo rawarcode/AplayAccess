@@ -434,7 +434,18 @@ export default function Billing() {
     if (sortBy === 'Booking ID') { aVal = a.id ?? '';             bVal = b.id ?? ''; }
     else if (sortBy === 'Guest')      { aVal = (a.guest ?? '').toLowerCase();      bVal = (b.guest ?? '').toLowerCase(); }
     else if (sortBy === 'Room')       { aVal = (a.roomType ?? '').toLowerCase();   bVal = (b.roomType ?? '').toLowerCase(); }
-    else if (sortBy === 'Visit Rate') { aVal = Number(a.total ?? 0);               bVal = Number(b.total ?? 0); }
+    else if (sortBy === 'Booking Total') { aVal = Number(a.total ?? 0);            bVal = Number(b.total ?? 0); }
+    else if (sortBy === 'To Collect') {
+      // Paid rows sort as 0 (nothing to collect); unpaid rows sort by
+      // outstanding (room + entrance − already-paid). Cancelled rows
+      // carry the forfeited reservation-fee amount so they group with
+      // zero-collect rows, not at the top.
+      const outstanding = (x) => {
+        if (x.status === 'Completed' || x.status === 'Cancelled' || x.fullyPaid) return 0;
+        return Math.max(0, Number(x.total ?? 0) + calcEntrance(x, entranceRates) - Number(x.paidAmount ?? 0));
+      };
+      aVal = outstanding(a); bVal = outstanding(b);
+    }
     else if (sortBy === 'Status')     { aVal = a.status ?? '';                     bVal = b.status ?? ''; }
     else { aVal = a.checkIn ?? ''; bVal = b.checkIn ?? ''; }
     if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
@@ -763,7 +774,14 @@ export default function Billing() {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Time Slot','Time Slot'],['Visit Rate','Visit Rate'],['Status','Status']].map(([label,key]) => (
+                    {/* Header order must match the row cell order below.
+                        Previously "Status" and "To Collect" were swapped
+                        relative to their cells, making the third column
+                        render amounts under "Status" and booking statuses
+                        under "To Collect". Also renamed "Visit Rate" to
+                        "Booking Total" — the cell shows b.total (room rate
+                        + amenities − discount), not a per-unit rate. */}
+                    {[['Booking ID','Booking ID'],['Guest','Guest'],['Room','Room'],['Time Slot','Time Slot'],['Booking Total','Booking Total'],['Payment','To Collect']].map(([label,key]) => (
                       <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
                           className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
@@ -774,7 +792,15 @@ export default function Billing() {
                         </button>
                       </th>
                     ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">To Collect</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                      <button onClick={() => { if(sortBy==='Status') setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy('Status');setSortDir('asc');} }}
+                        className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
+                        Status
+                        <span className="text-slate-400 group-hover:text-sky-400">
+                          {sortBy==='Status' ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        </span>
+                      </button>
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Action</th>
                   </tr>
                 </thead>
@@ -837,9 +863,15 @@ export default function Billing() {
                 </tbody>
                 <tfoot className="bg-slate-50 text-sm font-semibold">
                   <tr>
-                    <td colSpan={4} className="px-4 py-3 text-right text-slate-600">Totals:</td>
+                    <td colSpan={4} className="px-4 py-3 text-right text-slate-600">
+                      Billed (excl. cancelled / pending):
+                    </td>
+                    {/* Sum just b.total so the footer matches the visible
+                        column cells (which also show b.total). Entrance
+                        fees surface in the Awaiting Collection card above
+                        and per-booking in the detail modal, not here. */}
                     <td className="px-4 py-3">
-                      {fmtMoney(todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total || 0) + calcEntrance(b, entranceRates), 0))}
+                      {fmtMoney(todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total || 0), 0))}
                     </td>
                     <td className="px-4 py-3 text-emerald-700">
                       {fmtMoney(revenueToday)} earned
