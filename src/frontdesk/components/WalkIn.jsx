@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
@@ -133,18 +133,26 @@ export default function WalkIn() {
   }
   useEffect(() => { loadAll(); }, []);
 
-  // Auto-open form with the pre-selected room when coming from Rooms board.
-  // Clear the navigation state immediately after so that later re-renders
-  // (e.g. loadAll() toggling `loading` after a successful booking) don't
-  // re-trigger this effect and pop the form open again.
+  // This route is wizard-only: the modal auto-opens on mount. A ref guards
+  // against the effect re-firing (e.g. when loadAll toggles `loading`).
+  // The preselectedRoom handoff from Rooms board still works — we just
+  // seed the form's roomId before opening.
+  const hasAutoOpenedRef = useRef(false);
   useEffect(() => {
-    if (!preselectedRoom || loading) return;
-    setForm(f => ({ ...f, roomId: String(preselectedRoom.id) }));
+    if (loading || hasAutoOpenedRef.current) return;
+    hasAutoOpenedRef.current = true;
+    if (preselectedRoom) {
+      setForm(f => ({ ...f, roomId: String(preselectedRoom.id) }));
+      navigate(location.pathname, { replace: true, state: null });
+    }
     setFormOpen(true);
     setWiStep(1);
     setShowWiNotes(false);
-    navigate(location.pathname, { replace: true, state: null });
-  }, [preselectedRoom, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close handlers return to the consolidated Bookings page, since this
+  // route carries no content of its own beyond the wizard modal.
+  const closeWizard = () => navigate('/frontdesk/bookings');
 
   // Room availability — same check as BookingModal
   const [availability,  setAvailability]  = useState(null);
@@ -337,7 +345,11 @@ export default function WalkIn() {
       setForm({ ...EMPTY_FORM, date: form.date });
       setAddonQtys(Object.fromEntries(addons.map(a => [a.id, 0])));
       setPromoInput(''); setPromoResult(null); setPromoError('');
-      loadAll();
+      // Success: return to the consolidated Bookings view. Skip loadAll —
+      // the Bookings page fetches its own data on mount.
+      showToast('Walk-in booking created.', 'success');
+      navigate('/frontdesk/bookings');
+      return;
     } catch (err) {
       setFormError(
         err?.response?.data?.message ||
@@ -793,7 +805,7 @@ export default function WalkIn() {
                   <p className="text-sky-200 text-xs">Fill in guest and booking details</p>
                 </div>
               </div>
-              <button onClick={() => { setFormOpen(false); setFormError(''); }} className="text-white/70 hover:text-white" aria-label="Close">
+              <button onClick={() => { setFormOpen(false); setFormError(''); closeWizard(); }} className="text-white/70 hover:text-white" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -1198,7 +1210,7 @@ export default function WalkIn() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0 bg-white">
               {wiStep === 1 ? (<>
-                <button type="button" onClick={() => { setFormOpen(false); setFormError(''); }}
+                <button type="button" onClick={() => { setFormOpen(false); setFormError(''); closeWizard(); }}
                   className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
                   Cancel
                 </button>
@@ -1233,124 +1245,26 @@ export default function WalkIn() {
       )}
 
       {/* ── Main ── */}
+      {/* This route exists purely to host the walk-in wizard modal. The
+          wizard opens on mount and every close path navigates to
+          /frontdesk/bookings, so this background is only briefly visible
+          while the form loads. The Today's Bookings table lives in the
+          consolidated Bookings page now. */}
       <main className="p-6">
         {error && (
           <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded text-sm">
             <i className="fas fa-exclamation-circle mr-2"></i>{error}
           </div>
         )}
-
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Today's Bookings</h2>
-            <button
-              onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); setWiStep(1); setShowWiNotes(false); }}
-              className="bg-sky-600 text-white px-4 py-2 rounded hover:bg-sky-700 text-sm"
-            >
-              <i className="fas fa-plus mr-2"></i>New Walk-in
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="py-10 text-center text-slate-400">
-              <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading...
-            </div>
-          ) : todayBookings.length === 0 ? (
-            <div className="py-10 text-center text-slate-400">
-              <i className="fas fa-calendar-day text-3xl mb-2 block"></i>
-              <p>No bookings for today yet.</p>
-              <button
-                onClick={() => { setFormOpen(true); setFormError(''); setForm({ ...EMPTY_FORM, date: today }); setWiStep(1); setShowWiNotes(false); }}
-                className="mt-3 px-4 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700"
-              >
-                <i className="fas fa-plus mr-2"></i>Create Walk-in
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    {/* Header column order must match the tbody row order below:
-                        ID · Guest · Room · Time Slot · Guests · Total · Status · Actions.
-                        Time Slot isn't a sortable column (no canonical sort on a
-                        date-range string), so it renders as a static <th>. */}
-                    {[['ID','ID'],['Guest','Guest'],['Room','Room']].map(([label,key]) => (
-                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
-                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
-                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
-                          {label}
-                          <span className="text-slate-400 group-hover:text-sky-400">
-                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
-                          </span>
-                        </button>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Time Slot</th>
-                    {[['Guests','Guests'],['Total','Total'],['Status','Status']].map(([label,key]) => (
-                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
-                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
-                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
-                          {label}
-                          <span className="text-slate-400 group-hover:text-sky-400">
-                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
-                          </span>
-                        </button>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {todayBookings.map(b => (
-                    <tr key={b.bookingId} role="button" tabIndex={0} className="hover:bg-slate-50 cursor-pointer" onClick={() => setViewWalkin(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewWalkin(b); }}}>
-                      <td className="px-4 py-3 text-xs text-slate-500">{b.id}</td>
-                      <td className="px-4 py-3">
-                        <p className="text-sm font-medium">{walkInName(b)}</p>
-                        {b.specialRequests?.startsWith('Walk-in:') && (
-                          <span className="text-xs text-sky-600 bg-sky-50 px-1 rounded">Walk-in</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-slate-600">{b.roomType}</td>
-                      <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
-                        {fmtDateTime(b.checkIn)}<br />
-                        <span className="text-slate-400">→ {fmtDateTime(b.checkOut)}</span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-center">{b.guests}</td>
-                      <td className="px-4 py-3 text-sm">{fmtMoney(b.total)}</td>
-                      <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <div className="flex gap-2">
-                          {b.status === 'Checked In' && (
-                            <>
-                              <button
-                                onClick={() => handleAction(b.bookingId, 'Completed')}
-                                disabled={actionLoading === b.bookingId}
-                                className="px-2 py-1 bg-emerald-600 text-white rounded text-xs hover:bg-emerald-700 disabled:opacity-40"
-                              ><i className="fas fa-flag-checkered mr-1"></i>Complete</button>
-                              <button
-                                onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
-                                disabled={actionLoading === b.bookingId}
-                                className="px-2 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-40"
-                              ><i className="fas fa-exchange-alt mr-1"></i>Transfer</button>
-                            </>
-                          )}
-                          {['Confirmed', 'Checked In'].includes(b.status) && (
-                            <button
-                              onClick={() => setCancelBooking(b)}
-                              disabled={actionLoading === b.bookingId}
-                              className="px-2 py-1 bg-rose-100 text-rose-700 border border-rose-200 rounded text-xs hover:bg-rose-200 disabled:opacity-40"
-                              title="Cancel / Undo booking"
-                            ><i className="fas fa-undo mr-1"></i>Undo</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+        <div className="bg-white rounded-lg shadow p-10 text-center text-slate-400">
+          <i className="fas fa-spinner fa-spin text-2xl mb-3 block"></i>
+          <p className="text-sm">Opening walk-in wizard…</p>
+          <button
+            onClick={() => navigate('/frontdesk/bookings')}
+            className="mt-4 text-xs text-sky-600 hover:text-sky-800 font-medium"
+          >
+            ← Back to Bookings
+          </button>
         </div>
       </main>
     </Sidebar>

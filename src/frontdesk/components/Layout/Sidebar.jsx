@@ -9,9 +9,10 @@ import useLockBodyScroll from '../../../hooks/useLockBodyScroll.js';
 
 const PAGE_TITLES = {
   '/frontdesk':             'Dashboard',
-  '/frontdesk/reservation': 'Reservations',
+  '/frontdesk/bookings':    'Bookings',
+  '/frontdesk/reservation': 'Bookings', // legacy alias
   '/frontdesk/billing':     'Billing',
-  '/frontdesk/walkin':      'Walk-ins',
+  '/frontdesk/walkin':      'New Walk-in',
   '/frontdesk/records':     'Guest Records',
   '/frontdesk/rooms':       'Rooms',
   '/frontdesk/messages':    'Messages',
@@ -53,17 +54,16 @@ export default function Sidebar({ children, showTopBar = true }) {
   }, [mobileOpen]);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings:    '/frontdesk/reservation?status=Pending',
+    pendingBookings:    '/frontdesk/bookings?status=Pending',
     messages:           '/frontdesk/messages',
-    arrivals:           '/frontdesk/reservation?status=Confirmed',
+    arrivals:           '/frontdesk/bookings?status=Confirmed',
     overdueCheckouts:   '/frontdesk',
   });
 
   const menuItems = {
     frontDesk: [
       { path: '/frontdesk',             icon: 'fa-tachometer-alt',   label: 'Dashboard'     },
-      { path: '/frontdesk/reservation', icon: 'fa-calendar-check',   label: 'Reservations',  badgeKey: 'pendingBookings' },
-      { path: '/frontdesk/walkin',      icon: 'fa-person-walking',   label: 'Walk-ins'      },
+      { path: '/frontdesk/bookings',    icon: 'fa-calendar-check',   label: 'Bookings',      badgeKey: 'pendingBookings' },
       { path: '/frontdesk/billing',     icon: 'fa-receipt',          label: 'Billing'       },
       { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms'          },
       { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },

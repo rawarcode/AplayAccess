@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Layout from "./components/Layout.jsx";
 
 const Home = lazy(() => import("./pages/Home.jsx"));
@@ -46,7 +46,7 @@ const OwnerAddons = lazy(() => import("./pages/owner/Addons.jsx"));
 // Frontdesk portal — lazy-loaded (no shared shell, each page is a portal entry)
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
 const FDDashboard = lazy(() => import("./frontdesk/components/Dashboard.jsx"));
-const FDReservation = lazy(() => import("./frontdesk/components/Reservation.jsx"));
+const FDBookings = lazy(() => import("./frontdesk/components/Bookings.jsx"));
 const FDBilling = lazy(() => import("./frontdesk/components/Billing.jsx"));
 const FDWalkIn = lazy(() => import("./frontdesk/components/WalkIn.jsx"));
 const FDGuestRecords = lazy(() => import("./frontdesk/components/GuestRecords.jsx"));
@@ -59,6 +59,14 @@ const SuspenseFallback = (
     <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-sky-500" />
   </div>
 );
+
+// Forward legacy /frontdesk/reservation to /frontdesk/bookings while
+// preserving the query string (?status=Pending, ?booking=<id>, etc.) —
+// plain <Navigate> drops the search.
+function LegacyReservationRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/frontdesk/bookings${search}`} replace />;
+}
 
 export default function App() {
   return (
@@ -142,12 +150,19 @@ export default function App() {
         }
       />
       <Route
-        path="/frontdesk/reservation"
+        path="/frontdesk/bookings"
         element={
           <RequireFrontdesk>
-            <FDReservation />
+            <FDBookings />
           </RequireFrontdesk>
         }
+      />
+      {/* Legacy route — notification deep-links and bookmarks can still land
+          here; forward to the consolidated Bookings page preserving any
+          ?status= / ?booking= query params. */}
+      <Route
+        path="/frontdesk/reservation"
+        element={<LegacyReservationRedirect />}
       />
       <Route
         path="/frontdesk/billing"

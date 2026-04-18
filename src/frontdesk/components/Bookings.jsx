@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
@@ -23,24 +23,12 @@ function parseWalkIn(b) {
   return { name, phone, email };
 }
 
-function PayIcon({ method }) {
-  const m = (method || '').toLowerCase();
-  if (m === 'cash')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-money-bill-wave text-emerald-600"></i> Cash</span>;
-  if (m === 'gcash')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-sky-500"></i> GCash</span>;
-  if (m === 'maya' || m === 'paymaya')
-    return <span className="inline-flex items-center gap-1"><i className="fas fa-mobile-alt text-emerald-500"></i> Maya</span>;
-  return <span className="capitalize">{method || '—'}</span>;
-}
-
 // A Pending booking with no payment and no active PayMongo session,
 // older than 5 minutes, is effectively expired.
-// Bookings with a paymongo_link_id are excluded — the guest may still be paying.
 function isExpiredPending(b) {
   if (b.status !== 'Pending') return false;
   if (b.fullyPaid) return false;
-  if (b.paymongoLinkId) return false; // payment session in progress
+  if (b.paymongoLinkId) return false;
   const created = new Date(b.createdAt);
   return Date.now() - created.getTime() > 5 * 60 * 1000;
 }
@@ -73,8 +61,26 @@ function StatusBadge({ status, booking }) {
   );
 }
 
+// Source pill — sits next to guest name. Encodes source via icon + text
+// so the channel is readable without relying on colour alone.
+function SourcePill({ source }) {
+  if (source === 'walk-in') {
+    return (
+      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
+        <i className="fas fa-person-walking text-[9px]"></i>Walk-in
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-sky-100 text-sky-800">
+      <i className="fas fa-globe text-[9px]"></i>Online
+    </span>
+  );
+}
+
 // ─── component ────────────────────────────────────────────────────────────────
-export default function Reservation() {
+export default function Bookings() {
+  const navigate                          = useNavigate();
   const [bookings, setBookings]           = useState([]);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState('');
@@ -85,27 +91,31 @@ export default function Reservation() {
   const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
   const VALID_STATUSES = ['Pending','Confirmed','Checked In','Completed','Cancelled','Overdue'];
+  const VALID_SOURCES  = ['all','online','walkin'];
   const [filterStatus, setFilterStatus]   = useState(() => {
     const s = searchParams.get('status');
     return VALID_STATUSES.includes(s) ? s : 'All';
   });
+  const [filterSource, setFilterSource]   = useState(() => {
+    const s = searchParams.get('source');
+    return VALID_SOURCES.includes(s) ? s : 'all';
+  });
 
-  // Re-sync filter when URL ?status param changes (e.g. clicking a notification while already on this page)
+  // Re-sync filters when URL params change (e.g. clicking a notification while already on this page)
   useEffect(() => {
     const s = searchParams.get('status');
     setFilterStatus(VALID_STATUSES.includes(s) ? s : 'All');
+    const src = searchParams.get('source');
+    setFilterSource(VALID_SOURCES.includes(src) ? src : 'all');
   }, [searchParams]);
 
   const [viewBooking, setViewBooking]     = useState(null);
-  // Remember which ?booking= param we've already auto-opened, so closing the modal
-  // (which clears the param) or a later data refresh won't reopen it.
   const autoOpenedRef                     = useRef(null);
 
-  // Auto-open detail modal when ?booking=<id> is in the URL (e.g. from dashboard overdue alert)
   useEffect(() => {
     const bookingParam = searchParams.get('booking');
     if (!bookingParam || bookings.length === 0) return;
-    if (autoOpenedRef.current === bookingParam) return; // already handled this param
+    if (autoOpenedRef.current === bookingParam) return;
     const match = bookings.find(b => String(b.bookingId) === bookingParam || b.id === bookingParam);
     if (match) {
       autoOpenedRef.current = bookingParam;
@@ -113,15 +123,13 @@ export default function Reservation() {
     }
   }, [searchParams, bookings]);
 
-  const [confirmState, setConfirmState]   = useState(null); // { bookingId, action, booking }
+  const [confirmState, setConfirmState]   = useState(null);
   const [toast, showToast, clearToast, toastType] = useToast();
 
   const [rooms, setRooms]                 = useState([]);
   const [transferBooking, setTransferBooking] = useState(null);
   const [transferRoomId, setTransferRoomId]   = useState('');
   const [transferring, setTransferring]       = useState(false);
-  // bookingId currently downloading a receipt (so we can show a spinner
-  // on that row without blocking other rows).
   const [receiptLoadingId, setReceiptLoadingId] = useState(null);
 
   async function handleDownloadReceipt(b) {
@@ -159,11 +167,28 @@ export default function Reservation() {
     else { setSortBy(field); setSortDir('asc'); }
   }
 
+  // Write the source filter back to the URL so deep-links stick and the
+  // notification redirects (?status=Pending&source=online) work predictably.
+  function changeSource(src) {
+    setFilterSource(src);
+    const next = new URLSearchParams(searchParams);
+    if (src === 'all') next.delete('source');
+    else                next.set('source', src);
+    setSearchParams(next, { replace: true });
+  }
+
   const filtered = useMemo(() => {
-    let list;
-    if (filterStatus === 'All') list = bookings;
-    else if (filterStatus === 'Overdue') list = bookings.filter(isOverdueCheckout);
-    else list = bookings.filter(b => b.status === filterStatus);
+    let list = bookings;
+
+    // Source filter — online vs walk-in. Backend-attributed `source` field
+    // is authoritative and cannot be spoofed by specialRequests.
+    if (filterSource === 'online') list = list.filter(b => b.source !== 'walk-in');
+    else if (filterSource === 'walkin') list = list.filter(b => b.source === 'walk-in');
+
+    // Status filter
+    if (filterStatus === 'Overdue') list = list.filter(isOverdueCheckout);
+    else if (filterStatus !== 'All') list = list.filter(b => b.status === filterStatus);
+
     const term = searchTerm.trim().toLowerCase();
     if (term) {
       list = list.filter(b => {
@@ -207,9 +232,17 @@ export default function Reservation() {
       if (valA > valB) return sortDir === 'asc' ?  1 : -1;
       return 0;
     });
-  }, [bookings, filterStatus, searchTerm, sortBy, sortDir]);
+  }, [bookings, filterStatus, filterSource, searchTerm, sortBy, sortDir]);
 
-  // ── status update (table row quick-actions only) ──────────────────────────
+  // Source-count badges for the segmented toggle
+  const sourceCounts = useMemo(() => {
+    let online = 0, walkin = 0;
+    for (const b of bookings) {
+      if (b.source === 'walk-in') walkin++; else online++;
+    }
+    return { all: bookings.length, online, walkin };
+  }, [bookings]);
+
   function syncBooking(bookingId, updates) {
     setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, ...updates } : b));
   }
@@ -265,7 +298,7 @@ export default function Reservation() {
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
     <Sidebar>
-      <Helmet><title>Reservations — Frontdesk</title></Helmet>
+      <Helmet><title>Bookings — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── Quick-Action Confirmation Modal ── */}
       {confirmState && (() => {
@@ -313,19 +346,6 @@ export default function Reservation() {
 
       {/* ── Transfer Room Modal ── */}
       {transferBooking && (() => {
-        // Count overlapping bookings PER room id, then compare against
-        // room.quantity — matches the backend's transferRoom guard:
-        //   activeBookings.count() >= room.quantity → reject
-        // The old code used a Set and excluded any room with ≥1 overlap,
-        // so multi-unit cottages / pavilions looked full at 1/N occupancy.
-        //
-        // Status filter mirrors the backend's whereNotIn(Cancelled,
-        // Completed) so Pending rows (which hold the inventory until they
-        // auto-cancel or confirm) also count toward occupancy here.
-        //
-        // new Date() on "YYYY-MM-DD HH:mm" is implementation-dependent in
-        // browsers — normalise to the ISO form with `T` first so Safari
-        // and strict engines parse it reliably.
         const parseDT = (s) => new Date(String(s ?? '').replace(' ', 'T'));
         const transferStart = parseDT(transferBooking.checkIn);
         const transferEnd   = parseDT(transferBooking.checkOut);
@@ -374,8 +394,6 @@ export default function Reservation() {
                         const qty   = Number(r.quantity ?? 1);
                         const taken = overlapCounts.get(r.id) ?? 0;
                         const free  = Math.max(0, qty - taken);
-                        // Only mention capacity when the room has more than one unit —
-                        // "Deluxe Room — 1 of 1 free" would be noise.
                         const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
                         return (
                           <option key={r.id} value={r.id}>{r.name}{suffix}</option>
@@ -405,7 +423,6 @@ export default function Reservation() {
           booking={viewBooking}
           onClose={() => {
             setViewBooking(null);
-            // Clear ?booking=<id> so a future refresh doesn't reopen the modal
             if (searchParams.get('booking')) {
               const next = new URLSearchParams(searchParams);
               next.delete('booking');
@@ -423,9 +440,54 @@ export default function Reservation() {
       {/* ── Main ── */}
       <main className="p-6">
         <div className="bg-white rounded-lg shadow p-6">
-          {/* Search + Filter */}
+          {/* Title row + New Walk-in */}
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold text-slate-800">Bookings</h1>
+              <span className="text-sm text-slate-500">
+                {filtered.length} of {bookings.length} shown
+              </span>
+            </div>
+            <button
+              onClick={() => navigate('/frontdesk/walkin')}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm"
+            >
+              <i className="fas fa-plus"></i>New Walk-in
+            </button>
+          </div>
+
+          {/* Source segmented toggle — primary slicer */}
+          <div className="mb-4">
+            <div className="inline-flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              {[
+                { key: 'all',    label: 'All',     icon: null,                 active: 'bg-white shadow text-slate-900',    dot: 'bg-slate-400' },
+                { key: 'online', label: 'Online',  icon: 'fa-globe',           active: 'bg-white shadow text-sky-700',       dot: 'bg-sky-500'    },
+                { key: 'walkin', label: 'Walk-in', icon: 'fa-person-walking',  active: 'bg-white shadow text-amber-700',     dot: 'bg-amber-500'  },
+              ].map(opt => {
+                const isActive = filterSource === opt.key;
+                const count    = sourceCounts[opt.key];
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => changeSource(opt.key)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                      isActive ? opt.active : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    {opt.icon && <i className={`fas ${opt.icon} text-xs`}></i>}
+                    <span>{opt.label}</span>
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${isActive ? opt.dot + ' text-white' : 'bg-slate-200 text-slate-600'}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Search + status filter */}
           <div className="flex flex-wrap gap-3 mb-6 items-center">
-            <input type="text" aria-label="Search reservations" placeholder="Search name, ID, room…"
+            <input type="text" aria-label="Search bookings" placeholder="Search name, ID, room…"
               value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
               className="border rounded px-3 py-2 text-sm flex-1 min-w-[160px]" />
             <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
@@ -438,9 +500,6 @@ export default function Reservation() {
               <option>Cancelled</option>
               <option>Overdue</option>
             </select>
-            <span className="text-sm text-slate-500 whitespace-nowrap">
-              {filtered.length} result{filtered.length !== 1 ? 's' : ''}
-            </span>
             <button onClick={load} className="flex items-center gap-2 text-sky-600 hover:text-sky-800 text-sm ml-auto">
               <i className="fas fa-sync-alt"></i> Refresh
             </button>
@@ -481,15 +540,31 @@ export default function Reservation() {
                   {filtered.length === 0 ? (
                     <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">No bookings found.</td></tr>
                   ) : filtered.map(b => {
-                    const wi = parseWalkIn(b);
-                    const overdue = isOverdueCheckout(b);
+                    const wi       = parseWalkIn(b);
+                    const isWalkIn = b.source === 'walk-in';
+                    const overdue  = isOverdueCheckout(b);
+
+                    // Row color — overdue overrides source tint. Source tint
+                    // is subtle (bg-*-50) so it does not compete with the
+                    // status pill for the eye.
+                    const rowCls = overdue
+                      ? 'bg-rose-50 hover:bg-rose-100 border-l-4 border-rose-500'
+                      : isWalkIn
+                        ? 'bg-amber-50/60 hover:bg-amber-100/80 border-l-4 border-amber-400'
+                        : 'bg-white hover:bg-slate-50 border-l-4 border-sky-200';
+
                     return (
-                      <tr key={b.bookingId} role="button" tabIndex={0} className={`cursor-pointer ${overdue ? 'bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-500' : 'hover:bg-slate-50'}`} onClick={() => setViewBooking(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
+                      <tr key={b.bookingId} role="button" tabIndex={0}
+                          className={`cursor-pointer ${rowCls}`}
+                          onClick={() => setViewBooking(b)}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewBooking(b); }}}>
                         <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">{b.id}</td>
                         <td className="px-4 py-3">
-                          <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-sm font-medium text-slate-900">{wi ? wi.name : b.guest}</p>
+                            <SourcePill source={b.source} />
+                          </div>
                           <p className="text-xs text-slate-500">{wi ? wi.email : b.guestEmail}</p>
-                          {wi && <span className="text-xs text-sky-600 bg-sky-50 px-1 rounded">Walk-in</span>}
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{b.roomType}</td>
                         <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
@@ -502,7 +577,7 @@ export default function Reservation() {
                           <div className="flex flex-col gap-1 items-start">
                             <StatusBadge status={b.status} booking={b} />
                             {overdue && (
-                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-800 flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 flex items-center gap-1">
                                 <i className="fas fa-exclamation-triangle text-[9px]"></i>Overdue
                               </span>
                             )}
@@ -514,11 +589,6 @@ export default function Reservation() {
                               className="text-sky-600 hover:text-sky-800">
                               <i className="fas fa-eye"></i>
                             </button>
-                            {/* Manual Confirm is only available once payment
-                                has been recorded (paidAmount > 0). Before
-                                that, Pending rows wait on the payment
-                                webhook to move them to Confirmed. Backend
-                                also rejects this path on unpaid rows. */}
                             {b.status === 'Pending' && Number(b.paidAmount ?? 0) > 0 && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'confirm', booking: b })}
                                 disabled={actionLoading === b.bookingId}
@@ -573,6 +643,22 @@ export default function Reservation() {
               </table>
             </div>
           )}
+
+          {/* Legend */}
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-1 h-4 bg-sky-300 rounded"></span>
+              <i className="fas fa-globe text-sky-500 text-[10px]"></i> Online
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-1 h-4 bg-amber-400 rounded"></span>
+              <i className="fas fa-person-walking text-amber-500 text-[10px]"></i> Walk-in
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-1 h-4 bg-rose-500 rounded"></span>
+              <i className="fas fa-exclamation-triangle text-rose-500 text-[10px]"></i> Overdue checkout
+            </span>
+          </div>
         </div>
       </main>
     </Sidebar>
