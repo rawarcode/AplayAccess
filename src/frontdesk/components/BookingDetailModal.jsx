@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
-  addAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
+  addAmenity, updateAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
   getFdRooms, getFdBookings, transferRoom,
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
@@ -161,6 +161,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       .catch(() => {});
   }, []);
   const [amenityLoading,   setAmenityLoading]   = useState(false);
+  // Inline qty editor state for an existing amenity row:
+  //   { id: <amenityId>, qty: <staged qty>, max: <catalog max_qty> }
+  const [editingAmenity,   setEditingAmenity]   = useState(null);
   const [receiptLoading,   setReceiptLoading]   = useState(false);
   const [guestEdit,        setGuestEdit]        = useState(false);
   const [guestCount,       setGuestCount]       = useState(initialBooking.guests ?? 1);
@@ -298,6 +301,36 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       setAddingAmenity(null);
     } catch (err) {
       showToast?.(err?.response?.data?.message || 'Failed to add add-on.');
+    } finally { setAmenityLoading(false); }
+  }
+
+  // Edit the qty of an existing amenity line. Backend recomputes booking
+  // total and fully_paid; we splice the returned amenity back into the
+  // list in-place so the drawer's rendered totals stay consistent.
+  async function handleUpdateAmenity() {
+    if (!editingAmenity) return;
+    const current = (booking.amenities || []).find(a => a.id === editingAmenity.id);
+    if (!current) { setEditingAmenity(null); return; }
+    if (editingAmenity.qty === current.qty) { setEditingAmenity(null); return; }
+
+    setAmenityLoading(true);
+    try {
+      const res        = await updateAmenity(booking.bookingId, editingAmenity.id, editingAmenity.qty);
+      const updatedRow = res.data;
+      const newTotal   = Number(res.newTotal);
+      const updated    = {
+        ...booking,
+        amenities: (booking.amenities || []).map(a => a.id === updatedRow.id ? { ...a, ...updatedRow } : a),
+        total: newTotal,
+        fullyPaid: (typeof res.fullyPaid === 'boolean') ? res.fullyPaid : booking.fullyPaid,
+        outstanding: (res.outstanding != null) ? Number(res.outstanding) : booking.outstanding,
+      };
+      setBooking(updated);
+      onUpdated?.(updated);
+      setEditingAmenity(null);
+      showToast?.(`Updated ${updatedRow.name} to qty ${updatedRow.qty}.`);
+    } catch (err) {
+      showToast?.(err?.response?.data?.message || 'Failed to update add-on.');
     } finally { setAmenityLoading(false); }
   }
 
@@ -624,25 +657,88 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               <p className="text-xs text-slate-400 mb-2">No add-ons added.</p>
             ) : (
               <div className="space-y-1 mb-2">
-                {booking.amenities.map(a => (
-                  <div key={a.id} className="flex items-center justify-between bg-slate-50 rounded px-3 py-2 text-sm">
-                    <span>
-                      <i className={`fas ${addonCatalog.find(c => c.name === a.name)?.icon || 'fa-tag'} mr-2 text-slate-500`}></i>
-                      {a.name}{a.qty > 1 && ` × ${a.qty}`}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-600 text-xs">{fmtMoney(a.total)}</span>
-                      {['Confirmed', 'Checked In'].includes(booking.status) && (
+                {booking.amenities.map(a => {
+                  const catalog  = addonCatalog.find(c => c.name === a.name);
+                  const perBookg = catalog?.per_booking;
+                  const maxQty   = catalog?.max_qty ?? 10;
+                  const canEdit  = ['Confirmed', 'Checked In'].includes(booking.status) && !perBookg;
+                  const isEditing = editingAmenity?.id === a.id;
+                  const liveTotal = Number(a.unitPrice ?? a.unit_price ?? 0) * (editingAmenity?.qty ?? 1);
+
+                  if (isEditing) {
+                    return (
+                      <div key={a.id} className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded px-3 py-2 text-sm">
+                        <i className={`fas ${catalog?.icon || 'fa-tag'} text-slate-500`} aria-hidden="true"></i>
+                        <span className="truncate flex-1">{a.name}</span>
+                        <span className="text-xs text-slate-600">Qty:</span>
                         <button
-                          onClick={() => setPendingAction({ type: 'remove-amenity', amenityId: a.id, amenityName: a.name, amenityTotal: a.total })}
+                          onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.max(1, (e.qty || 1) - 1) }))}
+                          aria-label="Decrease quantity"
+                          className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50">−</button>
+                        <span className="w-6 text-center text-sm">{editingAmenity.qty}</span>
+                        <button
+                          onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.min(e.max || 10, (e.qty || 1) + 1) }))}
+                          aria-label="Increase quantity"
+                          className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50">+</button>
+                        <span className="text-xs font-medium text-sky-700 w-20 text-right">
+                          {fmtMoney(liveTotal)}
+                        </span>
+                        <button
+                          onClick={handleUpdateAmenity}
                           disabled={amenityLoading}
-                          className="text-rose-400 hover:text-rose-600 text-xs disabled:opacity-40"
-                          title="Remove"
-                         aria-label="Remove"><i className="fas fa-times"></i></button>
-                      )}
+                          aria-label={`Save quantity change for ${a.name}`}
+                          className="w-8 h-8 inline-flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 disabled:opacity-40"
+                          title="Save"
+                        >
+                          <i className="fas fa-check" aria-hidden="true"></i>
+                        </button>
+                        <button
+                          onClick={() => setEditingAmenity(null)}
+                          disabled={amenityLoading}
+                          aria-label="Cancel qty change"
+                          className="w-8 h-8 inline-flex items-center justify-center rounded text-slate-500 hover:bg-slate-100 disabled:opacity-40"
+                          title="Cancel"
+                        >
+                          <i className="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={a.id} className="flex items-center justify-between bg-slate-50 rounded px-3 py-2 text-sm">
+                      <span>
+                        <i className={`fas ${catalog?.icon || 'fa-tag'} mr-2 text-slate-500`} aria-hidden="true"></i>
+                        {a.name}{a.qty > 1 && ` × ${a.qty}`}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-slate-600 text-xs mr-1">{fmtMoney(a.total)}</span>
+                        {canEdit && (
+                          <button
+                            onClick={() => setEditingAmenity({ id: a.id, qty: a.qty || 1, max: maxQty })}
+                            disabled={amenityLoading}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700 text-xs disabled:opacity-40"
+                            title={`Edit ${a.name} quantity`}
+                            aria-label={`Edit ${a.name} quantity`}
+                          >
+                            <i className="fas fa-pen" aria-hidden="true"></i>
+                          </button>
+                        )}
+                        {['Confirmed', 'Checked In'].includes(booking.status) && (
+                          <button
+                            onClick={() => setPendingAction({ type: 'remove-amenity', amenityId: a.id, amenityName: a.name, amenityTotal: a.total })}
+                            disabled={amenityLoading}
+                            className="w-8 h-8 inline-flex items-center justify-center rounded text-rose-400 hover:bg-rose-50 hover:text-rose-600 text-xs disabled:opacity-40"
+                            title={`Remove ${a.name}`}
+                            aria-label={`Remove ${a.name}`}
+                          >
+                            <i className="fas fa-times" aria-hidden="true"></i>
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -673,7 +769,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           type="button"
                           disabled={attached}
                           onClick={() => !attached && setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
-                          title={attached ? 'Already on this booking — remove the existing line to re-add with a different quantity.' : undefined}
+                          title={attached ? 'Already on this booking — use the pencil icon above to edit its quantity.' : undefined}
                           aria-label={attached ? `${cat.name} — already added to this booking` : `Select ${cat.name}`}
                           className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
                             attached
@@ -727,7 +823,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </div>
               ) : noneLeft ? (
                 <p className="text-xs text-slate-400 italic">
-                  All add-ons are already on this booking. Remove one above to re-add with a different quantity.
+                  All add-ons are already on this booking. Use the pencil icon above to change a quantity, or the × to remove.
                 </p>
               ) : (
                 <button

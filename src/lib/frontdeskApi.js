@@ -70,6 +70,12 @@ export async function addAmenity(bookingId, name, qty) {
   return res.data;
 }
 
+// PATCH /api/admin/bookings/{id}/amenities/{amenityId} — edit amenity qty
+export async function updateAmenity(bookingId, amenityId, qty) {
+  const res = await api.patch(`/api/admin/bookings/${bookingId}/amenities/${amenityId}`, { qty });
+  return res.data;
+}
+
 // DELETE /api/admin/bookings/{id}/amenities/{amenityId} — remove amenity
 export async function removeAmenity(bookingId, amenityId) {
   const res = await api.delete(`/api/admin/bookings/${bookingId}/amenities/${amenityId}`);
