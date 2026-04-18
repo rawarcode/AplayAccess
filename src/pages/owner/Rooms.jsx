@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import { getAdminRooms, createAdminRoom, updateAdminRoom, deleteAdminRoom } from "../../lib/adminApi";
@@ -1174,18 +1175,21 @@ export default function AdminRooms() {
                       <i className={`fas ${selectedIcon} text-sky-500`} aria-hidden="true"></i>
                       <i className="fas fa-chevron-down text-[10px] text-slate-400" aria-hidden="true"></i>
                     </button>
-                    {/* position: fixed (via inline style) anchors the popover
-                        to the viewport, so it escapes the modal form's
-                        overflow-y-auto clipping. Previously the grid was
-                        being cropped at the bottom, making the lower icon
-                        rows (Bath/Shower/Pool/etc.) invisible. */}
-                    {iconPickerOpen && (
+                    {/* Portal to document.body so the popover escapes the
+                        modal's transform ancestor. The Modal component's
+                        dialog div has animate-hero-fade-in which sets a
+                        transform — and a transformed ancestor makes any
+                        descendant position:fixed anchor to it instead of
+                        the viewport (CSS containing-block rules). Without
+                        the portal, the popover flew off to the right edge
+                        of the modal rather than sitting below the trigger. */}
+                    {iconPickerOpen && createPortal(
                       <div
                         ref={iconPickerRef}
                         role="listbox"
                         aria-label="Feature icon options"
                         style={{ position: 'fixed', top: iconPickerPos.top, left: iconPickerPos.left }}
-                        className="z-[100] bg-white border border-slate-200 rounded-xl shadow-xl p-2.5 grid grid-cols-5 gap-1 w-52"
+                        className="z-[10000] bg-white border border-slate-200 rounded-xl shadow-xl p-2.5 grid grid-cols-5 gap-1 w-52"
                       >
                         {FEATURE_ICONS.map(({ icon, label }) => (
                           <button key={icon} type="button" title={label}
@@ -1196,7 +1200,8 @@ export default function AdminRooms() {
                             <i className={`fas ${icon}`} aria-hidden="true"></i>
                           </button>
                         ))}
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                   <input
