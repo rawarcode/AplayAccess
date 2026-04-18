@@ -777,6 +777,11 @@ export default function Billing() {
                               <i className="fas fa-triangle-exclamation text-[9px]" aria-hidden="true"></i>OVERDUE
                             </span>
                           )}
+                          {/* Booking ID shown as quiet mono text so staff can
+                              reference it verbally ("APL-…0003") when
+                              confirming the room with a guest, without the
+                              ID pulling visual weight from the guest name. */}
+                          <span className="text-[11px] font-mono text-slate-500">{b.id}</span>
                         </div>
                         <p className="text-sm text-slate-600">{b.roomType} · {b.guests} pax</p>
                         <p className={`text-xs ${overdue ? 'text-rose-600 font-medium' : 'text-slate-500'}`}>
