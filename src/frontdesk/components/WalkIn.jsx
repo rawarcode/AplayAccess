@@ -78,9 +78,6 @@ export default function WalkIn() {
   const [submitting,   setSubmitting]     = useState(false);
   const [confirmOpen,  setConfirmOpen]   = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
-  const [collectBooking, setCollectBooking] = useState(null); // booking being collected
-  const [collectPayMethod, setCollectPayMethod] = useState('Cash');
-  const [collectPaying, setCollectPaying]   = useState(false);
   const [transferBooking, setTransferBooking] = useState(null); // booking being transferred
   const [transferRoomId, setTransferRoomId]   = useState('');
   const [transferring, setTransferring]       = useState(false);
@@ -379,25 +376,6 @@ export default function WalkIn() {
     }
   }
 
-  async function handleCollect() {
-    if (!collectBooking) return;
-    setCollectPaying(true);
-    try {
-      await updateBookingStatus(collectBooking.bookingId, 'Completed', { payment_method: collectPayMethod });
-      setBookings(prev => prev.map(b =>
-        b.bookingId === collectBooking.bookingId
-          ? { ...b, status: 'Completed', fully_paid: true }
-          : b
-      ));
-      setCollectBooking(null);
-      showToast('Payment collected! Booking completed.', 'success');
-    } catch {
-      showToast('Failed to complete booking. Please try again.', 'error');
-    } finally {
-      setCollectPaying(false);
-    }
-  }
-
   async function handleAction(bookingId, status) {
     setActionLoading(bookingId);
     try {
@@ -439,54 +417,6 @@ export default function WalkIn() {
     <Sidebar>
       <Helmet><title>Walk-in — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
-
-      {/* ── Collect Payment Modal ── */}
-      {collectBooking && (
-        <Modal open onClose={() => setCollectBooking(null)} title={`Collect Payment — ${collectBooking.id}`} maxWidth="max-w-md">
-            <div className="p-6">
-              <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
-                <p className="font-medium text-slate-800">{walkInName(collectBooking)}</p>
-                <p className="text-slate-600">{collectBooking.roomType} · {collectBooking.guests} pax</p>
-                <p className="text-slate-500 text-xs mt-1">{fmtDateTime(collectBooking.checkIn)} → {fmtDateTime(collectBooking.checkOut)}</p>
-              </div>
-              <div className="border rounded mb-4 text-sm">
-                <div className="flex justify-between px-4 py-3 font-semibold text-sky-800 text-base">
-                  <span>Total to Collect</span>
-                  <span>{fmtMoney(collectBooking.total)}</span>
-                </div>
-              </div>
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 mb-1">Payment Method</label>
-                <div className="flex gap-2">
-                  {[
-                    { value: 'Cash',  icon: 'fa-money-bill-wave', color: 'text-emerald-600' },
-                    { value: 'GCash', icon: 'fa-mobile-alt',      color: 'text-sky-500'  },
-                  ].map(opt => (
-                    <button key={opt.value} type="button"
-                      onClick={() => setCollectPayMethod(opt.value)}
-                      className={`flex-1 flex items-center justify-center gap-2 py-2 border rounded text-sm font-medium transition-colors ${
-                        collectPayMethod === opt.value
-                          ? 'border-sky-500 bg-sky-50 text-sky-700'
-                          : 'border-slate-300 text-slate-600 hover:bg-slate-50'
-                      }`}
-                    >
-                      <i className={`fas ${opt.icon} ${collectPayMethod === opt.value ? '' : opt.color}`}></i>
-                      {opt.value}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button onClick={() => setCollectBooking(null)} className="px-4 py-2 border rounded text-sm text-slate-700">Cancel</button>
-                <button onClick={handleCollect} disabled={collectPaying}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-60">
-                  <i className="fas fa-check mr-1"></i>
-                  {collectPaying ? 'Processing...' : `Collect ${fmtMoney(collectBooking.total)} & Complete`}
-                </button>
-              </div>
-            </div>
-        </Modal>
-      )}
 
       {/* ── Cancel / Undo Booking Modal ── */}
       {cancelBooking && (
@@ -1336,7 +1266,11 @@ export default function WalkIn() {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    {[['ID','ID'],['Guest','Guest'],['Room','Room'],['Guests','Guests'],['Total','Total'],['Status','Status']].map(([label,key]) => (
+                    {/* Header column order must match the tbody row order below:
+                        ID · Guest · Room · Time Slot · Guests · Total · Status · Actions.
+                        Time Slot isn't a sortable column (no canonical sort on a
+                        date-range string), so it renders as a static <th>. */}
+                    {[['ID','ID'],['Guest','Guest'],['Room','Room']].map(([label,key]) => (
                       <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
                         <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
                           className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
@@ -1348,6 +1282,17 @@ export default function WalkIn() {
                       </th>
                     ))}
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Time Slot</th>
+                    {[['Guests','Guests'],['Total','Total'],['Status','Status']].map(([label,key]) => (
+                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
+                          {label}
+                          <span className="text-slate-400 group-hover:text-sky-400">
+                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                          </span>
+                        </button>
+                      </th>
+                    ))}
                     <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
