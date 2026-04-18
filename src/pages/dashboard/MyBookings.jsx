@@ -1,7 +1,7 @@
 // src/pages/dashboard/MyBookings.jsx
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { getBookings, downloadReceipt } from "../../lib/bookingApi.js";
+import { getBookings, cancelBooking, downloadReceipt } from "../../lib/bookingApi.js";
 import { submitReview } from "../../lib/reviewApi.js";
 import { api } from "../../lib/api.js";
 import Modal from "../../components/modals/Modal.jsx";
@@ -105,11 +105,65 @@ const FILTERS = [
   { key: "Cancelled",  label: "Cancelled",  icon: "fa-ban" },
 ];
 
-// Cancel is a staff-mediated action now — guests message the resort
-// to cancel rather than self-serving from the Dashboard. The
-// CancelModalContent component + self-cancel API call were removed in
-// a deliberate UX change, not an oversight. Backend still honors
-// PATCH /api/bookings/{id}/cancel for staff / admin use.
+// ─── Cancel confirm modal ─────────────────────────────────────────────────────
+function CancelModalContent({ booking, reservationFeePct, onClose, onConfirmed }) {
+  const [cancelling, setCancelling] = useState(false);
+  const [error, setError]           = useState("");
+
+  const feePct = Number(reservationFeePct || 20);
+  const feeAmount = Math.round(Number(booking.total || 0) * feePct / 100);
+
+  async function handleConfirm() {
+    setError("");
+    setCancelling(true);
+    try {
+      await cancelBooking(booking.bookingId);
+      onConfirmed(booking.bookingId);
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message || "Failed to cancel booking. Please try again.");
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-lg bg-rose-100 flex items-center justify-center">
+            <i className="fas fa-ban text-rose-600 text-sm" />
+          </span>
+          <h3 className="text-lg font-bold text-slate-900">Cancel Booking</h3>
+        </div>
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><i className="fas fa-times" /></button>
+      </div>
+      <div className="p-5 space-y-4">
+        <p className="text-sm text-slate-700">
+          Are you sure you want to cancel booking{" "}
+          <span className="font-semibold text-slate-900">{booking.id}</span>?
+        </p>
+        <div className="bg-amber-50 border-l-4 border-amber-400 p-3 text-sm text-amber-800">
+          The {feePct}% reservation fee (approx. ₱{feeAmount.toLocaleString()}) is{" "}
+          <span className="font-medium">non-refundable</span> upon cancellation.
+        </div>
+        {error && (
+          <div className="rounded-md bg-rose-50 border border-rose-200 px-3 py-2 text-sm text-rose-700">{error}</div>
+        )}
+        <div className="flex justify-end gap-2 pt-1">
+          <button type="button" onClick={onClose} disabled={cancelling}
+            className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm text-slate-700 disabled:opacity-60">
+            Keep Booking
+          </button>
+          <button type="button" onClick={handleConfirm} disabled={cancelling}
+            className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 disabled:opacity-60 text-white text-sm font-medium">
+            {cancelling ? "Cancelling..." : "Yes, Cancel"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
 
 // ─── Review modal ─────────────────────────────────────────────────────────────
 function ReviewModalContent({ booking, onClose, onSubmitted }) {
@@ -219,9 +273,11 @@ export default function MyBookings() {
   const [loadError, setLoadError]   = useState("");
   const [filter, setFilter]         = useState("all");
   const [reviewing, setReviewing]   = useState(null);
+  const [cancelling, setCancelling] = useState(null);
   const [selected, setSelected]     = useState(null);
   const [checkingIn, setCheckingIn]     = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [reservationFeePct, setReservationFeePct] = useState(20);
 
   function load() {
     setLoading(true);
@@ -234,6 +290,9 @@ export default function MyBookings() {
 
   useEffect(() => {
     load();
+    api.get("/api/pricing")
+      .then(r => setReservationFeePct(Number(r.data?.data?.reservation_fee_pct ?? 20)))
+      .catch(() => {});
   }, []);
 
   // Poll every 5s while any booking is in an active state
@@ -278,6 +337,11 @@ export default function MyBookings() {
     } finally {
       setCheckingIn(false);
     }
+  }
+
+  function handleCancelConfirmed(bookingId) {
+    setItems(prev => prev.map(b => b.bookingId === bookingId ? { ...b, status: "Cancelled" } : b));
+    showToast("Booking cancelled successfully.", "success");
   }
 
   async function handleDownloadReceipt(b) {
@@ -444,6 +508,10 @@ export default function MyBookings() {
                   <td className="px-6 py-4 whitespace-nowrap"><StatusLabel booking={b} /></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={e => e.stopPropagation()}>
                     <div className="flex flex-wrap gap-2">
+                      {b.status === "Pending" && (
+                        <button onClick={() => setCancelling(b)}
+                          className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-lg hover:bg-rose-200">Cancel</button>
+                      )}
                       {b.status === "Completed" && !b.hasReview && (
                         <button onClick={() => setReviewing(b)}
                           className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg hover:bg-amber-200">
@@ -545,6 +613,9 @@ export default function MyBookings() {
                   })()}
                 </div>
                 <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                  {b.status === "Pending" && (
+                    <button onClick={() => setCancelling(b)} className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-lg">Cancel</button>
+                  )}
                   {b.status === "Completed" && !b.hasReview && (
                     <button onClick={() => setReviewing(b)} className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded-lg">
                       <i className="fas fa-star mr-1" />Review
@@ -563,6 +634,13 @@ export default function MyBookings() {
         </div>
       </div>
 
+      {/* ── Cancel modal (shared Modal) ── */}
+      <Modal open={!!cancelling} onClose={() => setCancelling(null)} maxWidth="max-w-sm">
+        {cancelling && (
+          <CancelModalContent booking={cancelling} reservationFeePct={reservationFeePct}
+            onClose={() => setCancelling(null)} onConfirmed={handleCancelConfirmed} />
+        )}
+      </Modal>
 
       {/* ── Review modal (shared Modal) ── */}
       <Modal open={!!reviewing} onClose={() => setReviewing(null)} maxWidth="max-w-md">
@@ -641,6 +719,10 @@ export default function MyBookings() {
                   className="px-4 py-2 bg-violet-600 text-white rounded-xl text-sm hover:bg-violet-700 disabled:opacity-60">
                   {checkingIn ? <><i className="fas fa-spinner fa-spin mr-1" />Checking in...</> : <><i className="fas fa-door-open mr-1" />Check In</>}
                 </button>
+              )}
+              {selected.status === "Pending" && (
+                <button onClick={() => { setSelected(null); setCancelling(selected); }}
+                  className="px-4 py-2 bg-rose-100 text-rose-700 rounded-xl text-sm hover:bg-rose-200">Cancel Booking</button>
               )}
               {selected.status === "Completed" && !selected.hasReview && (
                 <button onClick={() => { setSelected(null); setReviewing(selected); }}
