@@ -283,10 +283,12 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
             </div>
           )}
           {/* Receipt — available for any booking with collected money
-              (Confirmed / Checked In / Completed / Cancelled). Sits next
-              to the primary action so staff can reprint receipts inline
-              without leaving the billing drawer. */}
-          {b.status !== 'Pending' && (
+              (Confirmed / Checked In / Completed, or Cancelled WITH
+              paid_amount > 0 so there's a forfeit worth documenting).
+              Hidden for unpaid cancellations: no money moved, nothing
+              to receipt. Backend ReceiptController mirrors this gate
+              and returns 422 if called directly. */}
+          {b.status !== 'Pending' && !(b.status === 'Cancelled' && paidSoFar <= 0) && (
             <button
               onClick={() => onDownloadReceipt(b.bookingId)}
               disabled={downloading === b.bookingId}
@@ -972,7 +974,7 @@ export default function Billing() {
                                 <i className="fas fa-hourglass-half text-[11px]" aria-hidden="true"></i>Awaiting payment
                               </span>
                             )}
-                            {b.status !== 'Pending' && (
+                            {b.status !== 'Pending' && !(b.status === 'Cancelled' && Number(b.paidAmount ?? 0) <= 0) && (
                               <button
                                 onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
                                 disabled={downloading === b.bookingId}
@@ -1134,13 +1136,19 @@ export default function Billing() {
                               className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs text-slate-700 hover:bg-slate-50">
                               <i className="fas fa-eye mr-1"></i>View details
                             </button>
-                            <button
-                              onClick={() => downloadPastReceipt(b.bookingId, b.id)}
-                              disabled={pastDownloading === b.bookingId}
-                              className="flex-1 px-2 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
-                              <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`}></i>
-                              Receipt
-                            </button>
+                            {/* Past booking search panel — skip the Receipt
+                                button for cancellations that never collected
+                                any money, since the backend now refuses to
+                                generate receipts for those (422). */}
+                            {!(b.status === 'Cancelled' && Number(b.paidAmount ?? 0) <= 0) && (
+                              <button
+                                onClick={() => downloadPastReceipt(b.bookingId, b.id)}
+                                disabled={pastDownloading === b.bookingId}
+                                className="flex-1 px-2 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
+                                <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`}></i>
+                                Receipt
+                              </button>
+                            )}
                           </div>
                         </li>
                       );

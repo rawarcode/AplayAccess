@@ -713,7 +713,11 @@ export default function Bookings() {
                                 <i className="fas fa-ban" aria-hidden="true"></i>
                               </button>
                             )}
-                            {b.status !== 'Pending' && (
+                            {/* Skip receipt for unpaid cancellations —
+                                backend ReceiptController returns 422 for
+                                paid_amount = 0, so showing the button
+                                would just produce a toast error. */}
+                            {b.status !== 'Pending' && !(b.status === 'Cancelled' && Number(b.paidAmount ?? 0) <= 0) && (
                               <button onClick={() => handleDownloadReceipt(b)}
                                 disabled={receiptLoadingId === b.bookingId}
                                 title="Download receipt (PDF)"
