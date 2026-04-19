@@ -23,6 +23,9 @@ const CATEGORY_GROUPS = [
   { key: 'room',     label: 'Rooms',     icon: 'fa-bed'            },
   { key: 'cottage',  label: 'Cottages',  icon: 'fa-umbrella-beach' },
   { key: 'pavilion', label: 'Pavilions', icon: 'fa-archway'        },
+  // Tents only render when there's active / upcoming activity —
+  // handled by the renderer filter below (grp.key === 'tent').
+  { key: 'tent',     label: 'Tents',     icon: 'fa-campground'     },
 ];
 
 function countdown(ms) {
@@ -680,7 +683,21 @@ export default function FDRooms() {
                       : (
                         <div className="space-y-5">
                           {CATEGORY_GROUPS.map(grp => {
-                            const items = slotItems.filter(({ room }) => getCat(room) === grp.key);
+                            let items = slotItems.filter(({ room }) => getCat(room) === grp.key);
+                            // Tent is a bring-your-own-pitch service with
+                            // lots of inventory (qty 20) — rendering its
+                            // card when nobody is using it would put an
+                            // empty "20 Free" tile on the board every day.
+                            // Only surface the tent section when there's
+                            // genuine activity on it.
+                            if (grp.key === 'tent') {
+                              items = items.filter(item => {
+                                const info = item[infoKey];
+                                return info.multi
+                                  ? (info.occupied > 0 || info.incoming > 0)
+                                  : (info.status !== 'vacant');
+                              });
+                            }
                             if (!items.length) return null;
                             return (
                               <div key={grp.key}>
