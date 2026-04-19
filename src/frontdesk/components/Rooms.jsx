@@ -92,23 +92,28 @@ function getSlotStatus(roomName, bookings, slot) {
   const now      = new Date();
   const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
 
+  // Pending bookings are excluded from the room board entirely — they
+  // haven't paid yet, auto-cancel after 5 min of inactivity, and don't
+  // represent a committed room hold. Showing them as amber "PENDING"
+  // tiles created noise that staff learned to ignore. Once a pending
+  // booking is paid (status → Confirmed), it shows up as 'incoming'.
   const matching = bookings.filter(b =>
     b.roomType === roomName &&
     b.status !== 'Cancelled' &&
     b.status !== 'Completed' &&
+    b.status !== 'Pending' &&
     overlapsWindow(b, ws, we)
   );
 
-  // Priority: currently in progress > confirmed future > pending future
-  let inProgress = null, incoming = null, pending = null;
+  // Priority: currently in progress > confirmed future
+  let inProgress = null, incoming = null;
   for (const b of matching) {
     const r = bookingRange(b);
     if (!r) continue;
     if (now >= r.ci && now < r.co) {
       if (!inProgress) inProgress = { b, ...r };
     } else if (now < r.ci) {
-      if (b.status === 'Pending') { if (!pending)  pending  = { b, ...r }; }
-      else                        { if (!incoming) incoming = { b, ...r }; }
+      if (!incoming) incoming = { b, ...r };
     }
   }
 
@@ -127,10 +132,6 @@ function getSlotStatus(roomName, bookings, slot) {
     const { b, ci } = incoming;
     return { status: 'incoming', booking: b, arrivesAt: b.checkIn, eta: countdown(ci - now) };
   }
-  if (pending) {
-    const { b, ci } = pending;
-    return { status: 'pending',  booking: b, arrivesAt: b.checkIn, eta: countdown(ci - now) };
-  }
   return { status: 'vacant' };
 }
 
@@ -138,27 +139,29 @@ function getSlotStatus(roomName, bookings, slot) {
 function getMultiSlotStatus(roomName, quantity, bookings, slot) {
   const now      = new Date();
   const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
-  let occupied = 0, incoming = 0, pending = 0;
+  let occupied = 0, incoming = 0;
 
+  // Same Pending exclusion as single-unit — pending bookings don't count
+  // toward room occupancy until they become Confirmed. Staff don't want
+  // a "Pend" badge on a multi-unit card when a booking might auto-cancel
+  // in 5 minutes.
   bookings.filter(b =>
     b.roomType === roomName &&
     b.status !== 'Cancelled' &&
     b.status !== 'Completed' &&
+    b.status !== 'Pending' &&
     overlapsWindow(b, ws, we)
   ).forEach(b => {
     const r = bookingRange(b);
     if (!r) return;
-    if (now >= r.ci && now < r.co)       occupied++;
-    else if (now < r.ci) {
-      if (b.status === 'Pending')        pending++;
-      else                               incoming++;
-    }
+    if (now >= r.ci && now < r.co) occupied++;
+    else if (now < r.ci)           incoming++;
   });
 
-  const booked = occupied + incoming + pending;
+  const booked = occupied + incoming;
   const vacant = Math.max(0, quantity - booked);
-  const status = occupied > 0 ? 'occupied' : incoming > 0 ? 'incoming' : pending > 0 ? 'pending' : 'vacant';
-  return { multi: true, quantity, occupied, incoming, pending, vacant, status };
+  const status = occupied > 0 ? 'occupied' : incoming > 0 ? 'incoming' : 'vacant';
+  return { multi: true, quantity, occupied, incoming, vacant, status };
 }
 
 const getDayStatus        = (roomName, bookings)           => getSlotStatus(roomName, bookings, 'day');
@@ -167,11 +170,13 @@ const getMultiDayStatus   = (roomName, quantity, bookings) => getMultiSlotStatus
 const getMultiNightStatus = (roomName, quantity, bookings) => getMultiSlotStatus(roomName, quantity, bookings, 'night');
 
 // ─── status card config ───────────────────────────────────────────────────────
+// "pending" intentionally absent — Pending bookings are excluded from
+// the Rooms board (see getSlotStatus + getMultiSlotStatus). They don't
+// hold the room and frequently auto-cancel.
 const STATUS_CONFIG = {
-  vacant:   { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-white',      label: 'VACANT',   icon: 'fa-check-circle'  },
-  occupied: { bg: 'bg-rose-500',    border: 'border-rose-600',    text: 'text-white',      label: 'OCCUPIED', icon: 'fa-door-closed'   },
-  incoming: { bg: 'bg-sky-500',     border: 'border-sky-600',     text: 'text-white',      label: 'ARRIVING', icon: 'fa-person-walking' },
-  pending:  { bg: 'bg-amber-400',   border: 'border-amber-500',   text: 'text-slate-900',  label: 'PENDING',  icon: 'fa-clock'         },
+  vacant:   { bg: 'bg-emerald-500', border: 'border-emerald-600', text: 'text-white', label: 'VACANT',   icon: 'fa-check-circle'  },
+  occupied: { bg: 'bg-rose-500',    border: 'border-rose-600',    text: 'text-white', label: 'OCCUPIED', icon: 'fa-door-closed'   },
+  incoming: { bg: 'bg-sky-500',     border: 'border-sky-600',     text: 'text-white', label: 'ARRIVING', icon: 'fa-person-walking' },
 };
 
 // ─── VacantModal — shown when card has no active booking (vacant) ────────────
@@ -220,14 +225,13 @@ function fmtDateLabel(dt) {
 
 // ─── MultiUnitCard — for cottages / pavilions with quantity > 1 ──────────────
 function MultiUnitCard({ room, info, onOpen }) {
-  const { quantity, occupied, incoming, pending, vacant } = info;
+  const { quantity, occupied, incoming, vacant } = info;
 
   const dots = [];
   for (let i = 0; i < quantity; i++) {
-    if (i < occupied)                         dots.push('bg-rose-500');
-    else if (i < occupied + incoming)         dots.push('bg-sky-500');
-    else if (i < occupied + incoming + pending) dots.push('bg-amber-400');
-    else                                      dots.push('bg-emerald-400');
+    if (i < occupied)                 dots.push('bg-rose-500');
+    else if (i < occupied + incoming) dots.push('bg-sky-500');
+    else                              dots.push('bg-emerald-400');
   }
 
   return (
@@ -250,13 +254,13 @@ function MultiUnitCard({ room, info, onOpen }) {
         {quantity > 24 && <span className="text-[9px] text-slate-400 self-center ml-0.5">+{quantity - 24}</span>}
       </div>
 
-      {/* Counts — compact inline */}
+      {/* Counts — compact inline. "Pend" chip removed along with the
+          pending filter tab — pending bookings don't hold the room. */}
       <div className="flex flex-wrap gap-1">
         {[
-          occupied  > 0 && { n: occupied,  label: 'Occ',      cls: 'bg-rose-100 text-rose-700'    },
-          incoming  > 0 && { n: incoming,  label: 'Arr',      cls: 'bg-sky-100 text-sky-700'  },
-          pending   > 0 && { n: pending,   label: 'Pend',     cls: 'bg-amber-100 text-amber-700' },
-          vacant    > 0 && { n: vacant,    label: 'Free',     cls: 'bg-emerald-100 text-emerald-700' },
+          occupied > 0 && { n: occupied, label: 'Occ',  cls: 'bg-rose-100 text-rose-700' },
+          incoming > 0 && { n: incoming, label: 'Arr',  cls: 'bg-sky-100 text-sky-700' },
+          vacant   > 0 && { n: vacant,   label: 'Free', cls: 'bg-emerald-100 text-emerald-700' },
         ].filter(Boolean).map(({ n, label, cls }) => (
           <span key={label} className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${cls}`}>{n} {label}</span>
         ))}
@@ -270,31 +274,31 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
   const now = new Date();
   const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
 
-  const occupied = [], incoming = [], pending = [];
+  // Pending bookings are excluded in line with getSlotStatus —
+  // they don't hold the room and auto-cancel, so surfacing them in
+  // the detail modal was just noise.
+  const occupied = [], incoming = [];
   bookings
     .filter(b =>
       b.roomType === room.name &&
       b.status !== 'Cancelled' &&
       b.status !== 'Completed' &&
+      b.status !== 'Pending' &&
       overlapsWindow(b, ws, we)
     )
     .forEach(b => {
       const r = bookingRange(b);
       if (!r) return;
-      if (now >= r.ci && now < r.co)       occupied.push(b);
-      else if (now < r.ci) {
-        if (b.status === 'Pending')        pending.push(b);
-        else                               incoming.push(b);
-      }
+      if (now >= r.ci && now < r.co) occupied.push(b);
+      else if (now < r.ci)           incoming.push(b);
     });
 
   const cat = getCat(room);
   const icon = cat === 'cottage' ? 'fa-umbrella-beach' : cat === 'pavilion' ? 'fa-archway' : 'fa-bed';
 
   const KIND = {
-    occupied: { pill: 'bg-rose-500 text-white',        label: 'OCCUPIED', row: 'bg-rose-50 border-rose-200 hover:bg-rose-100'    },
-    incoming: { pill: 'bg-sky-500 text-white',         label: 'ARRIVING', row: 'bg-sky-50 border-sky-200 hover:bg-sky-100'       },
-    pending:  { pill: 'bg-amber-400 text-slate-900',   label: 'PENDING',  row: 'bg-amber-50 border-amber-200 hover:bg-amber-100' },
+    occupied: { pill: 'bg-rose-500 text-white', label: 'OCCUPIED', row: 'bg-rose-50 border-rose-200 hover:bg-rose-100' },
+    incoming: { pill: 'bg-sky-500 text-white',  label: 'ARRIVING', row: 'bg-sky-50 border-sky-200 hover:bg-sky-100'    },
   };
 
   function renderRow(b, kind) {
@@ -327,7 +331,7 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
     );
   }
 
-  const total = occupied.length + incoming.length + pending.length;
+  const total = occupied.length + incoming.length;
 
   return (
     <Modal open onClose={onClose} title={room.name} maxWidth="max-w-lg">
@@ -341,7 +345,6 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
         <div className="flex items-center gap-1.5 flex-wrap">
           {info.occupied > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700">{info.occupied} Occ</span>}
           {info.incoming > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700">{info.incoming} Arr</span>}
-          {info.pending  > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700">{info.pending} Pend</span>}
           {info.vacant   > 0 && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700">{info.vacant} Free</span>}
         </div>
       </div>
@@ -350,7 +353,6 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
       <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
         {occupied.map(b => renderRow(b, 'occupied'))}
         {incoming.map(b => renderRow(b, 'incoming'))}
-        {pending.map(b  => renderRow(b, 'pending'))}
         {total === 0 && (
           <div className="py-8 text-center text-slate-400 text-sm">
             <i className="fas fa-calendar-check block text-3xl mb-2 text-slate-300"></i>
@@ -401,8 +403,7 @@ function RoomCard({ room, info, onClick }) {
     >
       {/* Top row: status badge + ⚡ */}
       <div className="flex items-center justify-between">
-        <span className={`flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full
-          ${info.status === 'pending' ? 'bg-amber-500 text-slate-900' : 'bg-black/20 text-white'}`}>
+        <span className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full bg-black/20 text-white">
           <i className={`fas ${config.icon} text-[9px]`}></i>{config.label}
         </span>
         {info.status === 'occupied' && info.urgency === 'soon' && (
@@ -414,7 +415,7 @@ function RoomCard({ room, info, onClick }) {
       <div>
         <p className="text-sm font-bold leading-tight">{room.name}</p>
         {guest && (
-          <p className={`text-[11px] font-medium truncate mt-0.5 ${info.status === 'pending' ? 'text-slate-800' : 'opacity-85'}`}>
+          <p className="text-[11px] font-medium truncate mt-0.5 opacity-85">
             <i className="fas fa-user mr-1 opacity-60 text-[9px]"></i>{guest}
           </p>
         )}
@@ -433,11 +434,6 @@ function RoomCard({ room, info, onClick }) {
           <span>
             <i className="fas fa-arrow-right mr-1 text-[9px]"></i>Arrives {fmtTime(info.arrivesAt)}
             {info.eta && <span className="ml-1 opacity-75">(in {info.eta})</span>}
-          </span>
-        )}
-        {info.status === 'pending'  && (
-          <span className="text-slate-800">
-            <i className="fas fa-exclamation-circle mr-1 text-[9px]"></i>Pending {info.booking ? fmtTime(info.booking.checkIn) : ''}
           </span>
         )}
       </div>
@@ -472,12 +468,14 @@ export default function FDRooms() {
     return () => clearInterval(id);
   }, [load]);
 
-  // Upcoming bookings: Pending or Confirmed, check-in from now onward, sorted soonest first
+  // Upcoming bookings: Confirmed only. Pending bookings are excluded —
+  // they haven't committed funds yet and auto-cancel after 5 min, so
+  // surfacing them in a staff-facing "upcoming" list creates noise.
   const upcomingBookings = useMemo(() => {
     const now = new Date();
     return bookings
       .filter(b => {
-        if (['Cancelled', 'Completed', 'Checked In'].includes(b.status)) return false;
+        if (['Cancelled', 'Completed', 'Checked In', 'Pending'].includes(b.status)) return false;
         return new Date(b.checkIn.replace(' ', 'T')) >= now;
       })
       .sort((a, b) => new Date(a.checkIn.replace(' ', 'T')) - new Date(b.checkIn.replace(' ', 'T')));
@@ -493,9 +491,11 @@ export default function FDRooms() {
     };
   }), [rooms, bookings]);
 
-  // Summary counts (day + overnight combined)
+  // Summary counts (day + overnight combined). Pending bucket dropped
+  // along with the Pending filter tab — room slots never resolve to
+  // 'pending' status anymore since getSlotStatus excludes them.
   const counts = useMemo(() => {
-    const c = { vacant: 0, occupied: 0, incoming: 0, pending: 0 };
+    const c = { vacant: 0, occupied: 0, incoming: 0 };
     roomInfos.forEach(({ dayInfo, nightInfo }) => {
       c[dayInfo.status]   = (c[dayInfo.status]   || 0) + 1;
       c[nightInfo.status] = (c[nightInfo.status] || 0) + 1;
@@ -521,11 +521,10 @@ export default function FDRooms() {
   const hasOccupiedNight = roomInfos.some(({ nightInfo }) => nightInfo.status === 'occupied');
 
   const FILTERS = [
-    { key: 'all',      label: 'All Rooms',  color: 'bg-slate-700 text-white'       },
-    { key: 'vacant',   label: 'Vacant',     color: 'bg-emerald-500 text-white'     },
-    { key: 'occupied', label: 'Occupied',   color: 'bg-rose-500 text-white'        },
-    { key: 'incoming', label: 'Arriving',   color: 'bg-sky-500 text-white'         },
-    { key: 'pending',  label: 'Pending',    color: 'bg-amber-400 text-slate-900'   },
+    { key: 'all',      label: 'All Rooms', color: 'bg-slate-700 text-white'   },
+    { key: 'vacant',   label: 'Vacant',    color: 'bg-emerald-500 text-white' },
+    { key: 'occupied', label: 'Occupied',  color: 'bg-rose-500 text-white'    },
+    { key: 'incoming', label: 'Arriving',  color: 'bg-sky-500 text-white'     },
   ];
 
   return (
@@ -561,9 +560,11 @@ export default function FDRooms() {
             navigate('/frontdesk/walkin', { state: { preselectedRoom: r } });
           }}
           onOpenBooking={(b) => {
-            // Hand off to BookingDetailModal, keep selectedMulti so closing returns here
-            const info = { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' };
-            setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info });
+            // Hand off to BookingDetailModal, keep selectedMulti so closing
+            // returns here. Board only ever surfaces non-Pending bookings
+            // now, so the info status is always 'incoming' (or the child
+            // modal resolves to 'occupied' based on booking time).
+            setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info: { booking: b, status: 'incoming' } });
           }}
         />
       )}
@@ -583,12 +584,11 @@ export default function FDRooms() {
           </div>
 
           {/* Summary bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: 'Vacant',   count: counts.vacant,   bg: 'bg-emerald-500',                icon: 'fa-check-circle'   },
-              { label: 'Occupied', count: counts.occupied,  bg: 'bg-rose-500',                  icon: 'fa-door-closed'    },
-              { label: 'Arriving', count: counts.incoming,  bg: 'bg-sky-500',                   icon: 'fa-person-walking' },
-              { label: 'Pending',  count: counts.pending,   bg: 'bg-amber-400 text-slate-900',  icon: 'fa-clock'          },
+              { label: 'Vacant',   count: counts.vacant,   bg: 'bg-emerald-500', icon: 'fa-check-circle'   },
+              { label: 'Occupied', count: counts.occupied, bg: 'bg-rose-500',    icon: 'fa-door-closed'    },
+              { label: 'Arriving', count: counts.incoming, bg: 'bg-sky-500',     icon: 'fa-person-walking' },
             ].map(s => (
               <div key={s.label} className={`${s.bg} rounded-xl p-4 flex items-center gap-3 text-white shadow`}>
                 <i className={`fas ${s.icon} text-2xl opacity-80`}></i>
@@ -717,7 +717,6 @@ export default function FDRooms() {
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Vacant — ready for guests</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-rose-500 inline-block"></span> Occupied — shows time until vacant</span>
               <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-sky-500 inline-block"></span> Arriving — confirmed, not yet checked in</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Pending — booking not yet confirmed</span>
               <span className="flex items-center gap-1.5"><span className="text-base">⚡</span> Soon — vacating within 30 minutes</span>
             </div>
           </div>
@@ -758,12 +757,13 @@ export default function FDRooms() {
               const is24hr    = slotLabel === '24 Hour';
               const overnight = slotLabel === 'Overnight';
               const name      = b.guest || b.guest_name || 'Guest';
-              const isPending = b.status === 'Pending';
 
+              // Pending bookings no longer reach this list (filtered out
+              // in upcomingBookings above), so all entries are Confirmed.
               return (
                 <button
                   key={b.bookingId}
-                  onClick={() => setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info: { booking: b, status: b.status === 'Pending' ? 'pending' : 'incoming' } })}
+                  onClick={() => setSelectedSlot({ room: { name: b.roomType, id: b.roomId }, info: { booking: b, status: 'incoming' } })}
                   className={`w-full text-left rounded-xl border p-3 transition-all hover:shadow-md active:scale-[0.99] ${
                     isToday
                       ? 'border-sky-200 bg-sky-50 hover:bg-sky-100'
@@ -772,12 +772,8 @@ export default function FDRooms() {
                 >
                   {/* Top row: status badge + booking type */}
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
-                      isPending
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-sky-100 text-sky-700'
-                    }`}>
-                      <i className={`fas ${isPending ? 'fa-clock' : 'fa-check-circle'} text-[9px]`}></i>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700">
+                      <i className="fas fa-check-circle text-[9px]"></i>
                       {b.status}
                     </span>
                     <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
