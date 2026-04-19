@@ -6,6 +6,17 @@ import { api } from "../../lib/api.js";
 import { validatePromo } from "../../lib/adminApi.js";
 import { fmtDateTime } from "../../lib/format";
 import HourGridPicker from "../ui/HourGridPicker.jsx";
+import { savePendingPayment, clearPendingPayment } from "../../hooks/usePendingPayment.js";
+
+// Payment countdown length (seconds). Bumped from 5 to 15 min because
+// GCash users often need to unlock their phone, open the app, and
+// authorize — 5 min is tight. The backend's stale-Pending sweep uses
+// the same 15-min threshold so a browser close / crash closes the
+// booking at the same visible SLA.
+const PAYMENT_WINDOW_SECONDS = 15 * 60;
+
+// Threshold at which the "Keep booking" warning banner appears.
+const PAYMENT_WARNING_SECONDS = 60;
 
 // Fallback defaults — replaced immediately by /api/pricing on mount
 const DEFAULTS = {
@@ -184,6 +195,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               // Confirmed! Close everything.
               setPaymentPopup(null);
               setTimeLeft(null);
+              clearPendingPayment();
               onBooked?.(bookingResultRef.current);
               onClose();
             })
@@ -227,6 +239,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           try { popup?.close(); } catch { /* ignore */ }
           setPaymentPopup(null);
           setTimeLeft(null);
+          clearPendingPayment();
           onBooked?.(bookingResultRef.current);
           onClose();
         }
@@ -247,10 +260,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       try { paymentPopup?.popup?.close(); } catch { /* ignore */ }
       setPaymentPopup(null);
       setTimeLeft(null);
+      clearPendingPayment();
       if (bId) {
         (guestMode ? cancelGuestBooking(bId) : cancelBooking(bId)).catch(() => {});
       }
-      setError("Payment timed out (5 minutes). Your booking was automatically cancelled.");
+      setError(`Payment timed out (${Math.floor(PAYMENT_WINDOW_SECONDS / 60)} minutes). Your booking was automatically cancelled.`);
       return;
     }
     const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
@@ -476,16 +490,30 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         `width=${pw},height=${ph},left=${pl},top=${pt},resizable=yes,scrollbars=yes`
       );
 
+      // Persist a pending-payment context so the floating banner can
+      // offer a resume path if the guest closes this modal / tab while
+      // the booking is still Pending. Cleared on successful payment,
+      // explicit cancel, and timer expiry further down.
+      savePendingPayment({
+        bookingId:  raw.id,
+        resId:      raw.res_id ?? null,
+        roomName:   raw.room?.name ?? null,
+        guestToken: guestMode ? guestToken : null,
+        payFull:    paymentOption === 'full',
+        // 15-min TTL matches the backend's stale-Pending sweep window.
+        expiresAt:  new Date(Date.now() + PAYMENT_WINDOW_SECONDS * 1000).toISOString(),
+      });
+
       if (!popup || popup.closed) {
         // Popup blocked — open in a new tab instead of redirecting away
         const tab = window.open(checkout_url, '_blank');
         setPaymentPopup({ bookingId, checkoutUrl: checkout_url, popup: tab });
-        setTimeLeft(5 * 60);
+        setTimeLeft(PAYMENT_WINDOW_SECONDS);
         return;
       }
 
       setPaymentPopup({ bookingId, checkoutUrl: checkout_url, popup });
-      setTimeLeft(5 * 60); // 5-minute window to complete payment
+      setTimeLeft(PAYMENT_WINDOW_SECONDS);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -997,8 +1025,23 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
                 <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
                 <p className="text-sm font-medium text-blue-800">Waiting for payment in the checkout window…</p>
-                {timeLeft !== null && (
-                  <p className={`text-xs font-semibold ${timeLeft <= 60 ? "text-red-600" : "text-blue-600"}`}>
+                {timeLeft !== null && timeLeft <= PAYMENT_WARNING_SECONDS ? (
+                  <div className="w-full max-w-sm mx-4 bg-red-50 border border-red-300 rounded-md px-3 py-2 flex items-center gap-3">
+                    <i className="fas fa-exclamation-triangle text-red-600"></i>
+                    <div className="flex-1 text-xs text-red-800">
+                      <p className="font-semibold">Cancelling in {timeLeft}s</p>
+                      <p>Still paying? Keep this booking open.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTimeLeft(PAYMENT_WINDOW_SECONDS)}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 shrink-0"
+                    >
+                      Keep
+                    </button>
+                  </div>
+                ) : timeLeft !== null && (
+                  <p className="text-xs font-semibold text-blue-600">
                     <i className="fas fa-clock mr-1"></i>
                     Expires in {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
                   </p>
@@ -1018,6 +1061,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       try { paymentPopup.popup?.close(); } catch { /* ignore */ }
                       setPaymentPopup(null);
                       setTimeLeft(null);
+                      clearPendingPayment();
                       if (bId) {
                         (guestMode ? cancelGuestBooking(bId) : cancelBooking(bId)).catch(() => {});
                       }
@@ -1042,8 +1086,23 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <i className="fas fa-spinner fa-spin text-amber-500 text-2xl"></i>
                 <p className="text-sm font-medium text-amber-800">Verifying payment…</p>
                 <p className="text-xs text-amber-700">If you completed payment, please wait. Otherwise, reopen the window.</p>
-                {timeLeft !== null && (
-                  <p className={`text-xs font-semibold ${timeLeft <= 60 ? "text-red-600" : "text-amber-600"}`}>
+                {timeLeft !== null && timeLeft <= PAYMENT_WARNING_SECONDS ? (
+                  <div className="w-full max-w-sm mx-4 bg-red-50 border border-red-300 rounded-md px-3 py-2 flex items-center gap-3">
+                    <i className="fas fa-exclamation-triangle text-red-600"></i>
+                    <div className="flex-1 text-xs text-red-800">
+                      <p className="font-semibold">Cancelling in {timeLeft}s</p>
+                      <p>Still paying? Keep this booking open.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setTimeLeft(PAYMENT_WINDOW_SECONDS)}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 shrink-0"
+                    >
+                      Keep
+                    </button>
+                  </div>
+                ) : timeLeft !== null && (
+                  <p className="text-xs font-semibold text-amber-600">
                     <i className="fas fa-clock mr-1"></i>
                     Time remaining: {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
                   </p>
@@ -1077,6 +1136,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       const bId = paymentPopup.bookingId;
                       setPaymentPopup(null);
                       setTimeLeft(null);
+                      clearPendingPayment();
                       if (bId) {
                         (guestMode ? cancelGuestBooking(bId) : cancelBooking(bId)).catch(() => {});
                       }
