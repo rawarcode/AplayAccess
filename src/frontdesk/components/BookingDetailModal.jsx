@@ -176,6 +176,12 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const [transferOpen,     setTransferOpen]     = useState(false);
   const [transferRoomId,   setTransferRoomId]   = useState('');
   const [transferring,     setTransferring]     = useState(false);
+  // Separate confirm-modal step for transfers. Staff first pick a room
+  // in the inline panel, then a confirmation modal shows the rate
+  // delta (upgrades only; downgrades keep the original price) before
+  // the API call fires. Prevents surprise charges and matches the
+  // backend's upgrade-only re-pricing in Admin\BookingController.
+  const [transferConfirmOpen, setTransferConfirmOpen] = useState(false);
   const [rooms,            setRooms]            = useState([]);
   const [roomsLoading,     setRoomsLoading]     = useState(false);
   // All bookings — only fetched when the Transfer picker opens, so the
@@ -370,16 +376,66 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       .finally(() => setRoomsLoading(false));
   }
 
+  // Per-slot rate lookup — must match the backend's transferRoom()
+  // rule, otherwise the frontend delta preview diverges from what
+  // the server actually charges. Keep this aligned with
+  // Admin\BookingController::transferRoom's $rateFor closure.
+  function rateFor(room, bookingType) {
+    if (!room) return 0;
+    switch (bookingType) {
+      case 'night':
+        return Number(room.overnight_rate ?? 0);
+      case '24hr':
+      case '24hr-pm':
+        return Number(room.rate_24hr ?? 0);
+      default:
+        return Number(room.day_rate ?? 0);
+    }
+  }
+
+  // Preview delta computed client-side from the rooms list that's
+  // already loaded — no extra API round-trip needed. Drives the
+  // confirmation modal below.
+  const transferPreview = (() => {
+    if (!transferRoomId) return null;
+    const target = rooms.find(r => String(r.id) === String(transferRoomId));
+    if (!target) return null;
+    const oldRoom = rooms.find(r => String(r.id) === String(booking.roomId));
+    const bt = booking.bookingType ?? 'day';
+    const oldRate = rateFor(oldRoom, bt);
+    const newRate = rateFor(target, bt);
+    // Match backend upgrade-only rule: downgrades keep original pricing.
+    const isUpgrade = newRate > oldRate;
+    return {
+      targetName: target.name,
+      oldRate,
+      newRate,
+      isUpgrade,
+      balanceChange: isUpgrade ? newRate - oldRate : 0,
+    };
+  })();
+
   async function handleTransfer() {
     if (!transferRoomId) return;
     setTransferring(true);
     try {
       const res = await transferRoom(booking.bookingId, Number(transferRoomId));
       const newRoomName = rooms.find(r => String(r.id) === String(transferRoomId))?.name ?? res.room_name;
-      applyUpdate({ roomType: newRoomName, roomId: Number(transferRoomId) });
+      const delta = Number(res.balance_change ?? 0);
+      // Propagate the new total + rate into the modal so billing
+      // fields reflect the upgrade without requiring a full refetch.
+      applyUpdate({
+        roomType: newRoomName,
+        roomId:   Number(transferRoomId),
+        ...(res.data ? { total: res.data.total, fullyPaid: res.data.fullyPaid } : {}),
+      });
       setTransferOpen(false);
+      setTransferConfirmOpen(false);
       setTransferRoomId('');
-      showToast?.(`Guest transferred to ${newRoomName}.`);
+      const toastMsg = delta > 0
+        ? `Transferred to ${newRoomName}. +₱${delta.toLocaleString('en-PH', { minimumFractionDigits: 2 })} due at counter.`
+        : `Guest transferred to ${newRoomName}.`;
+      showToast?.(toastMsg);
     } catch (err) {
       showToast?.(err?.response?.data?.message ?? 'Transfer failed. Room may be occupied.');
     } finally {
@@ -908,12 +964,106 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50">
                   Cancel
                 </button>
-                <button onClick={handleTransfer} disabled={!transferRoomId || transferring || roomsLoading}
+                <button onClick={() => setTransferConfirmOpen(true)}
+                  disabled={!transferRoomId || transferring || roomsLoading}
                   className="flex-1 px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 disabled:opacity-60">
-                  {transferring
-                    ? <><i className="fas fa-spinner fa-spin mr-1"></i>Transferring...</>
-                    : <><i className="fas fa-exchange-alt mr-1"></i>Confirm Transfer</>}
+                  <i className="fas fa-arrow-right mr-1"></i>Review Transfer
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Transfer confirmation modal — shown AFTER picking a target
+              room. Previews the rate change so staff can't accidentally
+              upgrade a guest at the old rate. Downgrades get a neutral
+              "no rate change" message since the resort doesn't refund
+              the difference. */}
+          {transferConfirmOpen && transferPreview && (
+            <div
+              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+              onMouseDown={e => e.target === e.currentTarget && !transferring && setTransferConfirmOpen(false)}
+            >
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+                  <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                    transferPreview.isUpgrade ? 'bg-amber-100' : 'bg-violet-100'
+                  }`}>
+                    <i className={`fas fa-exchange-alt text-sm ${
+                      transferPreview.isUpgrade ? 'text-amber-600' : 'text-violet-600'
+                    }`} />
+                  </span>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-slate-900">Confirm Room Transfer</h3>
+                    <p className="text-xs text-slate-500">Booking {booking.id}</p>
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-4">
+                  {/* Room move line */}
+                  <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-3">
+                    <div className="flex-1">
+                      <p className="text-xs text-slate-500">From</p>
+                      <p className="text-sm font-semibold text-slate-800">{booking.roomType}</p>
+                    </div>
+                    <i className="fas fa-arrow-right text-slate-400 text-xs" />
+                    <div className="flex-1 text-right">
+                      <p className="text-xs text-slate-500">To</p>
+                      <p className="text-sm font-semibold text-slate-800">{transferPreview.targetName}</p>
+                    </div>
+                  </div>
+
+                  {/* Rate delta */}
+                  {transferPreview.isUpgrade ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-1.5">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-amber-800">Room rate</span>
+                        <span className="text-amber-900 font-medium">
+                          ₱{Number(transferPreview.oldRate).toLocaleString('en-PH')}
+                          <i className="fas fa-arrow-right mx-2 text-amber-500 text-[10px]" />
+                          ₱{Number(transferPreview.newRate).toLocaleString('en-PH')}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm pt-1.5 border-t border-amber-200">
+                        <span className="text-amber-800 font-semibold">Balance due at counter</span>
+                        <span className="text-amber-900 font-bold text-base">
+                          +₱{Number(transferPreview.balanceChange).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-700 pt-1">
+                        Staff will collect this difference from the guest after the transfer.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+                      <p className="text-sm text-slate-700">
+                        <i className="fas fa-check-circle text-emerald-500 mr-1.5"></i>
+                        <span className="font-semibold">No rate change.</span>
+                        {' '}Original pricing (₱{Number(transferPreview.oldRate).toLocaleString('en-PH')}) is preserved.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                <div className="px-5 py-4 border-t border-slate-100 flex gap-2">
+                  <button
+                    onClick={() => setTransferConfirmOpen(false)}
+                    disabled={transferring}
+                    className="flex-1 px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={handleTransfer}
+                    disabled={transferring}
+                    className={`flex-1 px-4 py-2 text-white rounded-lg text-sm font-bold disabled:opacity-60 ${
+                      transferPreview.isUpgrade ? 'bg-amber-600 hover:bg-amber-700' : 'bg-violet-600 hover:bg-violet-700'
+                    }`}
+                  >
+                    {transferring
+                      ? <><i className="fas fa-spinner fa-spin mr-1"></i>Transferring...</>
+                      : <><i className="fas fa-check mr-1"></i>Confirm Transfer</>}
+                  </button>
+                </div>
               </div>
             </div>
           )}
