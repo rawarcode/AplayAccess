@@ -13,6 +13,13 @@ const DEFAULTS = {
   overnight_rate:      1500,
   rate_24hr:           2000,
   reservation_fee_pct: 20,   // % of room rate charged as online reservation fee
+  // Gate entrance fees per pax. Pre-check-in these are ESTIMATES — the
+  // actual amount is computed at check-in from the real arrival count.
+  // Shown in the review + confirmation steps so guests aren't surprised
+  // by a fee at the gate after they've already paid the room online.
+  entrance_fee_day:   50,
+  entrance_fee_night: 80,
+  entrance_fee_24hr:  100,
 };
 
 function formatPHP(n) {
@@ -102,6 +109,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       overnight_rate:      Number(r.overnight_rate  ?? DEFAULTS.overnight_rate),
       rate_24hr:           Number(r.rate_24hr       ?? DEFAULTS.rate_24hr),
       reservation_fee_pct: Number(rawPricing?.reservation_fee_pct ?? DEFAULTS.reservation_fee_pct),
+      entrance_fee_day:    Number(rawPricing?.entrance_fee_day   ?? DEFAULTS.entrance_fee_day),
+      entrance_fee_night:  Number(rawPricing?.entrance_fee_night ?? DEFAULTS.entrance_fee_night),
+      entrance_fee_24hr:   Number(rawPricing?.entrance_fee_24hr  ?? DEFAULTS.entrance_fee_24hr),
     });
   }, [rooms, roomId, rawPricing]);
 
@@ -337,6 +347,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const reservationFee     = Math.round(discountedTotal * (pricing.reservation_fee_pct / 100));
   const amountDue          = paymentOption === "full" ? discountedTotal : reservationFee;
   const balanceDue         = discountedTotal - amountDue;
+  // Gate entrance fee — BookingModal doesn't collect guest count, so the
+  // estimate assumes 1 pax (backend default). Real amount is computed at
+  // check-in from actual arrivals. Surfacing it here prevents the
+  // "fully paid online → surprise charge at gate" complaint.
+  const entranceRate       = bookingType === "night"
+    ? pricing.entrance_fee_night
+    : is24hr
+      ? pricing.entrance_fee_24hr
+      : pricing.entrance_fee_day;
+  const estimatedEntrance  = entranceRate; // 1 pax; scales at check-in
+  const grandEstimate      = discountedTotal + estimatedEntrance;
+  const resortBalance      = balanceDue + estimatedEntrance;
 
   async function applyPromo() {
     const code = promoInput.trim();
@@ -875,30 +897,53 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     </div>
                   </>
                 )}
-                <div className="flex justify-between mb-1 text-sm text-gray-500 border-t border-blue-200 pt-2 mt-1">
-                  <span>Reservation fee ({pricing.reservation_fee_pct}% — due online):</span>
-                  <span>{formatPHP(reservationFee)}</span>
-                </div>
-                <div className="flex justify-between mt-1 text-sm text-gray-500">
-                  <span>Balance due at resort:</span>
-                  <span>{formatPHP(discountedTotal - reservationFee)}</span>
-                </div>
-                <div className="flex justify-between border-t border-blue-200 pt-2 mt-2">
-                  <span className="text-gray-900 font-bold">
-                    {paymentOption === "full" ? "Total Due Now:" : "Pay Online Now:"}
+                {/* Entrance fee — first-class line, not fine print.
+                    Displayed before the payment-schedule math so the
+                    grand total estimate accurately reflects EVERYTHING
+                    the guest will pay across the three collection
+                    points (online / counter / gate). */}
+                <div className="flex justify-between mb-1 text-sm text-amber-800 border-t border-blue-200 pt-2 mt-2">
+                  <span className="flex items-center gap-1.5">
+                    <i className="fas fa-ticket-alt text-[11px]"></i>
+                    Entrance fee (₱{entranceRate}/pax · paid at gate):
                   </span>
-                  <span className="text-blue-700 font-bold text-lg">{formatPHP(amountDue)}</span>
+                  <span>{formatPHP(estimatedEntrance)}<span className="text-[10px] text-amber-600 ml-1">est.</span></span>
                 </div>
-                {balanceDue > 0 && (
-                  <div className="flex justify-between mt-1 text-sm">
-                    <span className="text-gray-600">Balance Due at Check-in:</span>
-                    <span className="font-medium text-gray-900">{formatPHP(balanceDue)}</span>
-                  </div>
-                )}
-                <p className="mt-2 text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
-                  <i className="fas fa-info-circle mr-1"></i>
-                  Entrance fees are collected at the gate upon arrival.
+                <div className="flex justify-between mt-1 text-sm font-semibold">
+                  <span className="text-gray-800">Estimated Grand Total:</span>
+                  <span className="text-gray-900">{formatPHP(grandEstimate)}</span>
+                </div>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Entrance fee scales with the actual number of guests at check-in.
                 </p>
+
+                {/* Payment schedule — breaks the cost across the three
+                    collection points so guests know exactly what gets
+                    charged where. Previously the entrance fee only
+                    appeared as a single-line fine-print note. */}
+                <div className="border-t border-blue-200 pt-2 mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5">Payment Schedule</p>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">
+                      {paymentOption === "full" ? "Pay Online Now (full room)" : `Pay Online Now (${pricing.reservation_fee_pct}% reservation)`}
+                    </span>
+                    <span className="text-blue-700 font-bold">{formatPHP(amountDue)}</span>
+                  </div>
+                  {balanceDue > 0 && (
+                    <div className="flex justify-between text-sm mt-1">
+                      <span className="text-gray-600">Room balance at resort counter</span>
+                      <span className="font-medium text-gray-800">{formatPHP(balanceDue)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm mt-1">
+                    <span className="text-amber-700">Entrance fee at gate</span>
+                    <span className="font-medium text-amber-700">{formatPHP(estimatedEntrance)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm mt-2 pt-2 border-t border-blue-100 font-semibold">
+                    <span className="text-gray-800">Total to pay at resort</span>
+                    <span className="text-gray-900">{formatPHP(resortBalance)}</span>
+                  </div>
+                </div>
               </div>
 
               {/* Cancellation policy (smaller) */}
@@ -1140,22 +1185,40 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       </div>
                     </>
                   )}
+                  {/* Entrance fee line in the final confirmation.
+                      Previously this just said "₱0.00 — Fully Paid" for
+                      full-payment bookings, which was misleading — the
+                      entrance fee is ALWAYS owed at the gate regardless
+                      of how the room was paid. */}
+                  <div className="flex justify-between text-amber-800">
+                    <span className="flex items-center gap-1.5">
+                      <i className="fas fa-ticket-alt text-[11px]"></i>
+                      Entrance fee (₱{entranceRate}/pax · gate)
+                    </span>
+                    <span>{formatPHP(estimatedEntrance)}<span className="text-[10px] text-amber-600 ml-1">est.</span></span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-gray-800 pt-1 border-t border-blue-100">
+                    <span>Estimated Grand Total</span>
+                    <span className="text-gray-900">{formatPHP(grandEstimate)}</span>
+                  </div>
                   <div className="border-t border-blue-300 pt-2 flex justify-between font-bold text-blue-800 text-base">
-                    <span>{paymentOption === "full" ? "Total (Pay Now)" : "Reservation Fee (Pay Now)"}</span>
+                    <span>{paymentOption === "full" ? "Online Now (Room Only)" : "Reservation Fee (Pay Now)"}</span>
                     <span>{formatPHP(amountDue)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Balance at Check-in</span>
-                    <span className={`font-medium ${balanceDue === 0 ? "text-emerald-600" : ""}`}>
-                      {balanceDue === 0 ? "₱0.00 — Fully Paid" : formatPHP(balanceDue)}
-                    </span>
+                    <span>Still to pay at resort</span>
+                    <span className="font-medium text-gray-900">{formatPHP(resortBalance)}</span>
                   </div>
-                  <p className="text-xs text-amber-700 bg-amber-50 rounded px-2 py-1">
-                    <i className="fas fa-info-circle mr-1"></i>Entrance fees are collected at the gate upon arrival.
+                  <p className="text-[11px] text-gray-500">
+                    {balanceDue > 0
+                      ? <>Includes {formatPHP(balanceDue)} room balance + {formatPHP(estimatedEntrance)} gate entrance.</>
+                      : <>Room is fully settled online; only the entrance fee remains at the gate.</>}
                   </p>
                 </div>
 
-                {/* Payment option badge */}
+                {/* Payment option badge — the full-payment pill used to
+                    claim "₱0 balance at check-in". That was wrong:
+                    entrance is always owed at the gate. */}
                 <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${
                   paymentOption === "full"
                     ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
@@ -1163,8 +1226,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 }`}>
                   <i className={`fas ${paymentOption === "full" ? "fa-check-circle text-emerald-600" : "fa-bookmark text-blue-500"}`}></i>
                   {paymentOption === "full"
-                    ? `Paying in full — ₱0 balance at check-in`
-                    : `Reserve only — balance of ${formatPHP(balanceDue)} due at check-in`}
+                    ? `Paying full room online — only the ₱${entranceRate}/pax entrance fee will be collected at the gate`
+                    : `Reserve only — ${formatPHP(resortBalance)} balance (room + entrance) due at resort`}
                 </div>
 
                 {/* Payment note */}

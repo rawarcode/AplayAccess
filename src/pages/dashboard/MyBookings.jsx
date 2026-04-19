@@ -9,6 +9,29 @@ import Toast, { useToast } from "../../components/ui/Toast";
 import { Helmet } from "react-helmet-async";
 import { fmtDateTime } from "../../lib/format";
 
+// ─── Gate entrance fee helper ────────────────────────────────────────────────
+// Matches Setting::pricing() defaults on the backend. Used to show an
+// estimate BEFORE check-in (when entrance_fee on the row is still 0
+// because staff hasn't collected it yet). Prevents the "Fully Paid →
+// surprise at the gate" complaint.
+const ENTRANCE_RATE_FALLBACK = { day: 50, night: 80, '24hr': 100, '24hr-pm': 100 };
+
+function effectiveEntrance(b, rates = ENTRANCE_RATE_FALLBACK) {
+  const stored = Number(b?.entranceFee ?? 0);
+  if (stored > 0) return stored;
+  const rate = rates[b?.bookingType ?? 'day'] ?? 50;
+  return Number(b?.guests ?? 1) * rate;
+}
+
+// True when staff has finalised the entrance fee (check-in has happened
+// or the booking is completed). Before that, any entrance figure shown
+// is an estimate that will scale with real arrival count.
+function entranceIsFinal(b) {
+  return Number(b?.entranceFee ?? 0) > 0
+    || b?.status === 'Checked In'
+    || b?.status === 'Completed';
+}
+
 // ─── Special requests formatter ───────────────────────────────────────────────
 function renderSpecialRequests(text) {
   if (!text) return null;
@@ -478,14 +501,22 @@ export default function MyBookings() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{b.guests}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
                     {(() => {
-                      const entrance    = Number(b.entranceFee ?? 0);
+                      // Pre-check-in, b.entranceFee = 0. Use effectiveEntrance
+                      // so the grand total reflects the REAL all-in cost,
+                      // not just the room. Mark the figure "est." so guests
+                      // know it scales with actual arrivals.
+                      const entrance    = effectiveEntrance(b);
+                      const entranceFinal = entranceIsFinal(b);
                       const grandTotal  = Number(b.total ?? 0) + entrance;
                       const outstanding = Math.max(0, grandTotal - Number(b.paidAmount ?? 0));
                       return (
                         <>
                           <div className="font-medium">₱{grandTotal.toLocaleString()}</div>
                           {entrance > 0 && (
-                            <div className="text-[11px] text-slate-400">incl. ₱{entrance.toLocaleString()} entrance</div>
+                            <div className="text-[11px] text-slate-400">
+                              incl. ₱{entrance.toLocaleString()} entrance
+                              {!entranceFinal && <span className="ml-1 text-amber-600">est.</span>}
+                            </div>
                           )}
                           {outstanding > 0 && b.status !== 'Pending' && b.status !== 'Cancelled' && (
                             <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] bg-sky-100 text-sky-700 px-1.5 py-0.5 rounded-full font-medium">
@@ -594,14 +625,17 @@ export default function MyBookings() {
               <div className="flex items-center justify-between">
                 <div>
                   {(() => {
-                    const entrance    = Number(b.entranceFee ?? 0);
-                    const grandTotal  = Number(b.total ?? 0) + entrance;
-                    const outstanding = Math.max(0, grandTotal - Number(b.paidAmount ?? 0));
+                    const entrance      = effectiveEntrance(b);
+                    const entranceFinal = entranceIsFinal(b);
+                    const grandTotal    = Number(b.total ?? 0) + entrance;
+                    const outstanding   = Math.max(0, grandTotal - Number(b.paidAmount ?? 0));
                     return (
                       <>
                         <span className="text-sm font-semibold text-slate-900">₱{grandTotal.toLocaleString()}</span>
                         {entrance > 0 && (
-                          <span className="ml-1 text-[11px] text-slate-400">(incl. entrance)</span>
+                          <span className="ml-1 text-[11px] text-slate-400">
+                            {entranceFinal ? '(incl. entrance)' : '(incl. est. entrance)'}
+                          </span>
                         )}
                         {b.promoCode && Number(b.discount) > 0 && (
                           <span className="ml-2 text-xs text-emerald-600 font-medium">-₱{Number(b.discount).toLocaleString()}</span>
@@ -671,10 +705,11 @@ export default function MyBookings() {
             </div>
             <div className="p-6 space-y-3 text-sm text-slate-700">
               {(() => {
-                const entrance    = Number(selected.entranceFee ?? 0);
-                const grandTotal  = Number(selected.total ?? 0) + entrance;
-                const paid        = Number(selected.paidAmount ?? 0);
-                const outstanding = Math.max(0, grandTotal - paid);
+                const entrance      = effectiveEntrance(selected);
+                const entranceFinal = entranceIsFinal(selected);
+                const grandTotal    = Number(selected.total ?? 0) + entrance;
+                const paid          = Number(selected.paidAmount ?? 0);
+                const outstanding   = Math.max(0, grandTotal - paid);
                 const rows = [
                   ["Booking ID",      selected.id],
                   ["Room",            selected.roomType],
@@ -683,7 +718,17 @@ export default function MyBookings() {
                   ["Guests",          selected.guests],
                   ["Room Total",      `₱${Number(selected.total).toLocaleString()}`],
                 ];
-                if (entrance > 0) rows.push(["Entrance Fee", `₱${entrance.toLocaleString()}`]);
+                // Entrance row always shown for online bookings. Pre-check-in
+                // it's an estimate ("est. · paid at gate"), post-check-in
+                // it's the actual collected amount. Dropping the fee
+                // entirely here is what caused the "surprise at gate"
+                // complaints — guests never saw it in the detail view.
+                if (entrance > 0) {
+                  rows.push([
+                    entranceFinal ? "Entrance Fee" : "Entrance Fee (est. · gate)",
+                    `₱${entrance.toLocaleString()}`,
+                  ]);
+                }
                 rows.push(["Grand Total", `₱${grandTotal.toLocaleString()}`]);
                 // Only show "Reservation Fee Paid" when money actually cleared
                 // (paidAmount covers the reservation fee). Previously this
@@ -695,7 +740,10 @@ export default function MyBookings() {
                 }
                 if (paid > 0) rows.push(["Paid so far", `₱${paid.toLocaleString()}`]);
                 if (outstanding > 0 && selected.status !== 'Cancelled' && selected.status !== 'Pending') {
-                  rows.push(["Outstanding", `₱${outstanding.toLocaleString()}`]);
+                  rows.push([
+                    entranceFinal ? "Outstanding" : "Outstanding (incl. est. entrance)",
+                    `₱${outstanding.toLocaleString()}`,
+                  ]);
                 }
                 rows.push(
                   ["Payment",         selected.paymentMethod],
@@ -705,11 +753,13 @@ export default function MyBookings() {
                   <div key={label} className="flex justify-between gap-4">
                     <span className="text-slate-500">{label}</span>
                     <span className={
-                      label === "Outstanding"
+                      label.startsWith("Outstanding")
                         ? "font-semibold text-right text-sky-700"
                         : label === "Grand Total"
                           ? "font-semibold text-right"
-                          : "font-medium text-right"
+                          : label.startsWith("Entrance Fee")
+                            ? "font-medium text-right text-amber-700"
+                            : "font-medium text-right"
                     }>{val}</span>
                   </div>
                 ));
