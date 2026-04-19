@@ -23,7 +23,7 @@ const MONTH_NAMES = ["January","February","March","April","May","June","July","A
 const ROOM_COLORS = ["rgba(59,130,246,0.7)","rgba(16,185,129,0.7)","rgba(251,191,36,0.7)","rgba(139,92,246,0.7)","rgba(236,72,153,0.7)"];
 const DOT_COLORS  = ["#3b82f6","#10b981","#fbbf24","#8b5cf6","#ec4899"];
 
-function printReport({ bookings, active, revenue, avgVal, nights, period, roomTypes, roomRevenue, roomBookings }) {
+function printReport({ bookings, active, revenue, forfeited, forfeitedCount, avgVal, period, roomTypes, roomRevenue, roomBookings }) {
   const now = new Date().toLocaleString('en-PH', { dateStyle: 'long', timeStyle: 'short' });
   const statusBadge = (s) => {
     const map = { Completed:'#1e40af:#dbeafe', Confirmed:'#065f46:#d1fae5', Pending:'#92400e:#fef3c7', Cancelled:'#991b1b:#fee2e2', 'Checked In':'#0f766e:#ccfbf1' };
@@ -32,14 +32,19 @@ function printReport({ bookings, active, revenue, avgVal, nights, period, roomTy
   };
   const fmtN = v => Number(v||0).toLocaleString('en-PH');
   const statusCount = (s) => bookings.filter(b => b.status === s).length;
+  // Avg-per-booking in the Revenue by Room footer should divide only
+  // stay-producing revenue by stay-producing bookings — otherwise the
+  // forfeited portion inflates the per-room average even though
+  // cancelled bookings don't contribute to room occupancy.
+  const activeRevenue = active.reduce((s, b) => s + Number(b.paidAmount ?? 0), 0);
   const roomRows = roomTypes.map((r, i) => roomBookings[i] > 0 ? `<tr><td>${esc(r)}</td><td style="text-align:center">${roomBookings[i]}</td><td style="text-align:right">₱${fmtN(roomRevenue[i])}</td><td style="text-align:right">₱${fmtN(Math.round(roomRevenue[i]/roomBookings[i]))}</td></tr>` : '').join('');
   const bookingRows = bookings.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td>${esc(b.guest)}</td><td>${esc(b.room)}</td><td>${esc(b.payment||'—')}</td><td style="text-align:center">${b.bookingType === 'day' ? '1 day' : (b.nights || 1) + ' night' + ((b.nights || 1) !== 1 ? 's' : '')}</td><td style="text-align:right">${b.status==='Cancelled'?`<s>₱${fmtN(b.total)}</s>`:`₱${fmtN(b.total)}`}</td><td style="text-align:right;color:#92400e">${Number(b.entranceFee)>0?`₱${fmtN(b.entranceFee)}`:'—'}</td><td>${statusBadge(esc(b.status))}</td></tr>`).join('');
   const css = `*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:11pt;color:#1a1a1a;padding:32px}.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #1e3a8a;padding-bottom:16px;margin-bottom:24px}.co{font-size:18pt;font-weight:bold;color:#1e3a8a}.cosub{font-size:9pt;color:#64748b;margin-top:3px}.rt{text-align:right}.rt h2{font-size:13pt;font-weight:bold;color:#1e3a8a}.rt p{font-size:10pt;color:#334155;margin-top:2px}.rt small{font-size:8pt;color:#94a3b8}.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}.card{border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px}.lbl{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.05em}.val{font-size:17pt;font-weight:bold;color:#0f172a;margin-top:4px}.hint{font-size:8pt;color:#94a3b8;margin-top:2px}.srow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px}.sbox{border:1px solid #e2e8f0;border-radius:6px;padding:10px;text-align:center}.sbox .n{font-size:20pt;font-weight:bold;color:#0f172a}.sbox .s{font-size:8pt;color:#64748b;text-transform:uppercase;letter-spacing:.04em}.sec{margin-bottom:22px}.sech{font-size:9pt;font-weight:bold;color:#1e3a8a;text-transform:uppercase;letter-spacing:.08em;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:10px}table{width:100%;border-collapse:collapse;font-size:10pt}th{background:#1e3a8a;color:#fff;padding:8px 10px;text-align:left;font-size:8.5pt;text-transform:uppercase;letter-spacing:.04em}td{padding:7px 10px;border-bottom:1px solid #f1f5f9}tr:nth-child(even) td{background:#f8fafc}tfoot td{background:#1e3a8a!important;color:#fff!important;font-weight:bold;padding:8px 10px}.ftr{margin-top:28px;border-top:1px solid #e2e8f0;padding-top:10px;display:flex;justify-content:space-between;font-size:8pt;color:#94a3b8}@page{margin:1.5cm}`;
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Monthly Report — ${period}</title><style>${css}</style></head><body>
 <div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Booking Management System</div></div><div class="rt"><h2>Monthly Report</h2><p>${period}</p><small>Generated: ${now}</small></div></div>
-<div class="cards"><div class="card"><div class="lbl">Total Revenue</div><div class="val">₱${fmtN(revenue)}</div><div class="hint">Excluding cancelled</div></div><div class="card"><div class="lbl">Total Bookings</div><div class="val">${bookings.length}</div><div class="hint">${active.length} active · ${bookings.length-active.length} cancelled</div></div><div class="card"><div class="lbl">Avg. Stay Value</div><div class="val">₱${fmtN(Math.round(avgVal))}</div><div class="hint">Per active booking</div></div><div class="card"><div class="lbl">Total Guest-Days</div><div class="val">${Math.round(nights)}</div><div class="hint">Active bookings only</div></div></div>
+<div class="cards"><div class="card"><div class="lbl">Total Revenue</div><div class="val">₱${fmtN(revenue)}</div><div class="hint">${forfeited>0?`incl. ₱${fmtN(forfeited)} forfeited`:'All collected payments'}</div></div><div class="card"><div class="lbl">Forfeited Revenue</div><div class="val">₱${fmtN(forfeited)}</div><div class="hint">${forfeitedCount>0?`${forfeitedCount} cancellation${forfeitedCount!==1?'s':''}`:'No cancellations'}</div></div><div class="card"><div class="lbl">Total Bookings</div><div class="val">${bookings.length}</div><div class="hint">${active.length} active · ${bookings.length-active.length} cancelled</div></div><div class="card"><div class="lbl">Avg. Stay Value</div><div class="val">₱${fmtN(Math.round(avgVal))}</div><div class="hint">Per active booking</div></div></div>
 <div class="sec"><div class="sech">Booking Status Breakdown</div><div class="srow">${['Confirmed','Checked In','Completed','Pending','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div></div>
-<div class="sec"><div class="sech">Revenue by Room</div><table><thead><tr><th>Room</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${active.length}</td><td style="text-align:right">₱${fmtN(revenue)}</td><td style="text-align:right">₱${active.length?fmtN(Math.round(revenue/active.length)):'—'}</td></tr></tfoot></table></div>
+<div class="sec"><div class="sech">Revenue by Room</div><table><thead><tr><th>Room</th><th style="text-align:center">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Avg / Booking</th></tr></thead><tbody>${roomRows}</tbody><tfoot><tr><td>Total</td><td style="text-align:center">${active.length}</td><td style="text-align:right">₱${fmtN(revenue)}</td><td style="text-align:right">₱${active.length?fmtN(Math.round(activeRevenue/active.length)):'—'}</td></tr></tfoot></table></div>
 <div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Duration</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.total??0),0))}</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.entranceFee??0),0))}</td><td></td></tr></tfoot></table></div>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
@@ -110,20 +115,42 @@ export default function OwnerReports() {
       .finally(() => setLoadingMonthly(false));
   }, []);
 
+  // `active` = bookings whose stay actually happens (or has happened).
+  // Used for count-based KPIs like guest-days, discount totals, and
+  // per-room booking charts — nothing "stayed" for a cancelled booking
+  // even if money was forfeited.
   const active         = useMemo(() => bookings.filter((b) => b.status !== "Cancelled"), [bookings]);
-  // Revenue = money actually collected. bookings include paidAmount from the
-  // backend (maintained by payment webhook, collectPayment, walk-in flow).
-  const revenue        = useMemo(() => active.reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [active]);
+  // Revenue sums paid_amount across EVERY booking — including cancelled
+  // ones that forfeited their reservation fee. Abandoned cancellations
+  // contribute ₱0 naturally (paid_amount = 0), so no status filter is
+  // needed. This matches the backend Stats + Analytics-overview numbers.
+  const revenue        = useMemo(() => bookings.reduce((s, b) => s + Number(b.paidAmount ?? 0), 0), [bookings]);
+  // Forfeited portion of the above — purely informational, so the owner
+  // can see how much of total revenue came from cancellations rather
+  // than actual stays. Shown as its own card below.
+  const forfeited      = useMemo(
+    () => bookings.filter(b => b.status === "Cancelled").reduce((s, b) => s + Number(b.paidAmount ?? 0), 0),
+    [bookings]
+  );
+  const forfeitedCount = useMemo(
+    () => bookings.filter(b => b.status === "Cancelled" && Number(b.paidAmount ?? 0) > 0).length,
+    [bookings]
+  );
+  // Avg stay value divides by active-only count since a cancelled
+  // booking didn't produce a "stay" — including it would depress the
+  // average even though the money landed.
   const avgVal         = active.length ? revenue / active.length : 0;
   const nights         = useMemo(() => active.reduce((s, b) => s + Math.max(1, Number(b.nights ?? 0)), 0), [active]);
   const totalDiscounts = useMemo(() => active.reduce((s, b) => s + Number(b.discount ?? 0), 0), [active]);
   const period  = `${MONTH_NAMES[month - 1]} ${year}`;
 
-  // Daily revenue trend — group active bookings by check_in day using paidAmount.
+  // Daily revenue trend — group ALL bookings (including cancelled with
+  // forfeited fees) by check_in day using paidAmount. Using `bookings`
+  // not `active` so the chart matches the Total Revenue headline.
   const dailyRevenueData = useMemo(() => {
     const daysInMonth = new Date(year, month, 0).getDate();
     const map = {};
-    active.forEach((b) => {
+    bookings.forEach((b) => {
       if (!b.checkIn) return;
       const day = parseInt(b.checkIn.split("-")[2], 10);
       map[day] = (map[day] ?? 0) + Number(b.paidAmount ?? 0);
@@ -132,18 +159,16 @@ export default function OwnerReports() {
       day: i + 1,
       revenue: map[i + 1] ?? 0,
     }));
-  }, [active, month, year]);
+  }, [bookings, month, year]);
 
-  // Room type breakdown — collected money per room. paidAmount is the
-  // backend's single source of truth (set by payment webhook,
-  // collectPayment, and walk-in creation). The old Completed ? total +
-  // entrance : reservationFee heuristic missed fully-paid Checked-In
-  // stays and walk-ins paid up front, making the chart + printed
-  // breakdown materially understate post-headline metrics.
+  // Room type breakdown — revenue uses ALL bookings (including cancelled
+  // forfeitures) so the room chart totals match the headline Total
+  // Revenue. Booking count stays on `active` since cancelled rows didn't
+  // produce a stay for that room.
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
   const roomRevenue  = useMemo(() => roomTypes.map((r) =>
-    active.filter((b) => b.room === r).reduce((s, b) => s + Number(b.paidAmount ?? 0), 0)
-  ), [roomTypes, active]);
+    bookings.filter((b) => b.room === r).reduce((s, b) => s + Number(b.paidAmount ?? 0), 0)
+  ), [roomTypes, bookings]);
   const roomBookings = useMemo(() => roomTypes.map((r) => active.filter((b) => b.room === r).length), [roomTypes, active]);
 
   const roomBarData = useMemo(() => ({
@@ -352,7 +377,7 @@ export default function OwnerReports() {
           </select>
         </div>
         <button
-          onClick={() => printReport({ bookings, active, revenue, avgVal, nights, period, roomTypes, roomRevenue, roomBookings })}
+          onClick={() => printReport({ bookings, active, revenue, forfeited, forfeitedCount, avgVal, period, roomTypes, roomRevenue, roomBookings })}
           disabled={loading || bookings.length === 0}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-dark disabled:opacity-40 transition"
         >
@@ -371,22 +396,29 @@ export default function OwnerReports() {
           <p className="text-blue-200 text-sm mt-1">Aplaya Beach Resort</p>
         </div>
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Summary cards. Forfeited Revenue sits beside Total Revenue so
+            the owner can see the split at a glance — same logical cluster
+            as the money metrics. Forfeited is INCLUDED in Total Revenue;
+            it's surfaced separately for transparency, not as additive. */}
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
           {[
-            { label: "Total Revenue",    value: loading ? "—" : fmt(revenue),                icon: "fa-money-bill-wave", color: "bg-green-100 text-green-600"  },
-            { label: "Total Bookings",   value: loading ? "—" : bookings.length,              icon: "fa-calendar-check",  color: "bg-blue-100 text-blue-600"    },
-            { label: "Avg. Stay Value",  value: loading ? "—" : fmt(Math.round(avgVal)),      icon: "fa-calculator",      color: "bg-purple-100 text-purple-600" },
-            { label: "Total Guest-Days",  value: loading ? "—" : Math.round(nights),           icon: "fa-moon",            color: "bg-yellow-100 text-yellow-600" },
-            { label: "Total Discounts",  value: loading ? "—" : fmt(totalDiscounts),          icon: "fa-tag",             color: "bg-rose-100 text-rose-600"    },
+            { label: "Total Revenue",      value: loading ? "—" : fmt(revenue),              icon: "fa-money-bill-wave", color: "bg-green-100 text-green-600",
+              subtitle: forfeited > 0 ? `incl. ${fmt(forfeited)} forfeited` : null },
+            { label: "Forfeited Revenue",  value: loading ? "—" : fmt(forfeited),            icon: "fa-ban",             color: "bg-rose-100 text-rose-600",
+              subtitle: forfeitedCount > 0 ? `${forfeitedCount} cancellation${forfeitedCount !== 1 ? "s" : ""}` : "No cancellations" },
+            { label: "Total Bookings",     value: loading ? "—" : bookings.length,           icon: "fa-calendar-check",  color: "bg-blue-100 text-blue-600"    },
+            { label: "Avg. Stay Value",    value: loading ? "—" : fmt(Math.round(avgVal)),   icon: "fa-calculator",      color: "bg-purple-100 text-purple-600" },
+            { label: "Total Guest-Days",   value: loading ? "—" : Math.round(nights),        icon: "fa-moon",            color: "bg-yellow-100 text-yellow-600" },
+            { label: "Total Discounts",    value: loading ? "—" : fmt(totalDiscounts),       icon: "fa-tag",             color: "bg-amber-100 text-amber-600"  },
           ].map((c) => (
             <div key={c.label} className="bg-white rounded-lg shadow p-5">
               <div className="flex items-center justify-between">
-                <div>
+                <div className="min-w-0">
                   <p className="text-gray-500 text-xs">{c.label}</p>
                   <p className="text-2xl font-bold mt-1">{c.value}</p>
+                  {c.subtitle && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.subtitle}</p>}
                 </div>
-                <div className={`p-3 rounded-full ${c.color}`}>
+                <div className={`p-3 rounded-full shrink-0 ${c.color}`}>
                   <i className={`fas ${c.icon} text-lg`}></i>
                 </div>
               </div>

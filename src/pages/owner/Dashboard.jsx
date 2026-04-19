@@ -104,7 +104,9 @@ export default function OwnerDashboard() {
     const today          = localDateStr(now);
     const days30ago      = localDateStr(new Date(now.getTime() - 30 * 86400000));
 
-    // Active = not Cancelled/Pending
+    // Active = not Cancelled/Pending. Used only for STAY-based KPIs
+    // (occupancy counts, top-room-by-count). Revenue uses the full set
+    // because forfeited cancellation fees are real collected money.
     const activeBookings = bookings.filter(b => !['Cancelled', 'Pending'].includes(b.status));
 
     // This month bookings (by check-in date). Upper bound matters — without
@@ -116,10 +118,14 @@ export default function OwnerDashboard() {
     });
     const thisMonthActive = thisMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
     const lastMonthAll    = bookings.filter(b => { const d = b.checkIn?.slice(0, 10) ?? ''; return d >= lastMonthStart && d <= lastMonthEnd; });
-    const lastMonthActive = lastMonthAll.filter(b => !['Cancelled', 'Pending'].includes(b.status));
 
-    const revThisMonth = thisMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
-    const revLastMonth = lastMonthActive.reduce((s, b) => s + bookingRevenue(b), 0);
+    // Revenue sums paidAmount across ALL bookings in the month — including
+    // cancelled ones whose reservation fees were forfeited. Pending
+    // bookings contribute ₱0 naturally (paidAmount = 0). No status filter
+    // is needed; paidAmount is the single source of truth for money
+    // actually received.
+    const revThisMonth = thisMonthAll.reduce((s, b) => s + bookingRevenue(b), 0);
+    const revLastMonth = lastMonthAll.reduce((s, b) => s + bookingRevenue(b), 0);
     const revMoM = revLastMonth > 0 ? Math.round(((revThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
     const txThisMonth = thisMonthAll.length;
     const txLastMonth = lastMonthAll.length;
@@ -267,12 +273,16 @@ export default function OwnerDashboard() {
     },
   };
 
-  // Top performing rooms (computed from active bookings, last 30 days).
-  // Upper bound at today so upcoming reservations don't appear in a
-  // historical "top performer" ranking.
+  // Top performing rooms (revenue over the last 30 days, paidAmount sum).
+  // Uses the full `bookings` set so cancelled-but-forfeited revenue
+  // contributes — consistent with the Monthly Revenue headline. Booking
+  // count is drawn from the same set; a cancellation still "touched" a
+  // room in the catalog sense, and a room with many cancellations IS a
+  // data point the owner should see. Upper bound at today so upcoming
+  // reservations don't appear in a historical "top performer" ranking.
   const topRooms = useMemo(() => {
     const map = {};
-    activeBookings.forEach(b => {
+    bookings.forEach(b => {
       const d = b.checkIn?.slice(0, 10) ?? '';
       if (d < days30ago || d > today) return;
       const key = b.roomType ?? 'Unknown';
@@ -281,9 +291,10 @@ export default function OwnerDashboard() {
       map[key].revenue  += bookingRevenue(b);
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
-  }, [activeBookings, days30ago, today, entranceRates]);
+  }, [bookings, days30ago, today]);
 
-  // Daily revenue chart (computed from bookings, last 30 days)
+  // Daily revenue chart — sums paidAmount across all bookings so
+  // cancellation forfeits show up. Matches the headline Monthly Revenue.
   const chartData = useMemo(() => {
     const now = new Date();
     const dayMap = {};
@@ -291,7 +302,7 @@ export default function OwnerDashboard() {
       const d = localDateStr(new Date(now.getTime() - i * 86400000));
       dayMap[d] = 0;
     }
-    activeBookings.forEach(b => {
+    bookings.forEach(b => {
       const d = b.checkIn?.slice(0, 10) ?? '';
       if (d in dayMap) dayMap[d] += bookingRevenue(b);
     });
@@ -308,7 +319,7 @@ export default function OwnerDashboard() {
         pointRadius: 2,
       }],
     };
-  }, [activeBookings, entranceRates]);
+  }, [bookings]);
 
   // ── Loading skeleton ────────────────────────────────────────────────────
   if (loading) return (
