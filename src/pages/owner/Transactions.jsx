@@ -133,7 +133,11 @@ export default function OwnerTransactions() {
       else if (sortBy === 'Guest')       { aVal = (a.guest ?? '').toLowerCase();            bVal = (b.guest ?? '').toLowerCase(); }
       else if (sortBy === 'Room')        { aVal = (a.roomType ?? '').toLowerCase();          bVal = (b.roomType ?? '').toLowerCase(); }
       else if (sortBy === 'Discount')    { aVal = Number(a.discount ?? 0);                  bVal = Number(b.discount ?? 0); }
-      else if (sortBy === 'Amount')      { aVal = Number(a.total ?? 0) + Number(a.entranceFee ?? 0); bVal = Number(b.total ?? 0) + Number(b.entranceFee ?? 0); }
+      // Sort by collected amount (what the Amount column actually shows),
+      // not the quoted grand total — so a ₱300 forfeited row doesn't sort
+      // ahead of a ₱500 fully-paid stay just because its quoted total was
+      // larger.
+      else if (sortBy === 'Amount')      { aVal = collectedAmt(a); bVal = collectedAmt(b); }
       else { aVal = STATUS_PRIORITY[a.status] ?? 5; bVal = STATUS_PRIORITY[b.status] ?? 5; }
       if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
       if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
@@ -427,14 +431,34 @@ export default function OwnerTransactions() {
                   </td>
                   <td className="px-6 py-4 font-medium">
                     {(() => {
+                      // Amount = money ACTUALLY collected for this booking,
+                      // so the row figure and the Page Total footer line up.
+                      // Showing the quoted grand total (₱1,500) as the row
+                      // value while the footer sums collected (₱300) makes
+                      // the owner think the table is lying to them. For
+                      // cancelled + partially-paid bookings we surface the
+                      // quoted total as a muted subtitle so context isn't
+                      // lost — they still see "oh, this booking was ₱1,500
+                      // but we only collected ₱300".
                       const entrance   = Number(b.entranceFee ?? 0);
                       const grandTotal = Number(b.total ?? 0) + entrance;
+                      const collected  = collectedAmt(b);
+                      const isCancelled    = b.status === 'Cancelled';
+                      const isFullyPaid    = collected > 0 && collected + 0.01 >= grandTotal;
+                      const hasPartialGap  = grandTotal > 0 && collected < grandTotal;
                       return (
                         <>
-                          <div>{fmt(grandTotal)}</div>
-                          {entrance > 0 && (
+                          <div className={isCancelled && collected === 0 ? "text-slate-400" : ""}>
+                            {collected > 0 ? fmt(collected) : (isCancelled ? '—' : fmt(0))}
+                          </div>
+                          {isFullyPaid && entrance > 0 && (
                             <div className="text-[11px] font-normal text-slate-400">
                               incl. {fmt(entrance)} entrance
+                            </div>
+                          )}
+                          {hasPartialGap && (
+                            <div className="text-[11px] font-normal text-slate-400">
+                              {isCancelled ? 'forfeited · ' : ''}of {fmt(grandTotal)} quoted
                             </div>
                           )}
                         </>
