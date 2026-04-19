@@ -899,7 +899,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <span>
                   A secure <span className="font-medium">PayMongo</span> checkout window will open for you to pay{" "}
                   <span className="font-medium">{formatPHP(amountDue)}</span> via{" "}
-                  <span className="font-medium">GCash or Credit/Debit Card</span>.
+                  <span className="font-medium">GCash</span>.
                   This page will stay open in the background.
                 </span>
               </div>
@@ -1154,7 +1154,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {/* Payment note */}
                 <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
                   <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0"></i>
-                  <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash or Credit/Debit Card</span>.</span>
+                  <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash</span>.</span>
                 </div>
               </div>
 
