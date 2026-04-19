@@ -591,16 +591,25 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 />
               </div>
 
-              {/* Booking type — compact pills */}
+              {/* Booking type — compact pills. Locked out until a date is
+                  picked, so the user can't pick "Day" before noon on a
+                  date that's already past 3pm, or select a 24-hour slot
+                  without knowing which day we're checking availability
+                  against. dayPassed + typeAllowed both depend on the
+                  selected date + room, so their semantics aren't
+                  meaningful until visitDate is set. */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2" id="booking-type-label">
                   Booking Type <span className="text-red-600" aria-hidden="true">*</span>
+                  {!visitDate && (
+                    <span className="ml-2 text-xs text-gray-400 font-normal">Pick a date first</span>
+                  )}
                 </label>
                 <div className="flex gap-2" role="group" aria-labelledby="booking-type-label">
                   {[
-                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: dayPassed || !typeAllowed("day")   },
-                    { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !typeAllowed("night") },
-                    { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "Any start", disabled: !typeAllowed("24hr")  },
+                    { key: "day",   icon: "fa-sun",   label: "Day",    time: "6AM\u20136PM",  disabled: !visitDate || dayPassed || !typeAllowed("day") },
+                    { key: "night", icon: "fa-moon",  label: "Night",   time: "6PM\u20137AM",  disabled: !visitDate || !typeAllowed("night") },
+                    { key: "24hr",  icon: "fa-clock", label: "24 Hrs", time: "Any start", disabled: !visitDate || !typeAllowed("24hr") },
                   ].map(opt => {
                     const active = bookingType === opt.key;
                     return (
@@ -636,11 +645,17 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 )}
               </div>
 
-              {/* Room / Cottage */}
+              {/* Room / Cottage — locked until visitDate is chosen. The
+                  availability list is filtered by the selected date, so
+                  showing rooms before a date is picked would surface
+                  rooms that could be unavailable for the slot the user
+                  eventually chooses. */}
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Room / Cottage <span className="text-red-600" aria-hidden="true">*</span>
-                  {availChecking && (
+                  {!visitDate ? (
+                    <span className="ml-2 text-xs text-gray-400 font-normal">Pick a date first</span>
+                  ) : availChecking && (
                     <span className="ml-2 text-xs text-gray-400 font-normal">
                       <i className="fas fa-spinner fa-spin mr-1"></i>Checking…
                     </span>
@@ -650,7 +665,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   value={roomId}
                   onChange={(e) => { setRoomId(e.target.value); setPromoResult(null); setPromoInput(""); }}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={!visitDate}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                   <option value="">Select Room / Cottage / Pavilion</option>
                   {(() => {
