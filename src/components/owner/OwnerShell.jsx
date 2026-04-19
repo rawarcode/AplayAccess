@@ -100,7 +100,6 @@ export default function OwnerShell() {
 
   // Notification polling — all paths point to /owner/* now
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings:    '/owner/transactions?status=Pending',
     messages:           '/owner/messages',
     arrivals:           '/frontdesk/bookings?status=Confirmed',
     soonCheckouts:      '/frontdesk/bookings?status=Checked+In',

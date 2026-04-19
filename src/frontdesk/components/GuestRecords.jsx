@@ -69,27 +69,26 @@ export default function GuestRecords() {
     });
 
     return Object.values(map).map(g => {
-      const sorted  = [...g.visits].sort((a, b) => b.checkIn.localeCompare(a.checkIn));
-      const done    = g.visits.filter(v => v.status === 'Completed');
-      // Total spend = money actually collected per visit.
-      //  Completed / fully paid → total + persisted entrance fee
-      //  Cancelled              → reservation fee forfeited
-      //  Pending                → 0 (guest hasn't paid yet)
-      //  else (Confirmed / Checked In not yet fully paid) → reservation fee only
-      const totalSpend = g.visits.reduce((s, v) => {
-        if (v.status === 'Pending') return s;
-        if (v.status === 'Cancelled') return s + Number(v.reservationFee ?? 0);
-        if (v.status === 'Completed' || v.fullyPaid) {
-          return s + Number(v.total ?? 0) + Number(v.entranceFee ?? 0);
-        }
-        return s + Number(v.reservationFee ?? 0);
-      }, 0);
+      // Pending bookings aren't "visits" — the guest hasn't committed
+      // funds and the booking auto-cancels after 5 min. Surfacing them
+      // in a guest's history inflated total-visit counts with records
+      // that were about to disappear.
+      const visits = g.visits.filter(v => v.status !== 'Pending');
+      const sorted = [...visits].sort((a, b) => b.checkIn.localeCompare(a.checkIn));
+      const done   = visits.filter(v => v.status === 'Completed');
+      // Total spend = paid_amount across all visits. Single source of
+      // truth; Cancelled rows contribute the forfeited portion (₱0 if
+      // abandoned, reservation_fee if they paid then cancelled), and
+      // in-progress rows contribute whatever has been collected so
+      // far. Previous status-based heuristic mis-counted abandoned
+      // cancellations as having forfeited the quoted reservation fee.
+      const totalSpend = visits.reduce((s, v) => s + Number(v.paidAmount ?? 0), 0);
       return {
         ...g,
-        visits:         sorted,
-        totalVisits:    g.visits.length,
+        visits:          sorted,
+        totalVisits:     visits.length,
         completedVisits: done.length,
-        lastVisit:      sorted[0]?.checkIn ?? null,
+        lastVisit:       sorted[0]?.checkIn ?? null,
         totalSpend,
       };
     }).sort((a, b) => (b.lastVisit ?? '').localeCompare(a.lastVisit ?? ''));

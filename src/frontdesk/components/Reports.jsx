@@ -134,7 +134,7 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue, entranceR
   const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Daily Report — ${reportDateLabel}</title><style>${css}</style></head><body>
 <div class="hdr"><div><div class="co">AplayAccess</div><div class="cosub">Aplaya Beach Resort · Front Desk</div></div><div class="rt"><h2>Daily Activity Report</h2><p>${reportDateLabel}</p><small>Generated: ${now}</small></div></div>
 <div class="cards"><div class="card"><div class="lbl">Total Bookings</div><div class="val">${dateBookings.length}</div></div><div class="card"><div class="lbl">Total Guests</div><div class="val">${totalGuests}</div></div><div class="card"><div class="lbl">Revenue Collected</div><div class="val" style="font-size:13pt">${fmtM(totalRevenue)}</div><div class="hint">Completed + forfeited fees</div></div><div class="card"><div class="lbl">Gross Booking Value</div><div class="val" style="font-size:13pt">${fmtM(grossTotal)}</div><div class="hint">Full value if no cancellations</div></div></div>
-<div class="sech" style="margin-top:0">Status Breakdown</div><div class="srow">${['Confirmed','Completed','Pending','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div>
+<div class="sech" style="margin-top:0">Status Breakdown</div><div class="srow" style="grid-template-columns:repeat(3,1fr)">${['Confirmed','Completed','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div>
 <div class="sech">Booking Details</div>
 <table><thead><tr><th>ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th style="text-align:center">Duration</th><th style="text-align:center">Guests</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="6">Totals</td><td style="text-align:center">${totalGuests}</td><td style="text-align:right">${fmtM(grossTotal - efTotal)}</td><td style="text-align:right">${fmtM(efTotal)}</td><td style="text-align:right">${fmtM(totalRevenue)} collected</td></tr></tfoot></table>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort · Front Desk</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
@@ -269,7 +269,6 @@ export default function Reports() {
             <div className="space-y-2 text-sm">
               {[
                 ['Total Bookings', dateBookings.length],
-                ['Pending',        dateBookings.filter(b => b.status === 'Pending').length],
                 ['Confirmed',      dateBookings.filter(b => b.status === 'Confirmed').length],
                 ['Completed',      dateBookings.filter(b => b.status === 'Completed').length],
                 ['Cancelled',      dateBookings.filter(b => b.status === 'Cancelled').length],

@@ -45,18 +45,21 @@ function getReviewsSeenCutoffMs() {
 }
 
 const DEFAULT_PATHS = {
-  pendingBookings:  '/owner/transactions?status=Pending',
   messages:         '/owner/messages',
   arrivals:         '/owner/transactions?status=Confirmed',
   soonCheckouts:    '/owner/transactions?status=Checked+In',
   overdueCheckouts: '/owner/transactions?status=Checked+In',
 };
 
+// Pending bookings are transient — they auto-cancel after 5 minutes
+// without payment, and staff can't do anything about them in the
+// meantime (the guest either pays or abandons). Surfacing them as a
+// "needs approval" notification was misleading and created noise
+// that staff learned to ignore. Removed.
 export function useStaffNotifications(paths = {}) {
   const p = { ...DEFAULT_PATHS, ...paths };
   const [counts, setCounts] = useState({
     unreadMessages:   0,
-    pendingBookings:  0,
     todayArrivals:    0,
     newReviews:       0,
     pendingReviews:   0,
@@ -79,7 +82,6 @@ export function useStaffNotifications(paths = {}) {
     const reviews  = rvRes.status  === 'fulfilled' ? (rvRes.value?.data?.data ?? rvRes.value?.data ?? []) : [];
 
     const unreadMessages  = threads.filter(t => !t.is_read).length;
-    const pendingBookings = bookings.filter(b => b.status === 'Pending').length;
     const todayArrivals   = bookings.filter(
       b => b.checkIn?.slice(0, 10) === today && b.status === 'Confirmed'
     ).length;
@@ -122,15 +124,9 @@ export function useStaffNotifications(paths = {}) {
       }
     }
 
-    setCounts({ unreadMessages, pendingBookings, todayArrivals, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
+    setCounts({ unreadMessages, todayArrivals, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
 
     const next = [];
-    if (pendingBookings > 0)
-      next.push({
-        id: 'pending', icon: 'fa-clock', color: 'yellow',
-        label: `${pendingBookings} pending booking${pendingBookings !== 1 ? 's' : ''} need approval`,
-        path: p.pendingBookings,
-      });
     if (unreadMessages > 0)
       next.push({
         id: 'msgs', icon: 'fa-envelope', color: 'blue',
@@ -184,7 +180,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.pendingBookings + counts.todayArrivals + counts.newReviews + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
+  const total = counts.unreadMessages + counts.todayArrivals + counts.newReviews + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
 
   return { counts, items, total, refresh: poll };
 }

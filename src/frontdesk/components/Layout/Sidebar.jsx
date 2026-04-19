@@ -54,7 +54,6 @@ export default function Sidebar({ children, showTopBar = true }) {
   }, [mobileOpen]);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    pendingBookings:    '/frontdesk/bookings?status=Pending',
     messages:           '/frontdesk/messages',
     arrivals:           '/frontdesk/bookings?status=Confirmed',
     soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
@@ -64,7 +63,7 @@ export default function Sidebar({ children, showTopBar = true }) {
   const menuItems = {
     frontDesk: [
       { path: '/frontdesk',             icon: 'fa-tachometer-alt',   label: 'Dashboard'     },
-      { path: '/frontdesk/bookings',    icon: 'fa-calendar-check',   label: 'Bookings',      badgeKey: 'pendingBookings' },
+      { path: '/frontdesk/bookings',    icon: 'fa-calendar-check',   label: 'Bookings'      },
       { path: '/frontdesk/billing',     icon: 'fa-receipt',          label: 'Billing'       },
       { path: '/frontdesk/rooms',       icon: 'fa-door-open',        label: 'Rooms'          },
       { path: '/frontdesk/records',     icon: 'fa-address-book',     label: 'Guest Records' },
