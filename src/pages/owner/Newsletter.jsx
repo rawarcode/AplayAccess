@@ -167,6 +167,11 @@ export default function OwnerNewsletter() {
   const [sending,     setSending]     = useState(false);
   const [result,      setResult]      = useState(null); // { sent, failed, message }
   const [error,       setError]       = useState("");
+  // Separate confirm-modal step to keep the "Send to 50 subscribers"
+  // button from being a one-click misfire. Shown above the compose
+  // modal, closes on success and lets the result banner in the compose
+  // modal take over.
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Template editing
   const [templates,   setTemplates]   = useState(loadTemplates);
@@ -240,6 +245,7 @@ export default function OwnerNewsletter() {
     try {
       const res = await sendNewsletterCampaign(subject.trim(), body.trim());
       setResult(res.data);
+      setConfirmOpen(false);
     } catch (e) {
       setError(e?.response?.data?.message || "Failed to send campaign.");
     } finally {
@@ -586,16 +592,68 @@ export default function OwnerNewsletter() {
               </button>
               {!result && (
                 <button
-                  onClick={handleSend}
-                  disabled={sending || !subject.trim() || !body.trim()}
+                  onClick={() => { setError(""); setConfirmOpen(true); }}
+                  disabled={sending || !subject.trim() || !body.trim() || total === 0}
                   className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white px-5 py-2 rounded-xl text-sm font-medium transition"
                 >
-                  {sending
-                    ? <><i className="fas fa-spinner fa-spin text-xs"></i> Sending…</>
-                    : <><i className="fas fa-paper-plane text-xs"></i> Send to {total} Subscriber{total !== 1 ? 's' : ''}</>
-                  }
+                  <i className="fas fa-paper-plane text-xs"></i>
+                  Send to {total} Subscriber{total !== 1 ? 's' : ''}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm-send modal — prevents a stray click on "Send to N
+          subscribers" from blasting the whole list by accident.
+          Layered above the compose modal (z-60) so it wins the
+          overlay click contest. */}
+      {confirmOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+          onMouseDown={e => e.target === e.currentTarget && !sending && setConfirmOpen(false)}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
+              <span className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+                <i className="fas fa-exclamation-triangle text-amber-600 text-sm" />
+              </span>
+              <h3 className="text-lg font-bold text-slate-900">Confirm Campaign Send</h3>
+            </div>
+
+            <div className="p-5 space-y-3 text-sm text-slate-700">
+              <p>
+                You're about to send <strong>"{subject.trim() || 'this campaign'}"</strong> to{' '}
+                <strong>{total} subscriber{total !== 1 ? 's' : ''}</strong>.
+              </p>
+              <p className="text-slate-500">
+                This can't be undone. Delivery starts immediately and completes over the next few minutes.
+              </p>
+              {error && (
+                <div className="mt-2 px-3 py-2 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
+                  <i className="fas fa-exclamation-circle mr-1.5" />{error}
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-4 border-t border-slate-100 flex gap-2">
+              <button
+                onClick={() => setConfirmOpen(false)}
+                disabled={sending}
+                className="flex-1 px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={sending}
+                className="flex-[2] px-4 py-2 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white rounded-lg text-sm font-bold"
+              >
+                {sending
+                  ? <><i className="fas fa-spinner fa-spin mr-1.5"></i>Sending…</>
+                  : <><i className="fas fa-paper-plane mr-1.5"></i>Confirm &amp; Send</>}
+              </button>
             </div>
           </div>
         </div>

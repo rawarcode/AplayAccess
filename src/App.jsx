@@ -11,6 +11,7 @@ const ForgotPassword = lazy(() => import("./pages/ForgotPassword.jsx"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const PaymentReturn = lazy(() => import("./pages/PaymentReturn.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
+const NewsletterUnsubscribe = lazy(() => import("./pages/NewsletterUnsubscribe.jsx"));
 
 // Guest dashboard (protected) — lazy-loaded portal shell
 import RequireAuth from "./components/auth/RequireAuth.jsx";
@@ -85,6 +86,11 @@ export default function App() {
         {/* PayMongo return pages */}
         <Route path="/payment/success" element={<PaymentReturn outcome="success" />} />
         <Route path="/payment/failed"  element={<PaymentReturn outcome="failed" />} />
+
+        {/* Public unsubscribe — reached from the footer link in every
+            newsletter email. HMAC token in the query string is
+            verified server-side before the subscription is removed. */}
+        <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
 
         {/* Guest dashboard (protected), still inside Layout */}
         <Route
