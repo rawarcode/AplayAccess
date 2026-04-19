@@ -1221,146 +1221,146 @@ export default function Resort() {
         </section>
 
         {/* CONTACT */}
-        <section id="contact" className="py-24 bg-gradient-to-br from-sky-50 via-white to-sky-50">
-          <div ref={contactRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <span className="text-4xl mb-3 block">✉️</span>
-              <h2 className="text-3xl font-bold text-slate-900 mb-2">Get In Touch</h2>
-              <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
-              <p className="text-lg text-slate-500 max-w-xl mx-auto">Have questions or need help planning your stay? We'd love to hear from you.</p>
+        <section id="contact" className="py-16 bg-slate-50">
+          <div ref={contactRef} className="reveal-section max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Compact header — tight spacing, no decorative emoji */}
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 mb-1.5">Get in touch</h2>
+              <p className="text-sm text-slate-500">Questions or help planning your stay? We'd love to hear from you.</p>
             </div>
-            <div className="lg:flex lg:items-start lg:justify-between gap-10">
-              <div className="lg:w-1/2 mb-10 lg:mb-0">
 
-                <div className="space-y-4">
+            {/* Two columns: stacked on mobile, side-by-side on desktop.
+                Gap tightened from 10 → 6 so the block reads as one thing. */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+              {/* Left column — compact info card. Three rows stacked
+                  inside a single card instead of three separate cards,
+                  halving the vertical footprint. */}
+              <div className="lg:col-span-2 space-y-4">
+                <div className="bg-white rounded-xl shadow-sm border border-slate-100 divide-y divide-slate-100">
                   {[
-                    { icon: "📍", label: "Address", value: pc.contact.address },
-                    { icon: "📞", label: "Phone",   value: pc.contact.phone   },
-                    { icon: "✉️", label: "Email",   value: pc.contact.email   },
+                    { icon: "fa-map-marker-alt", label: "Address", value: pc.contact.address },
+                    { icon: "fa-phone",          label: "Phone",   value: pc.contact.phone   },
+                    { icon: "fa-envelope",       label: "Email",   value: pc.contact.email   },
                   ].map(({ icon, label, value }) => (
-                    <div key={label} className="flex items-start gap-4 bg-white rounded-xl p-4 shadow-sm border border-slate-100">
-                      <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center text-xl flex-shrink-0">
-                        {icon}
+                    <div key={label} className="flex items-start gap-3 px-4 py-3">
+                      <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
+                        <i className={`fas ${icon} text-xs`} />
                       </div>
-                      <div>
-                        <p className="text-xs font-semibold text-sky-600 uppercase tracking-wide mb-0.5">{label}</p>
-                        <p className="text-slate-700 text-sm">{value}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider">{label}</p>
+                        <p className="text-sm text-slate-700 break-words">{value}</p>
                       </div>
                     </div>
                   ))}
                 </div>
 
+                {/* Follow Us — compact icon row. No header, inline
+                    muted caption to the left. */}
                 {(pc.contact.facebook || pc.contact.instagram || pc.contact.twitter || pc.contact.tiktok) && (
-                  <div className="mt-8">
-                    <h3 className="text-lg font-medium text-slate-900 mb-4">Follow Us</h3>
-                    <div className="flex space-x-4 text-xl">
-                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-sky-600 transition" aria-label="Facebook"><i className="fab fa-facebook"></i></a>}
-                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram"></i></a>}
-                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-sky-500 transition" aria-label="Twitter"><i className="fab fa-twitter"></i></a>}
-                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="text-slate-500 hover:text-slate-900 transition" aria-label="TikTok"><i className="fab fa-tiktok"></i></a>}
+                  <div className="flex items-center gap-3 text-slate-500 text-sm">
+                    <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Follow</span>
+                    <div className="flex items-center gap-3 text-lg">
+                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="hover:text-sky-600 transition"  aria-label="Facebook"><i className="fab fa-facebook"></i></a>}
+                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram"></i></a>}
+                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="hover:text-sky-500 transition"  aria-label="Twitter"><i className="fab fa-twitter"></i></a>}
+                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition" aria-label="TikTok"><i className="fab fa-tiktok"></i></a>}
                     </div>
                   </div>
                 )}
               </div>
 
-              <div className="lg:w-1/2">
-                <form onSubmit={submitContact} className="bg-white p-8 rounded-2xl shadow-lg border-t-4 border-sky-500" noValidate>
-                  <div className="mb-4">
-                    <label htmlFor="contact-name" className="block text-sm font-medium text-slate-700 mb-1">Name</label>
-                    <div className="relative">
-                      <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                      <input
-                        id="contact-name"
-                        type="text"
-                        value={contactForm.name}
-                        onChange={(e) => { setContactForm((p) => ({ ...p, name: e.target.value })); setContactErrors((p) => ({ ...p, name: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.name ? "border-rose-400" : "border-slate-300"}`}
-                        placeholder="Your name"
-                        autoComplete="name"
-                      />
-                    </div>
+              {/* Right column — compact contact form. Dropped p-8
+                  accent border; uses lighter shadow + tighter vertical
+                  rhythm (mb-3 not mb-4) to pull the form taller by less
+                  without losing the field hierarchy. */}
+              <form onSubmit={submitContact} className="lg:col-span-3 bg-white p-5 rounded-xl shadow-sm border border-slate-100" noValidate>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label htmlFor="contact-name" className="block text-xs font-medium text-slate-700 mb-1">Name</label>
+                    <input
+                      id="contact-name"
+                      type="text"
+                      value={contactForm.name}
+                      onChange={(e) => { setContactForm((p) => ({ ...p, name: e.target.value })); setContactErrors((p) => ({ ...p, name: undefined })); }}
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.name ? "border-rose-400" : "border-slate-300"}`}
+                      placeholder="Your name"
+                      autoComplete="name"
+                    />
                     {contactErrors.name && <p className="text-rose-500 text-xs mt-1">{contactErrors.name}</p>}
                   </div>
-
-                  <div className="mb-4">
-                    <label htmlFor="contact-email" className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                    <div className="relative">
-                      <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                      <input
-                        id="contact-email"
-                        type="email"
-                        value={contactForm.email}
-                        onChange={(e) => { setContactForm((p) => ({ ...p, email: e.target.value })); setContactErrors((p) => ({ ...p, email: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.email ? "border-rose-400" : "border-slate-300"}`}
-                        placeholder="Your email"
-                        autoComplete="email"
-                      />
-                    </div>
+                  <div>
+                    <label htmlFor="contact-email" className="block text-xs font-medium text-slate-700 mb-1">Email</label>
+                    <input
+                      id="contact-email"
+                      type="email"
+                      value={contactForm.email}
+                      onChange={(e) => { setContactForm((p) => ({ ...p, email: e.target.value })); setContactErrors((p) => ({ ...p, email: undefined })); }}
+                      className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.email ? "border-rose-400" : "border-slate-300"}`}
+                      placeholder="you@example.com"
+                      autoComplete="email"
+                    />
                     {contactErrors.email && <p className="text-rose-500 text-xs mt-1">{contactErrors.email}</p>}
                   </div>
+                </div>
 
-                  <div className="mb-4">
-                    <label htmlFor="contact-subject" className="block text-sm font-medium text-slate-700 mb-1">Subject</label>
-                    <div className="relative">
-                      <i className="fas fa-pen absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                      <input
-                        id="contact-subject"
-                        type="text"
-                        value={contactForm.subject}
-                        onChange={(e) => { setContactForm((p) => ({ ...p, subject: e.target.value })); setContactErrors((p) => ({ ...p, subject: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.subject ? "border-rose-400" : "border-slate-300"}`}
-                        placeholder="Subject"
-                      />
-                    </div>
-                    {contactErrors.subject && <p className="text-rose-500 text-xs mt-1">{contactErrors.subject}</p>}
-                  </div>
+                <div className="mb-3">
+                  <label htmlFor="contact-subject" className="block text-xs font-medium text-slate-700 mb-1">Subject</label>
+                  <input
+                    id="contact-subject"
+                    type="text"
+                    value={contactForm.subject}
+                    onChange={(e) => { setContactForm((p) => ({ ...p, subject: e.target.value })); setContactErrors((p) => ({ ...p, subject: undefined })); }}
+                    className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.subject ? "border-rose-400" : "border-slate-300"}`}
+                    placeholder="What's this about?"
+                  />
+                  {contactErrors.subject && <p className="text-rose-500 text-xs mt-1">{contactErrors.subject}</p>}
+                </div>
 
-                  <div className="mb-4">
-                    <label htmlFor="contact-message" className="block text-sm font-medium text-slate-700 mb-1">Message</label>
-                    <div className="relative">
-                      <i className="fas fa-comment-alt absolute left-3 top-3 text-slate-400"></i>
-                      <textarea
-                        id="contact-message"
-                        rows={4}
-                        value={contactForm.message}
-                        onChange={(e) => { setContactForm((p) => ({ ...p, message: e.target.value })); setContactErrors((p) => ({ ...p, message: undefined })); }}
-                        className={`w-full pl-10 pr-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.message ? "border-rose-400" : "border-slate-300"}`}
-                        placeholder="Your message"
-                      />
-                    </div>
-                    {contactErrors.message && <p className="text-rose-500 text-xs mt-1">{contactErrors.message}</p>}
-                  </div>
+                <div className="mb-3">
+                  <label htmlFor="contact-message" className="block text-xs font-medium text-slate-700 mb-1">Message</label>
+                  <textarea
+                    id="contact-message"
+                    rows={3}
+                    value={contactForm.message}
+                    onChange={(e) => { setContactForm((p) => ({ ...p, message: e.target.value })); setContactErrors((p) => ({ ...p, message: undefined })); }}
+                    className={`w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 ${contactErrors.message ? "border-rose-400" : "border-slate-300"}`}
+                    placeholder="Tell us how we can help…"
+                  />
+                  {contactErrors.message && <p className="text-rose-500 text-xs mt-1">{contactErrors.message}</p>}
+                </div>
 
-                  <button
-                    disabled={contactSubmitting}
-                    className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-semibold py-3 px-4 rounded-xl shadow hover:shadow-md transition-all"
-                  >
-                    {contactSubmitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Sending...</> : <><i className="fas fa-paper-plane mr-2"></i>Send Message</>}
-                  </button>
-                </form>
-              </div>
+                <button
+                  disabled={contactSubmitting}
+                  className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 px-4 rounded-md transition"
+                >
+                  {contactSubmitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Sending...</> : <><i className="fas fa-paper-plane mr-2"></i>Send message</>}
+                </button>
+              </form>
             </div>
 
-            {/* Map — full width below contact columns */}
+            {/* Map — height reduced from 380 → 240px. Keeps directions
+                value without dominating the scroll. */}
             {(pc.contact.map_url || pc.contact.osm_url) && (
-              <div className="mt-12">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                    <span>📍</span> Find Us
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                    <i className="fas fa-map-marker-alt text-sky-600 text-xs" />
+                    Find us
                   </h3>
                   {(pc.contact.directions_url || pc.contact.map_url) && (
                     <a
                       href={pc.contact.directions_url || "https://maps.app.goo.gl/cCa9LepoeaXXh6xm6"}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-sm text-sky-600 hover:text-sky-800 font-medium"
+                      className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800 font-medium"
                     >
-                      <i className="fas fa-directions text-xs"></i>
-                      Get Directions
+                      <i className="fas fa-directions" />
+                      Get directions
                     </a>
                   )}
                 </div>
-                <div className="rounded-2xl overflow-hidden shadow-md border border-slate-200 w-full" style={{ height: "380px" }}>
+                <div className="rounded-xl overflow-hidden shadow-sm border border-slate-200 w-full" style={{ height: '240px' }}>
                   <iframe
                     src={pc.contact.osm_url || `https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971`}
                     width="100%"
@@ -1371,52 +1371,60 @@ export default function Resort() {
                     title="Aplaya Beach Resort location"
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-slate-400 text-right">
+                <p className="mt-1 text-[10px] text-slate-400 text-right">
                   Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline hover:text-slate-600">OpenStreetMap</a> contributors
                 </p>
               </div>
             )}
-          </div>
-        </section>
 
-        {/* NEWSLETTER */}
-        {pc.newsletter.visible !== false && (
-        <section id="newsletter" className="py-16 bg-sky-600">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-2xl shadow-lg px-8 py-10 max-w-2xl mx-auto text-center">
-              <h2 className="text-2xl font-bold text-slate-900 mb-3">{pc.newsletter.title}</h2>
-              <p className="text-slate-600 mb-6">{pc.newsletter.subtitle}</p>
+            {/* Inline newsletter strip — used to be its own py-16 section
+                with a full-width sky-600 background. Merged here as a
+                slim card so it's still functional without adding another
+                scroll-length of dedicated real estate. Hidden when the
+                owner turns off pc.newsletter.visible in the CMS. */}
+            {pc.newsletter.visible !== false && (
+              <div id="newsletter" className="mt-8 bg-white rounded-xl shadow-sm border border-slate-100 px-5 py-4">
+                <form onSubmit={submitNewsletter} className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
+                      <i className="fas fa-bell text-sm" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-900 truncate">{pc.newsletter.title || 'Stay in the loop'}</p>
+                      <p className="text-xs text-slate-500">Occasional updates on offers &amp; events. Unsubscribe anytime.</p>
+                    </div>
+                  </div>
 
-              <form onSubmit={submitNewsletter}>
-                <div className="flex">
-                  <div className="relative flex-grow">
-                    <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                  <div className="flex gap-2 sm:flex-shrink-0">
                     <input
                       type="email"
                       aria-label="Email address for newsletter"
                       value={newsletter.email}
                       onChange={(e) => setNewsletter((p) => ({ ...p, email: e.target.value, msg: "" }))}
-                      placeholder="Your email address"
+                      placeholder="your@email.com"
                       disabled={newsletter.submitting}
                       autoComplete="email"
-                      className="w-full pl-10 pr-3 py-3 rounded-l-md border border-slate-300 focus:outline-none focus:ring-2 focus:ring-sky-500 text-slate-900 disabled:bg-slate-50"
+                      className="flex-1 sm:w-56 px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-50"
                     />
+                    <button
+                      type="submit"
+                      disabled={newsletter.submitting}
+                      className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-md transition"
+                    >
+                      {newsletter.submitting
+                        ? <><i className="fas fa-spinner fa-spin mr-1"></i>Subscribing…</>
+                        : 'Subscribe'}
+                    </button>
                   </div>
-                  <button
-                    type="submit"
-                    disabled={newsletter.submitting}
-                    className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium px-6 py-3 rounded-r-md transition shrink-0"
-                  >
-                    {newsletter.submitting ? <><i className="fas fa-spinner fa-spin mr-1"></i>Subscribing...</> : <><i className="fas fa-bell mr-1"></i>Subscribe</>}
-                  </button>
-                </div>
-              </form>
-
-              <p className="text-xs text-slate-400 mt-4">We respect your privacy. Unsubscribe at any time.</p>
-            </div>
+                </form>
+              </div>
+            )}
           </div>
         </section>
-        )}
+
+        {/* Newsletter section was here; merged into the Contact section
+            above as an inline strip. The #newsletter anchor still works
+            since the inline card inherits the id. */}
       </div>
 
       {/* Modals */}
