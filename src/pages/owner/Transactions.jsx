@@ -43,7 +43,18 @@ function printTransactions(rows) {
   // Money actually collected — used for the Revenue Collected KPI card
   const revenueCollected = rows.reduce((s, b) => s + collectedAmt(b), 0);
   const statusCount = (s) => rows.filter(b => b.status === s).length;
-  const tableRows = rows.map(b => `<tr${b.status==='Cancelled'?' style="color:#94a3b8"':''}><td style="font-family:monospace;font-size:8.5pt">${esc(b.id)}</td><td>${esc((b.checkIn||'').slice(0,10))}</td><td>${esc(b.guest)}</td><td>${esc(b.roomType)}</td><td style="text-align:right">${Number(b.discount)>0?`₱${fmtN(b.discount)}`:'—'}</td><td style="text-align:right">₱${fmtN(b.total)}</td><td style="text-align:right;color:#92400e">${Number(b.entranceFee)>0?`₱${fmtN(b.entranceFee)}`:'—'}</td><td>${statusBadge(esc(b.status))}</td><td>${esc(b.paymentMethod||'—')}</td></tr>`).join('');
+  const tableRows = rows.map(b => {
+    const collected = collectedAmt(b);
+    const dim = b.status === 'Cancelled' ? ' style="color:#94a3b8"' : '';
+    // Collected column is the money ACTUALLY received (paid_amount),
+    // shown in emerald when > 0 so the reader can trace the Revenue
+    // Collected KPI back to specific rows. Forfeited cancellation fees
+    // appear here even though the row itself is greyed out.
+    const collectedCell = collected > 0
+      ? `<td style="text-align:right;color:#059669;font-weight:bold">₱${fmtN(collected)}</td>`
+      : `<td style="text-align:right;color:#94a3b8">—</td>`;
+    return `<tr${dim}><td style="font-family:monospace;font-size:8.5pt">${esc(b.id)}</td><td>${esc((b.checkIn||'').slice(0,10))}</td><td>${esc(b.guest)}</td><td>${esc(b.roomType)}</td><td style="text-align:right">${Number(b.discount)>0?`₱${fmtN(b.discount)}`:'—'}</td><td style="text-align:right">₱${fmtN(b.total)}</td><td style="text-align:right;color:#92400e">${Number(b.entranceFee)>0?`₱${fmtN(b.entranceFee)}`:'—'}</td>${collectedCell}<td>${statusBadge(esc(b.status))}</td><td>${esc(b.paymentMethod||'—')}</td></tr>`;
+  }).join('');
   // Landscape — the 9-column transaction table overflowed A4 portrait,
   // clipping the right edge on both the KPI cards (Revenue Collected)
   // and the table (Room Total column onward). Landscape gives ~29.7cm
@@ -54,7 +65,7 @@ function printTransactions(rows) {
 <div class="cards"><div class="card"><div class="lbl">Total Records</div><div class="val">${rows.length}</div></div><div class="card"><div class="lbl">Active Bookings</div><div class="val">${active.length}</div></div><div class="card"><div class="lbl">Total Discounts</div><div class="val">₱${fmtN(discTotal)}</div></div><div class="card"><div class="lbl">Revenue Collected</div><div class="val">₱${fmtN(revenueCollected)}</div></div></div>
 <div class="sech">Status Breakdown</div><div class="srow">${['Confirmed','Checked In','Completed','Cancelled'].map(s=>`<div class="sbox"><div class="n">${statusCount(s)}</div><div class="s">${s}</div></div>`).join('')}</div>
 <div class="sech">All Transactions</div>
-<table><thead><tr><th>Booking ID</th><th>Check-in</th><th>Guest</th><th>Room</th><th style="text-align:right">Discount</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th><th>Payment</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="4">Total (excl. cancelled)</td><td style="text-align:right">₱${fmtN(discTotal)}</td><td style="text-align:right">₱${fmtN(total - efTotal)}</td><td style="text-align:right">₱${fmtN(efTotal)}</td><td colspan="2"></td></tr></tfoot></table>
+<table><thead><tr><th>Booking ID</th><th>Check-in</th><th>Guest</th><th>Room</th><th style="text-align:right">Discount</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th style="text-align:right">Collected</th><th>Status</th><th>Payment</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="4">Totals</td><td style="text-align:right">₱${fmtN(discTotal)}</td><td style="text-align:right">₱${fmtN(total - efTotal)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right">₱${fmtN(efTotal)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right;color:#6ee7b7">₱${fmtN(revenueCollected)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">all rows</div></td><td colspan="2"></td></tr></tfoot></table>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
   const w = window.open('','_blank'); w.document.write(html); w.document.close();
