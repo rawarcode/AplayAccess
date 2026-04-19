@@ -26,7 +26,8 @@ function calcEntrance(b, rates = FALLBACK_RATES) {
 //   Collected ₱X  — booking checked out, payment finalised (emerald)
 //   Due ₱X        — outstanding balance (sky)
 //   Due ₱X (₱Y paid) — partial payment landed, balance remaining (sky)
-//   Forfeited ₱X  — cancelled, reservation fee retained (rose)
+//   Forfeited ₱X  — cancelled WITH paid_amount > 0 (rose)
+//   No payment    — cancelled with nothing collected (slate)
 //
 // Shared between Billing table's "Payment" column and Bookings table's
 // payment column so staff moving between the two pages see consistent
@@ -53,10 +54,24 @@ export default function PaymentPill({ booking, entranceRates }) {
     );
   }
   if (booking?.status === 'Cancelled') {
+    // Two flavors: the guest actually paid something before cancelling
+    // (forfeited revenue — rose) vs they abandoned before any money
+    // cleared (neutral — slate). Using reservation_fee as the amount
+    // here was a bug: that column is the quoted upfront charge, not
+    // proof of collection, so it mis-labeled abandoned cancellations
+    // as forfeited-paid at the quoted 20%.
+    if (paid > 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
+          <i className="fas fa-ban text-[10px]" aria-hidden="true"></i>
+          Forfeited {fmtMoney(paid)}
+        </span>
+      );
+    }
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
-        <i className="fas fa-ban text-[10px]" aria-hidden="true"></i>
-        Forfeited {fmtMoney(booking.reservationFee ?? 0)}
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
+        <i className="fas fa-circle-minus text-[10px]" aria-hidden="true"></i>
+        No payment
       </span>
     );
   }

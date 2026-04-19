@@ -213,12 +213,24 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                   <span>{fmtMoney(grandTotal)}</span>
                 </div>
 
-                {/* Paid so far / outstanding — status line */}
+                {/* Paid so far / outstanding — status line.
+                    Cancelled branch shows forfeited = paid_amount (what
+                    was actually kept), not reservation_fee (the quoted
+                    upfront). When the guest never paid, paid_amount is
+                    0 and we render a neutral "No payment received"
+                    line instead of claiming money was forfeited. */}
                 {b.status === 'Cancelled' ? (
-                  <div className="flex justify-between px-4 py-3 bg-rose-50 text-rose-700 font-semibold">
-                    <span>Forfeited (Non-refundable)</span>
-                    <span>{fmtMoney(b.reservationFee ?? 0)}</span>
-                  </div>
+                  paidSoFar > 0 ? (
+                    <div className="flex justify-between px-4 py-3 bg-rose-50 text-rose-700 font-semibold">
+                      <span>Forfeited (Non-refundable)</span>
+                      <span>{fmtMoney(paidSoFar)}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between px-4 py-3 bg-slate-50 text-slate-500 font-medium">
+                      <span>No payment received</span>
+                      <span>—</span>
+                    </div>
+                  )
                 ) : (
                   <>
                     {paidSoFar > 0 && (
@@ -289,7 +301,8 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
           )}
           {b.status === 'Cancelled' && (
             <p className="flex-1 text-center text-sm text-rose-600 py-2">
-              <i className="fas fa-ban mr-1"></i>Reservation fee forfeited
+              <i className="fas fa-ban mr-1"></i>
+              {paidSoFar > 0 ? 'Reservation fee forfeited' : 'Cancelled — no payment received'}
             </p>
           )}
           {b.status === 'Pending' && (
