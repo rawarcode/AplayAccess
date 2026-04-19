@@ -23,10 +23,11 @@ export default function RequireAuth({ children }) {
     return <Navigate to={ROLE_REDIRECTS[user.role]} replace />;
   }
 
-  // Guest must verify email before accessing dashboard
-  if (user.role === "guest" && !user.email_verified_at) {
-    return <Navigate to="/verify-email" replace />;
-  }
-
+  // Unverified guests are allowed into the dashboard. The persistent
+  // UnverifiedEmailBanner (mounted in DashboardShell) nudges them to
+  // verify, and BookingController::store still 403s any booking attempt
+  // from an unverified account. This lets guests browse / manage the
+  // profile they just created without being stonewalled on the
+  // /verify-email page when the OTP email is slow or bounces.
   return children;
 }

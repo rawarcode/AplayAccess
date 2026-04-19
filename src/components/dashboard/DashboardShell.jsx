@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { getNotifications, markNotificationRead, markAllNotificationsRead } from "../../lib/notificationApi.js";
 import { getMessages } from "../../lib/messageApi.js";
 import { Helmet } from "react-helmet-async";
+import UnverifiedEmailBanner from "../UnverifiedEmailBanner.jsx";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -191,6 +192,10 @@ export default function DashboardShell() {
   return (
     <div className="pt-16">
       <Helmet><title>Dashboard — Aplaya Beach Resort</title></Helmet>
+      {/* Sticky nudge for unverified guests — hidden once email is
+          verified. Click opens the 6-digit OTP modal without forcing
+          the user onto the standalone /verify-email page. */}
+      <UnverifiedEmailBanner />
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />

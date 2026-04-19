@@ -34,8 +34,13 @@ export default function Signup() {
   function closeAlert() {
     const wasSuccess = alert.type === "success";
     setAlert((s) => ({ ...s, open: false }));
+    // Land unverified guests on the dashboard. The persistent
+    // UnverifiedEmailBanner there nudges them to verify, and the
+    // booking flow blocks unverified users with a clear CTA — so
+    // we don't need to pin them on a verify-only page while the OTP
+    // email is in flight.
     if (wasSuccess) {
-      navigate("/verify-email");
+      navigate("/dashboard");
     }
   }
 

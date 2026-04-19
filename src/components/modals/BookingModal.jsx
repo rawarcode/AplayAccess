@@ -7,6 +7,8 @@ import { validatePromo } from "../../lib/adminApi.js";
 import { fmtDateTime } from "../../lib/format";
 import HourGridPicker from "../ui/HourGridPicker.jsx";
 import { savePendingPayment, clearPendingPayment } from "../../hooks/usePendingPayment.js";
+import { useAuth } from "../../context/AuthContext.jsx";
+import VerifyEmailModal from "./VerifyEmailModal.jsx";
 
 // Payment countdown length (seconds). Bumped from 5 to 15 min because
 // GCash users often need to unlock their phone, open the app, and
@@ -53,6 +55,14 @@ function formatHourLabel(h) {
 }
 
 export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false }) {
+  // Unverified authenticated guests are blocked server-side
+  // (BookingController::store returns 403) — surface that requirement
+  // in the UI so they can verify inline instead of hitting a cryptic
+  // error at the payment step. Guest-mode bookings skip this check
+  // since they collect email on the form itself.
+  const { user } = useAuth();
+  const needsVerification = !guestMode && user && !user.email_verified_at;
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const modalRef        = useRef(null);
   const bookingResultRef = useRef(null); // stores API response after booking created
   const [bookingType, setBookingType] = useState("day"); // "day" | "night" | "24hr"
@@ -573,7 +583,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
                 <div>
                   <label htmlFor="bm-guest-email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address <span className="text-red-600" aria-hidden="true">*</span>
+                    Email address <span className="text-gray-400 font-normal">— for your receipt and booking link</span>{' '}
+                    <span className="text-red-600" aria-hidden="true">*</span>
                   </label>
                   <input
                     id="bm-guest-email"
@@ -993,8 +1004,42 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </span>
               </div>
 
+              {/* Unverified-email gate — shown in place of the Review
+                  button when the authenticated user hasn't verified.
+                  Clicking "Verify Now" opens the OTP modal inline so
+                  they can finish without leaving this flow. */}
+              {!paymentPopup && needsVerification && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <i className="fas fa-exclamation-triangle text-amber-600 mt-0.5"></i>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-amber-900">Verify your email before booking</p>
+                      <p className="text-xs text-amber-800 mt-1">
+                        We need to confirm you own <strong className="break-all">{user?.email}</strong> before accepting a reservation. Takes 30 seconds.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="flex-1 border border-amber-300 bg-white text-amber-900 hover:bg-amber-100 font-medium py-2.5 px-4 rounded-md text-sm"
+                    >
+                      <i className="fas fa-arrow-left mr-2"></i>Back
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVerifyOpen(true)}
+                      className="flex-[2] bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 px-4 rounded-md text-sm"
+                    >
+                      <i className="fas fa-envelope-open-text mr-2"></i>Verify Now
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Back + Review Booking buttons */}
-              {!paymentPopup && (
+              {!paymentPopup && !needsVerification && (
                 <div className="flex gap-3">
                   <button
                     type="button"
@@ -1314,6 +1359,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           );
         })()}
       </div>
+
+      {/* Verify-email modal — opens on top of the BookingModal when the
+          authenticated guest hits the "Verify Now" CTA. Closes after
+          success; the refreshed user state propagates and the
+          needsVerification gate clears on the next render. */}
+      <VerifyEmailModal open={verifyOpen} onClose={() => setVerifyOpen(false)} />
     </Modal>
   );
 }
