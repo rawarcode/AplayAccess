@@ -574,7 +574,11 @@ export default function GuestDashboard() {
                 ];
                 if (entrance > 0) rows.push(["Entrance Fee", `\u20B1${entrance.toLocaleString()}`]);
                 rows.push(["Grand Total", `\u20B1${grandTotal.toLocaleString()}`]);
-                if (Number(selected.reservationFee) > 0) {
+                // Only show "Reservation Fee Paid" when paid_amount covers
+                // the quoted reservation fee. Otherwise the UI claims a
+                // payment happened when the reservation_fee column is
+                // just the quoted upfront charge, not a receipt.
+                if (Number(selected.reservationFee) > 0 && paid >= Number(selected.reservationFee)) {
                   rows.push(["Reservation Fee Paid", `\u20B1${Number(selected.reservationFee).toLocaleString()}`]);
                 }
                 if (paid > 0) rows.push(["Paid so far", `\u20B1${paid.toLocaleString()}`]);

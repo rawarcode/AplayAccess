@@ -11,20 +11,23 @@ const fmt = (v) => `₱${Number(v || 0).toLocaleString("en-PH")}`;
 const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 
 // Money actually collected for a booking. paidAmount is the backend's
-// single source of truth — maintained by the payment webhook, collectPayment,
-// and walk-in creation; and recomputed when fees change post-payment.
-// Falls back to the old status-based heuristic only for bookings that
-// predate the paid_amount column backfill (defensive, not expected).
+// single source of truth — maintained by the payment webhook,
+// collectPayment, and walk-in creation; recomputed when fees change
+// post-payment. Since the backend always emits paidAmount as a number
+// (via `(float) ($b->paid_amount ?? 0)`), the `!= null` check always
+// succeeds and the fallback below is dead code in practice. Kept as
+// defensive scaffolding for older client builds talking to newer
+// backends, but the Cancelled branch no longer returns reservationFee:
+// that column is the QUOTED upfront charge, not the collected amount,
+// and using it would double-count forfeited revenue when paidAmount
+// is genuinely 0.
 function collectedAmt(b) {
   if (!b) return 0;
   if (b.paidAmount != null) return Number(b.paidAmount);
-  // Legacy fallback — shouldn't be hit after the paid_amount backfill.
-  if (b.status === "Pending") return 0;
-  if (b.status === "Cancelled") return Number(b.reservationFee || 0);
   if (b.status === "Completed" || b.fullyPaid) {
     return Number(b.total || 0) + Number(b.entranceFee || 0);
   }
-  return Number(b.reservationFee || 0);
+  return 0;
 }
 
 function printTransactions(rows) {

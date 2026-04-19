@@ -685,7 +685,12 @@ export default function MyBookings() {
                 ];
                 if (entrance > 0) rows.push(["Entrance Fee", `₱${entrance.toLocaleString()}`]);
                 rows.push(["Grand Total", `₱${grandTotal.toLocaleString()}`]);
-                if (Number(selected.reservationFee) > 0) {
+                // Only show "Reservation Fee Paid" when money actually cleared
+                // (paidAmount covers the reservation fee). Previously this
+                // rendered for any online booking — because reservation_fee
+                // is set at creation time as the quoted 20% — making
+                // unpaid bookings look like they'd already been paid.
+                if (Number(selected.reservationFee) > 0 && paid >= Number(selected.reservationFee)) {
                   rows.push(["Reservation Fee Paid", `₱${Number(selected.reservationFee).toLocaleString()}`]);
                 }
                 if (paid > 0) rows.push(["Paid so far", `₱${paid.toLocaleString()}`]);

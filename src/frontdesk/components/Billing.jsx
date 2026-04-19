@@ -179,8 +179,14 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
                   </div>
                 )}
 
-                {/* Reservation fee paid */}
-                {Number(b.reservationFee ?? 0) > 0 && (
+                {/* Reservation fee paid — only when paid_amount covers it.
+                    reservation_fee is the QUOTED 20% upfront charge set
+                    at booking creation; it's > 0 on every online booking,
+                    whether or not money has actually cleared. Gating on
+                    paidAmount >= reservationFee prevents the bill from
+                    saying "Paid" when the guest closed PayMongo without
+                    paying. */}
+                {Number(b.reservationFee ?? 0) > 0 && Number(b.paidAmount ?? 0) >= Number(b.reservationFee ?? 0) && (
                   <div className="flex justify-between px-4 py-2.5 border-b text-emerald-700">
                     <span>Reservation Fee Paid</span>
                     <span>− {fmtMoney(b.reservationFee)}</span>
