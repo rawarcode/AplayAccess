@@ -655,14 +655,24 @@ export default function WalkIn() {
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
 
-                  {/* Booking type — compact pills */}
+                  {/* Booking type — compact pills. Walk-in form defaults
+                      date to today so the empty-date case is rare, but if
+                      staff blanks the date input out, lock the pills out
+                      the same way BookingModal does. dayPassed + typeAllowed
+                      both read form.date, so their enable-state is
+                      meaningless without a date. */}
                   <div className="col-span-2">
-                    <label className="block text-xs font-medium text-slate-700 mb-2" id="walkin-booking-type-label">Booking Type *</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-2" id="walkin-booking-type-label">
+                      Booking Type *
+                      {!form.date && (
+                        <span className="ml-2 text-slate-400 font-normal">Pick a date first</span>
+                      )}
+                    </label>
                     <div className="flex gap-2" role="group" aria-labelledby="walkin-booking-type-label">
                       {[
-                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: dayPassed || !typeAllowed('day')   },
-                        { type: 'night', icon: 'fa-moon',  label: 'Night', disabled: !typeAllowed('night') },
-                        { type: '24hr',  icon: 'fa-clock', label: '24 Hrs', disabled: !typeAllowed('24hr')  },
+                        { type: 'day',   icon: 'fa-sun',   label: 'Day',   disabled: !form.date || dayPassed || !typeAllowed('day') },
+                        { type: 'night', icon: 'fa-moon',  label: 'Night', disabled: !form.date || !typeAllowed('night') },
+                        { type: '24hr',  icon: 'fa-clock', label: '24 Hrs', disabled: !form.date || !typeAllowed('24hr') },
                       ].map(opt => {
                         const active = opt.type === '24hr' ? is24hr : form.bookingType === opt.type;
                         return (
@@ -707,11 +717,17 @@ export default function WalkIn() {
 
                   <div className="col-span-2">
                     <label className="block text-xs font-medium text-slate-700 mb-1">
-                      Room *{availChecking && <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>}
+                      Room *
+                      {!form.date ? (
+                        <span className="ml-1 text-slate-400 font-normal">Pick a date first</span>
+                      ) : availChecking && (
+                        <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>
+                      )}
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
                       aria-label="Room selection"
-                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required>
+                      disabled={!form.date}
+                      className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed" required>
                       <option value="">Select room / cottage / pavilion
                       </option>
                       {(() => {
