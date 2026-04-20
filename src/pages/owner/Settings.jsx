@@ -154,15 +154,15 @@ export default function OwnerSettings() {
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
       {/* #5 — Helmet */}
-      <Helmet><title>Settings — Aplaya Beach Resort</title></Helmet>
+      <Helmet><title>Pricing — Aplaya Beach Resort</title></Helmet>
 
       {/* #3 — Page heading with icon-badge */}
       <div>
         <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
           <span className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center">
-            <i className="fas fa-cog text-violet-600"></i>
+            <i className="fas fa-sliders-h text-violet-600"></i>
           </span>
-          Settings
+          Pricing
         </h1>
         <p className="text-sm text-slate-500 mt-1">
           Configure resort-wide pricing that applies to all guest bookings made through the website.

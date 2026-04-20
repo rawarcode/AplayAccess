@@ -23,7 +23,7 @@ const PAGE_TITLES = {
   "/owner/activity-log":  "Activity Log",
   "/owner/users":         "Users",
   "/owner/messages":      "Messages",
-  "/owner/settings":      "Pricing & Settings",
+  "/owner/settings":      "Pricing",
 };
 
 // Three merges in place (2026-04-21):
@@ -55,7 +55,7 @@ const MENU = {
   ],
   system: [
     { path: "/owner/messages", icon: "fa-envelope",   label: "Messages", badgeKey: "unreadMessages" },
-    { path: "/owner/settings", icon: "fa-sliders-h",  label: "Settings" },
+    { path: "/owner/settings", icon: "fa-sliders-h",  label: "Pricing" },
   ],
 };
 
