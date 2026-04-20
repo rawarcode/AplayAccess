@@ -123,19 +123,21 @@ Table announcements {
 
 Table contact_submissions {
   id bigint [pk]
+  user_id bigint [ref: > users.id, null, note: 'NULL for anonymous submitters; stamped if authed']
   name varchar
   email varchar
   subject varchar
   message text
-  Note: 'Read-only from the Owner panel. No FK back to users — submitted by anonymous visitors.'
+  Note: 'Public form. user_id stamped when a logged-in guest submits.'
 }
 
 // ── Newsletter subscribers ────────────────────────────────────────────────
 
 Table newsletter_subscriptions {
   id bigint [pk]
+  user_id bigint [ref: > users.id, null, note: 'NULL for anonymous footer signups']
   email varchar [unique]
-  Note: 'Bulk-send campaigns via Brevo. Email-only — no name/user link.'
+  Note: 'Bulk-send campaigns via Brevo.'
 }
 
 // ── Site settings (pricing + general config) ──────────────────────────────
@@ -147,5 +149,6 @@ Table settings {
   label varchar [note: 'Owner-facing label for the Settings UI']
   type settings_type [default: 'integer']
   group settings_group [default: 'pricing']
+  updated_by bigint [ref: > users.id, null, note: 'Last owner to edit this row']
   Note: 'Key-value store exposed through GET /api/pricing and owner Settings page.'
 }

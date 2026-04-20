@@ -101,5 +101,6 @@ Table auto_reply_rules {
   match_type autoreply_match [default: 'contains']
   is_active boolean [default: true]
   priority int [default: 0, note: 'Higher wins when multiple rules match']
+  created_by bigint [ref: > users.id, null, note: 'Owner who authored the rule']
   Note: 'Public endpoint /api/auto-reply-keywords exposes active rules for the chatbot UI.'
 }

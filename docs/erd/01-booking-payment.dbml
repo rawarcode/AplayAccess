@@ -156,9 +156,10 @@ Table bookings {
 Table booking_amenities {
   id bigint [pk]
   booking_id bigint [ref: > bookings.id, note: 'Cascade on delete']
-  name varchar [note: 'Snapshot. Matches addons.name by convention, no FK']
+  addon_id bigint [ref: > addons.id, null, note: 'NULL if catalog row was deleted (ON DELETE SET NULL)']
+  name varchar [note: 'Snapshot at purchase time — survives catalog renames/deletes']
   qty int [default: 1]
-  unit_price int
+  unit_price int [note: 'Snapshot at purchase time']
   total int
 }
 
@@ -173,7 +174,7 @@ Table addons {
   max_qty int [default: 1]
   per_booking boolean [default: false]
   is_active boolean [default: true]
-  Note: 'Catalog of purchasable add-ons. booking_amenities copies name + price at purchase, no FK back here.'
+  Note: 'Catalog of purchasable add-ons. booking_amenities references by addon_id but keeps name/unit_price snapshots for historical receipts.'
 }
 
 // ── Promo codes ───────────────────────────────────────────────────────────
