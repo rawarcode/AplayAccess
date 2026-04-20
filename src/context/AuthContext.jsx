@@ -165,6 +165,10 @@ export function AuthProvider({ children }) {
     } catch {
       // even if backend fails, clear locally
     }
+    // Capture the email BEFORE we wipe user state — needed as the hint
+    // argument to google.accounts.id.revoke below.
+    const emailHint = user?.email;
+
     // Suppress One Tap for N minutes so logout doesn't immediately
     // re-authenticate the same Google user on the next page render.
     // Also tell Google's widget directly — belt-and-braces in case
@@ -172,6 +176,19 @@ export function AuthProvider({ children }) {
     try {
       localStorage.setItem(SUPPRESS_ONETAP_KEY, String(Date.now() + SUPPRESS_ONETAP_MIN * 60 * 1000));
       window.google?.accounts?.id?.disableAutoSelect?.();
+
+      // Revoke the OAuth grant so Google stops personalizing the
+      // sign-in button ("Sign in as X") for this email + client ID.
+      // After this call, the next render of <GoogleLogin> shows the
+      // generic "Sign in with Google" pill — matching user expectation
+      // that "logged out = Google doesn't recognize me here."
+      // Safe to call unconditionally: revoke() no-ops for emails that
+      // weren't granted in the first place (email-only signups). The
+      // cost is one extra account-picker click on the NEXT sign-in
+      // because Google re-asks for consent.
+      if (emailHint) {
+        window.google?.accounts?.id?.revoke?.(emailHint, () => {});
+      }
     } catch { /* ignore */ }
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
