@@ -50,7 +50,6 @@ Enum promo_type {
 Enum user_role {
   guest
   front_desk
-  admin
   owner
 }
 

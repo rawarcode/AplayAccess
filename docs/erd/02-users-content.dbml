@@ -16,7 +16,6 @@ Project aplaya_users_content {
 Enum user_role {
   guest
   front_desk
-  admin
   owner
 }
 

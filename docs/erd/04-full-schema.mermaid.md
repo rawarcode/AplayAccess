@@ -35,7 +35,7 @@ erDiagram
         varchar name
         varchar email UK
         varchar password
-        enum role "guest, front_desk, admin, owner"
+        enum role "guest, front_desk, owner"
         varchar google_id UK
         varchar email_otp
         varchar phone

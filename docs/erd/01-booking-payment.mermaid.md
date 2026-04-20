@@ -16,7 +16,7 @@ erDiagram
         bigint id PK
         varchar name
         varchar email UK
-        enum role "guest, front_desk, admin, owner"
+        enum role "guest, front_desk, owner"
     }
 
     RESORTS {
