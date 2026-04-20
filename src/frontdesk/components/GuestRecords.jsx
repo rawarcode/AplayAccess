@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
-import { fmtDate, fmtMoney } from '../../lib/format';
+import { fmtDate, fmtMoney, fmtGuestEmail } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function initials(name) {
@@ -262,7 +262,7 @@ export default function GuestRecords() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-sm text-slate-700">{g.email}</p>
+                        <p className="text-sm text-slate-700">{fmtGuestEmail(g.email)}</p>
                         <p className="text-xs text-slate-500">{g.phone}</p>
                       </td>
                       <td className="px-4 py-4 text-sm text-center text-slate-700">{g.totalVisits}</td>

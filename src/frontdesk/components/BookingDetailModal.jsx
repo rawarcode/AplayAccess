@@ -7,7 +7,7 @@ import {
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
-import { fmtDateTime, fmtMoney } from '../../lib/format';
+import { fmtDateTime, fmtMoney, fmtGuestEmail } from '../../lib/format';
 import useFocusTrap from '../../hooks/useFocusTrap.js';
 
 // Entrance fee rates per adult — matches Setting::pricing() defaults.
@@ -458,7 +458,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
   const wi         = parseWalkIn(booking);
   const guestName  = wi ? wi.name  : booking.guest;
-  const guestEmail = wi ? wi.email : (booking.guestEmail || '—');
+  const guestEmail = fmtGuestEmail(wi ? wi.email : booking.guestEmail);
   const guestPhone = wi ? wi.phone : (booking.guestPhone || '—');
   // Room balance remaining before check-in. paidAmount is the backend's
   // authoritative ledger of money actually collected (reservation fee +

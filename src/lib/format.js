@@ -46,6 +46,23 @@ export function fmtMoney(n) {
 }
 
 /**
+ * Render a guest's email for staff-facing lists.
+ *
+ * When a user self-deletes their account, the backend anonymizes the
+ * row — email becomes `deleted_<id>@removed.local`. The booking row
+ * sticks around for financial history (forfeited revenue, past stays)
+ * but the PII is gone. Showing the raw pseudo-address looks like a
+ * leaked DB internal, so we collapse it to "(account deleted)".
+ *
+ * Returns '—' for missing / empty emails too.
+ */
+export function fmtGuestEmail(email) {
+  if (!email) return '—';
+  if (/@removed\.local$/i.test(email)) return '(account deleted)';
+  return email;
+}
+
+/**
  * Date → "YYYY-MM-DD" in the user's LOCAL timezone.
  *
  * Prefer this over `toISOString().slice(0, 10)` whenever the result

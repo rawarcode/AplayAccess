@@ -3,6 +3,7 @@ import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { getAdminGuests } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
+import { fmtGuestEmail } from "../../lib/format.js";
 
 const PAGE_SIZE = 10;
 
@@ -265,7 +266,7 @@ export default function AdminGuests() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium text-slate-900 truncate">{g.name}</p>
-                            <p className="text-xs text-slate-400 truncate">{g.email}</p>
+                            <p className="text-xs text-slate-400 truncate">{fmtGuestEmail(g.email)}</p>
                           </div>
                         </div>
                       </td>
@@ -371,7 +372,7 @@ export default function AdminGuests() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-slate-900 text-lg truncate">{viewGuest.name}</p>
-                  <p className="text-sm text-slate-500 truncate">{viewGuest.email}</p>
+                  <p className="text-sm text-slate-500 truncate">{fmtGuestEmail(viewGuest.email)}</p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span title={viewGuest.is_active ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
@@ -427,11 +428,13 @@ export default function AdminGuests() {
                   <div className="col-span-2">
                     <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Email</p>
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-slate-900 truncate">{viewGuest.email}</p>
-                      <button onClick={() => copyEmail(viewGuest.email)} title="Copy"
-                        className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition shrink-0">
-                        <i className="fas fa-copy text-[10px]"></i>
-                      </button>
+                      <p className="font-semibold text-slate-900 truncate">{fmtGuestEmail(viewGuest.email)}</p>
+                      {!/@removed\.local$/i.test(viewGuest.email ?? '') && (
+                        <button onClick={() => copyEmail(viewGuest.email)} title="Copy"
+                          className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition shrink-0">
+                          <i className="fas fa-copy text-[10px]"></i>
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -448,10 +451,12 @@ export default function AdminGuests() {
             <div className="px-6 pb-6 flex justify-end gap-2">
               <button onClick={() => setViewGuest(null)}
                 className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">Close</button>
-              <button onClick={() => copyEmail(viewGuest.email)}
-                className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
-                <i className="fas fa-envelope mr-1.5 text-xs"></i>Copy Email
-              </button>
+              {!/@removed\.local$/i.test(viewGuest.email ?? '') && (
+                <button onClick={() => copyEmail(viewGuest.email)}
+                  className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
+                  <i className="fas fa-envelope mr-1.5 text-xs"></i>Copy Email
+                </button>
+              )}
             </div>
           </div>
         )}

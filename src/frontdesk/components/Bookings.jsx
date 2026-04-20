@@ -7,7 +7,7 @@ import PaymentPill from '../../components/ui/PaymentPill';
 import BookingDetailModal from './BookingDetailModal';
 import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
-import { fmtDateTime, fmtTime, fmtMoney } from '../../lib/format';
+import { fmtDateTime, fmtTime, fmtMoney, fmtGuestEmail } from '../../lib/format';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -633,7 +633,7 @@ export default function Bookings() {
                             <p className="text-sm font-medium text-slate-900">{guestLabel}</p>
                             {showSourcePill && <SourcePill source={b.source} />}
                           </div>
-                          <p className="text-xs text-slate-500">{wi ? wi.email : b.guestEmail}</p>
+                          <p className="text-xs text-slate-500">{fmtGuestEmail(wi ? wi.email : b.guestEmail)}</p>
                         </td>
                         <td className="px-4 py-3 text-sm text-slate-700 whitespace-nowrap">{b.roomType}</td>
                         <td className="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
