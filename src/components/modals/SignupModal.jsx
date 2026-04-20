@@ -7,8 +7,15 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { api, TOKEN_KEY } from "../../lib/api.js";
 
 export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) {
-  const { loginWithGoogle } = useAuth();
+  const { user, loginWithGoogle } = useAuth();
   const [toast, showToast, clearToast, toastType] = useToast();
+
+  // Close the modal when the user becomes authenticated elsewhere —
+  // One Tap prompt, another tab logging in, Google sign-in completing
+  // in a race with the signup form. Mirrors the same guard in LoginModal.
+  useEffect(() => {
+    if (user && open) onClose?.();
+  }, [user, open, onClose]);
 
   const [error, setError] = useState("");
 

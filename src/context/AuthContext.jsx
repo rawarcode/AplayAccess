@@ -57,6 +57,11 @@ export function AuthProvider({ children }) {
     // cancel_on_tap_outside lets the user dismiss the prompt by clicking
     // anywhere else — less intrusive than Google's default behaviour.
     cancel_on_tap_outside: true,
+    // Chrome 117+ requires FedCM (Federated Credential Management) for
+    // One Tap prompts to actually render. Without this flag the whole
+    // hook silently no-ops in modern browsers — no prompt, no bubble,
+    // no error. Safari + Firefox ignore it gracefully.
+    use_fedcm_for_prompt: true,
     // auto_select stays false so the user still confirms once (option B
     // from the plan — respects consent, not silent login).
     onSuccess: async ({ credential }) => {

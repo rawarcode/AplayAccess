@@ -1,11 +1,11 @@
 // src/components/modals/LoginModal.jsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { GoogleLogin } from "@react-oauth/google";
 
 export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup }) {
-  const { loginWithEmail, loginWithGoogle } = useAuth();
+  const { user, loginWithEmail, loginWithGoogle } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,6 +13,14 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // Close the modal the instant the user becomes authenticated — covers
+  // the One Tap path (where AuthContext sets user directly without
+  // going through this modal's own submit handlers), plus cross-tab
+  // logins that sync via localStorage events.
+  useEffect(() => {
+    if (user && open) onClose?.();
+  }, [user, open, onClose]);
 
   if (!open) return null;
 
