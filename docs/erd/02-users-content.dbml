@@ -1,0 +1,151 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Aplaya Beach Resort — ERD · Users & Content domain
+//
+// Render at https://dbdiagram.io — paste this entire file, hit "Save".
+// Domain: user accounts, reviews (user-generated), site content (gallery,
+// announcements), site configuration, public form submissions.
+// ═══════════════════════════════════════════════════════════════════════════
+
+Project aplaya_users_content {
+  database_type: 'MySQL'
+  Note: 'Aplaya Beach Resort — Users & Content domain'
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+Enum user_role {
+  guest
+  front_desk
+  admin
+  owner
+}
+
+Enum review_status {
+  Pending
+  Approved
+  Rejected
+}
+
+Enum gallery_category {
+  pool
+  rooms
+  dining
+  beach
+  events
+  others
+}
+
+Enum settings_type {
+  integer
+  decimal
+  string
+}
+
+Enum settings_group {
+  pricing
+  general
+}
+
+// ── Users (full definition) ───────────────────────────────────────────────
+
+Table users {
+  id bigint [pk]
+  name varchar
+  email varchar [unique]
+  password varchar [note: 'Bcrypt hash. Random for Google-only accounts.']
+  role user_role [default: 'guest']
+  google_id varchar [unique, null, note: 'Set when linked to a Google account']
+  email_otp varchar [null, note: '6-digit verification code']
+  email_otp_expires_at timestamp [null]
+  phone varchar [null]
+  avatar varchar [null]
+  is_active boolean [default: true, note: 'False after user self-deletes']
+}
+
+// ── Cross-diagram stubs ───────────────────────────────────────────────────
+
+Table resorts {
+  id bigint [pk]
+  name varchar
+  Note: 'Stub — full definition in 01-booking-payment.dbml'
+}
+
+Table bookings {
+  id bigint [pk]
+  user_id bigint
+  status varchar
+  Note: 'Stub — full definition in 01-booking-payment.dbml'
+}
+
+// ── Reviews ───────────────────────────────────────────────────────────────
+
+Table reviews {
+  id bigint [pk]
+  booking_id bigint [ref: > bookings.id, note: 'Cascade on delete']
+  user_id bigint [ref: > users.id, note: 'Cascade on delete']
+  rating int [note: '1–5']
+  comment text [null]
+  status review_status [default: 'Approved']
+  featured boolean [default: false, note: 'Homepage feature flag']
+
+  indexes {
+    (user_id, booking_id) [unique, note: 'One review per user per booking']
+  }
+}
+
+// ── Gallery ───────────────────────────────────────────────────────────────
+
+Table gallery_images {
+  id bigint [pk]
+  resort_id bigint [ref: > resorts.id]
+  image_url varchar
+  caption varchar [null]
+  category gallery_category [default: 'others']
+  sort_order int [default: 0]
+  is_featured boolean [default: false, note: 'Shown on home page']
+  is_hidden boolean [default: false, note: 'Soft-hide without deleting']
+}
+
+// ── Announcements ─────────────────────────────────────────────────────────
+
+Table announcements {
+  id bigint [pk]
+  title varchar
+  body text
+  media_url varchar [null]
+  is_active boolean [default: true]
+  is_pinned boolean [default: false]
+  published_at timestamp [note: 'Scheduled-publish supported']
+  created_by bigint [ref: > users.id, null, note: 'NULL preserves post after creator deleted']
+}
+
+// ── Public contact form submissions ───────────────────────────────────────
+
+Table contact_submissions {
+  id bigint [pk]
+  name varchar
+  email varchar
+  subject varchar
+  message text
+  Note: 'Read-only from the Owner panel. No FK back to users — submitted by anonymous visitors.'
+}
+
+// ── Newsletter subscribers ────────────────────────────────────────────────
+
+Table newsletter_subscriptions {
+  id bigint [pk]
+  email varchar [unique]
+  Note: 'Bulk-send campaigns via Brevo. Email-only — no name/user link.'
+}
+
+// ── Site settings (pricing + general config) ──────────────────────────────
+
+Table settings {
+  id bigint [pk]
+  key varchar [unique, note: 'e.g. reservation_fee_pct, entrance_fee_day']
+  value text
+  label varchar [note: 'Owner-facing label for the Settings UI']
+  type settings_type [default: 'integer']
+  group settings_group [default: 'pricing']
+  Note: 'Key-value store exposed through GET /api/pricing and owner Settings page.'
+}

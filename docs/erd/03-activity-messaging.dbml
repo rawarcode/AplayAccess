@@ -1,0 +1,105 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Aplaya Beach Resort — ERD · Activity & Messaging domain
+//
+// Render at https://dbdiagram.io — paste this entire file, hit "Save".
+// Domain: guest ↔ resort messages, per-user notifications, staff activity
+// audit log, auto-reply chatbot rules.
+// ═══════════════════════════════════════════════════════════════════════════
+
+Project aplaya_activity_messaging {
+  database_type: 'MySQL'
+  Note: 'Aplaya Beach Resort — Activity & Messaging domain'
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+Enum message_sender {
+  guest
+  resort
+}
+
+Enum autoreply_match {
+  contains
+  exact
+  starts_with
+}
+
+// ── Cross-diagram stubs ───────────────────────────────────────────────────
+
+Table users {
+  id bigint [pk]
+  name varchar
+  role varchar
+  Note: 'Stub — full definition in 02-users-content.dbml'
+}
+
+Table resorts {
+  id bigint [pk]
+  name varchar
+  Note: 'Stub — full definition in 01-booking-payment.dbml'
+}
+
+// ── Messages (threaded conversations) ─────────────────────────────────────
+
+Table messages {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  resort_id bigint [ref: > resorts.id]
+  parent_id bigint [ref: > messages.id, null, note: 'Self-ref: thread reply parent. Cascade on delete.']
+  subject varchar [null, note: 'Only set on thread starter']
+  body text
+  sender_type message_sender [default: 'guest']
+  is_read boolean [default: false]
+
+  indexes {
+    (is_read)
+    (parent_id)
+  }
+}
+
+// ── Per-user in-app notifications ─────────────────────────────────────────
+
+Table user_notifications {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  type varchar [note: 'booking_confirmed | booking_cancelled | booking_checked_in | booking_completed | payment_collected | message_received']
+  title varchar
+  body varchar
+  is_read boolean [default: false]
+
+  indexes {
+    (user_id, is_read) [note: 'Unread badge count — hot path']
+  }
+}
+
+// ── Activity log (audit trail) ────────────────────────────────────────────
+
+Table activity_logs {
+  id bigint [pk]
+  user_id bigint [ref: > users.id, null, note: 'NULL preserves log after user delete']
+  user_name varchar [note: 'Snapshot at log time']
+  user_role varchar [note: 'Snapshot at log time']
+  category varchar [note: 'booking | room | user | promo | settings | content | review | system']
+  action varchar [note: 'Short verb: Created, Updated, Cancelled, etc.']
+  description text
+  subject_type varchar [null, note: 'Polymorphic model type — class basename, e.g. "Booking"']
+  subject_id bigint [null, note: 'Polymorphic model id — NO FK constraint']
+  ip_address varchar [null]
+
+  indexes {
+    (category)
+    (created_at) [note: 'Chronological default sort']
+  }
+}
+
+// ── Auto-reply chatbot rules ──────────────────────────────────────────────
+
+Table auto_reply_rules {
+  id bigint [pk]
+  keyword varchar [note: 'Trigger string matched against guest messages']
+  response text
+  match_type autoreply_match [default: 'contains']
+  is_active boolean [default: true]
+  priority int [default: 0, note: 'Higher wins when multiple rules match']
+  Note: 'Public endpoint /api/auto-reply-keywords exposes active rules for the chatbot UI.'
+}

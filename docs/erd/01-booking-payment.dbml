@@ -1,0 +1,191 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Aplaya Beach Resort — ERD · Booking & Payment domain
+//
+// Render at https://dbdiagram.io — paste this entire file, hit "Save".
+// Domain: rooms, bookings, add-ons, promo codes. Core business entities
+// that move money.
+// ═══════════════════════════════════════════════════════════════════════════
+
+Project aplaya_booking_payment {
+  database_type: 'MySQL'
+  Note: 'Aplaya Beach Resort — Booking & Payment domain'
+}
+
+// ── Enums ──────────────────────────────────────────────────────────────────
+
+Enum booking_status {
+  Pending
+  Confirmed
+  "Checked In"
+  Completed
+  Cancelled
+}
+
+Enum booking_type {
+  day      [note: '6 AM – 6 PM']
+  night    [note: '6 PM – 7 AM next day']
+  "24hr"   [note: 'User-picked start hour']
+  "24hr-pm"
+}
+
+Enum room_category {
+  room
+  cottage
+  pavilion
+}
+
+Enum availability_status {
+  available
+  renovation
+  maintenance
+  reserved
+  closed
+}
+
+Enum promo_type {
+  percentage
+  fixed
+}
+
+Enum user_role {
+  guest
+  front_desk
+  admin
+  owner
+}
+
+// ── Users (stub — full definition in 02-users-content.dbml) ───────────────
+
+Table users {
+  id bigint [pk]
+  name varchar
+  email varchar [unique]
+  role user_role
+  Note: 'Stub — see 02-users-content.dbml for full'
+}
+
+// ── Resort & facets ───────────────────────────────────────────────────────
+
+Table resorts {
+  id bigint [pk]
+  name varchar
+  description text [null]
+  address varchar [null]
+  phone varchar [null]
+  email varchar [null]
+  image varchar [null]
+  rating decimal [default: 4.9]
+}
+
+Table amenities {
+  id bigint [pk]
+  resort_id bigint [ref: > resorts.id]
+  name varchar
+  icon varchar [null]
+  description text [null]
+  Note: 'Facet amenities (pool, Wi-Fi). Distinct from booking_amenities.'
+}
+
+// ── Rooms ─────────────────────────────────────────────────────────────────
+
+Table rooms {
+  id bigint [pk]
+  resort_id bigint [ref: > resorts.id]
+  name varchar
+  category room_category [default: 'room']
+  description text [null]
+  day_rate int [default: 1500, note: '6 AM – 6 PM rate']
+  overnight_rate int [default: 2000, note: '6 PM – 7 AM rate']
+  rate_24hr int [default: 2000]
+  allowed_booking_types json [note: 'Subset of booking_type enum — rooms can opt out of e.g. day-only']
+  capacity int [default: 2]
+  capacity_label varchar [null, note: 'Display string: "4–5 pax"']
+  quantity int [default: 1, note: 'Multi-unit rooms (12 Small Cottages share the row)']
+  size varchar [null]
+  beds varchar [null]
+  occupancy varchar [null]
+  view varchar [null]
+  image varchar [null]
+  features json [null]
+  availability_status availability_status [default: 'available']
+}
+
+// ── Bookings ──────────────────────────────────────────────────────────────
+
+Table bookings {
+  id bigint [pk]
+  user_id bigint [ref: > users.id, null, note: 'Null for guest-token bookings']
+  guest_name varchar [null]
+  guest_email varchar [null]
+  guest_phone varchar [null]
+  guest_token uuid [unique, null, note: 'Used for anonymous (no account) bookings']
+  room_id bigint [ref: > rooms.id]
+  check_in datetime
+  check_out datetime
+  checked_in_at timestamp [null]
+  checked_out_at timestamp [null]
+  booking_type booking_type [default: 'day']
+  guests int [default: 1]
+  children int [default: 0]
+  room_rate decimal [default: 0]
+  reservation_fee decimal [default: 150, note: '20% upfront (online), 0 (walk-in)']
+  paid_amount decimal [default: 0, note: 'Source of truth for revenue']
+  taxes decimal [default: 0]
+  discount decimal [default: 0]
+  total decimal [default: 0]
+  entrance_fee decimal [default: 0, note: 'Collected at gate on check-in']
+  entrance_rate_per_head decimal [null, note: 'Snapshotted per-head rate at creation']
+  promo_code varchar [null, note: 'Snapshot of code string (NOT an FK to promo_codes)']
+  payment_method varchar [default: 'GCash']
+  paymongo_link_id varchar [null]
+  paymongo_payment_id varchar [null]
+  paid_at timestamp [null]
+  fully_paid boolean [default: false]
+  special_requests text [null]
+  status booking_status [default: 'Pending']
+
+  indexes {
+    (room_id, status, check_in, check_out) [name: 'bookings_overlap_idx', note: 'Availability-check hot path']
+    (status) [note: 'Filter lists by state']
+    (booking_type)
+  }
+}
+
+// ── Booking add-ons (child rows per booking) ──────────────────────────────
+
+Table booking_amenities {
+  id bigint [pk]
+  booking_id bigint [ref: > bookings.id, note: 'Cascade on delete']
+  name varchar [note: 'Snapshot. Matches addons.name by convention, no FK']
+  qty int [default: 1]
+  unit_price int
+  total int
+}
+
+// ── Add-ons catalog ───────────────────────────────────────────────────────
+
+Table addons {
+  id bigint [pk]
+  name varchar [unique]
+  icon varchar [default: 'fa-tag']
+  description text [null]
+  price int
+  max_qty int [default: 1]
+  per_booking boolean [default: false]
+  is_active boolean [default: true]
+  Note: 'Catalog of purchasable add-ons. booking_amenities copies name + price at purchase, no FK back here.'
+}
+
+// ── Promo codes ───────────────────────────────────────────────────────────
+
+Table promo_codes {
+  id bigint [pk]
+  code varchar [unique]
+  type promo_type [default: 'fixed']
+  value decimal
+  max_uses int [null, note: 'Null = unlimited']
+  uses_count int [default: 0]
+  expires_at datetime [null]
+  is_active boolean [default: true]
+  created_by bigint [ref: > users.id, note: 'Owner who created the code']
+}
