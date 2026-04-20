@@ -15,12 +15,33 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
   const [error, setError] = useState("");
 
   // Close the modal the instant the user becomes authenticated — covers
-  // the One Tap path (where AuthContext sets user directly without
-  // going through this modal's own submit handlers), plus cross-tab
-  // logins that sync via localStorage events.
+  // cross-tab logins that sync via localStorage events plus any path
+  // that sets user outside this modal's own submit handlers.
   useEffect(() => {
     if (user && open) onClose?.();
   }, [user, open, onClose]);
+
+  // useGoogleLogin MUST be called before any early return so the hook
+  // count stays constant across renders (React error #310 otherwise).
+  // Implicit-flow returns { access_token } → backend verifies via
+  // Google's userinfo endpoint.
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (tokenResponse) => {
+      setError("");
+      setSubmitting(true);
+      try {
+        const u = await loginWithGoogle(tokenResponse.access_token);
+        onLoginSuccess?.(u);
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Google sign-in failed. Please try again.";
+        setError(msg);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    onError: () => setError("Google sign-in failed. Please try again."),
+  });
 
   if (!open) return null;
 
@@ -42,27 +63,6 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
       setSubmitting(false);
     }
   }
-
-  // useGoogleLogin's implicit-flow success gives us { access_token, ... }.
-  // We hand the token to the backend, which calls Google's userinfo
-  // endpoint to pull the verified email/sub/name/picture. No JWT.
-  const googleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (tokenResponse) => {
-      setError("");
-      setSubmitting(true);
-      try {
-        const u = await loginWithGoogle(tokenResponse.access_token);
-        onLoginSuccess?.(u);
-      } catch (err) {
-        const msg = err?.response?.data?.message || "Google sign-in failed. Please try again.";
-        setError(msg);
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    onError: () => setError("Google sign-in failed. Please try again."),
-  });
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Sign in">
