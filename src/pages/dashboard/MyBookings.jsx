@@ -1,6 +1,6 @@
 // src/pages/dashboard/MyBookings.jsx
 import { useEffect, useRef, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { getBookings, cancelBooking, downloadReceipt } from "../../lib/bookingApi.js";
 import { submitReview } from "../../lib/reviewApi.js";
 import { api } from "../../lib/api.js";
@@ -323,6 +323,8 @@ export default function MyBookings() {
   // the Continue Payment action button. Feeds BookingModal's
   // resumeBooking prop. Null means the modal is closed.
   const [resuming, setResuming]     = useState(null);
+  const [searchParams] = useSearchParams();
+  const navigate       = useNavigate();
   const [checkingIn, setCheckingIn]     = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [reservationFeePct, setReservationFeePct] = useState(20);
@@ -342,6 +344,22 @@ export default function MyBookings() {
       .then(r => setReservationFeePct(Number(r.data?.data?.reservation_fee_pct ?? 20)))
       .catch(() => {});
   }, []);
+
+  // Deep-link auto-resume — PendingPaymentBanner navigates here with
+  // /dashboard/bookings?resume=<bookingId> when the guest closed the
+  // PayMongo window mid-payment. We wait for items to load, find the
+  // matching Pending row, open BookingModal in resume mode, and strip
+  // the query param so a page refresh doesn't re-trigger the modal.
+  useEffect(() => {
+    const resumeId = searchParams.get('resume');
+    if (!resumeId || loading) return;
+    const booking = items.find(b => String(b.bookingId) === String(resumeId));
+    if (booking && booking.status === 'Pending') {
+      setResuming(toResumeBooking(booking));
+    }
+    navigate('/dashboard/bookings', { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, loading]);
 
   // Poll every 5s while any booking is in an active state
   const itemsRef = useRef(items);
