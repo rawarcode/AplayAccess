@@ -1,22 +1,11 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { useLocation } from "react-router-dom";
-import { useGoogleOneTapLogin } from "@react-oauth/google";
 import { loginRequest, staffLoginRequest, googleLoginRequest, meRequest, logoutRequest } from "../lib/authApi";
 import { TOKEN_KEY } from "../lib/api";
 
 const AuthContext = createContext(null);
 
 const STORAGE_KEY = "aplaya_user_v1";
-// After the user explicitly logs out we suppress One Tap for this many
-// minutes. Otherwise Google's prompt fires the instant the logout
-// redirect lands — an infinite log-out → re-log-in loop.
-const SUPPRESS_ONETAP_KEY = "aplaya_suppress_onetap_until";
-const SUPPRESS_ONETAP_MIN = 5;
-// Staff routes must never trigger guest One Tap — a frontdesk staff who
-// happens to have a Google session would get silently auto-authed as a
-// guest, clobbering their staff login flow.
-const STAFF_ROUTE_PREFIXES = ["/staff-login", "/owner", "/admin", "/frontdesk"];
 
 function normalizeUser(payload) {
   // backend might return { user: {...} } or direct user object
@@ -36,53 +25,6 @@ export function AuthProvider({ children }) {
   });
 
   const [booting, setBooting] = useState(true);
-  const location = useLocation();
-
-  // One Tap auto-login — fires once per mount when the visitor already
-  // has a Google session. Suppressed if: (1) we're mid-boot, (2) they're
-  // already authed, (3) they just logged out, or (4) they're on a
-  // staff-only route. onSuccess swaps the Google credential for an
-  // Aplaya session via the existing backend /api/auth/google endpoint.
-  const isStaffRoute = STAFF_ROUTE_PREFIXES.some(p => location.pathname.startsWith(p));
-  const suppressUntil = (() => {
-    try {
-      const raw = localStorage.getItem(SUPPRESS_ONETAP_KEY);
-      return raw ? Number(raw) : 0;
-    } catch { return 0; }
-  })();
-  const onetapDisabled = booting || !!user || isStaffRoute || Date.now() < suppressUntil;
-
-  useGoogleOneTapLogin({
-    disabled: onetapDisabled,
-    // cancel_on_tap_outside lets the user dismiss the prompt by clicking
-    // anywhere else — less intrusive than Google's default behaviour.
-    cancel_on_tap_outside: true,
-    // Chrome 117+ requires FedCM (Federated Credential Management) for
-    // One Tap prompts to actually render. Without this flag the whole
-    // hook silently no-ops in modern browsers — no prompt, no bubble,
-    // no error. Safari + Firefox ignore it gracefully.
-    use_fedcm_for_prompt: true,
-    // auto_select stays false so the user still confirms once (option B
-    // from the plan — respects consent, not silent login).
-    onSuccess: async ({ credential }) => {
-      if (!credential) return;
-      try {
-        const data = await googleLoginRequest(credential);
-        if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
-        const u = normalizeUser(data);
-        if (u) {
-          setUser(u);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-        }
-      } catch {
-        // Fail silently — user can fall back to the Login modal.
-        // We don't show a toast here because the prompt was unprompted
-        // (the user didn't ask to log in, so don't yell at them if it
-        // doesn't work).
-      }
-    },
-    onError: () => { /* silent */ },
-  });
 
   // Restore session from backend (cookie-based)
   useEffect(() => {
@@ -141,8 +83,13 @@ export function AuthProvider({ children }) {
     return u;
   }
 
-  async function loginWithGoogle(credential) {
-    const data = await googleLoginRequest(credential);
+  // Google sign-in uses OAuth2's implicit flow (access_token), not the
+  // credential/JWT flow. This is why the login button we render is a
+  // custom "Sign in with Google" pill driven by useGoogleLogin — the
+  // generic UI is the whole point. The backend verifies the
+  // access_token by calling Google's userinfo endpoint.
+  async function loginWithGoogle(accessToken) {
+    const data = await googleLoginRequest(accessToken);
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
     }
@@ -165,31 +112,6 @@ export function AuthProvider({ children }) {
     } catch {
       // even if backend fails, clear locally
     }
-    // Capture the email BEFORE we wipe user state — needed as the hint
-    // argument to google.accounts.id.revoke below.
-    const emailHint = user?.email;
-
-    // Suppress One Tap for N minutes so logout doesn't immediately
-    // re-authenticate the same Google user on the next page render.
-    // Also tell Google's widget directly — belt-and-braces in case
-    // the library caches its prompt state.
-    try {
-      localStorage.setItem(SUPPRESS_ONETAP_KEY, String(Date.now() + SUPPRESS_ONETAP_MIN * 60 * 1000));
-      window.google?.accounts?.id?.disableAutoSelect?.();
-
-      // Revoke the OAuth grant so Google stops personalizing the
-      // sign-in button ("Sign in as X") for this email + client ID.
-      // After this call, the next render of <GoogleLogin> shows the
-      // generic "Sign in with Google" pill — matching user expectation
-      // that "logged out = Google doesn't recognize me here."
-      // Safe to call unconditionally: revoke() no-ops for emails that
-      // weren't granted in the first place (email-only signups). The
-      // cost is one extra account-picker click on the NEXT sign-in
-      // because Google re-asks for consent.
-      if (emailHint) {
-        window.google?.accounts?.id?.revoke?.(emailHint, () => {});
-      }
-    } catch { /* ignore */ }
     setUser(null);
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(TOKEN_KEY);

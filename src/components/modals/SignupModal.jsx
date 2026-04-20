@@ -1,6 +1,6 @@
 // src/components/modals/SignupModal.jsx
 import { useState, useEffect, useCallback } from "react";
-import { GoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin } from "@react-oauth/google";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { registerRequest } from "../../lib/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -103,24 +103,27 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
     }
   }
 
-  async function handleGoogleSuccess(credentialResponse) {
-    setError("");
-    setSubmitting(true);
-    try {
-      const u = await loginWithGoogle(credentialResponse.credential);
-      onSignedUp?.(u);
-      showToast("Signed in with Google! Welcome.", "success");
-      onClose?.();
-      resetForm();
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        "Google sign-up failed. Please try again.";
-      setError(msg);
-    } finally {
-      setSubmitting(false);
-    }
-  }
+  // Same implicit-flow pattern as LoginModal — see there for the why.
+  const googleLogin = useGoogleLogin({
+    flow: "implicit",
+    onSuccess: async (tokenResponse) => {
+      setError("");
+      setSubmitting(true);
+      try {
+        const u = await loginWithGoogle(tokenResponse.access_token);
+        onSignedUp?.(u);
+        showToast("Signed in with Google! Welcome.", "success");
+        onClose?.();
+        resetForm();
+      } catch (err) {
+        const msg = err?.response?.data?.message || "Google sign-up failed. Please try again.";
+        setError(msg);
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    onError: () => setError("Google sign-up failed. Please try again."),
+  });
 
   if (!open) return null;
 
@@ -318,18 +321,22 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* Google Sign-Up */}
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={() => setError("Google sign-up failed. Please try again.")}
-                size="large"
-                width="100%"
-                text="signup_with"
-                shape="pill"
-                theme="outline"
-              />
-            </div>
+            {/* Google Sign-Up — custom button (generic "Sign up with Google",
+                never personalized). See LoginModal for flow details. */}
+            <button
+              type="button"
+              onClick={() => googleLogin()}
+              disabled={submitting}
+              className="w-full inline-flex items-center justify-center gap-3 py-2.5 px-4 rounded-md border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.44c-.29 1.48-1.14 2.73-2.4 3.58v3h3.88c2.28-2.1 3.57-5.18 3.57-8.82z"/>
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3c-1.07.72-2.45 1.16-4.05 1.16-3.12 0-5.76-2.11-6.7-4.94H1.29v3.09C3.26 21.3 7.31 24 12 24z"/>
+                <path fill="#FBBC04" d="M5.3 14.3c-.24-.72-.38-1.49-.38-2.3s.14-1.58.38-2.3V6.61H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.39l4.01-3.09z"/>
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.61l4.01 3.09C6.24 6.86 8.88 4.75 12 4.75z"/>
+              </svg>
+              {submitting ? "Signing up..." : "Sign up with Google"}
+            </button>
 
             {/* Already have account */}
             <p className="text-center text-sm text-gray-500">

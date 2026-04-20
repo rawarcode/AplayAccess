@@ -32,8 +32,11 @@ export async function logoutRequest() {
 }
 
 // POST /api/auth/google — Google Sign-In
-export async function googleLoginRequest(credential) {
-  const res = await api.post("/api/auth/google", { credential });
+// Sends the OAuth2 access_token obtained via useGoogleLogin({flow:'implicit'}).
+// Backend calls Google's userinfo endpoint with it to fetch email/sub/name/picture,
+// then runs the same find-or-create logic.
+export async function googleLoginRequest(accessToken) {
+  const res = await api.post("/api/auth/google", { access_token: accessToken });
   return res.data;
 }
 
