@@ -26,46 +26,54 @@ const PAGE_TITLES = {
   "/owner/settings":      "Pricing",
 };
 
-// Three merges in place (2026-04-21):
-//  - Rooms + Add-ons → /owner/rooms (tab=addons for add-ons subpage)
-//  - Content + Announcements → /owner/content (tab=announcements subpage)
-//  - Users + Guests → /owner/users (tab=guests subpage)
+// Sidebar organized by frequency of use (2026-04-21 rearrangement):
+//  - Overview:   universal entry point
+//  - Daily:      touched every shift (messages, money, reviews)
+//  - Management: operational tasks (weekly-ish)
+//  - Marketing:  campaign-driven (seasonal)
+//  - Analytics:  reflective (weekly/monthly)
+//  - Config:     set once, rarely edited
+//
+// Three page merges in place:
+//  - Rooms + Add-ons → /owner/rooms (tab=addons)
+//  - Content + Announcements → /owner/content (tab=announcements)
+//  - Users + Guests → /owner/users (tab=guests)
 // Legacy /owner/guests, /owner/addons, /owner/announcements redirect
 // to the right tab in App.jsx.
 const MENU = {
   overview: [
     { path: "/owner", icon: "fa-tachometer-alt", label: "Dashboard" },
   ],
+  daily: [
+    { path: "/owner/messages",     icon: "fa-envelope",            label: "Messages", badgeKey: "unreadMessages" },
+    { path: "/owner/transactions", icon: "fa-file-invoice-dollar", label: "Transactions" },
+    { path: "/owner/reviews",      icon: "fa-star",                label: "Reviews", badgeKey: "pendingReviews" },
+  ],
   management: [
     { path: "/owner/rooms",    icon: "fa-bed",        label: "Catalog" },
     { path: "/owner/users",    icon: "fa-users-cog",  label: "Users" },
-    { path: "/owner/reviews",  icon: "fa-star",       label: "Reviews", badgeKey: "pendingReviews" },
-  ],
-  website: [
-    { path: "/owner/content",  icon: "fa-globe",      label: "Website" },
   ],
   marketing: [
     { path: "/owner/promo-codes", icon: "fa-tag",               label: "Promo Codes" },
     { path: "/owner/newsletter",  icon: "fa-envelope-open-text", label: "Newsletter" },
   ],
   analytics: [
-    { path: "/owner/transactions", icon: "fa-file-invoice-dollar", label: "Transactions" },
-    { path: "/owner/reports",      icon: "fa-chart-line",          label: "Reports" },
-    { path: "/owner/activity-log", icon: "fa-history",             label: "Activity Log" },
+    { path: "/owner/reports",      icon: "fa-chart-line", label: "Reports" },
+    { path: "/owner/activity-log", icon: "fa-history",    label: "Activity Log" },
   ],
-  system: [
-    { path: "/owner/messages", icon: "fa-envelope",   label: "Messages", badgeKey: "unreadMessages" },
-    { path: "/owner/settings", icon: "fa-sliders-h",  label: "Pricing" },
+  config: [
+    { path: "/owner/content",  icon: "fa-globe",     label: "Website" },
+    { path: "/owner/settings", icon: "fa-sliders-h", label: "Pricing" },
   ],
 };
 
 const SECTION_LABELS = {
   overview:    "Overview",
+  daily:       "Daily",
   management:  "Management",
-  website:     "Website",
   marketing:   "Marketing",
   analytics:   "Analytics",
-  system:      "System",
+  config:      "Config",
 };
 
 export default function OwnerShell() {
