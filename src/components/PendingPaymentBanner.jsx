@@ -1,5 +1,11 @@
 import { useNavigate } from 'react-router-dom';
 import usePendingPayment, { clearPendingPayment } from '../hooks/usePendingPayment.js';
+// clearPendingPayment is only used by the ✕ dismiss button below.
+// handleResume intentionally does NOT clear — otherwise the banner
+// would vanish the moment the user clicks Resume, and if they then
+// close the review modal without paying, it would never return
+// (localStorage empty + no re-save trigger). Cleanup lives in the
+// payment-success, timeout-cancel, and explicit-cancel paths.
 
 // Floating pill shown at the BOTTOM-LEFT of every page when a guest
 // has an open Pending booking they haven't finished paying. Clicking
@@ -28,10 +34,11 @@ export default function PendingPaymentBanner() {
     }
     // Authed: route to MyBookings with a resume hint. That page reads
     // the query param on mount and opens BookingModal in resume mode
-    // pointing at this booking. Clearing the local reminder here means
-    // a successful payment over there won't leave the banner lingering.
+    // pointing at this booking. We do NOT clear the reminder here —
+    // BookingModal's success + cancel + timeout paths own that. If
+    // the user closes the review modal without paying, the banner
+    // stays so they have another chance on the next click.
     navigate(`/dashboard/bookings?resume=${pending.bookingId}`);
-    clearPendingPayment();
   }
 
   return (
