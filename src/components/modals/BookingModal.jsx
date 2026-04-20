@@ -883,7 +883,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {selectedRoomObj && (
                   <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
                     <i className="fas fa-users text-[10px]"></i>
-                    Recommended: {selectedRoomObj.capacity_label ?? selectedRoomObj.occupancy ?? `Up to ${selectedRoomObj.capacity} guests`}
+                    Recommended: {selectedRoomObj.capacity_label ?? `Up to ${selectedRoomObj.capacity} guests`}
                     {availability !== null && roomId && (
                       availability[String(roomId)] === false
                         ? <span className="ml-2 text-red-600"><i className="fas fa-times-circle mr-0.5"></i>Not available</span>
