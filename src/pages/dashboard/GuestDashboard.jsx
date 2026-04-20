@@ -155,18 +155,6 @@ export default function GuestDashboard() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (searchParams.get("book") === "1") {
-      // Defer to openBookingFlow so the ?book=1 deep-link also respects
-      // the one-Pending-at-a-time rule. Runs after bookings fetch resolves.
-      if (!loading) {
-        openBookingFlow();
-        navigate("/dashboard", { replace: true });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, navigate, loading, pendingBooking]);
-
   async function handleDownloadReceipt(b) {
     setDownloadingId(b.bookingId);
     try {
@@ -231,6 +219,18 @@ export default function GuestDashboard() {
       setBookingOpen(true);
     }
   }
+
+  // Handle the ?book=1 deep-link (e.g. from the "Book a stay" CTA in
+  // MyBookings empty state). Placed AFTER pendingBooking + openBookingFlow
+  // are declared so the deps array doesn't hit a TDZ on pendingBooking.
+  useEffect(() => {
+    if (searchParams.get("book") !== "1") return;
+    // Wait for bookings to load so openBookingFlow can see a Pending.
+    if (loading) return;
+    openBookingFlow();
+    navigate("/dashboard", { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, navigate, loading, pendingBooking]);
 
   // ── KPI cards ────────────────────────────────────────────────────────────────
   const kpis = [
