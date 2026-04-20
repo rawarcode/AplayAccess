@@ -24,9 +24,10 @@ export default function UnverifiedEmailBanner() {
       <button
         type="button"
         onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         className="w-full bg-amber-100 border-b border-amber-300 px-4 py-2.5 flex items-center justify-center gap-2 text-sm text-amber-900 hover:bg-amber-200 transition-colors"
       >
-        <i className="fas fa-exclamation-triangle text-amber-600" />
+        <i className="fas fa-exclamation-triangle text-amber-700" aria-hidden="true" />
         <span>
           Your email isn't verified yet.{' '}
           <span className="font-semibold underline">Click here to verify →</span>

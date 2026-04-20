@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getNewsletterSubscribers, sendNewsletterCampaign } from "../../lib/adminApi";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
 
 const TEMPLATES = [
   {
@@ -172,6 +173,19 @@ export default function OwnerNewsletter() {
   // modal, closes on success and lets the result banner in the compose
   // modal take over.
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const confirmDialogRef = useFocusTrap(confirmOpen);
+
+  // Escape closes the confirm modal (but not while actively sending —
+  // we don't want the modal to vanish mid-request).
+  useEffect(() => {
+    if (!confirmOpen) return;
+    function onKey(e) {
+      if (e.key === 'Escape' && !sending) setConfirmOpen(false);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [confirmOpen, sending]);
 
   // Template editing
   const [templates,   setTemplates]   = useState(loadTemplates);
@@ -614,12 +628,18 @@ export default function OwnerNewsletter() {
           className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
           onMouseDown={e => e.target === e.currentTarget && !sending && setConfirmOpen(false)}
         >
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+          <div
+            ref={confirmDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="newsletter-confirm-title"
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+          >
             <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
               <span className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
-                <i className="fas fa-exclamation-triangle text-amber-600 text-sm" />
+                <i className="fas fa-exclamation-triangle text-amber-700 text-sm" aria-hidden="true" />
               </span>
-              <h3 className="text-lg font-bold text-slate-900">Confirm Campaign Send</h3>
+              <h3 id="newsletter-confirm-title" className="text-lg font-bold text-slate-900">Confirm Campaign Send</h3>
             </div>
 
             <div className="p-5 space-y-3 text-sm text-slate-700">

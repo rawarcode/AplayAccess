@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useContent } from "../context/ContentContext.jsx";
 import { getResortRooms } from "../lib/resortApi.js";
+import { getBookings } from "../lib/bookingApi.js";
+import { fmtDateTime } from "../lib/format.js";
 import { RESORT_ID } from "../lib/config.js";
 import { rooms as roomsFallback } from "../data/rooms.js";
 import BookingModal from "../components/modals/BookingModal.jsx";
@@ -120,6 +122,29 @@ export default function Rooms() {
   const [lastBooking,  setLastBooking]  = useState(null);
   const [selectedRoom, setSelectedRoom] = useState("");
   const [pendingRoom,  setPendingRoom]  = useState(null);
+  // One-Pending-at-a-time: fetched on login so Book Now knows whether
+  // to funnel into a resume flow instead of creating a duplicate row.
+  // Refetched after a resume completes / cancels so the rule self-heals
+  // if the user finishes payment elsewhere.
+  const [resumingBooking, setResumingBooking] = useState(null);
+  const [userPendingBooking, setUserPendingBooking] = useState(null);
+
+  // Fetch the logged-in user's bookings once on mount (or when user
+  // becomes set via login) so we can spot an existing Pending. Skipped
+  // for anonymous visitors — server-side 409 still catches duplicates
+  // for authed users who slip past this check.
+  useEffect(() => {
+    if (!user) { setUserPendingBooking(null); return; }
+    let active = true;
+    getBookings()
+      .then(list => {
+        if (!active) return;
+        const pending = list.find(b => b.status === 'Pending') ?? null;
+        setUserPendingBooking(pending);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [user]);
 
   const anyOverlay = bookingOpen || loginOpen || successOpen;
   useLockBodyScroll(anyOverlay);
@@ -170,10 +195,43 @@ export default function Rooms() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  // Map a booking-list row → BookingModal's resumeBooking prop shape.
+  // Kept in-file instead of a shared util since only 3 pages need it
+  // and the mapping is trivial (6 lines).
+  function toResumeBooking(b) {
+    if (!b) return null;
+    const typeLabels = {
+      day: 'Day Visit (6 AM – 6 PM)', night: 'Night Stay (6 PM – 7 AM)',
+      '24hr': '24 Hours', '24hr-pm': '24 Hours',
+    };
+    return {
+      bookingId:        b.bookingId,
+      resId:            b.id,
+      roomName:         b.roomType,
+      bookingType:      b.bookingType,
+      bookingTypeLabel: typeLabels[b.bookingType] ?? null,
+      checkIn:          b.checkIn ? fmtDateTime(b.checkIn) : null,
+      checkOut:         b.checkOut ? fmtDateTime(b.checkOut) : null,
+      guests:           b.guests ?? 1,
+      total:            Number(b.total ?? 0),
+      reservationFee:   Number(b.reservationFee ?? 0),
+      payFull:          false,
+      guestToken:       null,
+    };
+  }
+
   function requestBooking(roomName = "") {
     if (!user) {
       setPendingRoom(roomName);
       setLoginOpen(true);
+      return;
+    }
+    // One-Pending rule: funnel authed users with an existing Pending
+    // into the resume flow instead of creating a duplicate. The
+    // selected-room hint is ignored in resume mode — the existing
+    // booking's room is locked.
+    if (userPendingBooking) {
+      setResumingBooking(toResumeBooking(userPendingBooking));
       return;
     }
     setSelectedRoom(roomName);
@@ -185,9 +243,13 @@ export default function Rooms() {
     setLoginOpen(false);
     showToast(`Welcome back, ${u?.name || ""}!`, "success");
     if (pendingRoom !== null) {
-      setSelectedRoom(pendingRoom);
+      const room = pendingRoom;
       setPendingRoom(null);
-      setBookingOpen(true);
+      // useEffect will repopulate userPendingBooking from the fetch.
+      // Call requestBooking which will branch correctly once the state
+      // settles — small race window but acceptable for the edge case
+      // where the user has a Pending they forgot about.
+      setTimeout(() => requestBooking(room), 0);
     }
   }
 
@@ -507,6 +569,23 @@ export default function Rooms() {
           setBookingOpen(false);
           setLastBooking(booking);
           setSuccessOpen(true);
+        }}
+      />
+      {/* Resume-payment mount — driven by userPendingBooking. Refetches
+          the user's bookings on close so the rule self-heals after a
+          successful payment or cancel. */}
+      <BookingModal
+        open={!!resumingBooking}
+        onClose={() => setResumingBooking(null)}
+        rooms={[]}
+        resumeBooking={resumingBooking}
+        onBooked={() => {
+          setResumingBooking(null);
+          if (user) {
+            getBookings()
+              .then(list => setUserPendingBooking(list.find(b => b.status === 'Pending') ?? null))
+              .catch(() => {});
+          }
         }}
       />
 

@@ -7,6 +7,8 @@ import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { getAnnouncements } from "../lib/resortApi.js";
+import { getBookings } from "../lib/bookingApi.js";
+import { fmtDateTime } from "../lib/format.js";
 import { RESORT_ID } from "../lib/config.js";
 import { Helmet } from "react-helmet-async";
 
@@ -228,6 +230,10 @@ export default function Resort() {
   const navigate = useNavigate();
 
   const [bookingOpen, setBookingOpen] = useState(false);
+  // One-Pending-at-a-time — fetched on login so Book Now can funnel
+  // an authed user with an existing Pending into the resume flow.
+  const [resumingBooking, setResumingBooking] = useState(null);
+  const [userPendingBooking, setUserPendingBooking] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
   const [guestWarningOpen, setGuestWarningOpen] = useState(false);
@@ -343,10 +349,53 @@ export default function Resort() {
     }));
   }, [reviewsApi]);
 
+  // Refetch pending booking state when user logs in / changes.
+  useEffect(() => {
+    if (!user) { setUserPendingBooking(null); return; }
+    let active = true;
+    getBookings()
+      .then(list => {
+        if (!active) return;
+        const pending = list.find(b => b.status === 'Pending') ?? null;
+        setUserPendingBooking(pending);
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [user]);
+
+  // Map a booking-list row → BookingModal's resumeBooking prop shape.
+  function toResumeBooking(b) {
+    if (!b) return null;
+    const typeLabels = {
+      day: 'Day Visit (6 AM – 6 PM)', night: 'Night Stay (6 PM – 7 AM)',
+      '24hr': '24 Hours', '24hr-pm': '24 Hours',
+    };
+    return {
+      bookingId:        b.bookingId,
+      resId:            b.id,
+      roomName:         b.roomType,
+      bookingType:      b.bookingType,
+      bookingTypeLabel: typeLabels[b.bookingType] ?? null,
+      checkIn:          b.checkIn ? fmtDateTime(b.checkIn) : null,
+      checkOut:         b.checkOut ? fmtDateTime(b.checkOut) : null,
+      guests:           b.guests ?? 1,
+      total:            Number(b.total ?? 0),
+      reservationFee:   Number(b.reservationFee ?? 0),
+      payFull:          false,
+      guestToken:       null,
+    };
+  }
+
   function requestBooking(roomName = "") {
     if (!isLoggedIn) {
       setPendingBookingRoom(roomName || "");
       setGuestWarningOpen(true); // show choice: log in, sign up, or continue as guest
+      return;
+    }
+    // One-Pending rule — authed users with an existing Pending get
+    // the resume flow instead of a duplicate booking.
+    if (userPendingBooking) {
+      setResumingBooking(toResumeBooking(userPendingBooking));
       return;
     }
     setGuestMode(false);
@@ -1477,6 +1526,22 @@ export default function Resort() {
           setBookingOpen(false);
           setGuestMode(false);
           setSuccessOpen(true);
+        }}
+      />
+      {/* Resume-payment mount — fires when an authed user with an
+          existing Pending hits any Book Now button on this page. */}
+      <BookingModal
+        open={!!resumingBooking}
+        onClose={() => setResumingBooking(null)}
+        rooms={[]}
+        resumeBooking={resumingBooking}
+        onBooked={() => {
+          setResumingBooking(null);
+          if (user) {
+            getBookings()
+              .then(list => setUserPendingBooking(list.find(b => b.status === 'Pending') ?? null))
+              .catch(() => {});
+          }
         }}
       />
 

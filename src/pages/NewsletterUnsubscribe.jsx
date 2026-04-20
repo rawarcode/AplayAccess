@@ -45,7 +45,7 @@ export default function NewsletterUnsubscribe() {
           {done ? (
             <>
               <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-check text-emerald-600 text-2xl" />
+                <i className="fas fa-check text-emerald-700 text-2xl" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Unsubscribed</h2>
               <p className="text-sm text-slate-500 mb-6">
@@ -59,7 +59,7 @@ export default function NewsletterUnsubscribe() {
           ) : (
             <>
               <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-envelope-circle-check text-amber-600 text-2xl" />
+                <i className="fas fa-envelope-circle-check text-amber-700 text-2xl" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Unsubscribe from newsletter?</h2>
               <p className="text-sm text-slate-500 mb-6">
@@ -70,8 +70,8 @@ export default function NewsletterUnsubscribe() {
               </p>
 
               {error && (
-                <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded-lg text-sm border border-rose-200">
-                  <i className="fas fa-exclamation-circle mr-2" />{error}
+                <div role="alert" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded-lg text-sm border border-rose-200">
+                  <i className="fas fa-exclamation-circle mr-2" aria-hidden="true" />{error}
                 </div>
               )}
 

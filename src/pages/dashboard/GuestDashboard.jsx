@@ -58,6 +58,33 @@ function ReceiptBtn({ bookingId }) {
   );
 }
 
+// Map a GuestDashboard booking row → BookingModal's resumeBooking prop.
+// Mirrors the same shape MyBookings produces so both pages feed the
+// modal's resume path identically.
+function toResumeBooking(b) {
+  if (!b) return null;
+  const typeLabels = {
+    day: 'Day Visit (6 AM – 6 PM)',
+    night: 'Night Stay (6 PM – 7 AM)',
+    '24hr': '24 Hours',
+    '24hr-pm': '24 Hours',
+  };
+  return {
+    bookingId:        b.bookingId,
+    resId:            b.id,
+    roomName:         b.roomType,
+    bookingType:      b.bookingType,
+    bookingTypeLabel: typeLabels[b.bookingType] ?? null,
+    checkIn:          b.checkIn ? fmtDateTime(b.checkIn) : null,
+    checkOut:         b.checkOut ? fmtDateTime(b.checkOut) : null,
+    guests:           b.guests ?? 1,
+    total:            Number(b.total ?? 0),
+    reservationFee:   Number(b.reservationFee ?? 0),
+    payFull:          false,
+    guestToken:       null,
+  };
+}
+
 function renderSpecialRequests(text) {
   if (!text) return null;
   const parts = text.split(/,\s*(?=(?:Walk-in|Phone|Type|Email|Name)\s*:)/i);
@@ -97,6 +124,11 @@ export default function GuestDashboard() {
   const [successOpen,  setSuccessOpen]  = useState(false);
   const [selected,     setSelected]     = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  // Resume-payment state — funnels every "Book a Stay" / Pending-card
+  // click through this when the user has an existing Pending booking.
+  // Enforces the one-Pending-at-a-time rule on the UX side; backend
+  // /api/bookings returns 409 as authoritative enforcement.
+  const [resuming, setResuming] = useState(null);
 
   const [searchParams] = useSearchParams();
   const navigate       = useNavigate();
@@ -125,10 +157,15 @@ export default function GuestDashboard() {
 
   useEffect(() => {
     if (searchParams.get("book") === "1") {
-      setBookingOpen(true);
-      navigate("/dashboard", { replace: true });
+      // Defer to openBookingFlow so the ?book=1 deep-link also respects
+      // the one-Pending-at-a-time rule. Runs after bookings fetch resolves.
+      if (!loading) {
+        openBookingFlow();
+        navigate("/dashboard", { replace: true });
+      }
     }
-  }, [searchParams, navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, navigate, loading, pendingBooking]);
 
   async function handleDownloadReceipt(b) {
     setDownloadingId(b.bookingId);
@@ -178,6 +215,22 @@ export default function GuestDashboard() {
   }, [bookings]);
 
   const nextDays = nextStay ? daysUntil(nextStay.checkIn) : null;
+
+  // Oldest Pending booking — the one a new Book a Stay click should
+  // funnel into. Chosen by creation order so the user resumes the
+  // one that's closest to the 15-min expiry window.
+  const pendingBooking = useMemo(() => bookings.find(b => b.status === 'Pending') ?? null, [bookings]);
+
+  // Entry point for every Book a Stay / Book Now / Pending-card click
+  // on this page. If the guest has an existing Pending, force them
+  // into the resume-or-cancel flow. Otherwise open a fresh modal.
+  function openBookingFlow() {
+    if (pendingBooking) {
+      setResuming(toResumeBooking(pendingBooking));
+    } else {
+      setBookingOpen(true);
+    }
+  }
 
   // ── KPI cards ────────────────────────────────────────────────────────────────
   const kpis = [
@@ -237,6 +290,19 @@ export default function GuestDashboard() {
           setSuccessOpen(true);
         }}
       />
+      {/* Resume-payment instance — separate mount so open=true doesn't
+          race with the fresh-booking modal. Refetches bookings on close
+          so a just-paid or just-cancelled booking updates immediately. */}
+      <BookingModal
+        open={!!resuming}
+        onClose={() => setResuming(null)}
+        rooms={[]}
+        resumeBooking={resuming}
+        onBooked={() => {
+          setResuming(null);
+          getBookings().then(setBookings).catch(() => {});
+        }}
+      />
       <SuccessModal
         open={successOpen}
         onClose={() => { setSuccessOpen(false); setLastBooking(null); }}
@@ -252,10 +318,12 @@ export default function GuestDashboard() {
           <p className="text-slate-500 text-sm mt-0.5">Manage your bookings, profile, and messages.</p>
         </div>
         <button
-          onClick={() => setBookingOpen(true)}
+          onClick={openBookingFlow}
           className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          title={pendingBooking ? 'You have a pending booking — continue or cancel it' : undefined}
         >
-          <i className="fas fa-plus mr-2"></i>Book a Stay
+          <i className="fas fa-plus mr-2"></i>
+          {pendingBooking ? 'Resume Pending Booking' : 'Book a Stay'}
         </button>
       </div>
 
@@ -354,7 +422,7 @@ export default function GuestDashboard() {
               className="px-5 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors">
               Browse Rooms
             </Link>
-            <button onClick={() => setBookingOpen(true)}
+            <button onClick={openBookingFlow}
               className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-medium transition-colors">
               Book Now
             </button>
@@ -398,7 +466,7 @@ export default function GuestDashboard() {
               <div className="px-6 py-10 text-center">
                 <i className="fas fa-calendar-times text-slate-200 text-4xl mb-3 block"></i>
                 <p className="text-slate-400 text-sm">No upcoming bookings.</p>
-                <button onClick={() => setBookingOpen(true)}
+                <button onClick={openBookingFlow}
                   className="mt-3 text-xs text-sky-600 hover:underline font-medium">
                   Book a stay →
                 </button>
@@ -406,8 +474,11 @@ export default function GuestDashboard() {
             ) : (
               upcoming.slice(0, 3).map((b) => {
                 const days = daysUntil(b.checkIn);
+                const onActivate = () => b.status === 'Pending'
+                  ? setResuming(toResumeBooking(b))
+                  : setSelected(b);
                 return (
-                  <div key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}} className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
+                  <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
@@ -442,8 +513,8 @@ export default function GuestDashboard() {
                           </span>
                         )}
                       </div>
-                      <span className="text-xs text-sky-600 font-medium">
-                        Details <i className="fas fa-chevron-right text-[9px] ml-0.5"></i>
+                      <span className={`text-xs font-medium ${b.status === 'Pending' ? 'text-amber-700' : 'text-sky-600'}`}>
+                        {b.status === 'Pending' ? 'Continue payment' : 'Details'} <i className="fas fa-chevron-right text-[9px] ml-0.5"></i>
                       </span>
                     </div>
                   </div>
@@ -489,8 +560,12 @@ export default function GuestDashboard() {
                 <p className="text-xs text-slate-300 mt-1">Your completed bookings will appear here.</p>
               </div>
             ) : (
-              past.slice(0, 3).map((b) => (
-                <div key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}} className="px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer">
+              past.slice(0, 3).map((b) => {
+                const onActivate = () => b.status === 'Pending'
+                  ? setResuming(toResumeBooking(b))
+                  : setSelected(b);
+                return (
+                <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
@@ -532,7 +607,8 @@ export default function GuestDashboard() {
                     </div>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

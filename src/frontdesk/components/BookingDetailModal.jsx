@@ -8,6 +8,7 @@ import {
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
 import { fmtDateTime, fmtMoney } from '../../lib/format';
+import useFocusTrap from '../../hooks/useFocusTrap.js';
 
 // Entrance fee rates per adult — matches Setting::pricing() defaults.
 // Fallback rates for pre-mount / offline render. Live rates come from
@@ -182,6 +183,18 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   // the API call fires. Prevents surprise charges and matches the
   // backend's upgrade-only re-pricing in Admin\BookingController.
   const [transferConfirmOpen, setTransferConfirmOpen] = useState(false);
+  const transferDialogRef = useFocusTrap(transferConfirmOpen);
+
+  // Escape closes the transfer confirm dialog (ignored while the
+  // transfer API call is in flight so the dialog can't vanish mid-save).
+  useEffect(() => {
+    if (!transferConfirmOpen) return;
+    function onKey(e) {
+      if (e.key === 'Escape' && !transferring) setTransferConfirmOpen(false);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [transferConfirmOpen, transferring]);
   const [rooms,            setRooms]            = useState([]);
   const [roomsLoading,     setRoomsLoading]     = useState(false);
   // All bookings — only fetched when the Transfer picker opens, so the
@@ -983,17 +996,23 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
               onMouseDown={e => e.target === e.currentTarget && !transferring && setTransferConfirmOpen(false)}
             >
-              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden">
+              <div
+                ref={transferDialogRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="transfer-confirm-title"
+                className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+              >
                 <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3">
                   <span className={`w-9 h-9 rounded-lg flex items-center justify-center ${
                     transferPreview.isUpgrade ? 'bg-amber-100' : 'bg-violet-100'
                   }`}>
                     <i className={`fas fa-exchange-alt text-sm ${
-                      transferPreview.isUpgrade ? 'text-amber-600' : 'text-violet-600'
-                    }`} />
+                      transferPreview.isUpgrade ? 'text-amber-700' : 'text-violet-700'
+                    }`} aria-hidden="true" />
                   </span>
                   <div className="flex-1">
-                    <h3 className="text-lg font-bold text-slate-900">Confirm Room Transfer</h3>
+                    <h3 id="transfer-confirm-title" className="text-lg font-bold text-slate-900">Confirm Room Transfer</h3>
                     <p className="text-xs text-slate-500">Booking {booking.id}</p>
                   </div>
                 </div>

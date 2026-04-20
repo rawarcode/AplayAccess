@@ -54,10 +54,13 @@ export default function PendingPaymentBanner() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 max-w-sm">
+    <div
+      className="fixed bottom-4 right-4 z-50 max-w-sm"
+      aria-label="Pending payment reminder"
+    >
       <div className="bg-white border-2 border-amber-400 rounded-xl shadow-lg p-4 flex items-start gap-3">
         <span className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-          <i className="fas fa-credit-card text-amber-600" />
+          <i className="fas fa-credit-card text-amber-700" aria-hidden="true" />
         </span>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-slate-900 truncate">
@@ -68,17 +71,17 @@ export default function PendingPaymentBanner() {
             {pending.roomName ? ` · ${pending.roomName}` : ''}
           </p>
           {error && (
-            <p className="text-xs text-rose-600 mt-1">{error}</p>
+            <p className="text-xs text-rose-600 mt-1" role="alert">{error}</p>
           )}
           <button
             type="button"
             onClick={handleResume}
             disabled={opening}
-            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-semibold hover:bg-amber-600 disabled:opacity-60"
+            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 disabled:opacity-60"
           >
             {opening
-              ? <><i className="fas fa-spinner fa-spin" />Opening…</>
-              : <><i className="fas fa-arrow-right-to-bracket" />Resume payment</>}
+              ? <><i className="fas fa-spinner fa-spin" aria-hidden="true" />Opening…</>
+              : <><i className="fas fa-arrow-right-to-bracket" aria-hidden="true" />Resume payment</>}
           </button>
         </div>
         <button
@@ -86,9 +89,9 @@ export default function PendingPaymentBanner() {
           onClick={clearPendingPayment}
           aria-label="Dismiss pending-payment reminder"
           title="Dismiss reminder (booking keeps its hold)"
-          className="text-slate-400 hover:text-slate-700 text-sm shrink-0"
+          className="text-slate-400 hover:text-slate-700 p-2 -m-1 rounded-lg hover:bg-slate-100 shrink-0"
         >
-          <i className="fas fa-times" />
+          <i className="fas fa-times" aria-hidden="true" />
         </button>
       </div>
     </div>

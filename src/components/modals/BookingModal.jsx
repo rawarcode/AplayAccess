@@ -9,6 +9,7 @@ import HourGridPicker from "../ui/HourGridPicker.jsx";
 import { savePendingPayment, clearPendingPayment } from "../../hooks/usePendingPayment.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import VerifyEmailModal from "./VerifyEmailModal.jsx";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
 
 // Payment countdown length (seconds). Bumped from 5 to 15 min because
 // GCash users often need to unlock their phone, open the app, and
@@ -54,7 +55,14 @@ function formatHourLabel(h) {
   return `${twelve}:00 ${suffix}`;
 }
 
-export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false }) {
+export default function BookingModal({ open, onClose, selectedRoom, rooms, onBooked, guestMode = false, resumeBooking = null }) {
+  // Resume mode: user clicked a Pending booking from MyBookings / Dashboard.
+  // We skip the room/date/guests picker entirely — the booking exists
+  // server-side with those values locked in. Only two actions are valid:
+  // Continue Payment (reopen PayMongo via /resume-payment) or Cancel
+  // Booking (so the user can start a fresh one — we enforce one-Pending-
+  // at-a-time on the backend).
+  const isResume = !!resumeBooking;
   // Unverified authenticated guests are blocked server-side
   // (BookingController::store returns 403) — surface that requirement
   // in the UI so they can verify inline instead of hitting a cryptic
@@ -82,6 +90,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
   const [confirmOpen,  setConfirmOpen]  = useState(false);
+  const confirmDialogRef = useFocusTrap(confirmOpen);
 
   // Guest mode — contact info collected when booking without an account
   const [guestName,  setGuestName]  = useState("");
@@ -435,6 +444,110 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }
 
   // ── Step 2: confirmed → call API ───────────────────────────────────────────
+  // Resume flow: reopen PayMongo for an existing Pending booking.
+  // Skips the createBooking step entirely — the row already exists.
+  // Reuses the same paymentPopup state machine (polling + timer +
+  // postMessage listener) as a fresh booking so the confirmed-payment
+  // path is identical.
+  async function handleResume() {
+    if (!resumeBooking) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      // Authed user → /api/bookings/{id}/resume-payment
+      // Guest token → /api/guest-resume-payment (not used from MyBookings
+      // since those are authed, but supported for completeness)
+      const res = resumeBooking.guestToken
+        ? await api.post('/api/guest-resume-payment', {
+            guest_token: resumeBooking.guestToken,
+            pay_full:    Boolean(resumeBooking.payFull),
+          })
+        : await api.post(`/api/bookings/${resumeBooking.bookingId}/resume-payment`, {
+            pay_full: Boolean(resumeBooking.payFull),
+          });
+
+      const checkoutUrl = res?.data?.checkout_url;
+      if (!checkoutUrl) throw new Error('No checkout URL returned');
+
+      // Prep bookingResultRef so the onBooked callback fires with the
+      // same shape a fresh booking would emit.
+      bookingResultRef.current = {
+        roomType:      resumeBooking.roomName ?? '',
+        checkIn:       resumeBooking.checkIn ?? '',
+        checkOut:      resumeBooking.checkOut ?? '',
+        guests:        resumeBooking.guests ?? 1,
+        paymentMethod: 'Online',
+        totals: {
+          reservationFee: resumeBooking.reservationFee ?? 0,
+          balanceDue:     Math.max(0, (resumeBooking.total ?? 0) - (resumeBooking.reservationFee ?? 0)),
+        },
+        bookingData: resumeBooking,
+        guestToken:  resumeBooking.guestToken ?? null,
+      };
+
+      const pw = 600, ph = 700;
+      const pl = Math.round(window.screen.width  / 2 - pw / 2);
+      const pt = Math.round(window.screen.height / 2 - ph / 2);
+      const popup = window.open(
+        checkoutUrl,
+        "paymongo_checkout",
+        `width=${pw},height=${ph},left=${pl},top=${pt},resizable=yes,scrollbars=yes`
+      );
+
+      savePendingPayment({
+        bookingId:  resumeBooking.bookingId,
+        resId:      resumeBooking.resId ?? null,
+        roomName:   resumeBooking.roomName ?? null,
+        guestToken: resumeBooking.guestToken ?? null,
+        payFull:    Boolean(resumeBooking.payFull),
+        expiresAt:  new Date(Date.now() + PAYMENT_WINDOW_SECONDS * 1000).toISOString(),
+      });
+
+      const bId = resumeBooking.guestToken ?? resumeBooking.bookingId;
+      if (!popup || popup.closed) {
+        const tab = window.open(checkoutUrl, '_blank');
+        setPaymentPopup({ bookingId: bId, checkoutUrl, popup: tab });
+        setTimeLeft(PAYMENT_WINDOW_SECONDS);
+        return;
+      }
+      setPaymentPopup({ bookingId: bId, checkoutUrl, popup });
+      setTimeLeft(PAYMENT_WINDOW_SECONDS);
+    } catch (err) {
+      const msg = err?.response?.data?.message
+        ?? 'Could not reopen payment. The booking may have expired.';
+      setError(msg);
+      // 422 = no longer Pending on server — drop local reminder
+      if (err?.response?.status === 422) clearPendingPayment();
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  // Cancel the Pending booking from resume mode so the user can start
+  // a fresh one. Uses the same cancelBooking endpoint the normal cancel
+  // button uses — backend marks status=Cancelled + releases the room
+  // hold. After success we close the modal; the parent's polling will
+  // show the Cancelled row.
+  async function handleCancelResume() {
+    if (!resumeBooking) return;
+    setError("");
+    setSubmitting(true);
+    try {
+      if (resumeBooking.guestToken) {
+        await cancelGuestBooking(resumeBooking.guestToken);
+      } else {
+        await cancelBooking(resumeBooking.bookingId);
+      }
+      clearPendingPayment();
+      onBooked?.(null); // signal parent to refresh
+      onClose();
+    } catch (err) {
+      setError(err?.response?.data?.message ?? 'Could not cancel booking. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   async function handleConfirm() {
     setError("");
     const room = selectedRoomObj;
@@ -540,8 +653,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-2xl font-bold text-gray-900">
-            Book Your Visit at Aplaya
-            {guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
+            {isResume ? 'Continue Pending Booking' : 'Book Your Visit at Aplaya'}
+            {!isResume && guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
           </h3>
           <button onClick={onClose} className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-600" aria-label="Close booking modal"><i className="fas fa-times"></i></button>
         </div>
@@ -555,7 +668,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
         <div>
           {/* Guest info — shown only in guest (no-account) mode, always visible outside steps */}
-          {guestMode && (
+          {!isResume && guestMode && (
             <div className="mb-5">
               <div className="mb-4 rounded-lg bg-amber-50 border border-amber-300 px-4 py-3 flex items-start gap-3">
                 <i className="fas fa-user-secret text-amber-500 mt-0.5 shrink-0"></i>
@@ -615,8 +728,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             </div>
           )}
 
-          {/* Step indicator */}
-          <div className="flex items-center gap-2 mb-5">
+          {/* Step indicator — hidden in resume mode (no steps to show) */}
+          {!isResume && <div className="flex items-center gap-2 mb-5">
             {[{ num: 1, label: 'Details' }, { num: 2, label: 'Payment' }].map((s, i) => (
               <React.Fragment key={s.num}>
                 {i > 0 && <div className={`flex-1 h-px ${step >= s.num ? 'bg-blue-400' : 'bg-gray-200'}`} />}
@@ -631,10 +744,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </button>
               </React.Fragment>
             ))}
-          </div>
+          </div>}
 
           {/* ═══ Step 1 — Details ═══ */}
-          {step === 1 && (
+          {!isResume && step === 1 && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Visit date */}
               <div className="md:col-span-2">
@@ -832,7 +945,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           )}
 
           {/* ═══ Step 2 — Payment ═══ */}
-          {step === 2 && (
+          {!isResume && step === 2 && (
             <div className="space-y-4">
               {/* Promo code input */}
               <div>
@@ -1063,6 +1176,94 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             </div>
           )}
 
+          {/* Resume-mode UI — streamlined review for an already-created
+              Pending booking. Shown when the modal was opened from a
+              "Continue Payment" action. Hidden once paymentPopup is set
+              (the existing payment-in-progress UI below takes over). */}
+          {isResume && !paymentPopup && (
+            <div className="space-y-4">
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+                <span className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                  <i className="fas fa-hourglass-half text-amber-700 text-sm" aria-hidden="true" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-900">Pending Booking</p>
+                  <p className="text-xs text-amber-800 mt-0.5">
+                    Complete payment to confirm this booking, or cancel it to start a new one.
+                    You can only have one pending booking at a time.
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 rounded-xl p-4 space-y-2.5 text-sm">
+                {resumeBooking.resId && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Booking ID</span>
+                    <span className="font-medium text-slate-800">{resumeBooking.resId}</span>
+                  </div>
+                )}
+                <div className="flex justify-between gap-4">
+                  <span className="text-slate-500">Room</span>
+                  <span className="font-medium text-slate-800">{resumeBooking.roomName ?? '—'}</span>
+                </div>
+                {resumeBooking.bookingTypeLabel && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Type</span>
+                    <span className="font-medium text-slate-800">{resumeBooking.bookingTypeLabel}</span>
+                  </div>
+                )}
+                {resumeBooking.checkIn && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Check-in</span>
+                    <span className="font-medium text-slate-800 text-right">{resumeBooking.checkIn}</span>
+                  </div>
+                )}
+                {resumeBooking.checkOut && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Check-out</span>
+                    <span className="font-medium text-slate-800 text-right">{resumeBooking.checkOut}</span>
+                  </div>
+                )}
+                <div className="flex justify-between gap-4 pt-2 border-t border-slate-200">
+                  <span className="text-slate-500">Total</span>
+                  <span className="font-bold text-slate-900">
+                    ₱{Number(resumeBooking.total ?? 0).toLocaleString('en-PH')}
+                  </span>
+                </div>
+                {resumeBooking.reservationFee > 0 && (
+                  <div className="flex justify-between gap-4">
+                    <span className="text-slate-500">Reservation fee due now</span>
+                    <span className="font-semibold text-sky-700">
+                      ₱{Number(resumeBooking.reservationFee ?? 0).toLocaleString('en-PH')}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={handleCancelResume}
+                  disabled={submitting}
+                  className="sm:flex-1 px-4 py-3 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium hover:bg-rose-50 disabled:opacity-60"
+                >
+                  <i className="fas fa-ban mr-1.5" aria-hidden="true" />
+                  Cancel Booking
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResume}
+                  disabled={submitting}
+                  className="sm:flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {submitting
+                    ? <><i className="fas fa-spinner fa-spin mr-1.5" aria-hidden="true" />Opening payment…</>
+                    : <><i className="fas fa-arrow-right-to-bracket mr-1.5" aria-hidden="true" />Continue Payment</>}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Payment popup states — show regardless of step */}
           {paymentPopup && (
             paymentPopup.popup ? (
@@ -1208,22 +1409,27 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           const rateLabel = bookingType === "night" ? "Overnight rate" : is24hr ? "24-hour rate" : "Day visit rate";
           return (
           <div className="fixed inset-0 z-[60] overflow-y-auto flex items-center justify-center px-4 py-10"
-            role="dialog" aria-modal="true" aria-label="Booking confirmation"
             onKeyDown={(e) => { if (e.key === 'Escape') setConfirmOpen(false); }}>
             <div className="absolute inset-0 bg-black/60" onClick={() => setConfirmOpen(false)} />
-            <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+            <div
+              ref={confirmDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="booking-confirm-title"
+              className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden my-4"
+            >
 
               {/* Header */}
               <div className="bg-blue-600 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3 text-white">
-                  <i className="fas fa-clipboard-check text-xl"></i>
+                  <i className="fas fa-clipboard-check text-xl" aria-hidden="true"></i>
                   <div>
-                    <h3 className="font-bold text-lg">Booking Summary</h3>
+                    <h3 id="booking-confirm-title" className="font-bold text-lg">Booking Summary</h3>
                     <p className="text-blue-100 text-xs">Please review before proceeding to payment</p>
                   </div>
                 </div>
-                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white text-lg" aria-label="Close">
-                  <i className="fas fa-times"></i>
+                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white p-2 -mr-2 rounded-lg hover:bg-white/10" aria-label="Close">
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 

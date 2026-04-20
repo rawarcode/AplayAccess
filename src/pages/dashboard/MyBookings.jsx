@@ -5,9 +5,37 @@ import { getBookings, cancelBooking, downloadReceipt } from "../../lib/bookingAp
 import { submitReview } from "../../lib/reviewApi.js";
 import { api } from "../../lib/api.js";
 import Modal from "../../components/modals/Modal.jsx";
+import BookingModal from "../../components/modals/BookingModal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { Helmet } from "react-helmet-async";
 import { fmtDateTime } from "../../lib/format";
+
+// Map a MyBookings row (list shape) to the resumeBooking prop shape
+// that BookingModal expects. Centralised so row-click + action button
+// + entry-point auto-resume stay in sync.
+function toResumeBooking(b) {
+  if (!b) return null;
+  const typeLabels = {
+    day: 'Day Visit (6 AM – 6 PM)',
+    night: 'Night Stay (6 PM – 7 AM)',
+    '24hr': '24 Hours',
+    '24hr-pm': '24 Hours',
+  };
+  return {
+    bookingId:        b.bookingId,
+    resId:            b.id,                // display string APL-...
+    roomName:         b.roomType,
+    bookingType:      b.bookingType,
+    bookingTypeLabel: typeLabels[b.bookingType] ?? null,
+    checkIn:          b.checkIn ? fmtDateTime(b.checkIn) : null,
+    checkOut:         b.checkOut ? fmtDateTime(b.checkOut) : null,
+    guests:           b.guests ?? 1,
+    total:            Number(b.total ?? 0),
+    reservationFee:   Number(b.reservationFee ?? 0),
+    payFull:          false,                // match original reservation-only default
+    guestToken:       null,                 // MyBookings is authed-only
+  };
+}
 
 // ─── Gate entrance fee helper ────────────────────────────────────────────────
 // Matches Setting::pricing() defaults on the backend. Used to show an
@@ -62,34 +90,27 @@ function renderSpecialRequests(text) {
   );
 }
 
-// ─── Expired pending detection ────────────────────────────────────────────────
-function isExpiredPending(b) {
-  if (b.status !== "Pending") return false;
-  if (b.fullyPaid) return false;
-  const created = new Date(b.createdAt);
-  return Date.now() - created.getTime() > 5 * 60 * 1000;
-}
-
 // ─── Status helpers ──────────────────────────────────────────────────────────
+// No client-side "Expired" concept: the backend stale-Pending sweep is
+// the single source of truth. While a booking reads status=Pending, the
+// guest can still complete payment (even if the PayMongo session was
+// closed) via the Continue Payment action. Once the sweep fires (15 min
+// after creation), the backend flips the row to Cancelled and we render
+// Cancelled. No flag-racing on the client.
 const STATUS_STYLES = {
   Pending:      "text-amber-800 bg-amber-100",
   Confirmed:    "text-sky-700 bg-sky-100",
   "Checked In": "text-violet-700 bg-violet-100",
   Completed:    "text-emerald-700 bg-emerald-100",
   Cancelled:    "text-rose-700 bg-rose-100",
-  Expired:      "text-rose-700 bg-rose-100",
 };
 
-function statusPill(status, booking) {
-  const display = (status === "Pending" && booking && isExpiredPending(booking)) ? "Expired" : status;
-  const colors = STATUS_STYLES[display] || "text-slate-700 bg-slate-100";
+function statusPill(status) {
+  const colors = STATUS_STYLES[status] || "text-slate-700 bg-slate-100";
   return `inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${colors}`;
 }
 
 function StatusLabel({ booking }) {
-  if (isExpiredPending(booking)) {
-    return <span className={statusPill("Pending", booking)}><i className="fas fa-times-circle text-[10px]" />Expired</span>;
-  }
   const icons = {
     Pending: "fa-clock", Confirmed: "fa-check-circle", "Checked In": "fa-door-open",
     Completed: "fa-flag-checkered", Cancelled: "fa-ban",
@@ -298,6 +319,10 @@ export default function MyBookings() {
   const [reviewing, setReviewing]   = useState(null);
   const [cancelling, setCancelling] = useState(null);
   const [selected, setSelected]     = useState(null);
+  // Resume-payment flow — set when the user clicks a Pending row or
+  // the Continue Payment action button. Feeds BookingModal's
+  // resumeBooking prop. Null means the modal is closed.
+  const [resuming, setResuming]     = useState(null);
   const [checkingIn, setCheckingIn]     = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [reservationFeePct, setReservationFeePct] = useState(20);
@@ -334,10 +359,7 @@ export default function MyBookings() {
   // Filtered items
   const filtered = useMemo(() => {
     if (filter === "all") return items;
-    return items.filter(b => {
-      if (filter === "Pending") return b.status === "Pending" && !isExpiredPending(b);
-      return b.status === filter;
-    });
+    return items.filter(b => b.status === filter);
   }, [items, filter]);
 
   // Filter counts
@@ -490,8 +512,19 @@ export default function MyBookings() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-100">
-              {filtered.map(b => (
-                <tr key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}} className="cursor-pointer hover:bg-slate-50 transition-colors">
+              {filtered.map(b => {
+                // Pending rows are entry points to resume-payment — clicking
+                // anywhere on the row opens BookingModal in resume mode
+                // instead of the read-only details drawer. Matches the
+                // "click the pending booking to continue" UX.
+                const onRowActivate = () => b.status === 'Pending'
+                  ? setResuming(toResumeBooking(b))
+                  : setSelected(b);
+                return (
+                <tr key={b.id} role="button" tabIndex={0}
+                    onClick={onRowActivate}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRowActivate(); }}}
+                    className={`cursor-pointer hover:bg-slate-50 transition-colors ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{b.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{b.roomType}</td>
                   <td className="px-6 py-4 text-sm text-slate-700">
@@ -539,6 +572,15 @@ export default function MyBookings() {
                   <td className="px-6 py-4 whitespace-nowrap"><StatusLabel booking={b} /></td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" onClick={e => e.stopPropagation()}>
                     <div className="flex flex-wrap gap-2">
+                      {/* Pending bookings: primary action is Continue Payment
+                          (same as clicking the row). Shown first so the CTA
+                          is obvious in the actions column. */}
+                      {b.status === "Pending" && (
+                        <button onClick={() => setResuming(toResumeBooking(b))}
+                          className="text-xs bg-blue-600 text-white px-2 py-1 rounded-lg hover:bg-blue-700 font-semibold">
+                          <i className="fas fa-arrow-right-to-bracket mr-1" />Continue
+                        </button>
+                      )}
                       {/* Backend allows self-cancel for Pending + Confirmed;
                           blocks Checked In / Completed / Cancelled. Button
                           visibility mirrors that so the UI doesn't promise
@@ -570,7 +612,8 @@ export default function MyBookings() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
               {filtered.length === 0 && !loadError && (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
@@ -605,10 +648,14 @@ export default function MyBookings() {
               )}
             </div>
           )}
-          {filtered.map(b => (
-            <div key={b.id} role="button" tabIndex={0} onClick={() => setSelected(b)}
-              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); }}}
-              className="bg-white px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors space-y-3">
+          {filtered.map(b => {
+            const onCardActivate = () => b.status === 'Pending'
+              ? setResuming(toResumeBooking(b))
+              : setSelected(b);
+            return (
+            <div key={b.id} role="button" tabIndex={0} onClick={onCardActivate}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCardActivate(); }}}
+              className={`bg-white px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors space-y-3 ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
               {/* Top row: ID + status */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-900">{b.id}</span>
@@ -651,6 +698,12 @@ export default function MyBookings() {
                   })()}
                 </div>
                 <div className="flex gap-2" onClick={e => e.stopPropagation()}>
+                  {b.status === "Pending" && (
+                    <button onClick={() => setResuming(toResumeBooking(b))}
+                      className="text-xs bg-blue-600 text-white px-2 py-1 rounded-lg font-semibold">
+                      <i className="fas fa-arrow-right-to-bracket mr-1" />Continue
+                    </button>
+                  )}
                   {(b.status === "Pending" || b.status === "Confirmed") && (
                     <button onClick={() => setCancelling(b)} className="text-xs bg-rose-100 text-rose-700 px-2 py-1 rounded-lg">Cancel</button>
                   )}
@@ -668,9 +721,26 @@ export default function MyBookings() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
+
+      {/* ── Resume-payment modal — reuses BookingModal in resume mode.
+           Mounted at the page level so clicking a Pending row / Continue
+           button opens the same review + PayMongo flow a fresh booking
+           uses. onBooked refreshes the list so the newly-paid booking
+           flips to Confirmed without waiting on the 5s poll. ── */}
+      <BookingModal
+        open={!!resuming}
+        onClose={() => setResuming(null)}
+        rooms={[]}
+        resumeBooking={resuming}
+        onBooked={() => {
+          setResuming(null);
+          getBookings().then(fresh => setItems(fresh)).catch(() => {});
+        }}
+      />
 
       {/* ── Cancel modal (shared Modal) ── */}
       <Modal open={!!cancelling} onClose={() => setCancelling(null)} maxWidth="max-w-sm">
@@ -747,7 +817,7 @@ export default function MyBookings() {
                 }
                 rows.push(
                   ["Payment",         selected.paymentMethod],
-                  ["Status",          isExpiredPending(selected) ? "Expired" : selected.status],
+                  ["Status",          selected.status],
                 );
                 return rows.map(([label, val]) => (
                   <div key={label} className="flex justify-between gap-4">

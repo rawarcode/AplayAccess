@@ -528,17 +528,33 @@ export default function Billing() {
     setPaying(true);
     try {
       const ef = calcEntrance(billing, entranceRates);
-      await collectPayment(billing.bookingId, payMethod, ef);
+      const res = await collectPayment(billing.bookingId, payMethod, ef);
       // Optimistically mark fully paid and bring paidAmount up to the new
       // grand total so the UI updates without waiting on the next 20s poll.
+      // If the backend auto-checked-in (resort policy: full payment at
+      // check-in), flip the row's status too so staff see the transition
+      // immediately on the Billing board.
+      const autoCheckedIn = !!res?.auto_checkedin;
       setBookings(prev =>
         prev.map(b => b.bookingId === billing.bookingId
-          ? { ...b, fullyPaid: true, paymentMethod: payMethod, entranceFee: ef, paidAmount: Number(b.total ?? 0) + ef }
+          ? {
+              ...b,
+              fullyPaid:     true,
+              paymentMethod: payMethod,
+              entranceFee:   ef,
+              paidAmount:    Number(b.total ?? 0) + ef,
+              status:        autoCheckedIn ? 'Checked In' : b.status,
+            }
           : b)
       );
       setBilling(null);
       setSelected(null);
-      showToast('Payment collected successfully!', 'success');
+      showToast(
+        autoCheckedIn
+          ? 'Payment collected. Guest checked in.'
+          : 'Payment collected successfully!',
+        'success'
+      );
     } catch {
       showToast('Failed to collect payment. Please try again.', 'error');
     } finally {
