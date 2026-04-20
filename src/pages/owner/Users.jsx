@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
@@ -6,6 +7,37 @@ import Toast, { useToast } from "../../components/ui/Toast";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
+import OwnerGuests from "./Guests.jsx";
+
+// Shared tab-bar pill used at the top of merged owner pages. Lives here
+// because its styling stays consistent across Users↔Guests,
+// Rooms↔Add-ons, and Content↔Announcements merges.
+function TabBar({ tabs, active, onChange }) {
+  return (
+    <div className="px-6 pt-6 pb-0">
+      <div className="inline-flex bg-white rounded-xl shadow-sm border border-slate-200 p-1" role="tablist">
+        {tabs.map(t => (
+          <button
+            key={t.key}
+            type="button"
+            role="tab"
+            aria-selected={active === t.key}
+            onClick={() => onChange(t.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold transition inline-flex items-center gap-2 ${
+              active === t.key
+                ? "bg-sky-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {t.icon && <i className={`fas ${t.icon} text-xs`} aria-hidden="true" />}
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+export { TabBar };
 
 const BLANK = { name: "", email: "", phone: "", role: "front_desk", password: "", is_active: true };
 const PAGE_SIZE = 10;
@@ -41,6 +73,14 @@ function getPageNumbers(current, total) {
 export default function OwnerUsers() {
   const { user: currentUser } = useAuth();
   const [toast, showToast, clearToast, toastType, toastAction] = useToast();
+  // Tab state synced to the URL so deep-links (/owner/users?tab=guests)
+  // and the legacy /owner/guests redirect both land on the right tab.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'guests' ? 'guests' : 'staff';
+  const setActiveTab = (key) => {
+    if (key === 'staff') setSearchParams({});
+    else setSearchParams({ tab: key });
+  };
 
   /* ── data ── */
   const [users, setUsers] = useState([]);
@@ -341,9 +381,28 @@ export default function OwnerUsers() {
       </tr>
     ));
 
+  const TABS = [
+    { key: 'staff',  icon: 'fa-users-cog',  label: 'Staff'  },
+    { key: 'guests', icon: 'fa-user-check', label: 'Guests' },
+  ];
+
+  // Guests tab — render the Guests page as-is. It has its own header
+  // + table + detail modal; just prepended with the shared tab bar.
+  if (activeTab === 'guests') {
+    return (
+      <>
+        <Helmet><title>Guests — Aplaya Beach Resort</title></Helmet>
+        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
+        <OwnerGuests />
+      </>
+    );
+  }
+
   return (
-    <div className="p-6 space-y-6">
+    <>
       <Helmet><title>Staff Users — Aplaya Beach Resort</title></Helmet>
+      <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
+    <div className="p-6 space-y-6">
       <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
 
       {/* Header */}
@@ -915,5 +974,6 @@ export default function OwnerUsers() {
         )}
       </Modal>
     </div>
+    </>
   );
 }

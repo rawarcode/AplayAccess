@@ -39,10 +39,11 @@ const OwnerActivityLog = lazy(() => import("./pages/owner/History.jsx"));
 const OwnerRooms = lazy(() => import("./pages/owner/Rooms.jsx"));
 const OwnerContent = lazy(() => import("./pages/owner/Content.jsx"));
 const OwnerReviews = lazy(() => import("./pages/owner/Reviews.jsx"));
-const OwnerGuests = lazy(() => import("./pages/owner/Guests.jsx"));
 const OwnerMessages = lazy(() => import("./pages/owner/Messages.jsx"));
-const OwnerAnnouncements = lazy(() => import("./pages/owner/Announcements.jsx"));
-const OwnerAddons = lazy(() => import("./pages/owner/Addons.jsx"));
+// NOTE: Guests, Announcements, Addons are no longer routed directly.
+// They're rendered as tabs inside Users.jsx, Content.jsx, and Rooms.jsx
+// respectively (merged 2026-04-21). The source files still exist —
+// their default exports are imported as components, not as routes.
 
 // Frontdesk portal — lazy-loaded (no shared shell, each page is a portal entry)
 import RequireFrontdesk from "./components/auth/RequireFrontdesk.jsx";
@@ -123,12 +124,10 @@ export default function App() {
         <Route index element={<OwnerDashboard />} />
         {/* Management */}
         <Route path="rooms"         element={<OwnerRooms />} />
-        <Route path="guests"        element={<OwnerGuests />} />
+        <Route path="users"         element={<OwnerUsers />} />
+        <Route path="reviews"       element={<OwnerReviews />} />
         {/* Website */}
         <Route path="content"       element={<OwnerContent />} />
-        <Route path="announcements" element={<OwnerAnnouncements />} />
-        <Route path="reviews"       element={<OwnerReviews />} />
-        <Route path="addons"        element={<OwnerAddons />} />
         {/* Marketing */}
         <Route path="promo-codes"   element={<OwnerPromoCodes />} />
         <Route path="newsletter"    element={<OwnerNewsletter />} />
@@ -137,9 +136,15 @@ export default function App() {
         <Route path="reports"       element={<OwnerReports />} />
         <Route path="activity-log"  element={<OwnerActivityLog />} />
         {/* System */}
-        <Route path="users"         element={<OwnerUsers />} />
         <Route path="messages"      element={<OwnerMessages />} />
         <Route path="settings"      element={<OwnerSettings />} />
+
+        {/* Legacy redirects from the three 2026-04-21 merges. Kept so
+            bookmarks, old notification deep-links, and the admin
+            portal redirect chain keep working. */}
+        <Route path="guests"        element={<Navigate to="/owner/users?tab=guests" replace />} />
+        <Route path="addons"        element={<Navigate to="/owner/rooms?tab=addons" replace />} />
+        <Route path="announcements" element={<Navigate to="/owner/content?tab=announcements" replace />} />
       </Route>
 
       {/* ── Legacy admin redirects → owner portal ── */}

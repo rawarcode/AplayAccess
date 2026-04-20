@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
@@ -7,6 +8,8 @@ import { RESORT_ID } from "../../lib/config.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
 import useDebounce from "../../hooks/useDebounce.js";
+import OwnerAddons from "./Addons.jsx";
+import { TabBar } from "./Users.jsx";
 
 const PAGE_SIZE = 10;
 
@@ -142,6 +145,15 @@ function RoomPreview({ room }) {
 
 // ══════════════════════════════════════════════════════════════════════════
 export default function AdminRooms() {
+  // URL-synced tab state so /owner/rooms?tab=addons lands on Add-ons and
+  // the legacy /owner/addons redirect works cleanly.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') === 'addons' ? 'addons' : 'rooms';
+  const setActiveTab = (key) => {
+    if (key === 'rooms') setSearchParams({});
+    else setSearchParams({ tab: key });
+  };
+
   const [rooms,        setRooms]        = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
@@ -536,7 +548,25 @@ export default function AdminRooms() {
     </div>
   );
 
+  const TABS = [
+    { key: 'rooms',  icon: 'fa-bed',            label: 'Rooms'   },
+    { key: 'addons', icon: 'fa-concierge-bell', label: 'Add-ons' },
+  ];
+
+  // Add-ons tab — delegate to the existing OwnerAddons page under a
+  // shared tab bar. One screen now owns everything a guest can pay for.
+  if (activeTab === 'addons') {
+    return (
+      <>
+        <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
+        <OwnerAddons />
+      </>
+    );
+  }
+
   return (
+    <>
+      <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
     <div className="p-6 space-y-6">
       <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
 
@@ -1367,5 +1397,6 @@ export default function AdminRooms() {
         onCancel={() => setBulkDeleteOpen(false)}
       />
     </div>
+    </>
   );
 }

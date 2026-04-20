@@ -13,35 +13,36 @@ import { Helmet } from "react-helmet-async";
 
 const PAGE_TITLES = {
   "/owner":               "Dashboard",
-  "/owner/rooms":         "Rooms",
-  "/owner/guests":        "Guests",
+  "/owner/rooms":         "Catalog",
   "/owner/reviews":       "Reviews",
-  "/owner/content":       "Manage Website",
-  "/owner/announcements": "Announcements",
-  "/owner/addons":        "Add-ons",
+  "/owner/content":       "Website",
   "/owner/promo-codes":   "Promo Codes",
   "/owner/newsletter":    "Newsletter",
   "/owner/transactions":  "Transactions",
   "/owner/reports":       "Reports & Analytics",
   "/owner/activity-log":  "Activity Log",
-  "/owner/users":         "User Management",
+  "/owner/users":         "Users",
   "/owner/messages":      "Messages",
   "/owner/settings":      "Pricing & Settings",
 };
 
+// Three merges in place (2026-04-21):
+//  - Rooms + Add-ons → /owner/rooms (tab=addons for add-ons subpage)
+//  - Content + Announcements → /owner/content (tab=announcements subpage)
+//  - Users + Guests → /owner/users (tab=guests subpage)
+// Legacy /owner/guests, /owner/addons, /owner/announcements redirect
+// to the right tab in App.jsx.
 const MENU = {
   overview: [
     { path: "/owner", icon: "fa-tachometer-alt", label: "Dashboard" },
   ],
   management: [
-    { path: "/owner/rooms",    icon: "fa-bed",        label: "Rooms" },
-    { path: "/owner/guests",   icon: "fa-user-check", label: "Guests" },
+    { path: "/owner/rooms",    icon: "fa-bed",        label: "Catalog" },
+    { path: "/owner/users",    icon: "fa-users-cog",  label: "Users" },
     { path: "/owner/reviews",  icon: "fa-star",       label: "Reviews", badgeKey: "pendingReviews" },
   ],
   website: [
-    { path: "/owner/content",       icon: "fa-globe",          label: "Manage Website" },
-    { path: "/owner/announcements", icon: "fa-bullhorn",       label: "Announcements" },
-    { path: "/owner/addons",        icon: "fa-concierge-bell", label: "Add-ons" },
+    { path: "/owner/content",  icon: "fa-globe",      label: "Website" },
   ],
   marketing: [
     { path: "/owner/promo-codes", icon: "fa-tag",               label: "Promo Codes" },
@@ -53,7 +54,6 @@ const MENU = {
     { path: "/owner/activity-log", icon: "fa-history",             label: "Activity Log" },
   ],
   system: [
-    { path: "/owner/users",    icon: "fa-users-cog", label: "Users" },
     { path: "/owner/messages", icon: "fa-envelope",   label: "Messages", badgeKey: "unreadMessages" },
     { path: "/owner/settings", icon: "fa-sliders-h",  label: "Settings" },
   ],

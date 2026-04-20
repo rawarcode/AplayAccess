@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { getAdminGallery, updateAdminGallery, batchCreateGallery, renameCategoryGallery, toggleCategoryHidden, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
@@ -8,6 +9,8 @@ import { isVideoUrl, uploadFile } from "../../lib/uploadApi.js";
 import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
+import OwnerAnnouncements from "./Announcements.jsx";
+import { TabBar } from "./Users.jsx";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v2";
@@ -3069,6 +3072,18 @@ function SitePreviewModal({ open, onClose }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminContent() {
+  // Outer tab state (Pages | Announcements) — lives in the URL so
+  // /owner/content?tab=announcements lands on the right section and the
+  // legacy /owner/announcements redirect has a landing pad.
+  // NOTE: the INNER activeTab below is unrelated — that's the Content
+  // page's own tab state (Page Editor, Gallery, etc.) as an integer.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const outerTab = searchParams.get('tab') === 'announcements' ? 'announcements' : 'pages';
+  const setOuterTab = (key) => {
+    if (key === 'pages') setSearchParams({});
+    else setSearchParams({ tab: key });
+  };
+
   const [activeTab,   setActiveTab]   = useState(0);
   const [content,     setContent]     = useState(loadContent);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -3113,7 +3128,24 @@ export default function AdminContent() {
       .catch(() => { showToast("Failed to publish.", "error"); });
   };
 
+  const OUTER_TABS = [
+    { key: 'pages',         icon: 'fa-palette',  label: 'Pages'        },
+    { key: 'announcements', icon: 'fa-bullhorn', label: 'Announcements' },
+  ];
+
+  // Announcements tab — delegate to the existing OwnerAnnouncements page.
+  if (outerTab === 'announcements') {
+    return (
+      <>
+        <TabBar tabs={OUTER_TABS} active={outerTab} onChange={setOuterTab} />
+        <OwnerAnnouncements />
+      </>
+    );
+  }
+
   return (
+    <>
+      <TabBar tabs={OUTER_TABS} active={outerTab} onChange={setOuterTab} />
     <div className="p-6 space-y-6">
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
@@ -3255,5 +3287,6 @@ export default function AdminContent() {
       {activeTab === 2 && <ContactSubmissionsTab contactCount={contactCount} setContactCount={setContactCount} />}
       {activeTab === 3 && <ReviewsTab content={content.resort_reviews} onSave={update("resort_reviews")} reviewCount={reviewCount} setReviewCount={setReviewCount} />}
     </div>
+    </>
   );
 }
