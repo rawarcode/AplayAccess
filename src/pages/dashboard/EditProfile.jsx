@@ -48,6 +48,10 @@ export default function EditProfile() {
   // Privacy & data state
   const [exporting, setExporting]     = useState(false);
   const [deleteOpen, setDeleteOpen]   = useState(false);
+  // True after a successful delete — shows a "Account Deleted"
+  // celebration inside the same modal for 2.5s before the logout()
+  // call redirects the user away.
+  const [deleted, setDeleted]         = useState(false);
   const [deleting, setDeleting]       = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
@@ -170,7 +174,11 @@ export default function EditProfile() {
     setDeleting(true);
     try {
       await deleteAccount();
-      logout();
+      // Swap the modal body to a success celebration for 2.5s so the
+      // user actually sees confirmation that their account was deleted
+      // before logout() redirects them out of the dashboard.
+      setDeleted(true);
+      setTimeout(() => { logout(); }, 2500);
     } catch {
       showToast("Failed to delete account. Please try again.", "error");
       setDeleting(false);
@@ -416,8 +424,29 @@ export default function EditProfile() {
         </div>
       </div>
 
-      {/* Delete account confirmation modal */}
-      <Modal open={deleteOpen} onClose={() => { setDeleteOpen(false); setDeleteConfirmText(""); }} maxWidth="max-w-md">
+      {/* Delete account confirmation modal.
+          While `deleted` is true the body swaps to a success celebration
+          held for 2.5s — a dialog-level success card, not a toast, so
+          the user can't miss it. Modal's onClose is disabled during
+          that window too (the logout redirect will close it). */}
+      <Modal open={deleteOpen} onClose={() => { if (!deleted) { setDeleteOpen(false); setDeleteConfirmText(""); } }} maxWidth="max-w-md">
+        {deleted ? (
+          <div className="p-8 text-center" role="status" aria-live="polite">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 animate-pulse">
+              <i className="fas fa-check text-emerald-600 text-4xl" aria-hidden="true"></i>
+            </div>
+            <h3 className="text-2xl font-bold text-emerald-700 mb-2">Account Deleted</h3>
+            <p className="text-sm text-slate-500 mb-5">
+              Your account and personal information have been removed.
+              Active bookings were cancelled and you've been unsubscribed
+              from the newsletter.
+            </p>
+            <p className="text-xs text-slate-400">
+              <i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>
+              Logging you out…
+            </p>
+          </div>
+        ) : (
         <div className="p-6 space-y-4">
           <div className="flex items-center gap-3">
             <span className="h-10 w-10 rounded-full bg-rose-100 flex items-center justify-center">
@@ -468,6 +497,7 @@ export default function EditProfile() {
             </button>
           </div>
         </div>
+        )}
       </Modal>
 
       {/* Item 4: Change Password modal using shared Modal */}
