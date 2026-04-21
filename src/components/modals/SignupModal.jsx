@@ -1,6 +1,7 @@
 // src/components/modals/SignupModal.jsx
 import { useState, useEffect, useCallback } from "react";
 import { useGoogleLogin } from "@react-oauth/google";
+import PasswordRequirements, { checkPasswordStrength } from "../ui/PasswordRequirements.jsx";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { registerRequest } from "../../lib/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
@@ -58,8 +59,8 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
     e.preventDefault();
     setError("");
 
-    if (form.password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!checkPasswordStrength(form.password)) {
+      setError("Password does not meet all strength requirements.");
       return;
     }
     if (form.password !== form.confirmPassword) {
@@ -127,7 +128,10 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
 
   if (!open) return null;
 
-  const passwordWeak = form.password.length > 0 && form.password.length < 8;
+  // Password is "weak" = not empty but missing any of the 5 rules.
+  // Drives the amber border on the input and gates the submit button.
+  const passwordStrong = checkPasswordStrength(form.password);
+  const passwordWeak   = form.password.length > 0 && !passwordStrong;
 
   return (
     <>
@@ -233,18 +237,7 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
                     <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
                   </button>
                 </div>
-                {passwordWeak && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    <i className="fas fa-info-circle mr-1"></i>
-                    Minimum 8 characters required
-                  </p>
-                )}
-                {form.password.length >= 8 && (
-                  <p className="text-xs text-green-600 mt-1">
-                    <i className="fas fa-check-circle mr-1"></i>
-                    Password length is good
-                  </p>
-                )}
+                <PasswordRequirements value={form.password} />
               </div>
 
               {/* Confirm Password */}
@@ -305,10 +298,13 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
                 <span>Sign me up for the Aplaya Beach Resort newsletter <span className="text-gray-400">(optional)</span></span>
               </label>
 
-              {/* Submit */}
+              {/* Submit — disabled until the password passes all five
+                  strength rules AND matches the confirm field. The
+                  checklist above the button tells the user exactly what's
+                  missing. */}
               <button
-                disabled={submitting}
-                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 transition"
+                disabled={submitting || !passwordStrong || form.password !== form.confirmPassword || !form.terms}
+                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 transition"
               >
                 {submitting ? "Creating account..." : "Sign Up"}
               </button>

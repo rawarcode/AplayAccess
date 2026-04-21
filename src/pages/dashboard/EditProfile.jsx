@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { updateProfile, changePassword, exportAccountData, deleteAccount } from "../../lib/profileApi.js";
+import PasswordRequirements, { checkPasswordStrength } from "../../components/ui/PasswordRequirements.jsx";
 import { uploadFile } from "../../lib/uploadApi.js";
 import { localDateStr } from "../../lib/format";
 import Toast, { useToast } from "../../components/ui/Toast";
@@ -118,8 +119,8 @@ export default function EditProfile() {
     e.preventDefault();
     setPwError("");
 
-    if (pwForm.new.length < 8) {
-      setPwError("New password must be at least 8 characters.");
+    if (!checkPasswordStrength(pwForm.new)) {
+      setPwError("New password does not meet all strength requirements.");
       return;
     }
     if (pwForm.new !== pwForm.confirm) {
@@ -176,7 +177,8 @@ export default function EditProfile() {
     }
   }
 
-  const pwWeak = pwForm.new.length > 0 && pwForm.new.length < 8;
+  const pwStrong = checkPasswordStrength(pwForm.new);
+  const pwWeak   = pwForm.new.length > 0 && !pwStrong;
 
   /* ── Password modal guarded close ── */
   const hasPwDraft = !!(pwForm.current || pwForm.new || pwForm.confirm);
@@ -523,8 +525,7 @@ export default function EditProfile() {
                 <i className={`fas ${showNew ? "fa-eye-slash" : "fa-eye"}`}></i>
               </button>
             </div>
-            {pwWeak && <p className="text-xs text-amber-600 mt-1"><i className="fas fa-info-circle mr-1"></i>Minimum 8 characters required</p>}
-            {pwForm.new.length >= 8 && <p className="text-xs text-green-600 mt-1"><i className="fas fa-check-circle mr-1"></i>Password length is good</p>}
+            <PasswordRequirements value={pwForm.new} />
           </div>
 
           <div>
@@ -551,7 +552,7 @@ export default function EditProfile() {
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={guardedPwClose} className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-700">Cancel</button>
-            <button type="submit" disabled={pwSaving} className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+            <button type="submit" disabled={pwSaving || !pwStrong || pwForm.new !== pwForm.confirm || !pwForm.current} className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition">
               <i className={`fas ${pwSaving ? "fa-spinner fa-spin" : "fa-lock"}`}></i>
               {pwSaving ? "Changing..." : "Change Password"}
             </button>

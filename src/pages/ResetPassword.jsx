@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { resetPasswordRequest } from "../lib/authApi.js";
+import PasswordRequirements, { checkPasswordStrength } from "../components/ui/PasswordRequirements.jsx";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -19,15 +20,16 @@ export default function ResetPassword() {
   const [error, setError]                     = useState("");
   const [done, setDone]                       = useState(false);
 
-  const passwordWeak = password.length > 0 && password.length < 8;
-  const mismatch     = passwordConfirm.length > 0 && passwordConfirm !== password;
+  const passwordStrong = checkPasswordStrength(password);
+  const passwordWeak   = password.length > 0 && !passwordStrong;
+  const mismatch       = passwordConfirm.length > 0 && passwordConfirm !== password;
 
   async function submit(e) {
     e.preventDefault();
     setError("");
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!passwordStrong) {
+      setError("Password does not meet all strength requirements.");
       return;
     }
     if (password !== passwordConfirm) {
@@ -143,18 +145,7 @@ export default function ResetPassword() {
                     <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
                   </button>
                 </div>
-                {passwordWeak && (
-                  <p className="text-xs text-amber-600 mt-1">
-                    <i className="fas fa-info-circle mr-1"></i>
-                    Minimum 8 characters required
-                  </p>
-                )}
-                {password.length >= 8 && (
-                  <p className="text-xs text-emerald-600 mt-1">
-                    <i className="fas fa-check-circle mr-1"></i>
-                    Password length is good
-                  </p>
-                )}
+                <PasswordRequirements value={password} />
               </div>
 
               {/* Confirm Password */}
@@ -190,8 +181,8 @@ export default function ResetPassword() {
 
               <button
                 type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-brand text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
+                disabled={loading || !passwordStrong || password !== passwordConfirm}
+                className="w-full py-3 bg-brand text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0 disabled:cursor-not-allowed"
                 style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
               >
                 <i className="fas fa-shield-halved"></i>

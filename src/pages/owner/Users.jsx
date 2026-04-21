@@ -8,6 +8,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
 import OwnerGuests from "./Guests.jsx";
+import PasswordRequirements, { checkPasswordStrength } from "../../components/ui/PasswordRequirements.jsx";
 
 // Shared tab-bar pill used at the top of merged owner pages. Lives here
 // because its styling stays consistent across Users↔Guests,
@@ -949,7 +950,7 @@ export default function OwnerUsers() {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i className="fas fa-lock text-xs"></i></span>
                       <input type={showPassword ? "text" : "password"} value={editing.password || ""} onChange={(e) => setField("password", e.target.value)}
                         required={!editing.id} minLength={8}
-                        placeholder={editing.id ? "Enter new password to change" : "Min. 8 characters"}
+                        placeholder={editing.id ? "Enter new password to change" : "Meet all requirements below"}
                         className="w-full pl-9 pr-10 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-300 transition" />
                       <button type="button" onClick={() => setShowPassword((s) => !s)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
@@ -957,6 +958,12 @@ export default function OwnerUsers() {
                         <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} text-xs`}></i>
                       </button>
                     </div>
+                    {/* Live requirements checklist — shown only when the
+                        field has content. For edit mode, leaving it blank
+                        keeps the current password (requirements irrelevant). */}
+                    {(editing.password ?? "").length > 0 && (
+                      <PasswordRequirements value={editing.password} />
+                    )}
                   </div>
                 </div>
               </div>
@@ -965,8 +972,17 @@ export default function OwnerUsers() {
             <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
               <button type="button" onClick={guardedCloseModal}
                 className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
-              <button type="submit" disabled={saving}
-                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
+              {/* Save is disabled when the password field is in an invalid
+                  state: required-and-missing on create, OR non-empty and
+                  not passing all strength rules (applies to both create
+                  and edit — if the owner types a password, it must be
+                  strong; edit can still skip the field to keep current). */}
+              <button type="submit" disabled={
+                saving
+                || (!editing?.id && !checkPasswordStrength(editing?.password))
+                || ((editing?.password ?? "").length > 0 && !checkPasswordStrength(editing?.password))
+              }
+                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition">
                 {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>Save User</>}
               </button>
             </div>
