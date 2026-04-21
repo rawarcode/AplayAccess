@@ -859,6 +859,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       if (n.includes("pavilion")) return "pavilion";
                       return "room";
                     };
+                    // Rate label for the currently-selected booking type so
+                    // the dropdown answers "how much does this cost me?"
+                    // without the user leaving the select. bookingType is
+                    // always set by the time this renders — it defaults to
+                    // "day" on mount and the sub-toggle flips it to
+                    // night/24hr/24hr-pm.
+                    const rateFor = (r) => {
+                      if (bookingType === '24hr' || bookingType === '24hr-pm') return r.rate_24hr;
+                      if (bookingType === 'night') return r.overnight_rate;
+                      return r.day_rate;
+                    };
+                    const fmtRate = (v) => `\u20B1${Number(v ?? 0).toLocaleString('en-PH')}`;
                     const groups = [
                       { key: "room",     label: "\uD83D\uDECF\uFE0F  Rooms"     },
                       { key: "cottage",  label: "\u26F1\uFE0F  Cottages"  },
@@ -871,7 +883,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         <optgroup key={g.key} label={g.label}>
                           {items.map(r => (
                             <option key={r.id} value={r.id}>
-                              {r.name}{r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
+                              {r.name}
+                              {r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
+                              {` \u2014 ${fmtRate(rateFor(r))}`}
                             </option>
                           ))}
                         </optgroup>
