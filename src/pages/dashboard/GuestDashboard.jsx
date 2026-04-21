@@ -8,6 +8,7 @@ import { Helmet } from "react-helmet-async";
 import BookingModal from "../../components/modals/BookingModal.jsx";
 import SuccessModal from "../../components/modals/SuccessModal.jsx";
 import Modal from "../../components/modals/Modal.jsx";
+import Toast, { useToast } from "../../components/ui/Toast.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { fmtDateTime, fmtDate } from "../../lib/format";
 
@@ -124,6 +125,20 @@ export default function GuestDashboard() {
   const [successOpen,  setSuccessOpen]  = useState(false);
   const [selected,     setSelected]     = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [toast, showToast, clearToast, toastType] = useToast();
+
+  // Success handoff from the verify-email flow (either the standalone
+  // /verify-email page or the dashboard's inline VerifyEmailModal).
+  // A sessionStorage flag survives the navigation/modal-close so the
+  // user still sees a confirmation even if the inline celebration was
+  // brief. Flag is cleared after we read it — one-shot.
+  useEffect(() => {
+    if (sessionStorage.getItem("aplaya_just_verified") === "1") {
+      showToast("Email verified — welcome to Aplaya Beach Resort!", "success");
+      sessionStorage.removeItem("aplaya_just_verified");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Resume-payment state — funnels every "Book a Stay" / Pending-card
   // click through this when the user has an existing Pending booking.
   // Enforces the one-Pending-at-a-time rule on the UX side; backend
@@ -279,6 +294,7 @@ export default function GuestDashboard() {
   return (
     <div className="space-y-6">
       <Helmet><title>Dashboard — Aplaya Beach Resort</title></Helmet>
+      <Toast message={toast} type={toastType} onClose={clearToast} />
       <BookingModal
         open={bookingOpen}
         onClose={() => setBookingOpen(false)}

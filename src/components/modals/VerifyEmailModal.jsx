@@ -16,6 +16,10 @@ export default function VerifyEmailModal({ open, onClose }) {
   const [loading, setLoading]   = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  // Full celebration UI shown in place of the form for 2s after
+  // successful verification. Gives the user time to register the
+  // success visually before the modal closes.
+  const [verified, setVerified] = useState(false);
   const inputsRef = useRef([]);
   const dialogRef = useFocusTrap(open);
 
@@ -26,6 +30,7 @@ export default function VerifyEmailModal({ open, onClose }) {
       setCode(['', '', '', '', '', '']);
       setError('');
       setSuccess('');
+      setVerified(false);
     }
   }, [open]);
 
@@ -86,9 +91,14 @@ export default function VerifyEmailModal({ open, onClose }) {
       // Refresh the auth user so email_verified_at propagates everywhere —
       // banner disappears, BookingModal unlocks the Pay button, etc.
       if (data.user) login(data.user);
-      setSuccess('Email verified!');
-      // Small delay so the success state is visible, then close.
-      setTimeout(() => onClose?.(), 900);
+      // Show a big celebration state INSIDE the modal for 2s so the
+      // user actually sees the success before the modal closes.
+      // sessionStorage flag lets the Dashboard fire a follow-up toast
+      // on arrival (belt + braces — useful if the user was on
+      // /dashboard already and barely registered the inline state).
+      sessionStorage.setItem("aplaya_just_verified", "1");
+      setVerified(true);
+      setTimeout(() => onClose?.(), 2000);
     } catch (err) {
       setError(err?.response?.data?.message || 'Invalid code. Please try again.');
       // Reset the OTP inputs and drop focus back on digit 1 so the
@@ -131,6 +141,18 @@ export default function VerifyEmailModal({ open, onClose }) {
         aria-labelledby="verify-email-title"
         className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
       >
+        {verified ? (
+          /* Celebration state — replaces the entire modal body for 2s
+             after success so the user actually sees they made it. */
+          <div className="px-6 py-10 text-center" role="status" aria-live="polite">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 animate-pulse">
+              <i className="fas fa-check text-emerald-600 text-4xl" aria-hidden="true"></i>
+            </div>
+            <h3 className="text-2xl font-bold text-emerald-700 mb-2">Email Verified!</h3>
+            <p className="text-sm text-slate-500">You're all set — all booking features are now unlocked.</p>
+          </div>
+        ) : (
+        <>
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="w-9 h-9 rounded-lg bg-sky-100 flex items-center justify-center">
@@ -218,6 +240,8 @@ export default function VerifyEmailModal({ open, onClose }) {
 
           <p className="mt-3 text-xs text-slate-400">Code expires in 15 minutes.</p>
         </div>
+        </>
+        )}
       </div>
     </div>
   );

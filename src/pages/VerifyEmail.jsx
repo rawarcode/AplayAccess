@@ -13,6 +13,11 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  // `verified` controls a big full-card celebration state that replaces
+  // the form entirely when true — much more visible than the old small
+  // green-text banner. Stays on screen for 2.5s before auto-navigating
+  // to /dashboard, giving users time to actually see it succeeded.
+  const [verified, setVerified] = useState(false);
   const inputsRef = useRef([]);
 
   // Redirect if already verified, OR if user logged out (no session)
@@ -68,8 +73,12 @@ export default function VerifyEmail() {
     try {
       const data = await verifyEmailRequest(otp);
       if (data.user) login(data.user);
-      setSuccess("Email verified! Redirecting...");
-      setTimeout(() => navigate("/dashboard", { replace: true }), 1200);
+      // Show the big celebration card for 2.5s, then land on dashboard.
+      // sessionStorage flag survives the navigate so GuestDashboard
+      // can fire a follow-up success toast on arrival — belt + braces.
+      sessionStorage.setItem("aplaya_just_verified", "1");
+      setVerified(true);
+      setTimeout(() => navigate("/dashboard", { replace: true }), 2500);
     } catch (err) {
       setError(err?.response?.data?.message || "Invalid code. Please try again.");
     } finally {
@@ -90,6 +99,29 @@ export default function VerifyEmail() {
     } finally {
       setResending(false);
     }
+  }
+
+  // ─── Celebration screen ────────────────────────────────────────────
+  // Shown for 2.5s after successful verification. Replaces the form
+  // entirely so the user can't miss it.
+  if (verified) {
+    return (
+      <div className="pt-16 min-h-screen bg-slate-50 flex flex-col">
+        <Helmet><title>Email Verified — Aplaya Beach Resort</title></Helmet>
+        <div className="flex-1 flex items-center justify-center px-4 py-10">
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-10 text-center" role="status" aria-live="polite">
+            <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 animate-pulse">
+              <i className="fas fa-check text-emerald-600 text-4xl" aria-hidden="true"></i>
+            </div>
+            <h2 className="text-3xl font-bold text-emerald-700 mb-2">Email Verified!</h2>
+            <p className="text-sm text-slate-500 mb-6">
+              You're all set, <strong className="text-slate-700">{user?.name?.split(' ')[0] || 'there'}</strong>. Redirecting you to your dashboard…
+            </p>
+            <i className="fas fa-spinner fa-spin text-sky-500 text-lg" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -106,6 +106,28 @@ export function AuthProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
   }
 
+  // Pull the canonical user payload from /api/me and store it. Used
+  // after register/signup, where the endpoint's response shape can
+  // drift from /api/me's shape (different serialization paths, subtle
+  // cast differences on email_verified_at / role). A manual login(u)
+  // with the register response may leave UnverifiedEmailBanner unable
+  // to decide if the user is verified — this guarantees consistency
+  // with the shape the rest of the app expects.
+  async function refreshUser() {
+    try {
+      const data = await meRequest();
+      const u = normalizeUser(data);
+      if (u) {
+        setUser(u);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+      }
+      return u;
+    } catch {
+      // Non-fatal: caller already set user via login(u). Swallow.
+      return null;
+    }
+  }
+
   async function logout() {
     try {
       await logoutRequest();
@@ -126,6 +148,7 @@ export function AuthProvider({ children }) {
       loginStaff,
       loginWithGoogle,
       login, // existing usage
+      refreshUser,
       logout,
       setUser, // optional
     }),

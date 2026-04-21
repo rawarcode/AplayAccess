@@ -9,7 +9,7 @@ import { api, TOKEN_KEY } from "../lib/api.js";
 
 export default function Signup() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, refreshUser } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -66,9 +66,14 @@ export default function Signup() {
         password_confirmation: form.confirmPassword,
       });
 
-      // Store token and user in context
+      // Store token first so refreshUser's /api/me call is authenticated.
       if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+      // Set user immediately for snappy UI, then re-fetch canonical data
+      // from /api/me so UnverifiedEmailBanner and other hooks see the
+      // exact shape the app relies on elsewhere (avoids subtle drift
+      // between register-response shape and me-response shape).
       if (data.user) login(data.user);
+      await refreshUser();
 
       // Subscribe to newsletter if opted in
       if (form.newsletter && form.email) {

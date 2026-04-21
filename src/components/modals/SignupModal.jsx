@@ -8,7 +8,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { api, TOKEN_KEY } from "../../lib/api.js";
 
 export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) {
-  const { user, loginWithGoogle } = useAuth();
+  const { user, loginWithGoogle, refreshUser } = useAuth();
   const [toast, showToast, clearToast, toastType] = useToast();
 
   // Close the modal when the user becomes authenticated elsewhere —
@@ -82,8 +82,16 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
         password_confirmation: form.confirmPassword,
       });
 
+      // Persist token first so refreshUser's /api/me call can authenticate.
       if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+      // Parent handler (Navbar / Resort) sets AuthContext user via login(u)
+      // and takes care of welcome toast + navigation.
       if (data.user) onSignedUp?.(data.user);
+      // Re-fetch canonical user so UnverifiedEmailBanner sees a shape
+      // matching the rest of the app. Without this the banner could
+      // fail to render until the user refreshes the page (register
+      // response shape drifts from /api/me response shape subtly).
+      await refreshUser();
 
       // Subscribe to newsletter if opted in
       if (form.newsletter && form.email) {
