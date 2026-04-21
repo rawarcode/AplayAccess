@@ -24,12 +24,13 @@ export default function PendingPaymentBanner() {
   if (!pending) return null;
 
   function handleResume() {
-    // Guest-token bookings have no authed dashboard to route to — skip
-    // resume navigation and let the original PayMongo-in-new-tab path
-    // handle them. Those are rare (anonymous guest bookings without an
-    // account) so duplicating the review flow is not worth it.
+    // Guest-token bookings (no account): route to the public resume
+    // page at /resume-booking?token=<guest_token>. That page fetches
+    // booking details via /api/guest-booking/{token} and mounts
+    // BookingModal in resume mode — same review + Continue Payment
+    // flow authed users see inside MyBookings.
     if (pending.guestToken) {
-      window.open(`/payment/success?booking=${pending.bookingId}`, '_blank');
+      navigate(`/resume-booking?token=${encodeURIComponent(pending.guestToken)}`);
       return;
     }
     // Authed: route to MyBookings with a resume hint. That page reads

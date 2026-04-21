@@ -12,6 +12,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword.jsx"));
 const PaymentReturn = lazy(() => import("./pages/PaymentReturn.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const NewsletterUnsubscribe = lazy(() => import("./pages/NewsletterUnsubscribe.jsx"));
+const ResumeGuestBooking = lazy(() => import("./pages/ResumeGuestBooking.jsx"));
 
 // Guest dashboard (protected) — lazy-loaded portal shell
 import RequireAuth from "./components/auth/RequireAuth.jsx";
@@ -92,6 +93,12 @@ export default function App() {
             newsletter email. HMAC token in the query string is
             verified server-side before the subscription is removed. */}
         <Route path="/newsletter/unsubscribe" element={<NewsletterUnsubscribe />} />
+
+        {/* Public resume-payment page for guest-token (no-account)
+            bookings. PendingPaymentBanner navigates here when the guest
+            closes PayMongo mid-payment. Hydrates BookingModal in
+            resume mode via /api/guest-booking/{token}. */}
+        <Route path="/resume-booking" element={<ResumeGuestBooking />} />
 
         {/* Guest dashboard (protected), still inside Layout */}
         <Route
