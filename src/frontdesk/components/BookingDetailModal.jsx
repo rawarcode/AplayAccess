@@ -208,6 +208,22 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [pendingAction, actionLoading]);
+
+  // Escape closes the transfer room picker (step 1). Only fires while
+  // the rate-preview confirm step (step 2) isn't also open — that
+  // dialog has its own escape handler above, and whichever is on top
+  // should be the one that responds.
+  useEffect(() => {
+    if (!transferOpen || transferConfirmOpen) return;
+    function onKey(e) {
+      if (e.key === 'Escape' && !transferring) {
+        setTransferOpen(false);
+        setTransferRoomId('');
+      }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [transferOpen, transferConfirmOpen, transferring]);
   const [rooms,            setRooms]            = useState([]);
   const [roomsLoading,     setRoomsLoading]     = useState(false);
   // All bookings — only fetched when the Transfer picker opens, so the
@@ -929,9 +945,18 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             })()}
           </div>
 
-          {/* Transfer Room Panel */}
-          {transferOpen && (
-            <div className="mb-4 rounded-xl border border-violet-200 bg-violet-50 p-4">
+          {/* Transfer Room Picker — portaled dialog (step 1 of 2).
+              Shows a target-room dropdown on top of the booking modal.
+              Clicking "Review Transfer" opens the second dialog below
+              which previews rate deltas before committing the move. */}
+          {transferOpen && createPortal(
+            <div
+              className="fixed inset-0 z-[99998] flex items-center justify-center px-4"
+              role="dialog" aria-modal="true" aria-label="Transfer to another room"
+              onMouseDown={e => e.target === e.currentTarget && !transferring && !transferConfirmOpen && (setTransferOpen(false), setTransferRoomId(''))}
+            >
+              <div className="absolute inset-0 bg-black/50" />
+              <div className="relative w-full max-w-sm rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-2xl animate-hero-fade-in opacity-0">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
                   <i className="fas fa-exchange-alt text-white text-xs"></i>
@@ -1004,17 +1029,20 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <i className="fas fa-arrow-right mr-1"></i>Review Transfer
                 </button>
               </div>
-            </div>
+              </div>
+            </div>,
+            document.body
           )}
 
           {/* Transfer confirmation modal — shown AFTER picking a target
               room. Previews the rate change so staff can't accidentally
               upgrade a guest at the old rate. Downgrades get a neutral
               "no rate change" message since the resort doesn't refund
-              the difference. */}
-          {transferConfirmOpen && transferPreview && (
+              the difference. Portaled at z-[99999] so it sits above
+              the picker dialog (z-[99998]) when both are open. */}
+          {transferConfirmOpen && transferPreview && createPortal(
             <div
-              className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+              className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 p-4"
               onMouseDown={e => e.target === e.currentTarget && !transferring && setTransferConfirmOpen(false)}
             >
               <div
@@ -1105,7 +1133,8 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   </button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* Actions — hidden while confirmation is pending */}
