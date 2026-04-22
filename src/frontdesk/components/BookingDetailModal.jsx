@@ -53,6 +53,14 @@ function isExpiredPending(b) {
   return new Date(b.createdAt) < fiveMinAgo;
 }
 
+// A Checked In booking whose scheduled checkout time has already passed.
+// Mirrors Bookings.jsx so the "Overdue" state is computed identically
+// across the frontdesk portal.
+function isOverdueCheckout(b) {
+  if (!b || b.status !== 'Checked In' || !b.checkOut) return false;
+  return new Date(String(b.checkOut).replace(' ', 'T')) < new Date();
+}
+
 function StatusBadge({ status, booking }) {
   if (status === 'Pending' && booking && isExpiredPending(booking)) {
     return (
@@ -1152,7 +1160,13 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   <i className="fas fa-door-open mr-1"></i>Check In
                 </button>
               )}
-              {booking.status === 'Checked In' && !transferOpen && (
+              {/* Transfer hidden once a Checked In booking has gone
+                  overdue — at that point staff should be walking the
+                  guest through checkout, not rotating rooms.
+                  (Frontend-only guard: the transferRoom backend still
+                  accepts overdue bookings so an override via API is
+                  possible if ever needed.) */}
+              {booking.status === 'Checked In' && !transferOpen && !isOverdueCheckout(booking) && (
                 <button onClick={openTransfer}
                   disabled={actionLoading}
                   className="px-3 py-2 bg-violet-600 text-white rounded text-sm hover:bg-violet-700 disabled:opacity-50">

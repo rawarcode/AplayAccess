@@ -695,14 +695,20 @@ export default function Bookings() {
                                   className="inline-flex w-9 h-9 items-center justify-center text-emerald-500 cursor-default opacity-60">
                                   <i className="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                                 </span>
-                                <button
-                                  onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
-                                  disabled={actionLoading === b.bookingId}
-                                  title="Transfer to another room"
-                                  aria-label={`Transfer ${b.id} to another room`}
-                                  className="inline-flex w-9 h-9 items-center justify-center rounded text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 disabled:opacity-40">
-                                  <i className="fas fa-exchange-alt" aria-hidden="true"></i>
-                                </button>
+                                {/* Transfer hidden on overdue rows — staff
+                                    should be walking the guest through
+                                    checkout, not rotating rooms. Matches
+                                    the same guard in BookingDetailModal. */}
+                                {!isOverdueCheckout(b) && (
+                                  <button
+                                    onClick={() => { setTransferBooking(b); setTransferRoomId(''); }}
+                                    disabled={actionLoading === b.bookingId}
+                                    title="Transfer to another room"
+                                    aria-label={`Transfer ${b.id} to another room`}
+                                    className="inline-flex w-9 h-9 items-center justify-center rounded text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 disabled:opacity-40">
+                                    <i className="fas fa-exchange-alt" aria-hidden="true"></i>
+                                  </button>
+                                )}
                               </>
                             )}
                             {b.status === 'Pending' && (

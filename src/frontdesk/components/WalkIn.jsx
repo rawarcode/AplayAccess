@@ -733,6 +733,14 @@ export default function WalkIn() {
                       {(() => {
                         const visible = rooms.filter(r => availability === null || availability?.[String(r.id)] === true);
                         const getCat  = r => r.category || (r.name.toLowerCase().includes('cottage') ? 'cottage' : r.name.toLowerCase().includes('pavilion') ? 'pavilion' : 'room');
+                        // Price shown matches the booking type the user
+                        // picked on the previous step. Fallback matches
+                        // the defaults computed at line 175-177.
+                        const rateFor = (r) => {
+                          if (form.bookingType === 'night')  return Number(r.overnight_rate ?? 1500);
+                          if (form.bookingType === '24hr')   return Number(r.rate_24hr      ?? 2000);
+                          return Number(r.day_rate ?? 1500); // 'day'
+                        };
                         const groups  = [
                           { key: 'room',     label: '🛏️  Rooms'     },
                           { key: 'cottage',  label: '⛱️  Cottages'  },
@@ -746,7 +754,7 @@ export default function WalkIn() {
                             <optgroup key={g.key} label={g.label}>
                               {items.map(r => (
                                 <option key={r.id} value={r.id}>
-                                  {r.name}{r.capacity_label ? ` — ${r.capacity_label}` : ''}
+                                  {r.name} — ₱{rateFor(r).toLocaleString('en-PH')}{r.capacity_label ? ` · ${r.capacity_label}` : ''}
                                 </option>
                               ))}
                             </optgroup>
