@@ -104,7 +104,14 @@ export default function Bookings() {
   const [entranceRates, setEntranceRates] = useState(FALLBACK_ENTRANCE_RATES);
 
   const [searchParams, setSearchParams]   = useSearchParams();
-  const [sortBy, setSortBy]               = useState('Visit Time');
+  // Default sort is the synthetic 'Urgency' key — see the sort-key
+  // block below for the ranking. Clicking any real column header
+  // flips sortBy to that column (handleSort sets dir='asc') which
+  // intentionally overrides urgency; that matches the expectation
+  // that clicking a header means "sort by this header". To reset,
+  // reload the page. If that turns out to annoy staff we'll add a
+  // "Reset sort" affordance.
+  const [sortBy, setSortBy]               = useState('Urgency');
   const [sortDir, setSortDir]             = useState('asc');
   const [searchTerm, setSearchTerm]       = useState('');
   const VALID_STATUSES = ['Pending','Confirmed','Checked In','Completed','Cancelled','Overdue'];
@@ -236,9 +243,28 @@ export default function Bookings() {
     // comparator stays O(1) — previously toLowerCase() ran twice per
     // compare × N log N compares, which is wasteful on long lists.
     const STATUS_ORDER = { Pending: 0, 'Checked In': 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
+    // Urgency bucket: 0 = most urgent (top of list), 6 = least.
+    // Tiebreaker within a bucket is check-in time ascending — we
+    // compose bucket+timestamp into one string key so the existing
+    // string comparator handles it without extra branches. The
+    // pad keeps buckets single-digit-sortable alongside ISO dates.
+    const todayStr = new Date().toDateString();
+    const urgencyBucket = (b) => {
+      if (isOverdueCheckout(b))                    return 0;                        // overdue
+      if (b.status === 'Checked In')               return 1;                        // here now
+      if (b.status === 'Confirmed'
+          && b.checkIn
+          && new Date(String(b.checkIn).replace(' ', 'T')).toDateString() === todayStr) return 2; // arriving today
+      if (b.status === 'Pending')                  return 3;                        // awaiting action
+      if (b.status === 'Confirmed')                return 4;                        // future
+      if (b.status === 'Completed')                return 5;                        // resolved (dimmed)
+      if (b.status === 'Cancelled')                return 6;                        // resolved (dimmed)
+      return 7;
+    };
     const keyed = list.map(b => {
       let key;
-      if      (sortBy === 'ID')         key = b.id ?? '';
+      if      (sortBy === 'Urgency')    key = `${urgencyBucket(b)}|${b.checkIn ?? ''}`;
+      else if (sortBy === 'ID')         key = b.id ?? '';
       else if (sortBy === 'Guest')      { const wi = parseWalkIn(b); key = ((wi ? wi.name : b.guest) ?? '').toLowerCase(); }
       else if (sortBy === 'Room')       key = (b.roomType ?? '').toLowerCase();
       else if (sortBy === 'Visit Time') key = b.checkIn ?? '';
@@ -599,12 +625,19 @@ export default function Bookings() {
 
                     // Row color — overdue overrides source tint. Source tint
                     // is subtle (bg-*-50) so it does not compete with the
-                    // status pill for the eye.
-                    const rowCls = overdue
-                      ? 'bg-rose-50 hover:bg-rose-100 border-l-4 border-rose-500'
-                      : isWalkIn
-                        ? 'bg-amber-50/60 hover:bg-amber-100/80 border-l-4 border-amber-400'
-                        : 'bg-white hover:bg-slate-50 border-l-4 border-sky-200';
+                    // status pill for the eye. Cancelled + Completed rows
+                    // fade to 60% opacity so resolved work recedes and the
+                    // live rows at the top stand out naturally; the
+                    // urgency-default sort already floats them up there.
+                    const isResolved = b.status === 'Cancelled' || b.status === 'Completed';
+                    const rowCls = [
+                      overdue
+                        ? 'bg-rose-50 hover:bg-rose-100 border-l-4 border-rose-500'
+                        : isWalkIn
+                          ? 'bg-amber-50/60 hover:bg-amber-100/80 border-l-4 border-amber-400'
+                          : 'bg-white hover:bg-slate-50 border-l-4 border-sky-200',
+                      isResolved ? 'opacity-60 hover:opacity-100 transition-opacity' : '',
+                    ].filter(Boolean).join(' ');
 
                     // Suppress source pill when the filter is already source-
                     // locked — the information is redundant on that view.
