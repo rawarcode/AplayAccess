@@ -1,5 +1,6 @@
 // src/pages/dashboard/EditProfile.jsx
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { updateProfile, changePassword, exportAccountData, deleteAccount } from "../../lib/profileApi.js";
 import PasswordRequirements, { checkPasswordStrength } from "../../components/ui/PasswordRequirements.jsx";
@@ -15,8 +16,14 @@ const inputBase =
 
 export default function EditProfile() {
   const { user, login, logout } = useAuth();
+  const navigate = useNavigate();
   const fileRef = useRef(null);
   const [toast, showToast, clearToast, toastType] = useToast();
+  // Password-gated email change — shown only when the email field
+  // differs from the authenticated user's current email. Cleared on
+  // successful save so a stale value can't leak into the next submit.
+  const [emailChangePassword, setEmailChangePassword] = useState("");
+  const [showEmailChangePassword, setShowEmailChangePassword] = useState(false);
 
   const initial = useMemo(() => {
     const name = user?.name || "";
@@ -57,6 +64,12 @@ export default function EditProfile() {
 
   /* ── Item 5: unsaved-changes guard ── */
   const isDirty = JSON.stringify(form) !== JSON.stringify(initial);
+
+  // Detect whether the email field has been edited away from the
+  // authenticated user's current email. Comparison is against
+  // `user?.email` (not `initial.email`) so a pending verify from a
+  // previous tab can't silently suppress the password gate.
+  const isEmailChanging = !!(form.email && user?.email && form.email.trim().toLowerCase() !== user.email.toLowerCase());
   useEffect(() => {
     if (!isDirty) return;
     const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
@@ -94,6 +107,15 @@ export default function EditProfile() {
   async function onSave(e) {
     e.preventDefault();
     setSaveError("");
+
+    // Short-circuit: don't even hit the backend if the user left the
+    // password field blank while changing their email. Lets us show a
+    // focused error next to the field instead of waiting on the 422.
+    if (isEmailChanging && !emailChangePassword) {
+      setSaveError("Confirm your current password to change your email.");
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -103,12 +125,35 @@ export default function EditProfile() {
         phone:  form.phone,
         avatar: form.avatar || undefined,
       };
+      if (isEmailChanging) {
+        payload.current_password = emailChangePassword;
+      }
 
       const data = await updateProfile(payload);
+
+      // Email-change path: the backend has parked the new address in
+      // `pending_email` and sent an OTP there. Keep the user logged in
+      // with their ORIGINAL email (nothing actually changed yet), wipe
+      // the password field from memory, and route to the verification
+      // page with a clear prompt.
+      if (data.email_change_pending) {
+        // Update auth state so the dashboard banner can surface the
+        // pending change. user.email stays the same; user.pending_email
+        // is now populated.
+        login(data.user);
+        setEmailChangePassword("");
+        setShowEmailChangePassword(false);
+        showToast(`Verification code sent to ${data.pending_email}.`, "success");
+        navigate("/dashboard/verify-email-change");
+        return;
+      }
+
+      // Regular profile save — name / phone / avatar updated inline.
       login(data.user || { ...(user || {}), ...payload });
       showToast("Profile updated successfully!", "success");
     } catch (err) {
       const msg =
+        err?.response?.data?.errors?.current_password?.[0] ||
         err?.response?.data?.message ||
         Object.values(err?.response?.data?.errors || {})?.[0]?.[0] ||
         "Failed to save profile.";
@@ -320,6 +365,46 @@ export default function EditProfile() {
                       className={inputBase}
                     />
                   </div>
+                  {/* Password gate — only surfaces when the email field
+                      differs from the currently-authenticated email. The
+                      backend enforces this too; this is just the nudge so
+                      the user understands WHY a password is suddenly
+                      required. */}
+                  {isEmailChanging && (
+                    <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-xs text-amber-800 mb-2 flex items-start gap-1.5">
+                        <i className="fas fa-shield-halved mt-0.5"></i>
+                        <span>
+                          Changing your email is a sensitive action. Confirm your password — we'll
+                          send a 6-digit code to <strong>{form.email}</strong> before anything actually
+                          changes. Your current email stays active until you enter the code.
+                        </span>
+                      </p>
+                      <label className="block text-xs font-medium text-amber-900 mb-1">
+                        Current Password
+                      </label>
+                      <div className="relative">
+                        <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-amber-500 text-xs"></i>
+                        <input
+                          type={showEmailChangePassword ? "text" : "password"}
+                          value={emailChangePassword}
+                          onChange={(e) => setEmailChangePassword(e.target.value)}
+                          autoComplete="current-password"
+                          placeholder="Enter your password"
+                          className="w-full pl-9 pr-10 py-2 border rounded-lg border-amber-300 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-amber-400 text-sm bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowEmailChangePassword((s) => !s)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-700"
+                          tabIndex={-1}
+                          aria-label={showEmailChangePassword ? "Hide password" : "Show password"}
+                        >
+                          <i className={`fas ${showEmailChangePassword ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Phone */}

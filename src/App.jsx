@@ -20,6 +20,7 @@ const DashboardShell = lazy(() => import("./components/dashboard/DashboardShell.
 const GuestDashboard = lazy(() => import("./pages/dashboard/GuestDashboard.jsx"));
 const MyBookings = lazy(() => import("./pages/dashboard/MyBookings.jsx"));
 const EditProfile = lazy(() => import("./pages/dashboard/EditProfile.jsx"));
+const VerifyEmailChange = lazy(() => import("./pages/dashboard/VerifyEmailChange.jsx"));
 const Messages = lazy(() => import("./pages/dashboard/Messages.jsx"));
 
 // Shared staff login
@@ -112,6 +113,7 @@ export default function App() {
           <Route index element={<GuestDashboard />} />
           <Route path="bookings" element={<MyBookings />} />
           <Route path="profile" element={<EditProfile />} />
+          <Route path="verify-email-change" element={<VerifyEmailChange />} />
           <Route path="messages" element={<Messages />} />
         </Route>
       </Route>

@@ -6,6 +6,7 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { getMessages } from "../../lib/messageApi.js";
 import { Helmet } from "react-helmet-async";
 import UnverifiedEmailBanner from "../UnverifiedEmailBanner.jsx";
+import PendingEmailChangeBanner from "../PendingEmailChangeBanner.jsx";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -196,6 +197,10 @@ export default function DashboardShell() {
           verified. Click opens the 6-digit OTP modal without forcing
           the user onto the standalone /verify-email page. */}
       <UnverifiedEmailBanner />
+      {/* Sticky nudge for guests with a pending email change — hidden
+          as soon as pending_email clears (swap verified or cancelled).
+          Stacks under UnverifiedEmailBanner when both apply. */}
+      <PendingEmailChangeBanner />
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-30 bg-black/40 md:hidden" onClick={() => setSidebarOpen(false)} />
