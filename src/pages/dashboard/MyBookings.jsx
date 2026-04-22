@@ -545,7 +545,7 @@ export default function MyBookings() {
                     className={`cursor-pointer hover:bg-slate-50 transition-colors ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900 font-medium">{b.id}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">{b.roomType}</td>
-                  <td className="px-6 py-4 text-sm text-slate-700">
+                  <td className="px-6 py-4 text-sm text-slate-700 whitespace-nowrap">
                     <div>{fmtDateTime(b.checkIn)}</div>
                     <div className="text-slate-400 text-xs">→ {fmtDateTime(b.checkOut)}</div>
                   </td>
