@@ -46,7 +46,11 @@ export default function GuestRecords() {
   }, []);
 
   // Group bookings by guest identity.
-  //  - Email is the strongest identifier and merges repeat guests.
+  //  - user_id is the strongest identifier for AUTHED bookings — stable
+  //    and non-spoofable. Walk-ins that enter the same email as an
+  //    existing authed user never merge into that user's row.
+  //  - For walk-ins / guest-token bookings (no user_id), email is the
+  //    best identifier we have.
   //  - If no email, fall back to name+phone so distinct guests with the
   //    same name don't merge (as long as phones differ).
   //  - If both email and phone are missing, use the booking ID so each
@@ -59,9 +63,17 @@ export default function GuestRecords() {
       const phone = wi ? wi.phone : (b.guestPhone || '—');
       const name  = wi ? wi.name  : b.guest;
       let key;
-      if (email && email !== '—') key = `email:${email.toLowerCase()}`;
-      else if (phone && phone !== '—') key = `np:${(name || '').toLowerCase()}|${phone}`;
-      else key = `id:${b.id}`;
+      // Authed bookings: group by user_id. Walk-ins entering the same
+      // email never collide with this key because their userId is null.
+      if (b.userId != null && !wi) {
+        key = `user:${b.userId}`;
+      } else if (email && email !== '—') {
+        key = `email:${email.toLowerCase()}`;
+      } else if (phone && phone !== '—') {
+        key = `np:${(name || '').toLowerCase()}|${phone}`;
+      } else {
+        key = `id:${b.id}`;
+      }
       if (!map[key]) {
         map[key] = { name, email, phone, visits: [] };
       }
