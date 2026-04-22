@@ -1,5 +1,6 @@
 // src/frontdesk/components/BookingDetailModal.jsx
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
   addAmenity, updateAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
@@ -195,6 +196,18 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [transferConfirmOpen, transferring]);
+
+  // Escape cancels the action confirmation dialog (Confirm / Check In /
+  // Check Out / Cancel / Remove Add-on). Ignored while an action is
+  // mid-flight so the dialog can't vanish mid-save.
+  useEffect(() => {
+    if (!pendingAction) return;
+    function onKey(e) {
+      if (e.key === 'Escape' && !actionLoading) setPendingAction(null);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pendingAction, actionLoading]);
   const [rooms,            setRooms]            = useState([]);
   const [roomsLoading,     setRoomsLoading]     = useState(false);
   // All bookings — only fetched when the Transfer picker opens, so the
@@ -482,79 +495,87 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="p-6">
 
-          {/* ── Confirmation Panel ── */}
-          {pendingAction && cfg && (
-            <div className={`mb-4 rounded-xl border p-4 ${clr.banner}`}>
-              <div className="flex items-start gap-3 mb-3">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${clr.btn} text-white`}>
-                  <i className={`fas ${cfg.icon} text-sm`}></i>
-                </div>
-                <div>
-                  <p className="font-semibold text-sm">{cfg.heading}</p>
-                  <p className="text-xs mt-0.5 opacity-80">{cfg.desc}</p>
-                </div>
-              </div>
-
-              {/* Summary rows */}
-              <div className="bg-white/60 rounded-lg px-3 py-2 text-xs space-y-1 mb-3">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Booking</span>
-                  <span className="font-semibold">{booking.id}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Guest</span>
-                  <span className="font-semibold">{guestName}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Room</span>
-                  <span className="font-semibold">{booking.roomType}</span>
-                </div>
-                {pendingAction.type === 'checkin' && (() => {
-                  const { rate, amount } = entranceFeeForBooking(booking, entranceRates);
-                  return (
-                    <>
-                      <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
-                        <span className="text-slate-500">Balance due (room)</span>
-                        <span className="font-bold text-violet-700">{fmtMoney(balanceDue)}</span>
-                      </div>
-                      <div className="flex justify-between pt-0.5">
-                        <span className="text-amber-600 flex items-center gap-1">
-                          <i className="fas fa-ticket-alt text-[10px]"></i>
-                          Entrance fee ({booking.guests ?? 1} pax × ₱{rate})
-                        </span>
-                        <span className="font-bold text-amber-700">{fmtMoney(amount)}</span>
-                      </div>
-                      <p className="text-amber-600 text-[10px] pt-0.5">Collect entrance fee at the gate — not in booking total.</p>
-                    </>
-                  );
-                })()}
-                {pendingAction.type === 'checkout' && (
-                  <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
-                    <span className="text-slate-500">Total Amount</span>
-                    <span className="font-bold text-emerald-700">{fmtMoney(booking.total)}</span>
+          {/* ── Confirmation Dialog (portaled, renders above this modal) ── */}
+          {pendingAction && cfg && createPortal(
+            <div
+              className="fixed inset-0 z-[99999] flex items-center justify-center px-4"
+              role="dialog" aria-modal="true" aria-label="Confirm action"
+              onMouseDown={e => e.target === e.currentTarget && !actionLoading && setPendingAction(null)}
+            >
+              <div className="absolute inset-0 bg-black/50" />
+              <div className={`relative w-full max-w-sm rounded-xl border p-4 shadow-2xl ${clr.banner} animate-hero-fade-in opacity-0`}>
+                <div className="flex items-start gap-3 mb-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${clr.btn} text-white`}>
+                    <i className={`fas ${cfg.icon} text-sm`}></i>
                   </div>
-                )}
-                {pendingAction.type === 'remove-amenity' && (
-                  <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
-                    <span className="text-slate-500">Item</span>
-                    <span className="font-semibold">{pendingAction.amenityName} — {fmtMoney(pendingAction.amenityTotal)}</span>
+                  <div>
+                    <p className="font-semibold text-sm">{cfg.heading}</p>
+                    <p className="text-xs mt-0.5 opacity-80">{cfg.desc}</p>
                   </div>
-                )}
-              </div>
+                </div>
 
-              <div className="flex gap-2">
-                <button onClick={() => setPendingAction(null)}
-                  className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50">
-                  Cancel
-                </button>
-                <button onClick={execAction} disabled={actionLoading}
-                  className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white disabled:opacity-60 ${clr.btn}`}>
-                  {actionLoading
-                    ? <><i className="fas fa-spinner fa-spin mr-1"></i>Processing...</>
-                    : <><i className={`fas ${cfg.icon} mr-1`}></i>{cfg.label}</>}
-                </button>
+                {/* Summary rows */}
+                <div className="bg-white/80 rounded-lg px-3 py-2 text-xs space-y-1 mb-3">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Booking</span>
+                    <span className="font-semibold">{booking.id}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Guest</span>
+                    <span className="font-semibold">{guestName}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Room</span>
+                    <span className="font-semibold">{booking.roomType}</span>
+                  </div>
+                  {pendingAction.type === 'checkin' && (() => {
+                    const { rate, amount } = entranceFeeForBooking(booking, entranceRates);
+                    return (
+                      <>
+                        <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                          <span className="text-slate-500">Balance due (room)</span>
+                          <span className="font-bold text-violet-700">{fmtMoney(balanceDue)}</span>
+                        </div>
+                        <div className="flex justify-between pt-0.5">
+                          <span className="text-amber-600 flex items-center gap-1">
+                            <i className="fas fa-ticket-alt text-[10px]"></i>
+                            Entrance fee ({booking.guests ?? 1} pax × ₱{rate})
+                          </span>
+                          <span className="font-bold text-amber-700">{fmtMoney(amount)}</span>
+                        </div>
+                        <p className="text-amber-600 text-[10px] pt-0.5">Collect entrance fee at the gate — not in booking total.</p>
+                      </>
+                    );
+                  })()}
+                  {pendingAction.type === 'checkout' && (
+                    <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                      <span className="text-slate-500">Total Amount</span>
+                      <span className="font-bold text-emerald-700">{fmtMoney(booking.total)}</span>
+                    </div>
+                  )}
+                  {pendingAction.type === 'remove-amenity' && (
+                    <div className="flex justify-between border-t border-slate-200 pt-1 mt-1">
+                      <span className="text-slate-500">Item</span>
+                      <span className="font-semibold">{pendingAction.amenityName} — {fmtMoney(pendingAction.amenityTotal)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  <button onClick={() => setPendingAction(null)} disabled={actionLoading}
+                    className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+                    Cancel
+                  </button>
+                  <button onClick={execAction} disabled={actionLoading}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white disabled:opacity-60 ${clr.btn}`}>
+                    {actionLoading
+                      ? <><i className="fas fa-spinner fa-spin mr-1"></i>Processing...</>
+                      : <><i className={`fas ${cfg.icon} mr-1`}></i>{cfg.label}</>}
+                  </button>
+                </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* Header */}
