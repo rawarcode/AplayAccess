@@ -77,6 +77,17 @@ export const deleteAdminMessage     = (id)         => api.delete(`/api/admin/mes
 export const toggleMessagingBlock   = (userId, blocked, reason) =>
   api.post(`/api/admin/users/${userId}/toggle-messaging-block`, { blocked, reason });
 
+// Staff-initiated messaging to currently-booked guests. activeGuests
+// returns the eligible recipient list (guests with a Confirmed or
+// Checked In booking); composeMessage sends to a picked guest.
+// Both share the one-thread-per-guest consolidation rule, so sending
+// to a guest with an existing thread appends to it instead of
+// spawning a second parallel conversation.
+export const getActiveGuestsForMessaging = () =>
+  api.get('/api/admin/messages/active-guests');
+export const composeAdminMessage    = (payload) =>
+  api.post('/api/admin/messages/compose', payload);
+
 // ── Auto-Reply Rules ─────────────────────────────────────────────────────────
 export const getAutoReplies          = ()         => api.get('/api/admin/auto-replies');
 export const createAutoReply         = (data)     => api.post('/api/admin/auto-replies', data);

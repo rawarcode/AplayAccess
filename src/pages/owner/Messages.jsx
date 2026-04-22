@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { getAdminMessages, replyAdminMessage, markAdminMessageRead, deleteAdminMessage, toggleMessagingBlock, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
+import { getAdminMessages, replyAdminMessage, markAdminMessageRead, deleteAdminMessage, toggleMessagingBlock, getActiveGuestsForMessaging, composeAdminMessage, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
@@ -482,6 +482,18 @@ export default function AdminMessages() {
   const [blockTarget, setBlockTarget]   = useState(null);
   const [blockReason, setBlockReason]   = useState("");
   const [blockSaving, setBlockSaving]   = useState(false);
+
+  // Compose-new-message modal state. activeGuests is lazy-loaded
+  // when the modal opens — no point fetching that list on every
+  // Messages page visit if staff rarely compose.
+  const [composeOpen,     setComposeOpen]     = useState(false);
+  const [activeGuests,    setActiveGuests]    = useState([]);
+  const [guestsLoading,   setGuestsLoading]   = useState(false);
+  const [composeGuestId,  setComposeGuestId]  = useState("");
+  const [composeSubject,  setComposeSubject]  = useState("");
+  const [composeBody,     setComposeBody]     = useState("");
+  const [composeSending,  setComposeSending]  = useState(false);
+  const [composeSearch,   setComposeSearch]   = useState("");
   const bottomRef = useRef(null);
   const searchRef = useRef(null);
   const undoTimerRef = useRef(null);
@@ -634,6 +646,62 @@ export default function AdminMessages() {
     }
   }
 
+  // ── compose new message to a currently-booked guest ─────────────────────────
+  // Fetches the eligible recipient list on modal open (lazy — no need
+  // to hammer the endpoint on every Messages page visit). The send
+  // handler refreshes the threads list so the just-sent thread
+  // becomes visible; the backend may have appended to an existing
+  // thread or created a fresh one, and the UI need not care which.
+  function openCompose() {
+    setComposeGuestId("");
+    setComposeSubject("");
+    setComposeBody("");
+    setComposeSearch("");
+    setComposeOpen(true);
+    // Load recipients if we haven't yet, or re-load to reflect any
+    // bookings that just confirmed / checked in since the last open.
+    setGuestsLoading(true);
+    getActiveGuestsForMessaging()
+      .then(r => setActiveGuests(r.data?.data ?? []))
+      .catch(() => showToast("Failed to load active guests.", "error"))
+      .finally(() => setGuestsLoading(false));
+  }
+
+  function closeCompose() {
+    const dirty = composeGuestId || composeSubject.trim() || composeBody.trim();
+    if (dirty && !confirm("Discard this message?")) return;
+    setComposeOpen(false);
+  }
+
+  async function handleCompose() {
+    if (composeSending) return;
+    if (!composeGuestId)    { showToast("Pick a guest first.", "error"); return; }
+    if (!composeSubject.trim()) { showToast("Subject is required.", "error"); return; }
+    if (!composeBody.trim()) { showToast("Message body is required.", "error"); return; }
+    setComposeSending(true);
+    try {
+      await composeAdminMessage({
+        user_id: Number(composeGuestId),
+        subject: composeSubject.trim(),
+        body:    composeBody.trim(),
+      });
+      // Pull the fresh threads list so the new / updated thread
+      // appears in the sidebar. Try to auto-select the just-updated
+      // thread so staff land in context.
+      const refreshed = await getAdminMessages();
+      const all = refreshed.data?.data ?? refreshed.data ?? [];
+      setThreads(all);
+      const justTouched = all.find(t => t.sender_id === Number(composeGuestId));
+      if (justTouched) setActiveId(justTouched.id);
+      setComposeOpen(false);
+      showToast("Message sent.", "success");
+    } catch (err) {
+      showToast(err?.response?.data?.message || "Failed to send. Please try again.", "error");
+    } finally {
+      setComposeSending(false);
+    }
+  }
+
   // ── toggle messaging block (restrict / restore) ──────────────────────────────
   // Flips the sender's messaging_blocked_at on the backend then
   // mirrors the new state onto every thread from the same sender in
@@ -689,6 +757,157 @@ export default function AdminMessages() {
         onConfirm={() => handleDeleteThread(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Compose-new-message modal. Staff pick a currently-booked
+          guest, type subject + body, and send. Backend auto-routes
+          the message into the guest's existing thread (or creates one
+          if they have none). If the picked guest already has a thread
+          visible in the sidebar, the subject field is hidden — it's
+          ignored by the backend in that case. */}
+      <Modal open={composeOpen} onClose={closeCompose} maxWidth="max-w-lg">
+        <div className="p-6">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
+                <i className="fas fa-paper-plane text-sky-600"></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">New Message</h3>
+                <p className="text-sm text-slate-500 mt-0.5">Send a message to a currently-booked guest.</p>
+              </div>
+            </div>
+            <button onClick={closeCompose} disabled={composeSending}
+              className="text-slate-400 hover:text-slate-600 disabled:opacity-60" aria-label="Close">
+              <i className="fas fa-times"></i>
+            </button>
+          </div>
+
+          {/* Guest picker — plain select with search. Filters by name
+              and email on the client so staff can find a specific
+              guest fast even with a long list. */}
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+              Recipient <span className="text-red-400">*</span>
+            </label>
+            {guestsLoading ? (
+              <p className="text-xs text-slate-400 py-2">
+                <i className="fas fa-spinner fa-spin mr-2"></i>Loading guests…
+              </p>
+            ) : activeGuests.length === 0 ? (
+              <p className="text-xs text-slate-500 py-2 rounded-lg bg-slate-50 border border-slate-200 px-3">
+                <i className="fas fa-info-circle mr-1 text-slate-400"></i>
+                No guests currently have active bookings.
+              </p>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={composeSearch}
+                  onChange={e => setComposeSearch(e.target.value)}
+                  placeholder="Search by name or email…"
+                  className="w-full px-3 py-2 mb-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+                />
+                <div className="max-h-56 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100 bg-white">
+                  {activeGuests
+                    .filter(g => {
+                      if (!composeSearch.trim()) return true;
+                      const q = composeSearch.toLowerCase();
+                      return (
+                        (g.name  || "").toLowerCase().includes(q) ||
+                        (g.email || "").toLowerCase().includes(q)
+                      );
+                    })
+                    .map(g => {
+                      const selected = String(composeGuestId) === String(g.id);
+                      return (
+                        <button
+                          type="button"
+                          key={g.id}
+                          onClick={() => setComposeGuestId(String(g.id))}
+                          className={`w-full text-left px-3 py-2.5 flex items-start gap-3 transition ${
+                            selected ? "bg-sky-50" : "hover:bg-slate-50"
+                          }`}
+                        >
+                          <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                            selected ? "bg-sky-600 text-white" : "bg-slate-200 text-slate-600"
+                          }`}>
+                            {(g.name || "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 truncate">{g.name}</p>
+                            <p className="text-[11px] text-slate-500 truncate">{g.email}</p>
+                            {g.booking_summary && (
+                              <p className="text-[11px] text-slate-400 truncate mt-0.5">
+                                <i className="fas fa-bed mr-1 text-[9px]"></i>
+                                {g.booking_summary.room_name} · {g.booking_summary.status} · {g.booking_summary.check_in}
+                              </p>
+                            )}
+                          </div>
+                          {selected && <i className="fas fa-check text-sky-600 mt-2 text-xs"></i>}
+                        </button>
+                      );
+                    })}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Subject — still required (backend validation). If the
+              recipient already has a thread, this is used only for
+              staff context; the backend will ignore it when appending. */}
+          <div className="mb-4">
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+              Subject <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="text"
+              value={composeSubject}
+              onChange={e => setComposeSubject(e.target.value)}
+              maxLength={255}
+              placeholder="e.g. Arrival details, Special request follow-up"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400"
+            />
+          </div>
+
+          <div className="mb-5">
+            <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+              Message <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={composeBody}
+              onChange={e => setComposeBody(e.target.value)}
+              rows={5}
+              maxLength={5000}
+              placeholder="Write your message to the guest…"
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 resize-none"
+            />
+            <p className={`text-[11px] mt-1 ${composeBody.length > 4500 ? "text-rose-500" : "text-slate-400"}`}>
+              {composeBody.length}/5000
+            </p>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={closeCompose}
+              disabled={composeSending}
+              className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-60 rounded-lg"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleCompose}
+              disabled={composeSending || !composeGuestId || !composeSubject.trim() || !composeBody.trim()}
+              className="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-60 rounded-lg"
+            >
+              {composeSending
+                ? <><i className="fas fa-spinner fa-spin mr-1.5"></i>Sending…</>
+                : <><i className="fas fa-paper-plane mr-1.5"></i>Send Message</>}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Messaging-restrict confirmation. Uses Modal (not ConfirmDialog)
           so staff can optionally type a reason that lands in the
@@ -767,6 +986,15 @@ export default function AdminMessages() {
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Read and respond to guest inquiries.</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Compose new message — staff-initiated thread to any
+              currently-booked guest. Appends to their existing thread
+              if one exists (one-thread-per-guest model); otherwise
+              creates a new root thread. */}
+          <button onClick={openCompose}
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+            <i className="fas fa-plus text-xs"></i>
+            Compose
+          </button>
           {/* Auto-Reply Rules button */}
           <button onClick={() => setRulesOpen(true)}
             className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 text-violet-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-100 transition">
