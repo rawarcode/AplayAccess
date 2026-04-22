@@ -71,6 +71,11 @@ export const getAdminMessages       = ()           => api.get('/api/admin/messag
 export const replyAdminMessage      = (id, body)   => api.post(`/api/admin/messages/${id}/reply`, { body });
 export const markAdminMessageRead   = (id)         => api.patch(`/api/admin/messages/${id}/read`);
 export const deleteAdminMessage     = (id)         => api.delete(`/api/admin/messages/${id}`);
+// Toggle a guest's ability to send new messages / replies. The endpoint
+// lives under Admin\MessageController (not UserController) because
+// staff hit it from the message-reading view, not the users list.
+export const toggleMessagingBlock   = (userId, blocked, reason) =>
+  api.post(`/api/admin/users/${userId}/toggle-messaging-block`, { blocked, reason });
 
 // ── Auto-Reply Rules ─────────────────────────────────────────────────────────
 export const getAutoReplies          = ()         => api.get('/api/admin/auto-replies');

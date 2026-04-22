@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { getAdminMessages, replyAdminMessage, markAdminMessageRead, deleteAdminMessage, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
+import { getAdminMessages, replyAdminMessage, markAdminMessageRead, deleteAdminMessage, toggleMessagingBlock, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
@@ -95,6 +95,11 @@ function ThreadItem({ thread, active, onClick }) {
           ) : (
             <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full font-medium">
               <i className="fas fa-clock mr-0.5"></i>Needs reply
+            </span>
+          )}
+          {thread.sender_messaging_blocked && (
+            <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-full font-medium">
+              <i className="fas fa-ban mr-0.5"></i>Restricted
             </span>
           )}
         </div>
@@ -471,6 +476,12 @@ export default function AdminMessages() {
   const [scrollTick,  setScrollTick]  = useState(0);
   const [rulesOpen,   setRulesOpen]   = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  // blockTarget: { senderId, senderName, currentlyBlocked } | null — drives
+  // the confirmation dialog that fires toggleMessagingBlock. Separate
+  // from deleteTarget so the two dialogs can't ever render at once.
+  const [blockTarget, setBlockTarget]   = useState(null);
+  const [blockReason, setBlockReason]   = useState("");
+  const [blockSaving, setBlockSaving]   = useState(false);
   const bottomRef = useRef(null);
   const searchRef = useRef(null);
   const undoTimerRef = useRef(null);
@@ -623,6 +634,39 @@ export default function AdminMessages() {
     }
   }
 
+  // ── toggle messaging block (restrict / restore) ──────────────────────────────
+  // Flips the sender's messaging_blocked_at on the backend then
+  // mirrors the new state onto every thread from the same sender in
+  // local state, so the badge + button label flip across all of the
+  // sender's threads (not just the active one) without a full refetch.
+  async function handleToggleBlock() {
+    if (!blockTarget) return;
+    setBlockSaving(true);
+    const { senderId, currentlyBlocked } = blockTarget;
+    const nextBlocked = !currentlyBlocked;
+    try {
+      const res = await toggleMessagingBlock(senderId, nextBlocked, blockReason.trim() || null);
+      const flaggedAt = res.data?.user?.messaging_blocked_at ?? null;
+      setThreads(prev => prev.map(t =>
+        t.sender_id === senderId
+          ? { ...t, sender_messaging_blocked: nextBlocked, sender_messaging_blocked_at: flaggedAt }
+          : t
+      ));
+      showToast(
+        nextBlocked
+          ? `Messaging restricted for ${blockTarget.senderName}.`
+          : `Messaging restored for ${blockTarget.senderName}.`,
+        "success"
+      );
+      setBlockTarget(null);
+      setBlockReason("");
+    } catch (err) {
+      showToast(err?.response?.data?.message || "Failed to update messaging access.", "error");
+    } finally {
+      setBlockSaving(false);
+    }
+  }
+
   const allMessages = active
     ? [{ id: active.id, body: active.body, sender_type: "guest",  created_at: active.created_at, sender: active.sender },
        ...(active.replies ?? [])]
@@ -645,6 +689,71 @@ export default function AdminMessages() {
         onConfirm={() => handleDeleteThread(deleteTarget)}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Messaging-restrict confirmation. Uses Modal (not ConfirmDialog)
+          so staff can optionally type a reason that lands in the
+          ActivityLog — useful evidence if a block is ever disputed. */}
+      <Modal open={!!blockTarget} onClose={() => !blockSaving && (setBlockTarget(null), setBlockReason(""))} maxWidth="max-w-md">
+        {blockTarget && (
+          <div className="p-6">
+            <div className="flex items-start gap-3 mb-4">
+              <div className={`h-10 w-10 rounded-full ${blockTarget.currentlyBlocked ? 'bg-emerald-100' : 'bg-amber-100'} flex items-center justify-center shrink-0`}>
+                <i className={`fas ${blockTarget.currentlyBlocked ? 'fa-unlock text-emerald-600' : 'fa-ban text-amber-600'}`}></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">
+                  {blockTarget.currentlyBlocked ? 'Restore messaging access?' : 'Restrict messaging access?'}
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {blockTarget.currentlyBlocked
+                    ? <>Re-enable <strong>{blockTarget.senderName}</strong> to send new messages and replies.</>
+                    : <><strong>{blockTarget.senderName}</strong> won't be able to start new threads or reply to existing ones. They can still log in, book, and view past messages.</>
+                  }
+                </p>
+              </div>
+            </div>
+            {!blockTarget.currentlyBlocked && (
+              <div className="mb-4">
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                  Reason <span className="text-slate-400 font-normal normal-case">(optional — logged)</span>
+                </label>
+                <textarea
+                  value={blockReason}
+                  onChange={e => setBlockReason(e.target.value)}
+                  rows={2}
+                  maxLength={500}
+                  placeholder="e.g. repeated spam, abusive language toward staff"
+                  className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
+                />
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => { setBlockTarget(null); setBlockReason(""); }}
+                disabled={blockSaving}
+                className="px-4 py-2 text-sm font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-60 rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleToggleBlock}
+                disabled={blockSaving}
+                className={`px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-60 ${
+                  blockTarget.currentlyBlocked
+                    ? 'bg-emerald-600 hover:bg-emerald-700'
+                    : 'bg-amber-600 hover:bg-amber-700'
+                }`}
+              >
+                {blockSaving
+                  ? <><i className="fas fa-spinner fa-spin mr-1.5"></i>Saving…</>
+                  : blockTarget.currentlyBlocked ? 'Restore access' : 'Restrict messaging'}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -812,6 +921,15 @@ export default function AdminMessages() {
                     <span><i className="fas fa-envelope mr-1 text-slate-400"></i>{active.sender_email}</span>
                     <span className="text-slate-300">·</span>
                     <span><i className="fas fa-clock mr-1 text-slate-400"></i>{fmtDate(active.created_at)}</span>
+                    {active.sender_messaging_blocked && (
+                      <>
+                        <span className="text-slate-300">·</span>
+                        <span className="inline-flex items-center gap-1 text-rose-700 font-medium">
+                          <i className="fas fa-ban"></i>
+                          Messaging restricted{active.sender_messaging_blocked_at ? ` · ${active.sender_messaging_blocked_at}` : ''}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
                 <div className="shrink-0 flex items-center gap-2">
@@ -823,6 +941,33 @@ export default function AdminMessages() {
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
                       <i className="fas fa-clock"></i>Awaiting reply
                     </span>
+                  )}
+                  {/* Restrict-messaging toggle — label + color flip based
+                      on the sender's current state. Opens a confirm
+                      dialog so staff can optionally attach a reason
+                      that lands in the activity log. */}
+                  {active.sender_id && (
+                    <button
+                      onClick={() => {
+                        setBlockReason("");
+                        setBlockTarget({
+                          senderId: active.sender_id,
+                          senderName: active.sender,
+                          currentlyBlocked: !!active.sender_messaging_blocked,
+                        });
+                      }}
+                      title={active.sender_messaging_blocked
+                        ? 'Restore this guest\u0027s messaging access'
+                        : 'Restrict this guest from sending new messages'}
+                      className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
+                        active.sender_messaging_blocked
+                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                      }`}
+                    >
+                      <i className={`fas ${active.sender_messaging_blocked ? 'fa-unlock' : 'fa-ban'} text-[11px]`}></i>
+                      {active.sender_messaging_blocked ? 'Restore' : 'Restrict'}
+                    </button>
                   )}
                   <button onClick={() => setDeleteTarget(active)} title="Delete thread"
                     className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
