@@ -69,7 +69,21 @@ export default function EditProfile() {
   // authenticated user's current email. Comparison is against
   // `user?.email` (not `initial.email`) so a pending verify from a
   // previous tab can't silently suppress the password gate.
+  // Google-managed users never satisfy this — their email field is
+  // rendered read-only, so form.email stays in lockstep with
+  // user.email and isEmailChanging stays false.
   const isEmailChanging = !!(form.email && user?.email && form.email.trim().toLowerCase() !== user.email.toLowerCase());
+
+  // Google-managed account: the user originally authenticated via
+  // Google Sign-In (user.google_id is populated). We treat email +
+  // password as "owned" by Google and hide the controls here so the
+  // two systems can't desync. Users who want to change either are
+  // directed to manage it on the Google side. Limitation: a hybrid
+  // user who signed up with email/password and later linked Google
+  // also has google_id set, so they'll see the same restriction —
+  // acceptable trade-off for the capstone since Forgot Password is
+  // still a valid escape hatch for those users.
+  const isGoogleManaged = !!user?.google_id;
   useEffect(() => {
     if (!isDirty) return;
     const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
@@ -362,15 +376,29 @@ export default function EditProfile() {
                       onChange={(e) => setField("email", e.target.value)}
                       placeholder="you@email.com"
                       autoComplete="email"
-                      className={inputBase}
+                      readOnly={isGoogleManaged}
+                      className={`${inputBase} ${isGoogleManaged ? "bg-slate-50 text-slate-500 cursor-not-allowed" : ""}`}
                     />
                   </div>
+                  {/* Google-managed accounts: email is the identity
+                      handed to us by Google, so changing it here would
+                      desync from the authoritative record. Direct the
+                      user to manage it on Google instead. */}
+                  {isGoogleManaged && (
+                    <p className="mt-2 text-xs text-slate-500 flex items-start gap-1.5">
+                      <i className="fab fa-google mt-0.5 text-[13px]"></i>
+                      <span>
+                        Your email is managed by your Google account. Sign in to Google to change it.
+                      </span>
+                    </p>
+                  )}
                   {/* Password gate — only surfaces when the email field
                       differs from the currently-authenticated email. The
                       backend enforces this too; this is just the nudge so
                       the user understands WHY a password is suddenly
-                      required. */}
-                  {isEmailChanging && (
+                      required. Suppressed for Google-managed accounts —
+                      they can't change email here at all. */}
+                  {isEmailChanging && !isGoogleManaged && (
                     <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
                       <p className="text-xs text-amber-800 mb-2 flex items-start gap-1.5">
                         <i className="fas fa-shield-halved mt-0.5"></i>
@@ -441,7 +469,7 @@ export default function EditProfile() {
 
       {/* Security section */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 flex items-center justify-between">
+        <div className="p-6 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             {/* Item 6: icon-badge security header */}
             <span className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center">
@@ -449,16 +477,31 @@ export default function EditProfile() {
             </span>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Security</h2>
-              <p className="text-slate-500 text-sm">Manage your account password.</p>
+              <p className="text-slate-500 text-sm">
+                {isGoogleManaged
+                  ? "Your password is managed by your Google account."
+                  : "Manage your account password."}
+              </p>
             </div>
           </div>
-          <button
-            onClick={() => setPwOpen(true)}
-            className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
-          >
-            <i className="fas fa-lock"></i>
-            Change Password
-          </button>
+          {/* Google-managed: show a static badge where the button
+              used to be. No password exists for us to change
+              (user was created via Google with a random throwaway
+              hash we never expose), so we don't offer the action. */}
+          {isGoogleManaged ? (
+            <span className="inline-flex items-center gap-2 bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-xs font-medium">
+              <i className="fab fa-google text-[13px]"></i>
+              Signed in with Google
+            </span>
+          ) : (
+            <button
+              onClick={() => setPwOpen(true)}
+              className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
+            >
+              <i className="fas fa-lock"></i>
+              Change Password
+            </button>
+          )}
         </div>
       </div>
 
