@@ -283,8 +283,16 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         setBooking(updated);
         onUpdated?.(updated);
       }
-    } catch {
-      showToast?.('Action failed. Please try again.');
+    } catch (err) {
+      // Surface the backend's specific 422 message when one is
+      // present — this is how the checkout flow tells staff to
+      // "collect the remaining balance first", and how confirm /
+      // cancel report their own guard failures. Falling back to
+      // the generic string only when nothing useful came down.
+      const msg = err?.response?.data?.message
+        || err?.response?.data?.error
+        || 'Action failed. Please try again.';
+      showToast?.(msg);
     } finally {
       setActionLoading(false);
     }
