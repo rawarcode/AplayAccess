@@ -9,6 +9,7 @@ import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from
 import useDebounce from "../../hooks/useDebounce.js";
 import OwnerGuests from "./Guests.jsx";
 import PasswordRequirements, { checkPasswordStrength } from "../../components/ui/PasswordRequirements.jsx";
+import { uploadFile } from "../../lib/uploadApi.js";
 
 // Shared tab-bar pill used at the top of merged owner pages. Lives here
 // because its styling stays consistent across Users↔Guests,
@@ -40,7 +41,7 @@ function TabBar({ tabs, active, onChange }) {
 }
 export { TabBar };
 
-const BLANK = { name: "", email: "", phone: "", role: "front_desk", password: "", is_active: true };
+const BLANK = { name: "", email: "", phone: "", role: "front_desk", password: "", is_active: true, avatar: "" };
 const PAGE_SIZE = 10;
 
 const ROLE_LABELS = { front_desk: "Front Desk", owner: "Owner" };
@@ -89,6 +90,8 @@ export default function OwnerUsers() {
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarFileRef = useRef(null);
 
   /* ── modals ── */
   const [editing, setEditing] = useState(null);
@@ -200,6 +203,25 @@ export default function OwnerUsers() {
   }
   function setField(k, v) { setEditing((x) => ({ ...x, [k]: v })); }
 
+  function onPickAvatar() {
+    avatarFileRef.current?.click();
+  }
+
+  async function onAvatarChange(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadFile(f, 'avatars');
+      setField("avatar", url);
+    } catch {
+      showToast("Failed to upload image. Please try again.", "error");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  }
+
   function closeModal() {
     setModalOpen(false);
     editSnapshot.current = null;
@@ -224,6 +246,7 @@ export default function OwnerUsers() {
       phone: editing.phone || undefined,
       role: editing.role,
       is_active: editing.is_active,
+      avatar: editing.avatar || null,
       ...(editing.password ? { password: editing.password } : {}),
     };
     try {
@@ -625,9 +648,17 @@ export default function OwnerUsers() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className={`h-9 w-9 rounded-full ${ROLE_AVATAR[u.role] || "bg-slate-400"} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
-                            {getInitials(u.name)}
-                          </div>
+                          {u.avatar ? (
+                            <img
+                              src={u.avatar}
+                              alt={u.name}
+                              className="h-9 w-9 rounded-full object-cover shrink-0"
+                            />
+                          ) : (
+                            <div className={`h-9 w-9 rounded-full ${ROLE_AVATAR[u.role] || "bg-slate-400"} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                              {getInitials(u.name)}
+                            </div>
+                          )}
                           <div className="min-w-0">
                             <p className="font-medium text-slate-900 truncate">
                               {u.name}
@@ -748,9 +779,17 @@ export default function OwnerUsers() {
             <div className="p-6 space-y-4">
               {/* Avatar + name */}
               <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
-                <div className={`h-14 w-14 rounded-full ${ROLE_AVATAR[viewUser.role] || "bg-slate-400"} text-white flex items-center justify-center text-lg font-bold`}>
-                  {getInitials(viewUser.name)}
-                </div>
+                {viewUser.avatar ? (
+                  <img
+                    src={viewUser.avatar}
+                    alt={viewUser.name}
+                    className="h-14 w-14 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className={`h-14 w-14 rounded-full ${ROLE_AVATAR[viewUser.role] || "bg-slate-400"} text-white flex items-center justify-center text-lg font-bold`}>
+                    {getInitials(viewUser.name)}
+                  </div>
+                )}
                 <div>
                   <p className="font-semibold text-slate-900 text-lg">{viewUser.name}</p>
                   <p className="text-xs text-slate-400 mt-0.5">{viewUser.email}</p>
@@ -894,6 +933,53 @@ export default function OwnerUsers() {
                   </h3>
                 </div>
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Avatar upload — full-width row above name/email */}
+                  <div className="md:col-span-2 flex items-center gap-4 pb-4 border-b border-slate-200">
+                    <div className="relative">
+                      {editing.avatar ? (
+                        <img
+                          src={editing.avatar}
+                          alt={editing.name || "Staff"}
+                          className="h-16 w-16 rounded-full object-cover border-2 border-white shadow-sm"
+                        />
+                      ) : (
+                        <div className={`h-16 w-16 rounded-full text-white flex items-center justify-center text-xl font-semibold ${ROLE_AVATAR[editing.role] || "bg-slate-400"}`}>
+                          {(editing.name || "?").trim().split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "?"}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={onPickAvatar}
+                        disabled={uploadingAvatar}
+                        className="absolute -bottom-1 -right-1 bg-sky-600 text-white rounded-full w-7 h-7 flex items-center justify-center border-2 border-white hover:bg-sky-700 disabled:opacity-60"
+                        title="Change photo"
+                      >
+                        {uploadingAvatar
+                          ? <i className="fas fa-spinner fa-spin text-[11px]"></i>
+                          : <i className="fas fa-camera text-[11px]"></i>}
+                      </button>
+                      <input
+                        ref={avatarFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={onAvatarChange}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Profile Photo</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Optional. Click the camera to upload.</p>
+                      {editing.avatar && (
+                        <button
+                          type="button"
+                          onClick={() => setField("avatar", "")}
+                          className="text-xs text-rose-600 hover:text-rose-700 mt-1"
+                        >
+                          <i className="fas fa-trash-alt mr-1"></i>Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Name <span className="text-red-400">*</span></label>
                     <input required value={editing.name || ""} onChange={(e) => setField("name", e.target.value)}

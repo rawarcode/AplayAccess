@@ -7,6 +7,7 @@ import NotificationContext from "../../context/NotificationContext.jsx";
 import NotificationBell from "../ui/NotificationBell.jsx";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { updateProfile, changePassword } from "../../lib/profileApi.js";
+import { uploadFile } from "../../lib/uploadApi.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 import Modal from "../modals/Modal.jsx";
 import { Helmet } from "react-helmet-async";
@@ -90,6 +91,7 @@ export default function OwnerShell() {
   const [showCurrent,  setShowCurrent]  = useState(false);
   const [showNew,      setShowNew]      = useState(false);
   const [showConfirm,  setShowConfirm]  = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const [toast, showToast, clearToast, toastType] = useToast();
 
@@ -97,13 +99,14 @@ export default function OwnerShell() {
   const navigate   = useNavigate();
   const { user, logout, setUser } = useAuth();
   const profileRef = useRef(null);
+  const avatarFileRef = useRef(null);
 
   const userName  = user?.name  || "Owner";
   const userEmail = user?.email || "";
   const initials  = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   const pageTitle = PAGE_TITLES[location.pathname] ?? "Owner Portal";
 
-  const [editProfile,   setEditProfile]   = useState({ name: userName, email: userEmail, phone: user?.phone || "" });
+  const [editProfile,   setEditProfile]   = useState({ name: userName, email: userEmail, phone: user?.phone || "", avatar: user?.avatar || "" });
   const [passwordData,  setPasswordData]  = useState({ current: "", new: "", confirm: "" });
 
   // Notification polling — all paths point to /owner/* now
@@ -146,7 +149,7 @@ export default function OwnerShell() {
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const openSettings = () => {
-    setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "" });
+    setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "", avatar: user?.avatar || "" });
     setPasswordData({ current: "", new: "", confirm: "" });
     setShowCurrent(false); setShowNew(false); setShowConfirm(false);
     setIsEditing(false);
@@ -157,11 +160,31 @@ export default function OwnerShell() {
   function closeSettings() {
     if (isEditing) {
       const dirty = editProfile.name !== userName || editProfile.email !== userEmail
-        || editProfile.phone !== (user?.phone || "") || passwordData.current || passwordData.new || passwordData.confirm;
+        || editProfile.phone !== (user?.phone || "") || editProfile.avatar !== (user?.avatar || "")
+        || passwordData.current || passwordData.new || passwordData.confirm;
       if (dirty && !confirm("Discard unsaved changes?")) return;
     }
     setSettingsOpen(false);
     setIsEditing(false);
+  }
+
+  function onPickAvatar() {
+    avatarFileRef.current?.click();
+  }
+
+  async function onAvatarChange(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setUploadingAvatar(true);
+    try {
+      const url = await uploadFile(f, 'avatars');
+      setEditProfile((p) => ({ ...p, avatar: url }));
+    } catch {
+      showToast("Failed to upload image. Please try again.", "error");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
   }
 
   const switchPortal = (path, label) => {
@@ -180,6 +203,7 @@ export default function OwnerShell() {
         name:  editProfile.name,
         email: editProfile.email,
         phone: editProfile.phone,
+        avatar: editProfile.avatar || undefined,
       });
       if (setUser) setUser(updated);
       if (passwordData.current && passwordData.new) {
@@ -370,9 +394,17 @@ export default function OwnerShell() {
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
-                    {initials}
-                  </div>
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={userName}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
+                      {initials}
+                    </div>
+                  )}
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
                   <i className="fas fa-chevron-down text-xs text-gray-400"></i>
                 </button>
@@ -380,9 +412,17 @@ export default function OwnerShell() {
                 {profileOpen && (
                   <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="p-3 flex items-center border-b border-gray-100">
-                      <div className="h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold mr-3">
-                        {initials}
-                      </div>
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={userName}
+                          className="h-10 w-10 rounded-full object-cover mr-3"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold mr-3">
+                          {initials}
+                        </div>
+                      )}
                       <div>
                         <p className="font-medium text-gray-900">{userName}</p>
                         <p className="text-xs text-gray-500">Owner</p>
@@ -431,8 +471,40 @@ export default function OwnerShell() {
             <div className="p-6">
               {/* Profile Header */}
               <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center text-lg font-semibold mr-4">
-                  {initials}
+                <div className="relative mr-4">
+                  {(isEditing ? editProfile.avatar : user?.avatar) ? (
+                    <img
+                      src={isEditing ? editProfile.avatar : user.avatar}
+                      alt={userName}
+                      className="h-14 w-14 rounded-full object-cover border-2 border-white shadow-sm"
+                    />
+                  ) : (
+                    <div className="h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center text-lg font-semibold">
+                      {initials}
+                    </div>
+                  )}
+                  {isEditing && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={onPickAvatar}
+                        disabled={uploadingAvatar}
+                        className="absolute -bottom-1 -right-1 bg-brand text-white rounded-full w-7 h-7 flex items-center justify-center border-2 border-white hover:bg-brand-dark disabled:opacity-60"
+                        title="Change photo"
+                      >
+                        {uploadingAvatar
+                          ? <i className="fas fa-spinner fa-spin text-[11px]"></i>
+                          : <i className="fas fa-camera text-[11px]"></i>}
+                      </button>
+                      <input
+                        ref={avatarFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={onAvatarChange}
+                      />
+                    </>
+                  )}
                 </div>
                 <div className="flex-1">
                   <p className="font-bold text-gray-900">{userName}</p>
@@ -441,7 +513,7 @@ export default function OwnerShell() {
                 </div>
                 {!isEditing && (
                   <button
-                    onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "" }); setIsEditing(true); }}
+                    onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "", avatar: user?.avatar || "" }); setIsEditing(true); }}
                     className="px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark transition"
                   >
                     <i className="fas fa-edit mr-2"></i>Edit
