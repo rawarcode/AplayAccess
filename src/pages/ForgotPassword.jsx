@@ -39,8 +39,7 @@ export default function ForgotPassword() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6"
-      style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+      className="min-h-screen flex items-center justify-center p-6 auth-surface"
     >
       <Helmet><title>Forgot Password — Aplaya Beach Resort</title></Helmet>
 
@@ -96,8 +95,7 @@ export default function ForgotPassword() {
               <button
                 type="submit"
                 disabled={loading || cooldown > 0}
-                className="w-full py-3 bg-brand text-white rounded-full font-medium text-lg shadow-lg flex items-center justify-center gap-2 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
-                style={{ boxShadow: "0 8px 18px -6px #5f9db2" }}
+                className="w-full py-3 bg-brand text-white rounded-full font-medium text-lg shadow-lg auth-cta-shadow flex items-center justify-center gap-2 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 disabled:hover:translate-y-0"
               >
                 <i className="fas fa-paper-plane"></i>
                 {loading ? <><i className="fas fa-spinner fa-spin text-sm"></i> Sending...</> : cooldown > 0 ? `Resend in ${cooldown}s` : "Send Reset Link"}

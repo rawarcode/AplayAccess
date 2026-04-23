@@ -293,7 +293,7 @@ export default function ChatWidget() {
                 <h3 className="text-white font-bold text-sm">Aplaya Beach Resort</h3>
                 <p className="text-sky-100 text-xs flex items-center gap-1.5">
                   <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block"></span>
-                  We typically reply instantly
+                  We usually reply within an hour
                 </p>
               </div>
             </div>

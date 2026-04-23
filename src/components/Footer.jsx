@@ -23,7 +23,7 @@ export default function Footer() {
           <div className="md:col-span-1">
             <div className="flex items-center gap-3 mb-3">
               {brand.logoImage
-                ? <img src={brand.logoImage} alt={brand.siteName} className="h-12 w-auto object-contain" />
+                ? <img src={brand.logoImage} alt={brand.siteName} className="h-12 w-auto object-contain" loading="lazy" decoding="async" />
                 : <span className="text-3xl">🏖️</span>
               }
             </div>

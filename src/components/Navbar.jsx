@@ -46,7 +46,7 @@ export default function Navbar() {
             hid the Home route entirely. */}
         <Link to="/" className="flex items-center gap-2">
           {brand.logoImage
-            ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" />
+            ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" loading="eager" decoding="async" />
             : <span className="text-2xl">🏖️</span>
           }
           <span className="text-xl font-bold text-blue-600">{brand.siteName}</span>

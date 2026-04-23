@@ -107,7 +107,7 @@ export default function MediaPicker({
           {isVideoUrl(value) ? (
             <video src={value} className="w-full h-full object-cover" muted playsInline />
           ) : (
-            <img src={value} alt="preview" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+            <img src={value} alt="preview" className="w-full h-full object-cover" loading="lazy" decoding="async" onError={e => { e.target.style.display = 'none'; }} />
           )}
         </div>
       )}
@@ -244,6 +244,8 @@ export default function MediaPicker({
                               src={item.url}
                               alt={item.label}
                               className="w-full h-full object-cover"
+                              loading="lazy"
+                              decoding="async"
                               onError={e => { e.target.src = 'https://placehold.co/200x200?text=Error'; }}
                             />
                           )}

@@ -109,8 +109,7 @@ export default function PaymentReturn({ outcome }) {
   if (isPopup) {
     return (
       <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+        className="min-h-screen flex items-center justify-center auth-surface"
       >
         <Helmet><title>{pageTitle} — Aplaya Beach Resort</title></Helmet>
         <div className="text-center p-8 animate-hero-fade-in opacity-0">
@@ -147,8 +146,7 @@ export default function PaymentReturn({ outcome }) {
   // ── Full-page screens ─────────────────────────────────────────────────────
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+      className="min-h-screen flex items-center justify-center px-4 auth-surface"
     >
       <Helmet><title>{pageTitle} — Aplaya Beach Resort</title></Helmet>
 

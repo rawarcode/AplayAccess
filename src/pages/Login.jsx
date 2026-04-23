@@ -37,10 +37,9 @@ export default function Login() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6 relative"
-      style={{ background: "radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)" }}
+      className="min-h-screen flex items-center justify-center p-6 relative auth-surface"
     >
-      <Helmet><title>Staff Login — Aplaya Beach Resort</title></Helmet>
+      <Helmet><title>Sign In — Aplaya Beach Resort</title></Helmet>
 
       {/* Background accents */}
       <div className="absolute inset-0 pointer-events-none z-0 opacity-20">

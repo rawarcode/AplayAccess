@@ -17,6 +17,27 @@
   --color-coastal-placeholder: #9dbecb;
   --color-coastal-decor: #b0d0dd;
   --color-coastal-decor-light: #cbe0e9;
+
+  /* Auth / payment page surface tones — pulled out of inline
+     styles on Login / Signup / ForgotPassword / ResetPassword /
+     StaffLogin / PaymentReturn so the background gradient and
+     CTA glow are centrally editable. See .auth-surface and
+     .auth-cta-shadow utility classes below. */
+  --color-auth-bg-near: #d4e9f5;
+  --color-auth-bg-far:  #f8ffff;
+}
+
+/* Shared auth / payment hero surface — replaces the inline
+   radial-gradient style that was duplicated across 5 pages. */
+.auth-surface {
+  background: radial-gradient(circle at 10% 30%, var(--color-auth-bg-near), var(--color-auth-bg-far));
+}
+
+/* Soft blue glow used on primary CTAs across auth pages.
+   Reuses --color-coastal-accent so brand palette changes
+   propagate without hunting through inline styles. */
+.auth-cta-shadow {
+  box-shadow: 0 8px 18px -6px var(--color-coastal-accent);
 }
 
 /* Global focus-visible indicator for keyboard navigation */

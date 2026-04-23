@@ -57,8 +57,7 @@ export default function StaffLogin() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-6 relative"
-      style={{ background: 'radial-gradient(circle at 10% 30%, #d4e9f5, #f8ffff)' }}
+      className="min-h-screen flex items-center justify-center p-6 relative auth-surface"
     >
       <Helmet><title>Staff Login — Aplaya Beach Resort</title></Helmet>
       {/* Background accents */}
@@ -167,8 +166,7 @@ export default function StaffLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-brand text-white rounded-[60px] font-medium text-xl shadow-lg flex items-center justify-center gap-3 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
-              style={{ boxShadow: '0 8px 18px -6px #5f9db2' }}
+              className="w-full py-4 bg-brand text-white rounded-[60px] font-medium text-xl shadow-lg auth-cta-shadow flex items-center justify-center gap-3 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
             >
               <i className="fas fa-arrow-right-to-bracket"></i>
               {loading ? 'signing in...' : 'log in'}

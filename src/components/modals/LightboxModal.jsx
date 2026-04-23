@@ -75,6 +75,8 @@ export default function LightboxModal({
               alt={item?.caption || item?.alt || ""}
               className="max-h-[80vh] w-auto h-auto object-contain mx-auto"
               draggable="false"
+              loading="eager"
+              decoding="async"
             />
           )}
         </div>

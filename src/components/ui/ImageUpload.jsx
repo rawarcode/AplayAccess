@@ -55,7 +55,7 @@ export default function ImageUpload({
           {isVideo ? (
             <video src={value} className="w-full h-full object-cover" muted playsInline />
           ) : (
-            <img src={value} alt="preview" className="w-full h-full object-cover" />
+            <img src={value} alt="preview" className="w-full h-full object-cover" loading="lazy" decoding="async" />
           )}
         </div>
       )}
