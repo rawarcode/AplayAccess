@@ -812,17 +812,25 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   const canEdit  = ['Confirmed', 'Checked In'].includes(booking.status) && !perBookg;
                   const isEditing = editingAmenity?.id === a.id;
                   const liveTotal = Number(a.unitPrice ?? a.unit_price ?? 0) * (editingAmenity?.qty ?? 1);
-                  // Editor qty cap = catalog.max_qty ∩ (remaining + own current qty).
-                  // `remaining` from the availability endpoint already excludes this
-                  // booking's own allocation, so adding back `a.qty` reflects how high
-                  // the editor can legally bump the qty before the backend 422s.
-                  const availRow  = catalog ? addonAvailability[catalog.id] : null;
-                  const editCap   = availRow?.remaining != null
-                    ? Math.min(maxQty, availRow.remaining + (a.qty || 0))
-                    : maxQty;
+                  // Edit-qty cap = `remaining` from the availability endpoint
+                  // verbatim. The API already subtracts what OTHER overlapping
+                  // bookings hold (excludes self) and caps at max_qty, so it's
+                  // exactly how high this booking's qty may climb.
+                  //   pool=6, we hold 3, others hold 2 → remaining=4 (correct cap)
+                  //   pool=6, we hold 3, others hold 0 → remaining=6 (correct cap)
+                  const availRow = catalog ? addonAvailability[catalog.id] : null;
+                  const editCap  = availRow?.remaining ?? maxQty;
 
                   if (isEditing) {
-                    const atEditCap = (editingAmenity.qty || 1) >= editCap;
+                    const stagedQty = editingAmenity.qty || 1;
+                    const atEditCap = stagedQty >= editCap;
+                    // Global pool free = max − (others' allocation) − (staged qty).
+                    // `remaining` already equals max − others' allocation, so we
+                    // just subtract the live staged qty. Updates as user clicks
+                    // ±, so "3 of 6 left in pool" tracks the edit in real time.
+                    const freeInPool = availRow?.remaining != null
+                      ? Math.max(0, availRow.remaining - stagedQty)
+                      : null;
                     return (
                       <div key={a.id} className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded px-3 py-2 text-sm flex-wrap">
                         <i className={`fas ${catalog?.icon || 'fa-tag'} text-slate-500`} aria-hidden="true"></i>
@@ -837,15 +845,15 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.min(editCap, (e.qty || 1) + 1) }))}
                           aria-label="Increase quantity"
                           disabled={atEditCap}
-                          title={atEditCap && availRow?.remaining != null ? `Only ${availRow.remaining + (a.qty || 0)} available for this booking window.` : undefined}
+                          title={atEditCap ? `Pool limit reached — cap is ${editCap} for this booking window.` : undefined}
                           className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50 disabled:opacity-40">+</button>
                         <span className="text-xs font-medium text-sky-700 w-20 text-right">
                           {fmtMoney(liveTotal)}
                         </span>
-                        {availRow?.remaining != null && (
+                        {freeInPool != null && (
                           <span className="basis-full text-[11px] text-slate-500">
-                            {availRow.remaining + (a.qty || 0)} of {maxQty} available for this booking window
-                            {a.qty > 0 ? ` (${a.qty} already on this booking)` : ''}.
+                            {freeInPool} of {maxQty} left in pool
+                            {availRow.allocated > 0 ? ` (${availRow.allocated} held by other bookings in this window)` : ''}.
                           </span>
                         )}
                         <button
@@ -880,7 +888,13 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         <span className="text-slate-600 text-xs mr-1">{fmtMoney(a.total)}</span>
                         {canEdit && (
                           <button
-                            onClick={() => setEditingAmenity({ id: a.id, qty: a.qty || 1, max: maxQty })}
+                            onClick={() => {
+                              // Fire a fresh availability fetch so the stepper's
+                              // "left in pool" count is current, not stale from
+                              // when the modal opened minutes ago.
+                              refreshAddonAvailability();
+                              setEditingAmenity({ id: a.id, qty: a.qty || 1, max: maxQty });
+                            }}
                             disabled={amenityLoading}
                             className="w-8 h-8 inline-flex items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700 text-xs disabled:opacity-40"
                             title={`Edit ${a.name} quantity`}
@@ -946,7 +960,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         : soldOut
                           ? 'Sold out'
                           : remaining != null
-                            ? `${remaining} of ${cat.max_qty} left`
+                            ? `${remaining} of ${cat.max_qty} left in pool`
                             : <>₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</>;
                       const title = attached
                         ? 'Already on this booking — use the pencil icon above to edit its quantity.'
@@ -1001,11 +1015,19 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                       </span>
                     </div>
                   )}
-                  {selAvail?.remaining != null && (
-                    <p className="text-[11px] text-slate-500 mb-2">
-                      {selAvail.remaining} of {addingAmenity.max_qty} available for this booking window.
-                    </p>
-                  )}
+                  {selAvail?.remaining != null && (() => {
+                    // Live pool free = API remaining (excl self) − staged qty.
+                    // Since this add-on isn't attached yet, `remaining` equals
+                    // the global pool free from the booking's vantage point.
+                    const stagedQty  = addingAmenity.qty || 1;
+                    const freeInPool = Math.max(0, selAvail.remaining - stagedQty);
+                    return (
+                      <p className="text-[11px] text-slate-500 mb-2">
+                        {freeInPool} of {addingAmenity.max_qty} left in pool after this add
+                        {selAvail.allocated > 0 ? ` (${selAvail.allocated} held by other bookings in this window)` : ''}.
+                      </p>
+                    );
+                  })()}
                   {/* Disable Add if the currently-selected add-on is already
                       attached — defensive in case the picker state desyncs. */}
                   <div className="flex gap-2">
@@ -1027,6 +1049,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               ) : (
                 <button
                   onClick={() => {
+                    // Refresh availability so the picker greys out anything
+                    // another booking has claimed since the modal opened.
+                    refreshAddonAvailability();
                     const first = selectable[0];
                     setAddingAmenity({ id: first.id, name: first.name, qty: 1, unit_price: first.price, per_booking: first.per_booking, max_qty: first.max_qty, icon: first.icon });
                   }}

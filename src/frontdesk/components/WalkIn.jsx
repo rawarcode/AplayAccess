@@ -973,7 +973,7 @@ export default function WalkIn() {
                               {soldOut ? (
                                 <p className="text-xs font-medium text-rose-500 mt-1">Sold out for this window</p>
                               ) : remaining != null ? (
-                                <p className="text-[11px] text-slate-500 mt-1">{remaining} of {a.max_qty} left</p>
+                                <p className="text-[11px] text-slate-500 mt-1">{Math.max(0, remaining - (active ? 1 : 0))} of {a.max_qty} left in pool</p>
                               ) : null}
                               {active && <p className="text-xs font-medium text-indigo-700 mt-1">Added ✓</p>}
                             </button>
@@ -989,7 +989,10 @@ export default function WalkIn() {
                             {soldOut ? (
                               <p className="text-xs font-medium text-rose-500 mb-1">Sold out for this window</p>
                             ) : remaining != null ? (
-                              <p className="text-[11px] text-slate-500 mb-1">{remaining} of {a.max_qty} left for this window</p>
+                              // Live pool free, decrementing as staff clicks +/−.
+                              // `remaining` is pool minus existing bookings; staff's
+                              // staged qty shrinks that further for the preview.
+                              <p className="text-[11px] text-slate-500 mb-1">{Math.max(0, remaining - qty)} of {a.max_qty} left in pool</p>
                             ) : null}
                             <div className="flex items-center gap-2">
                               <button type="button"
