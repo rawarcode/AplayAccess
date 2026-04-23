@@ -2,7 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { getAutoReplyKeywords } from "../lib/resortApi.js";
-import { sendMessage, replyMessage } from "../lib/messageApi.js";
+import { getMessages, sendMessage, replyMessage, markMessageRead } from "../lib/messageApi.js";
+import { playMessageChime } from "../lib/notificationSound.js";
 
 /** Render bot text with route links (/rooms, /resort, etc.) as clickable Link components */
 function BotText({ text }) {
@@ -25,8 +26,20 @@ function BotText({ text }) {
 
 /**
  * Floating chat widget — bottom-right bubble.
- * Shows keyword chips for quick answers.
- * Logged-in guests can also type freely (auto-creates a thread).
+ *
+ * Two audiences:
+ *  - Anonymous visitors: local keyword matching only. Messages are
+ *    never sent to the server; the widget serves as a FAQ-style help
+ *    stand-in and prompts sign-in for real support.
+ *  - Logged-in guests: widget is a thin client over the same thread
+ *    their /dashboard/messages page uses. Loads existing thread on
+ *    mount, polls every 20s, re-syncs after each send. Matches the
+ *    one-thread-per-guest consolidation enforced by the backend.
+ *
+ * Local-only bubbles (welcome, anonymous keyword responses) carry ids
+ * like 'welcome' / 'bot-*' / 'tmp-*'. Server-sourced bubbles use
+ * 'm-<serverId>'. Sync replaces every 'm-*' bubble with the fresh
+ * server state and preserves the rest.
  */
 export default function ChatWidget() {
   const { user } = useAuth();
@@ -36,8 +49,19 @@ export default function ChatWidget() {
   const [input, setInput]           = useState("");
   const [sending, setSending]       = useState(false);
   const [loadingKw, setLoadingKw]   = useState(true);
+  // Unread server replies from staff. Shown as a red dot on the
+  // closed bubble. Cleared when the widget opens and markMessageRead
+  // lands on the backend (or silently — next poll resyncs).
+  const [unreadCount, setUnreadCount] = useState(0);
   const bottomRef = useRef(null);
-  const threadIdRef = useRef(null); // reuse one thread per session
+  // Populated by syncFromServer once the user has a server-side
+  // thread. Reused across replies. Re-hydrated on every mount
+  // so refresh / relog doesn't lose track of it.
+  const threadIdRef = useRef(null);
+  // Chime baseline — first poll establishes "current truth". Later
+  // polls that return MORE server messages fire the chime.
+  const hasFetchedOnceRef     = useRef(false);
+  const prevServerMsgCountRef = useRef(0);
 
   // Load keywords once
   useEffect(() => {
@@ -52,18 +76,98 @@ export default function ChatWidget() {
     if (open) bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, open]);
 
-  // Add a welcome message on first open
+  // Convert a server thread into widget bubbles. 'm-' prefix tags
+  // them as server-sourced so sync can find + replace them.
+  function threadToBubbles(thread) {
+    if (!thread) return [];
+    return (thread.messages ?? []).map(m => ({
+      id:   `m-${m.id}`,
+      type: m.sender === 'user' ? 'user' : 'bot',
+      text: m.text,
+    }));
+  }
+
+  // Pull thread state + merge into local messages. No-op for
+  // anonymous visitors. Safe to call on mount, poll tick, or post-send.
+  const syncFromServer = useCallback(async () => {
+    if (!user) return;
+    try {
+      const threads = await getMessages();
+      const thread  = threads?.[0] ?? null;  // backend guarantees ≤1 per guest
+      threadIdRef.current = thread?.id ?? null;
+
+      const serverBubbles = threadToBubbles(thread);
+      const serverCount   = serverBubbles.length;
+
+      setMessages(prev => {
+        const welcome = prev.filter(m => m.id === 'welcome');
+        const others  = prev.filter(m =>
+          !String(m.id).startsWith('m-') && m.id !== 'welcome'
+        );
+        return [...welcome, ...serverBubbles, ...others];
+      });
+
+      if (hasFetchedOnceRef.current && serverCount > prevServerMsgCountRef.current) {
+        const delta      = serverCount - prevServerMsgCountRef.current;
+        const newBubbles = serverBubbles.slice(-delta);
+        const staffCount = newBubbles.filter(b => b.type === 'bot').length;
+        if (staffCount > 0) {
+          playMessageChime();
+          if (!open) setUnreadCount(c => c + staffCount);
+        }
+      }
+      if (!hasFetchedOnceRef.current) {
+        hasFetchedOnceRef.current = true;
+        if (thread && !open) setUnreadCount(thread.unread || 0);
+      }
+      prevServerMsgCountRef.current = serverCount;
+    } catch {
+      /* widget is non-critical — swallow and retry next tick */
+    }
+  }, [user, open]);
+
+  // Initial thread load on login
+  useEffect(() => {
+    if (!user) return;
+    syncFromServer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Poll every 20s for staff replies while logged in
+  useEffect(() => {
+    if (!user) return;
+    const id = setInterval(() => syncFromServer(), 20_000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // When the widget opens with unread replies, mark the thread read
+  // server-side and clear the local dot. Failure is silent; next
+  // sync will reconcile state.
+  useEffect(() => {
+    if (!open || !user || !threadIdRef.current || unreadCount === 0) return;
+    markMessageRead(threadIdRef.current).catch(() => {});
+    setUnreadCount(0);
+  }, [open, user, unreadCount]);
+
+  // Welcome bubble — only for users who have no thread yet (otherwise
+  // their conversation history sits on top and a stock greeting above
+  // it is noise).
   const welcomed = useRef(false);
   useEffect(() => {
-    if (open && !welcomed.current) {
-      welcomed.current = true;
-      setMessages([{
+    if (!open || welcomed.current) return;
+    const hasServerMessages = messages.some(m => String(m.id).startsWith('m-'));
+    if (hasServerMessages) return;
+    welcomed.current = true;
+    setMessages(prev => [
+      {
         id: "welcome",
         type: "bot",
         text: "Hi! Welcome to Aplaya Beach Resort. How can I help you? Tap a topic below or type your question.",
-      }]);
-    }
-  }, [open]);
+      },
+      ...prev,
+    ]);
+  }, [open, messages]);
 
   // Find matching keyword response (word-boundary match — prevents "price" matching "surprise")
   const findLocalMatch = useCallback((text) => {
@@ -73,70 +177,62 @@ export default function ChatWidget() {
     });
   }, [keywords]);
 
-  // Handle sending a message (keyword click or typed)
+  // Handle sending a message (keyword click or typed).
+  //
+  // Logged-in path: dispatch to the server, then re-sync to pull back
+  // the user's own message + any auto-reply the backend fires. This
+  // replaces the optimistic bubble we add immediately so the user
+  // isn't staring at a frozen screen during the network round-trip.
+  // We rely on the server's auto-reply rules rather than the local
+  // keyword match so we don't render the same response twice.
+  //
+  // Anonymous path: local keyword match only. Nothing is persisted
+  // server-side — the widget acts as a small FAQ.
   async function handleSend(text) {
     const body = (text || input).trim();
     if (!body || sending) return;
-
-    // Add user bubble
-    const userMsg = { id: Date.now(), type: "user", text: body };
-    setMessages(prev => [...prev, userMsg]);
     setInput("");
 
-    // Check local keyword match
-    const match = findLocalMatch(body);
-
-    if (match) {
-      // Show bot response immediately
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: Date.now() + 1,
-          type: "bot",
-          text: match.response,
-        }]);
-      }, 400); // slight delay for natural feel
-    }
-
-    // If logged in, also send as a real message thread (reuse one thread)
     if (user) {
+      const tempId = `tmp-${Date.now()}`;
+      setMessages(prev => [...prev, { id: tempId, type: 'user', text: body }]);
+
       setSending(true);
       try {
         if (threadIdRef.current) {
-          // Reply in the existing thread
           await replyMessage(threadIdRef.current, body);
         } else {
-          // First message — create thread, store its ID
-          const res = await sendMessage({ subject: "Chat Inquiry", body });
-          threadIdRef.current = res.data?.id ?? res.id ?? null;
+          await sendMessage({ subject: "Chat Inquiry", body });
         }
-        if (!match) {
-          setTimeout(() => {
-            setMessages(prev => [...prev, {
-              id: Date.now() + 2,
-              type: "bot",
-              text: "Thanks for your message! Our team will get back to you shortly. You can check your Messages page for the reply.",
-            }]);
-          }, 500);
-        }
+        // Re-sync: just-sent message comes back as 'm-*'. Drop the
+        // optimistic 'tmp-' so it isn't duplicated in the transcript.
+        await syncFromServer();
+        setMessages(prev => prev.filter(m => m.id !== tempId));
       } catch {
         setMessages(prev => [...prev, {
-          id: Date.now() + 3,
+          id: `bot-${Date.now()}`,
           type: "bot",
           text: "Sorry, I couldn't send your message right now. Please try again later.",
         }]);
       } finally {
         setSending(false);
       }
-    } else if (!match) {
-      // Not logged in and no keyword match
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: Date.now() + 4,
-          type: "bot",
-          text: "I don't have an answer for that yet. Please log in to send a message to our team, or try one of the topics below!",
-        }]);
-      }, 400);
+      return;
     }
+
+    // Anonymous — purely client-side
+    const userBubble = { id: Date.now(), type: "user", text: body };
+    setMessages(prev => [...prev, userBubble]);
+    const match = findLocalMatch(body);
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id: `bot-${Date.now()}`,
+        type: "bot",
+        text: match
+          ? match.response
+          : "I don't have an answer for that yet. Please log in to send a message to our team, or try one of the topics below!",
+      }]);
+    }, 400);
   }
 
   function handleKeyDown(e) {
@@ -152,7 +248,9 @@ export default function ChatWidget() {
 
   return (
     <>
-      {/* Floating bubble */}
+      {/* Floating bubble — shows an unread badge when the widget is
+          closed and the guest has untouched staff replies on their
+          thread. Badge clears the instant they open the widget. */}
       <button
         onClick={() => setOpen(o => !o)}
         className={`fixed bottom-6 right-6 z-[9990] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
@@ -160,9 +258,23 @@ export default function ChatWidget() {
             ? "bg-slate-700 hover:bg-slate-800 rotate-0"
             : "bg-sky-600 hover:bg-sky-700 animate-bounce-slow"
         }`}
-        aria-label={open ? "Close chat" : "Open chat"}
+        aria-label={
+          open
+            ? "Close chat"
+            : unreadCount > 0
+              ? `Open chat — ${unreadCount} new reply${unreadCount !== 1 ? "s" : ""}`
+              : "Open chat"
+        }
       >
         <i className={`fas ${open ? "fa-times" : "fa-comments"} text-white text-xl transition-transform duration-200`}></i>
+        {!open && unreadCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full bg-rose-500 border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none pointer-events-none"
+            aria-hidden="true"
+          >
+            {unreadCount > 99 ? "99+" : unreadCount}
+          </span>
+        )}
       </button>
 
       {/* Chat panel */}
