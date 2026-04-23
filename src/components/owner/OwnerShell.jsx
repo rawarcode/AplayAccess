@@ -10,6 +10,7 @@ import { updateProfile, changePassword } from "../../lib/profileApi.js";
 import { uploadFile } from "../../lib/uploadApi.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
 import Modal from "../modals/Modal.jsx";
+import StaffChatWidget from "../StaffChatWidget.jsx";
 import { Helmet } from "react-helmet-async";
 
 const PAGE_TITLES = {
@@ -653,6 +654,12 @@ export default function OwnerShell() {
       )}
 
       <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* Staff quick-reply widget — floating bubble that lets the
+          owner reply to a recent guest message without leaving
+          whatever page they're on. Shell-level so it's present
+          across all /owner/* routes. */}
+      <StaffChatWidget />
     </div>
     </NotificationContext.Provider>
   );

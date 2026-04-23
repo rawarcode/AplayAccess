@@ -6,6 +6,7 @@ import { useStaffNotifications } from '../../../hooks/useStaffNotifications.js';
 import NotificationContext from '../../../context/NotificationContext.jsx';
 import NotificationBell from '../../../components/ui/NotificationBell.jsx';
 import useLockBodyScroll from '../../../hooks/useLockBodyScroll.js';
+import StaffChatWidget from '../../../components/StaffChatWidget.jsx';
 
 const PAGE_TITLES = {
   '/frontdesk':             'Dashboard',
@@ -290,6 +291,13 @@ export default function Sidebar({ children, showTopBar = true }) {
           {children}
         </main>
       </div>
+
+      {/* Staff quick-reply widget — floating bubble that lets front
+          desk reply to recent guest messages without leaving the
+          current page. Mounted inside Sidebar since every frontdesk
+          page composes the Sidebar wrapper, so this shows up
+          app-wide without further wiring. */}
+      <StaffChatWidget />
     </div>
     </NotificationContext.Provider>
   );
