@@ -163,11 +163,11 @@ export default function Bookings() {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `${b.id}-receipt.pdf`;
+      a.download = `${b.id}-booking-confirmation.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      showToast('Failed to download receipt.', 'error');
+      showToast('Failed to download confirmation.', 'error');
     } finally {
       setReceiptLoadingId(null);
     }
@@ -759,8 +759,8 @@ export default function Bookings() {
                             {b.status !== 'Pending' && !(b.status === 'Cancelled' && Number(b.paidAmount ?? 0) <= 0) && (
                               <button onClick={() => handleDownloadReceipt(b)}
                                 disabled={receiptLoadingId === b.bookingId}
-                                title="Download receipt (PDF)"
-                                aria-label={`Download receipt for ${b.id}`}
+                                title="Download booking confirmation (PDF)"
+                                aria-label={`Download booking confirmation for ${b.id}`}
                                 className="inline-flex w-9 h-9 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40">
                                 {receiptLoadingId === b.bookingId
                                   ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i>

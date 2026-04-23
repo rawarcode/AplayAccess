@@ -36,13 +36,13 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
-      a.download = `${ref}-receipt.pdf`;
+      a.download = `${ref}-booking-confirmation.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
     } catch {
-      setDownloadError("Could not download receipt. Please contact the resort.");
+      setDownloadError("Could not download confirmation. Please contact the resort.");
     } finally {
       setDownloading(false);
     }
@@ -117,7 +117,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
             <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 mb-4 text-xs text-amber-800 flex items-start gap-2">
               <i className="fas fa-info-circle mt-0.5 shrink-0 text-amber-500"></i>
               <span>
-                You booked as a guest. <strong>Download your receipt now</strong> — this is the only way to retrieve your booking details without contacting the resort.
+                You booked as a guest. <strong>Download your booking confirmation now</strong> — this is the only way to retrieve your booking details without contacting the resort.
               </span>
             </div>
 
@@ -135,7 +135,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
               >
                 {downloading
                   ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</>
-                  : <><i className="fas fa-file-pdf"></i> Download Receipt (PDF)</>}
+                  : <><i className="fas fa-file-pdf"></i> Download Confirmation (PDF)</>}
               </button>
               <button
                 onClick={handleClose}
@@ -174,7 +174,7 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
       open={closeConfirm}
       variant="warning"
       title="Close without downloading?"
-      message="Once you close this window, you will not be able to retrieve your receipt again. Make sure to download it before closing."
+      message="Once you close this window, you will not be able to retrieve your booking confirmation again. Make sure to download it before closing."
       confirmLabel="Close anyway"
       cancelLabel="Go back"
       onConfirm={() => { setCloseConfirm(false); onClose(); }}

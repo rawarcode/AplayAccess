@@ -43,7 +43,7 @@ export default function PaymentReturn({ outcome }) {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
-      a.download = `booking-receipt.pdf`;
+      a.download = `booking-confirmation.pdf`;
       document.body.appendChild(a);
       a.click();
       a.remove();

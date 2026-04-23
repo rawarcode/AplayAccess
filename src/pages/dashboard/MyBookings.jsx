@@ -414,11 +414,11 @@ export default function MyBookings() {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `${b.id}-receipt.pdf`;
+      a.download = `${b.id}-booking-confirmation.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      showToast('Failed to download receipt. Please try again.', 'error');
+      showToast('Failed to download confirmation. Please try again.', 'error');
     } finally {
       setDownloadingId(null);
     }
@@ -624,7 +624,7 @@ export default function MyBookings() {
                           className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded-lg hover:bg-sky-200 disabled:opacity-50">
                           {downloadingId === b.bookingId
                             ? <><i className="fas fa-spinner fa-spin mr-1" />Downloading...</>
-                            : <><i className="fas fa-file-pdf mr-1" />Receipt</>}
+                            : <><i className="fas fa-file-pdf mr-1" />Confirmation</>}
                         </button>
                       )}
                     </div>
@@ -883,7 +883,7 @@ export default function MyBookings() {
                   className="px-4 py-2 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200 disabled:opacity-50">
                   {downloadingId === selected.bookingId
                     ? <><i className="fas fa-spinner fa-spin mr-1" />Downloading...</>
-                    : <><i className="fas fa-file-pdf mr-1" />Receipt</>}
+                    : <><i className="fas fa-file-pdf mr-1" />Confirmation</>}
                 </button>
               )}
               <button onClick={() => setSelected(null)}

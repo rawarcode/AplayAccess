@@ -293,12 +293,12 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
               onClick={() => onDownloadReceipt(b.bookingId)}
               disabled={downloading === b.bookingId}
               className={`py-2.5 ${b.status === 'Completed' ? 'flex-1' : 'px-4'} bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 disabled:opacity-60 transition`}
-              title="Download receipt (PDF)"
+              title="Download booking confirmation (PDF)"
             >
               <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i>
               {downloading === b.bookingId
                 ? 'Preparing...'
-                : b.status === 'Completed' ? 'Download Receipt' : 'Receipt'}
+                : b.status === 'Completed' ? 'Download Confirmation' : 'Confirmation'}
             </button>
           )}
           {b.status === 'Cancelled' && (
@@ -386,11 +386,11 @@ export default function Billing() {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `${resId}-receipt.pdf`;
+      a.download = `${resId}-booking-confirmation.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      showToast('Failed to download receipt.', 'error');
+      showToast('Failed to download confirmation.', 'error');
     } finally {
       setPastDownloading(null);
     }
@@ -569,13 +569,13 @@ export default function Billing() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${resId ?? bookingId}-receipt.pdf`;
+      a.download = `${resId ?? bookingId}-booking-confirmation.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch {
-      showToast('Failed to download receipt. Please try again.', 'error');
+      showToast('Failed to download confirmation. Please try again.', 'error');
     } finally {
       setDownloading(null);
     }
@@ -994,12 +994,12 @@ export default function Billing() {
                               <button
                                 onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
                                 disabled={downloading === b.bookingId}
-                                aria-label={`Download receipt PDF for ${b.id}`}
+                                aria-label={`Download booking confirmation PDF for ${b.id}`}
                                 className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
-                                title="Download receipt (PDF)"
+                                title="Download booking confirmation (PDF)"
                               >
                                 <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} text-[11px]`} aria-hidden="true"></i>
-                                Receipt
+                                Confirmation
                               </button>
                             )}
                             {b.status === 'Cancelled' && (
@@ -1162,7 +1162,7 @@ export default function Billing() {
                                 disabled={pastDownloading === b.bookingId}
                                 className="flex-1 px-2 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
                                 <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`}></i>
-                                Receipt
+                                Confirmation
                               </button>
                             )}
                           </div>

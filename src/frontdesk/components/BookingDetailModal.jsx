@@ -405,11 +405,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `${booking.id}-receipt.pdf`;
+      a.download = `${booking.id}-booking-confirmation.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      showToast?.('Failed to download receipt.');
+      showToast?.('Failed to download confirmation.');
     } finally {
       setReceiptLoading(false);
     }
@@ -1204,7 +1204,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   className="px-3 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50">
                   {receiptLoading
                     ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
-                    : <><i className="fas fa-file-pdf mr-1"></i>Receipt</>}
+                    : <><i className="fas fa-file-pdf mr-1"></i>Confirmation</>}
                 </button>
               )}
               <button onClick={onClose}

@@ -46,7 +46,7 @@ function ReceiptBtn({ bookingId }) {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement("a");
       a.href     = url;
-      a.download = `${bookingId}-receipt.pdf`;
+      a.download = `${bookingId}-booking-confirmation.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch { /* silent */ } finally { setBusy(false); }
@@ -55,7 +55,7 @@ function ReceiptBtn({ bookingId }) {
     <button onClick={handle} disabled={busy}
       className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-50">
       <i className={`fas ${busy ? "fa-spinner fa-spin" : "fa-download"} text-[10px]`}></i>
-      Receipt
+      Confirmation
     </button>
   );
 }
@@ -178,7 +178,7 @@ export default function GuestDashboard() {
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `${b.id}-receipt.pdf`;
+      a.download = `${b.id}-booking-confirmation.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -721,7 +721,7 @@ export default function GuestDashboard() {
                     className="px-4 py-2 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200 disabled:opacity-50">
                     {downloadingId === selected.bookingId
                       ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
-                      : <><i className="fas fa-file-pdf mr-1"></i>Receipt</>}
+                      : <><i className="fas fa-file-pdf mr-1"></i>Confirmation</>}
                   </button>
                 </>
               )}
