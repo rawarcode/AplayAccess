@@ -179,6 +179,11 @@ export default function AdminRooms() {
   // Unsaved changes discard confirm (#2)
   const [discardOpen,  setDiscardOpen]  = useState(false);
 
+  // Save-guard confirm. Form submit opens this; clicking Confirm runs
+  // saveRoom() against the API. Prevents accidental submits and gives
+  // the owner a final review before room data hits production.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+
   // Feature input state
   const [featureInput,   setFeatureInput]   = useState("");
   const [selectedIcon,   setSelectedIcon]   = useState("fa-check");
@@ -562,8 +567,22 @@ export default function AdminRooms() {
     });
   }
 
-  async function saveRoom(e) {
+  // Form submit opens a confirmation dialog instead of saving
+  // immediately — requested so the owner gets a chance to verify
+  // before committing new/edited room data (especially the pricing
+  // and attached add-ons, which ripple into every future booking
+  // of this room).
+  function requestSaveRoom(e) {
     e.preventDefault();
+    // Native HTML validation — bail out here if required fields
+    // are empty; the confirm dialog should only open once the form
+    // is actually submittable.
+    if (!formRef.current?.reportValidity?.()) return;
+    setSaveConfirmOpen(true);
+  }
+
+  async function saveRoom() {
+    setSaveConfirmOpen(false);
     setSaving(true);
     // Flatten the attachedAddons map into the array shape the backend
     // expects. Empty array = "no attached add-ons" and will clear any
@@ -1049,7 +1068,7 @@ export default function AdminRooms() {
 
       {/* ── Edit / Create Modal ── */}
       <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-2xl">
-        <form onSubmit={saveRoom} ref={formRef} className="max-h-[85vh] overflow-y-auto">
+        <form onSubmit={requestSaveRoom} ref={formRef} className="max-h-[85vh] overflow-y-auto">
           {/* Sticky header */}
           {(() => {
             const cat = editing?.category || "room";
@@ -1403,12 +1422,10 @@ export default function AdminRooms() {
             </div>
 
             {/* ── Section 7: Attached add-ons ───────────────────────────
-                Each catalog add-on gets a three-way status (None /
-                Optional / Package) + per-room price override + qty.
-                Package items auto-attach to every booking of this
-                room (bundled); Optional only surfaces in this room's
-                picker when a guest is booking it. Priced here at the
-                room's per-room rate, not the addon catalog's default. */}
+                Dense single-row layout — one line per catalog addon,
+                no per-row card. Keeps the form shorter; earlier version
+                stacked bordered cards with internal padding, inflating
+                the modal height past the viewport on shorter laptops. */}
             {addonCatalog.length > 0 && (() => {
               const basePackageTotal = Object.entries(attachedAddons)
                 .filter(([, row]) => row.relation === 'package')
@@ -1424,102 +1441,100 @@ export default function AdminRooms() {
                       Attached Add-ons
                     </h3>
                   </div>
-                  <div className="p-5 space-y-4">
-                    <p className="text-xs text-slate-500">
-                      <strong>Package</strong> = bundled into the room rate, auto-added to every booking.
-                      <strong className="ml-2">Optional</strong> = shown in this room's add-on picker for guests to opt into.
+                  <div className="p-4 space-y-3">
+                    <p className="text-[11px] text-slate-500">
+                      <strong>Package</strong> = bundled in the rate, auto-added to every booking.
+                      <strong className="ml-2">Optional</strong> = shown in this room's picker for guests.
                     </p>
 
-                    <div className="space-y-2">
+                    {/* Dense table-like rows — icon, name, status toggle,
+                        price, qty all on one line. Background shade
+                        signals attached state without a full card. */}
+                    <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
                       {addonCatalog.map(cat => {
                         const row      = attachedAddons[cat.id];
                         const relation = row?.relation ?? null;
+                        const rowBg = relation === 'package'  ? 'bg-emerald-50/60'
+                                    : relation === 'optional' ? 'bg-sky-50/60'
+                                    : '';
                         return (
                           <div key={cat.id}
-                            className={`rounded-lg border bg-white p-3 transition-colors ${
-                              relation === 'package'  ? 'border-emerald-300 ring-1 ring-emerald-100' :
-                              relation === 'optional' ? 'border-sky-300 ring-1 ring-sky-100' :
-                              'border-slate-200'
-                            }`}>
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <i className={`fas ${cat.icon || 'fa-tag'} text-slate-500 w-5 text-center`} aria-hidden="true"></i>
-                              <span className="font-medium text-slate-700 text-sm min-w-[140px]">{cat.name}</span>
+                            className={`flex items-center gap-2 px-3 py-2 ${rowBg}`}>
+                            <i className={`fas ${cat.icon || 'fa-tag'} text-slate-400 w-4 text-center text-[11px]`} aria-hidden="true"></i>
+                            <span className="font-medium text-slate-700 text-[13px] w-28 truncate">{cat.name}</span>
 
-                              {/* Status picker */}
-                              <div className="inline-flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-semibold">
-                                {[
-                                  { key: null,        label: 'None' },
-                                  { key: 'optional',  label: 'Optional' },
-                                  { key: 'package',   label: 'Package' },
-                                ].map(opt => {
-                                  const active = relation === opt.key;
-                                  return (
-                                    <button
-                                      key={opt.label}
-                                      type="button"
-                                      onClick={() => setAddonRelation(cat.id, opt.key)}
-                                      aria-pressed={active}
-                                      className={`px-3 py-1.5 transition-colors ${
-                                        active
-                                          ? opt.key === 'package'  ? 'bg-emerald-500 text-white' :
-                                            opt.key === 'optional' ? 'bg-sky-500 text-white' :
-                                                                     'bg-slate-500 text-white'
-                                          : 'bg-white text-slate-500 hover:bg-slate-50'
-                                      }`}>
-                                      {opt.label}
-                                    </button>
-                                  );
-                                })}
-                              </div>
+                            {/* Status picker — tighter heights */}
+                            <div className="inline-flex rounded-md overflow-hidden border border-slate-200 text-[10px] font-semibold">
+                              {[
+                                { key: null,        label: 'None' },
+                                { key: 'optional',  label: 'Optional' },
+                                { key: 'package',   label: 'Package' },
+                              ].map(opt => {
+                                const active = relation === opt.key;
+                                return (
+                                  <button
+                                    key={opt.label}
+                                    type="button"
+                                    onClick={() => setAddonRelation(cat.id, opt.key)}
+                                    aria-pressed={active}
+                                    className={`px-2 py-1 transition-colors ${
+                                      active
+                                        ? opt.key === 'package'  ? 'bg-emerald-500 text-white' :
+                                          opt.key === 'optional' ? 'bg-sky-500 text-white' :
+                                                                   'bg-slate-500 text-white'
+                                        : 'bg-white text-slate-500 hover:bg-slate-50'
+                                    }`}>
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
 
-                              {/* Per-room price + qty, only meaningful when attached */}
-                              {relation && (
-                                <>
-                                  <div className="flex items-center gap-1.5 ml-auto">
-                                    <span className="text-[11px] text-slate-400">₱</span>
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="0.01"
-                                      value={row.price}
-                                      onChange={e => setAddonField(cat.id, 'price', e.target.value)}
-                                      className="w-24 px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-sky-400"
-                                      aria-label={`${cat.name} price for this room`}
-                                    />
-                                    <span className="text-[11px] text-slate-400">×</span>
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      step="1"
-                                      value={row.qty}
-                                      onChange={e => setAddonField(cat.id, 'qty', e.target.value)}
-                                      className="w-14 px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-sky-400"
-                                      aria-label={`${cat.name} qty for this room`}
-                                    />
-                                  </div>
-                                </>
-                              )}
+                            {/* Price + qty — always present but disabled
+                                when not attached so the row width stays
+                                stable across state changes. */}
+                            <div className="flex items-center gap-1 ml-auto">
+                              <span className="text-[10px] text-slate-400">₱</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={row?.price ?? ''}
+                                disabled={!relation}
+                                onChange={e => setAddonField(cat.id, 'price', e.target.value)}
+                                className="w-20 px-2 py-1 text-[12px] border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-50 disabled:text-slate-300"
+                                aria-label={`${cat.name} price for this room`}
+                              />
+                              <span className="text-[10px] text-slate-400">×</span>
+                              <input
+                                type="number"
+                                min="1"
+                                step="1"
+                                value={row?.qty ?? ''}
+                                disabled={!relation}
+                                onChange={e => setAddonField(cat.id, 'qty', e.target.value)}
+                                className="w-12 px-2 py-1 text-[12px] border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:bg-slate-50 disabled:text-slate-300"
+                                aria-label={`${cat.name} qty for this room`}
+                              />
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    {/* Bundled-total preview — shows what the guest sees */}
+                    {/* Bundled-total preview — single-line when active */}
                     {basePackageTotal > 0 && (
-                      <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm">
-                        <div className="flex items-center justify-between text-emerald-800">
-                          <span className="font-medium flex items-center gap-2">
-                            <i className="fas fa-box text-emerald-500"></i>
-                            Bundled day rate (shown to guest)
+                      <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs flex items-center justify-between text-emerald-800">
+                        <span className="flex items-center gap-1.5">
+                          <i className="fas fa-box text-emerald-500 text-[11px]"></i>
+                          Bundled day rate shown to guest
+                        </span>
+                        <span className="font-bold tabular-nums">
+                          ₱{(baseDay + basePackageTotal).toLocaleString()}
+                          <span className="text-[10px] text-emerald-600 ml-1 font-normal">
+                            ({baseDay.toLocaleString()} + {basePackageTotal.toLocaleString()})
                           </span>
-                          <span className="font-bold tabular-nums">
-                            ₱{(baseDay + basePackageTotal).toLocaleString()}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-emerald-700 mt-1">
-                          ₱{baseDay.toLocaleString()} base + ₱{basePackageTotal.toLocaleString()} package add-ons
-                        </p>
+                        </span>
                       </div>
                     )}
                   </div>
@@ -1595,6 +1610,20 @@ export default function AdminRooms() {
         variant="danger"
         onConfirm={handleBulkDelete}
         onCancel={() => setBulkDeleteOpen(false)}
+      />
+
+      {/* Save/create confirmation — gate the owner before a room
+          create/edit hits production. Shows the room name so there's
+          no ambiguity about which one is being committed. */}
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title={editing?.id ? "Save Changes" : "Create Room"}
+        message={editing?.id
+          ? <>Save changes to <strong>{editing?.name || 'this room'}</strong>? Pricing and attached add-ons will apply to new bookings from now on.</>
+          : <>Create <strong>{editing?.name || 'this room'}</strong>? It will appear on the public rooms page and become bookable immediately.</>}
+        confirmLabel={editing?.id ? "Save Changes" : "Create Room"}
+        onConfirm={saveRoom}
+        onCancel={() => setSaveConfirmOpen(false)}
       />
     </div>
     </>
