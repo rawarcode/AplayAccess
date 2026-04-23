@@ -156,9 +156,27 @@ export default function Rooms() {
 
   useEffect(() => { load(); }, []);
 
-  const roomCards = useMemo(() =>
-    activeTab === "all" ? roomsApi : roomsApi.filter(r => getRoomCategory(r) === activeTab),
-  [roomsApi, activeTab]);
+  // Filter + sort for the current tab. Capacity-ascending within every
+  // category — hotel-site convention, and it matches the Small → Medium
+  // → Large Cottage naming users already expect.
+  const roomCards = useMemo(() => {
+    const list = activeTab === "all"
+      ? roomsApi
+      : roomsApi.filter(r => getRoomCategory(r) === activeTab);
+    return [...list].sort((a, b) => Number(a.capacity ?? 0) - Number(b.capacity ?? 0));
+  }, [roomsApi, activeTab]);
+
+  // For the "All" view — group the sorted cards by category so we can
+  // render a section header above each type's grid. Excludes categories
+  // with zero cards so we don't render empty headers.
+  const groupedByCategory = useMemo(() => {
+    const groups = { room: [], cottage: [], pavilion: [] };
+    for (const r of roomCards) {
+      const c = getRoomCategory(r);
+      if (groups[c]) groups[c].push(r);
+    }
+    return groups;
+  }, [roomCards]);
 
   const bookingRooms = useMemo(() =>
     roomsApi
@@ -258,6 +276,76 @@ export default function Rooms() {
       setTimeout(() => requestBooking(room), 0);
     }
   }
+
+  // Shared card renderer — called once per room either from a single flat
+  // grid (specific-tab view) or from the per-category grids (All view).
+  // Closure captures openDetails / requestBooking so we don't need prop
+  // plumbing for a one-file helper.
+  const renderRoomCard = (r) => (
+    <div key={r.id ?? r.name}
+      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-300 transition-[transform,box-shadow,--tw-ring-color]">
+      <div className="relative overflow-hidden shrink-0">
+        <img src={r.img}
+          srcSet={unsplashSrcSet(r.img)}
+          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+          width="800" height="600"
+          alt={r.name}
+          className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy" />
+        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
+        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
+          {roomOffers(r, 'day') && (
+            <span className="bg-white/95 text-sky-700 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">Day Use</span>
+          )}
+          {roomOffers(r, 'night') && (
+            <span className="bg-indigo-600/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">Overnight</span>
+          )}
+          {roomOffers(r, '24hr') && (
+            <span className="bg-amber-500/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">24 Hours</span>
+          )}
+        </div>
+        {r.capacity > 0 && (
+          <span className="absolute bottom-3 right-3 bg-black/55 text-white text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1 backdrop-blur-sm">
+            <i className="fas fa-users text-[10px]" aria-hidden="true" /> Up to {r.capacity}
+          </span>
+        )}
+      </div>
+      <div className="p-5 flex flex-col flex-1">
+        <h3 className="text-lg font-bold text-slate-900 mb-1">{r.name}</h3>
+        <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {roomOffers(r, 'day') && (
+            <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
+              <p className="text-[10px] text-sky-700 font-semibold uppercase tracking-wide">Day</p>
+              <p className="text-sm font-bold text-sky-800 tabular-nums">{formatPHP(r.day_rate)}</p>
+            </div>
+          )}
+          {roomOffers(r, 'night') && (
+            <div className="flex-1 min-w-[80px] bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
+              <p className="text-[10px] text-indigo-700 font-semibold uppercase tracking-wide">Night</p>
+              <p className="text-sm font-bold text-indigo-800 tabular-nums">{formatPHP(r.overnight_rate)}</p>
+            </div>
+          )}
+          {roomOffers(r, '24hr') && (
+            <div className="flex-1 min-w-[80px] bg-amber-50 rounded-xl px-3 py-2 text-center border border-amber-100">
+              <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wide">24 Hrs</p>
+              <p className="text-sm font-bold text-amber-800 tabular-nums">{formatPHP(r.rate_24hr)}</p>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => openDetails(r.id)}
+            className="flex-1 border border-sky-200 text-sky-600 hover:border-sky-400 hover:bg-sky-50 px-3 py-2.5 rounded-xl text-sm font-semibold min-h-[44px] transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
+            Details
+          </button>
+          <button onClick={() => requestBooking(r.name)}
+            className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-3 py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md min-h-[44px] transition-[background-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
+            Book Now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="pt-16 bg-sky-50 min-h-screen">
@@ -395,101 +483,36 @@ export default function Rooms() {
                     View all accommodations →
                   </button>
                 </div>
+              ) : activeTab === "all" ? (
+                /* "All" view — one section per category (Rooms, Cottages,
+                    Pavilions), each with its own header + grid. Empty
+                    categories are skipped so we don't render naked headers.
+                    Cards within each section stay capacity-ascending (the
+                    roomCards sort is preserved through groupedByCategory). */
+                <div className="space-y-12">
+                  {CATEGORY_TABS.filter(t => t.key !== "all").map(tab => {
+                    const cards = groupedByCategory[tab.key] ?? [];
+                    if (cards.length === 0) return null;
+                    return (
+                      <section key={tab.key} aria-labelledby={`section-${tab.key}`}>
+                        <h3 id={`section-${tab.key}`}
+                          className="flex items-center gap-2.5 text-lg font-bold text-slate-800 mb-5">
+                          <i className={`fas ${tab.icon} text-sky-500 text-base`} aria-hidden="true" />
+                          {tab.label}
+                          <span className="text-xs font-medium text-slate-400 tabular-nums ml-1">
+                            ({cards.length})
+                          </span>
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                          {cards.map(renderRoomCard)}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
-                  {roomCards.map((r) => (
-                    <div key={r.id ?? r.name}
-                      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-300 transition-[transform,box-shadow,--tw-ring-color]">
-                      {/* Image — srcSet serves 400/800/1600 widths off
-                          Unsplash so mobile doesn't pay desktop bandwidth.
-                          width/height attrs hint the aspect ratio so the
-                          browser reserves layout before the image decodes,
-                          avoiding CLS as the grid populates. */}
-                      <div className="relative overflow-hidden shrink-0">
-                        <img src={r.img}
-                          srcSet={unsplashSrcSet(r.img)}
-                          sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
-                          width="800" height="600"
-                          alt={r.name}
-                          className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy" />
-                        {/* Soft darken bottom-only so the capacity chip reads,
-                            but the top badges sit on their own pills and stay
-                            crisp against the photograph. */}
-                        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
-                        {/* Badges — respect allowed_booking_types so a night-only
-                            or 24hr-only room isn't merchandised as day-use. */}
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
-                          {roomOffers(r, 'day') && (
-                            <span className="bg-white/95 text-sky-700 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-                              Day Use
-                            </span>
-                          )}
-                          {roomOffers(r, 'night') && (
-                            <span className="bg-indigo-600/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-                              Overnight
-                            </span>
-                          )}
-                          {roomOffers(r, '24hr') && (
-                            <span className="bg-amber-500/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
-                              24 Hours
-                            </span>
-                          )}
-                        </div>
-                        {/* Capacity chip */}
-                        {r.capacity > 0 && (
-                          <span className="absolute bottom-3 right-3 bg-black/55 text-white text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1 backdrop-blur-sm">
-                            <i className="fas fa-users text-[10px]" aria-hidden="true" /> Up to {r.capacity}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Body */}
-                      <div className="p-5 flex flex-col flex-1">
-                        <h3 className="text-lg font-bold text-slate-900 mb-1">{r.name}</h3>
-                        <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
-
-                        {/* Pricing row — only types the room actually offers.
-                            text-*-800 darker than 700 on the -50 background
-                            to pass WCAG AA 4.5:1 contrast (amber-700 was
-                            borderline). */}
-                        <div className="flex flex-wrap gap-2 mb-4">
-                          {roomOffers(r, 'day') && (
-                            <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
-                              <p className="text-[10px] text-sky-700 font-semibold uppercase tracking-wide">Day</p>
-                              <p className="text-sm font-bold text-sky-800 tabular-nums">{formatPHP(r.day_rate)}</p>
-                            </div>
-                          )}
-                          {roomOffers(r, 'night') && (
-                            <div className="flex-1 min-w-[80px] bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
-                              <p className="text-[10px] text-indigo-700 font-semibold uppercase tracking-wide">Night</p>
-                              <p className="text-sm font-bold text-indigo-800 tabular-nums">{formatPHP(r.overnight_rate)}</p>
-                            </div>
-                          )}
-                          {roomOffers(r, '24hr') && (
-                            <div className="flex-1 min-w-[80px] bg-amber-50 rounded-xl px-3 py-2 text-center border border-amber-100">
-                              <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wide">24 Hrs</p>
-                              <p className="text-sm font-bold text-amber-800 tabular-nums">{formatPHP(r.rate_24hr)}</p>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Actions — min-h-[44px] to meet WCAG 2.5.5 touch
-                            target size on mobile. Scoped transitions to
-                            colors/shadow only (cheaper than transition-all). */}
-                        <div className="flex gap-2">
-                          <button onClick={() => openDetails(r.id)}
-                            className="flex-1 border border-sky-200 text-sky-600 hover:border-sky-400 hover:bg-sky-50 px-3 py-2.5 rounded-xl text-sm font-semibold min-h-[44px] transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
-                            Details
-                          </button>
-                          <button onClick={() => requestBooking(r.name)}
-                            className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-3 py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md min-h-[44px] transition-[background-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
-                            Book Now
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {roomCards.map(renderRoomCard)}
                 </div>
               )}
 
