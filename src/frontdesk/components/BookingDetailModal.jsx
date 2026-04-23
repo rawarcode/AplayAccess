@@ -878,13 +878,26 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     );
                   }
 
+                  // Pool-free for the read-only row = remaining (excl self) − own qty.
+                  // Shown inline so staff can see "N of M left in pool" at a glance
+                  // without clicking the pencil first.
+                  const rowPoolFree = availRow?.remaining != null
+                    ? Math.max(0, availRow.remaining - (a.qty || 0))
+                    : null;
                   return (
                     <div key={a.id} className="flex items-center justify-between bg-slate-50 rounded px-3 py-2 text-sm">
-                      <span>
-                        <i className={`fas ${catalog?.icon || 'fa-tag'} mr-2 text-slate-500`} aria-hidden="true"></i>
-                        {a.name}{a.qty > 1 && ` × ${a.qty}`}
+                      <span className="flex items-center gap-2 min-w-0">
+                        <i className={`fas ${catalog?.icon || 'fa-tag'} text-slate-500`} aria-hidden="true"></i>
+                        <span className="truncate">
+                          {a.name}{a.qty > 1 && ` × ${a.qty}`}
+                          {rowPoolFree != null && (
+                            <span className="ml-2 text-[11px] text-slate-400 font-normal">
+                              · {rowPoolFree} of {maxQty} left in pool
+                            </span>
+                          )}
+                        </span>
                       </span>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <span className="text-slate-600 text-xs mr-1">{fmtMoney(a.total)}</span>
                         {canEdit && (
                           <button

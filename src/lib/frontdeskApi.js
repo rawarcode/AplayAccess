@@ -83,13 +83,18 @@ export async function removeAmenity(bookingId, amenityId) {
 }
 
 // GET /api/admin/addons/availability
-// Two calling modes per backend signature:
-//   - addonAvailabilityForBooking(bookingId): uses the booking's own
-//     window and excludes its own allocation from the pool. For the
-//     BookingDetailModal post-booking add-on picker.
-//   - addonAvailabilityForSlot({ date, bookingType, hour }): computes
-//     the window from scratch. For the Walk-In form where no booking
-//     exists yet.
+// Add-on pool tracking is GLOBAL, not windowed — the resort's physical
+// stock is shared across every active booking (Pending / Confirmed /
+// Checked-In) regardless of dates, since the same physical units
+// aren't teleporting between concurrent stays in practice and staff
+// want a single "N pillows still available across the resort" number.
+//
+// Two calling modes:
+//   - addonAvailabilityForBooking(bookingId): excludes the booking's
+//     own allocation so the picker/editor shows how many *more* it can
+//     take from the pool.
+//   - addonAvailabilityForSlot(...): for a walk-in that doesn't have
+//     a booking row yet — just reads the full pool state.
 // Response: { data: [{id, name, icon, price, max_qty, allocated,
 // remaining, per_booking}], window: {check_in, check_out} }
 export async function addonAvailabilityForBooking(bookingId) {
