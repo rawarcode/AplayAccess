@@ -753,18 +753,21 @@ export default function WalkIn() {
                           if (form.bookingType === '24hr')   return Number(r.rate_24hr      ?? 2000);
                           return Number(r.day_rate ?? 1500); // 'day'
                         };
-                        // Plain-text labels — <optgroup> elements
-                        // ignore child icons so a decorative Font
-                        // Awesome glyph would render as literal text
-                        // on hover. Emoji rendered inconsistently
-                        // across OS fonts (monochrome on Windows,
-                        // color on macOS), so removing them was the
-                        // most reliable fix for the "looks AI" tell.
+                        // Emoji prefixes live HERE — and only here —
+                        // because <optgroup>/<option> in a native <select>
+                        // cannot render Font Awesome glyphs or any HTML.
+                        // The FA icons used on the /frontdesk/rooms
+                        // category headers work there because those are
+                        // real <h2> elements. Inside a native select,
+                        // emoji Unicode is the only category-icon option.
+                        // Category headers are structural, not decorative
+                        // chrome — so this is an intentional exception to
+                        // the broader "no emoji in labels" rule.
                         const groups  = [
-                          { key: 'room',     label: 'Rooms'         },
-                          { key: 'cottage',  label: 'Cottages'      },
-                          { key: 'pavilion', label: 'Pavilions'     },
-                          { key: 'tent',     label: 'Tent Pitching' },
+                          { key: 'room',     label: '🛏️  Rooms'        },
+                          { key: 'cottage',  label: '⛱️  Cottages'     },
+                          { key: 'pavilion', label: '🏛️  Pavilions'    },
+                          { key: 'tent',     label: '⛺  Tent Pitching' },
                         ];
                         return groups.map(g => {
                           const items = visible.filter(r => getCat(r) === g.key);
