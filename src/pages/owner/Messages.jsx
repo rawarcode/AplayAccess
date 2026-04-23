@@ -741,7 +741,7 @@ export default function AdminMessages() {
     : [];
 
   return (
-    <div className="p-6 space-y-6 h-full flex flex-col">
+    <div className="p-6 space-y-4 h-full flex flex-col">
       <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
 
       {/* Auto-Reply Rules Panel */}
@@ -974,17 +974,17 @@ export default function AdminMessages() {
         )}
       </Modal>
 
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
-            <span className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center">
-              <i className="fas fa-envelope text-sky-600"></i>
-            </span>
-            Messages
-          </h1>
-          <p className="text-sm text-slate-500 mt-1 ml-[46px]">Read and respond to guest inquiries.</p>
-        </div>
+      {/* Header — trimmed from p-5 → p-4 and dropped the subtitle
+          below the h1. The subtitle was redundant: page title plus
+          the envelope icon already communicate "this is Messages";
+          "Read and respond to guest inquiries" just restated it. */}
+      <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 shrink-0">
+          <span className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
+            <i className="fas fa-envelope text-sky-600"></i>
+          </span>
+          Messages
+        </h1>
         <div className="flex items-center gap-2">
           {/* Compose new message — staff-initiated thread to any
               currently-booked guest. Appends to their existing thread
@@ -1012,30 +1012,37 @@ export default function AdminMessages() {
         </div>
       </div>
 
-      {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Stat cards — p-5 → p-3 + rounded-2xl → rounded-xl and smaller
+          icon bubble. These are decorative metrics, not the primary
+          content; letting them eat 100px of vertical height above
+          the actual thread panel was why the page felt too tall. */}
+      <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Total",        value: stats.total,   icon: "fa-envelope",      bg: "bg-sky-100",    text: "text-sky-600"    },
           { label: "Unread",       value: stats.unread,  icon: "fa-envelope-open", bg: "bg-amber-100",  text: "text-amber-600"  },
           { label: "Needs Reply",  value: stats.pending, icon: "fa-reply",         bg: "bg-rose-100",   text: "text-rose-600"   },
         ].map(c => (
-          <div key={c.label} className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
-            <div className="flex items-center gap-3">
-              <span className={`h-9 w-9 rounded-lg ${c.bg} flex items-center justify-center`}>
-                <i className={`fas ${c.icon} ${c.text}`}></i>
+          <div key={c.label} className="rounded-xl bg-white border border-slate-200 shadow-sm p-3">
+            <div className="flex items-center gap-2.5">
+              <span className={`h-8 w-8 rounded-lg ${c.bg} flex items-center justify-center shrink-0`}>
+                <i className={`fas ${c.icon} ${c.text} text-sm`}></i>
               </span>
-              <div>
-                <p className="text-xs text-slate-500 font-medium">{c.label}</p>
-                <p className="text-xl font-bold text-slate-900 leading-none">{loading ? "—" : c.value}</p>
+              <div className="min-w-0">
+                <p className="text-[11px] text-slate-500 font-medium truncate">{c.label}</p>
+                <p className="text-lg font-bold text-slate-900 leading-tight">{loading ? "—" : c.value}</p>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Main panel */}
-      <div className="flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex min-h-0"
-           style={{ minHeight: "520px" }}>
+      {/* Main panel — flex-1 + min-h-0 alone carries the height now.
+          Previously had a hard `minHeight: 520px` inline style that
+          fought the flex parent on shorter viewports: the panel
+          demanded 520px even when main only had ~400px available,
+          forcing the owner shell's overflow-auto wrapper to scroll.
+          On a laptop-height viewport the page felt "too tall". */}
+      <div className="flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex min-h-0">
 
         {/* Thread list */}
         <div className="w-80 shrink-0 flex flex-col border-r border-slate-200">
