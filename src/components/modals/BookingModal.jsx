@@ -908,7 +908,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     // variants of out." Each option is disabled so
                     // the user can see but not pick.
                     const unavailableNode = unavailable.length > 0 ? (
-                      <optgroup key="unavailable" label="\u26D4  Unavailable for this slot">
+                      <optgroup key="unavailable" label={"\u26D4  Unavailable for this slot"}>
                         {unavailable.map(r => (
                           <option key={r.id} value={r.id} disabled>
                             {r.name}
