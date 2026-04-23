@@ -166,6 +166,10 @@ export default function GuestDashboard() {
           capacity_label:        r?.capacity_label ?? "",
           quantity:              Number(r?.quantity ?? 1),
           allowed_booking_types: r?.allowed_booking_types ?? null,
+          // BookingModal needs this to render the Package bundle +
+          // Optional add-on picker. Stripped previously meant the
+          // picker was invisible from the dashboard's Book Now.
+          attached_addons:       r?.attached_addons ?? [],
         }))
       ))
       .catch(() => {});
