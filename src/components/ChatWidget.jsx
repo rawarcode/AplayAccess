@@ -256,7 +256,7 @@ export default function ChatWidget() {
         className={`fixed bottom-6 right-6 z-[9990] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
           open
             ? "bg-slate-700 hover:bg-slate-800 rotate-0"
-            : "bg-sky-600 hover:bg-sky-700 animate-bounce-slow"
+            : "bg-sky-600 hover:bg-sky-700"
         }`}
         aria-label={
           open
@@ -269,7 +269,7 @@ export default function ChatWidget() {
         <i className={`fas ${open ? "fa-times" : "fa-comments"} text-white text-xl transition-transform duration-200`}></i>
         {!open && unreadCount > 0 && (
           <span
-            className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full bg-rose-500 border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none pointer-events-none"
+            className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full bg-rose-500 border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none pointer-events-none animate-pulse"
             aria-hidden="true"
           >
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -385,16 +385,6 @@ export default function ChatWidget() {
         </div>
       </div>
 
-      {/* Bounce animation for the bubble */}
-      <style>{`
-        @keyframes bounce-slow {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-6px); }
-        }
-        .animate-bounce-slow {
-          animation: bounce-slow 3s ease-in-out infinite;
-        }
-      `}</style>
     </>
   );
 }
