@@ -182,6 +182,57 @@ export default function WalkIn() {
   const is24hr        = form.bookingType === '24hr';
   const baseRate      = form.bookingType === 'night' ? nightRate : is24hr ? rate24 : dayRate;
 
+  // Set of addon IDs that are attached to SOME room (as either package
+  // or optional). Catalog addons not in this set are resort-wide shared
+  // pool and show for every room. Attached ones only show for the room
+  // they're attached to, and only as optional (package auto-attaches
+  // server-side; there's no "pick" for them here).
+  const roomScopedAddonIds = useMemo(() => {
+    const ids = new Set();
+    for (const r of rooms) {
+      for (const a of (r.attached_addons ?? [])) ids.add(a.id);
+    }
+    return ids;
+  }, [rooms]);
+
+  // The picker's working list. Catalog addons not attached to any
+  // room stay as-is (shared pool); room-scoped addons only appear
+  // when the staff has picked their matching room AND the attach is
+  // optional — the per-room price overrides the catalog price so
+  // totals match what the backend will record.
+  const visibleAddons = useMemo(() => {
+    const selectedRoomOptionals = new Map(
+      (selectedRoom?.attached_addons ?? [])
+        .filter(a => a.relation === 'optional')
+        .map(a => [a.id, a])
+    );
+    return addons.flatMap(a => {
+      if (!roomScopedAddonIds.has(a.id)) return [a]; // shared pool
+      const opt = selectedRoomOptionals.get(a.id);
+      if (!opt) return [];                           // attached to another room, or package here
+      return [{ ...a, price: Number(opt.price) }];   // per-room price override
+    });
+  }, [addons, roomScopedAddonIds, selectedRoom]);
+
+  // Clear qtys for any addon that disappeared from the visible list
+  // after switching rooms (e.g. staged Patrice videoke qty=1 then
+  // swapped to Cassey → Cassey has no videoke attachment → would
+  // otherwise silently submit a qty that the new room can't offer).
+  useEffect(() => {
+    const visibleIds = new Set(visibleAddons.map(a => a.id));
+    setAddonQtys(prev => {
+      let touched = false;
+      const next = { ...prev };
+      for (const id of Object.keys(next)) {
+        if (Number(next[id]) > 0 && !visibleIds.has(Number(id))) {
+          next[id] = 0;
+          touched = true;
+        }
+      }
+      return touched ? next : prev;
+    });
+  }, [visibleAddons]);
+
   // Disable already-past hours when the walk-in is for today. Walk-ins have
   // no lead-time rule, so the current hour itself stays selectable (the
   // guest is at the counter *now*).
@@ -227,7 +278,9 @@ export default function WalkIn() {
     return () => { cancelled = true; };
   }, [form.date, form.bookingType, form.checkInHour, addons.length]);
 
-  const amenityTotal = addons.reduce((sum, a) => {
+  // Use visibleAddons so the per-room price override (Patrice videoke
+  // vs catalog videoke) feeds the summary + totals correctly.
+  const amenityTotal = visibleAddons.reduce((sum, a) => {
     const qty = Number(addonQtys[a.id] || 0);
     if (qty <= 0) return sum;
     return sum + (a.per_booking ? a.price : a.price * qty);
@@ -299,7 +352,10 @@ export default function WalkIn() {
         : '06:00:00';
     const checkIn     = `${form.date} ${checkInTime}`;
     const guestName   = form.fullName.trim();
-    const amenities   = addons
+    // Only submit amenities that are currently visible for the
+    // selected room — prevents stale qtys from a previously picked
+    // room leaking through when the staff switches mid-flow.
+    const amenities   = visibleAddons
       .filter(a => Number(addonQtys[a.id] || 0) > 0)
       .map(a => ({ name: a.name, qty: Number(addonQtys[a.id]) }));
 
@@ -468,12 +524,12 @@ export default function WalkIn() {
                       )}
                     </tbody>
                   </table>
-                  {addons.some(a => Number(addonQtys[a.id] || 0) > 0) && (
+                  {visibleAddons.some(a => Number(addonQtys[a.id] || 0) > 0) && (
                     <>
                       <div className="bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-500 uppercase tracking-wide">Add-ons</div>
                       <table className="w-full text-sm">
                         <tbody className="divide-y divide-slate-100">
-                          {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
+                          {visibleAddons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
                             const qty = Number(addonQtys[a.id]);
                             const subtotal = a.per_booking ? a.price : a.price * qty;
                             return (
@@ -931,7 +987,7 @@ export default function WalkIn() {
                 )}
 
                 {/* Amenities — fetched from API */}
-                {addons.length > 0 && (
+                {visibleAddons.length > 0 && (
                   <>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="h-px flex-1 bg-slate-200"></div>
@@ -939,7 +995,7 @@ export default function WalkIn() {
                       <div className="h-px flex-1 bg-slate-200"></div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
-                      {addons.map(a => {
+                      {visibleAddons.map(a => {
                         const qty       = Number(addonQtys[a.id] || 0);
                         const isFixed   = a.per_booking;
                         const active    = qty > 0;
@@ -1069,7 +1125,7 @@ export default function WalkIn() {
                           <span>{rateLabel}</span>
                           <span>{fmtMoney(baseRate)}</span>
                         </div>
-                        {addons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
+                        {visibleAddons.filter(a => Number(addonQtys[a.id] || 0) > 0).map(a => {
                           const qty = Number(addonQtys[a.id]);
                           const subtotal = a.per_booking ? a.price : a.price * qty;
                           return (

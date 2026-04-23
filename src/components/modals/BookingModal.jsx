@@ -387,13 +387,42 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     (sum, a) => sum + (Number(a.price) || 0) * (Number(a.qty) || 1), 0
   );
   const packageNames    = packageAddons.map(a => a.name);
+
+  // Optional add-ons attached to this room (Patrice videoke at a
+  // paid rate, for example). Guest picks qty per addon; the backend
+  // looks up per-room price so we never need to trust a price field
+  // from the client.
+  const optionalAddons = useMemo(
+    () => (selectedRoomObj?.attached_addons ?? []).filter(a => a.relation === 'optional'),
+    [selectedRoomObj]
+  );
+  // Map of addon name → chosen qty. Resets when the room changes so
+  // a half-selected videoke on Patrice doesn't leak into a Blue
+  // Pavilion booking the guest switches to mid-flow.
+  const [optionalQtys, setOptionalQtys] = useState({});
+  useEffect(() => { setOptionalQtys({}); }, [roomId]);
+  const optionalTotal = useMemo(
+    () => optionalAddons.reduce((sum, a) => {
+      const qty = Number(optionalQtys[a.name] || 0);
+      return sum + qty * (Number(a.price) || 0);
+    }, 0),
+    [optionalAddons, optionalQtys]
+  );
+  // Name list for the summary line ("Optional: Videoke × 1").
+  const optionalSummary = useMemo(
+    () => optionalAddons
+      .map(a => ({ name: a.name, qty: Number(optionalQtys[a.name] || 0) }))
+      .filter(x => x.qty > 0),
+    [optionalAddons, optionalQtys]
+  );
+
   // Discounted room-only subtotal — matches backend `reservation_fee`
   // math which is `pct × (roomRate - discount)`, excluding package.
   const discountedRoom     = Math.max(baseRate - discount, 0);
   // What the guest actually pays for room + bundle: discounted room
-  // + package add-ons. The reservation fee below stays based on
-  // discountedRoom only to match backend behavior.
-  const discountedTotal    = discountedRoom + packageTotal;
+  // + package add-ons + picked optional add-ons. The reservation fee
+  // below stays based on discountedRoom only to match backend behavior.
+  const discountedTotal    = discountedRoom + packageTotal + optionalTotal;
   const reservationFee     = Math.round(discountedRoom * (pricing.reservation_fee_pct / 100));
   const amountDue          = paymentOption === "full" ? discountedTotal : reservationFee;
   const balanceDue         = discountedTotal - amountDue;
@@ -582,6 +611,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         promo_code:       promoResult ? promoInput.trim().toUpperCase() : null,
         discount:         discount,
       };
+
+      // Optional add-ons picked from the room's attached_addons.
+      // Backend resolves price per-room so we only send {name, qty}
+      // — never trust a client-supplied price.
+      const pickedAmenities = Object.entries(optionalQtys)
+        .filter(([, qty]) => Number(qty) > 0)
+        .map(([name, qty]) => ({ name, qty: Number(qty) }));
+      if (pickedAmenities.length > 0) bookingPayload.amenities = pickedAmenities;
 
       // 24hr bookings pass a start hour; the server also 12-hour-lead-checks this.
       if (bookingType === "24hr") bookingPayload.check_in_hour = checkInHour;
@@ -954,6 +991,70 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 )}
               </div>
 
+              {/* Optional add-ons for this room — only renders when the
+                  selected room actually has any. Backend verifies the
+                  chosen names belong to this room + looks up per-room
+                  price from room_addons on save. */}
+              {optionalAddons.length > 0 && (
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <i className="fas fa-sparkles mr-1.5 text-amber-500"></i>
+                    Add-ons for this room <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                  </label>
+                  <div className="space-y-2">
+                    {optionalAddons.map(a => {
+                      const qty    = Number(optionalQtys[a.name] || 0);
+                      const active = qty > 0;
+                      const cap    = Math.max(1, Number(a.qty) || 1);
+                      // per_booking addons toggle 0⇄1 like the walk-in
+                      // picker does; others get a qty stepper.
+                      if (a.per_booking) {
+                        return (
+                          <button
+                            key={a.name}
+                            type="button"
+                            onClick={() => setOptionalQtys(q => ({ ...q, [a.name]: active ? 0 : 1 }))}
+                            className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors ${
+                              active
+                                ? 'border-indigo-400 bg-indigo-50'
+                                : 'border-slate-200 hover:border-slate-300 bg-white'
+                            }`}
+                          >
+                            <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-slate-400'}`} aria-hidden="true" />
+                            <span className={`text-sm font-medium ${active ? 'text-indigo-700' : 'text-slate-700'}`}>{a.name}</span>
+                            <span className="ml-auto text-sm font-semibold text-slate-700">₱{Number(a.price).toLocaleString()}</span>
+                            {active && <i className="fas fa-check-circle text-indigo-600" aria-hidden="true" />}
+                          </button>
+                        );
+                      }
+                      return (
+                        <div key={a.name} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                          <i className={`fas ${a.icon || 'fa-tag'} text-slate-500 w-5 text-center`} aria-hidden="true" />
+                          <span className="text-sm font-medium text-slate-700 flex-1 min-w-0 truncate">{a.name}</span>
+                          <span className="text-xs text-slate-500">₱{Number(a.price).toLocaleString()}/ea</span>
+                          <div className="flex items-center gap-1">
+                            <button type="button"
+                              disabled={qty === 0}
+                              onClick={() => setOptionalQtys(q => ({ ...q, [a.name]: Math.max(0, qty - 1) }))}
+                              className="w-8 h-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">−</button>
+                            <span className="w-8 text-center text-sm font-medium tabular-nums">{qty}</span>
+                            <button type="button"
+                              disabled={qty >= cap}
+                              onClick={() => setOptionalQtys(q => ({ ...q, [a.name]: Math.min(cap, qty + 1) }))}
+                              className="w-8 h-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">+</button>
+                          </div>
+                          {qty > 0 && (
+                            <span className="text-xs font-semibold text-sky-700 tabular-nums">
+                              ₱{(qty * Number(a.price)).toLocaleString()}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Special requests — collapsed */}
               <div className="md:col-span-2">
                 {showRequests ? (
@@ -1118,6 +1219,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       Includes: {packageNames.join(', ')}
                     </span>
                     <span className="font-medium">+ {formatPHP(packageTotal)}</span>
+                  </div>
+                )}
+                {/* Guest-picked optional add-ons (videoke on Patrice
+                    etc.). Line itemizes them with qty so the guest sees
+                    exactly what they're adding. */}
+                {optionalTotal > 0 && (
+                  <div className="flex justify-between mb-1 text-sm text-indigo-800 border-t border-blue-200 pt-2 mt-2">
+                    <span className="flex items-center gap-1.5">
+                      <i className="fas fa-sparkles text-[11px] text-indigo-500"></i>
+                      Add-ons: {optionalSummary.map(x => `${x.name} × ${x.qty}`).join(', ')}
+                    </span>
+                    <span className="font-medium">+ {formatPHP(optionalTotal)}</span>
                   </div>
                 )}
                 {/* Entrance fee — first-class line, not fine print.
@@ -1574,6 +1687,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         Includes: {packageNames.join(', ')}
                       </span>
                       <span className="font-medium">+ {formatPHP(packageTotal)}</span>
+                    </div>
+                  )}
+                  {optionalTotal > 0 && (
+                    <div className="flex justify-between text-indigo-800 border-t border-blue-200 pt-2">
+                      <span className="flex items-center gap-1.5">
+                        <i className="fas fa-sparkles text-[11px] text-indigo-500"></i>
+                        Add-ons: {optionalSummary.map(x => `${x.name} × ${x.qty}`).join(', ')}
+                      </span>
+                      <span className="font-medium">+ {formatPHP(optionalTotal)}</span>
                     </div>
                   )}
                   {/* Entrance fee line in the final confirmation.
