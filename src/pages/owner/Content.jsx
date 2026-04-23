@@ -258,7 +258,7 @@ function HeroPreview({ bg, title, subtitle, extra }) {
       {isVideoUrl(bg)
         ? <video src={bg} autoPlay muted loop playsInline className="w-full h-full object-cover" />
         : bg
-          ? <img src={bg} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+          ? <img src={bg} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           : <div className="w-full h-full bg-slate-300" />
       }
       <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
@@ -281,7 +281,7 @@ function NavbarEditor({ content, onSave }) {
 
   const LogoDisplay = ({ image, name, size = "h-8" }) =>
     image
-      ? <img src={image} alt={name} className={`${size} w-auto object-contain`} onError={e => { e.target.style.display = "none"; }} />
+      ? <img src={image} alt={name} className={`${size} w-auto object-contain`} onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
       : <span className="text-2xl">🏖️</span>;
 
   return (
@@ -302,7 +302,7 @@ function NavbarEditor({ content, onSave }) {
                 {/* Small logo preview */}
                 <div className="h-20 w-20 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
                   {form.logoImage ? (
-                    <img src={form.logoImage} alt="Logo" className="h-full w-full object-contain p-1.5" onError={e => { e.target.style.display = "none"; }} />
+                    <img src={form.logoImage} alt="Logo" className="h-full w-full object-contain p-1.5" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                   ) : (
                     <div className="text-center">
                       <i className="fas fa-image text-slate-300 text-lg"></i>
@@ -511,7 +511,7 @@ function HomeHeroEditor({ content, onSave }) {
         <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
           {isVideoUrl(content.background)
             ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
-            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           }
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
@@ -528,7 +528,7 @@ function HomeHeroEditor({ content, onSave }) {
                 {form.background ? (
                   isVideoUrl(form.background)
                     ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
-                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 ) : (
                   <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
                 )}
@@ -796,7 +796,7 @@ function HomeResortsEditor({ content, onSave }) {
               <div key={i} className="rounded-lg overflow-hidden border border-slate-100">
                 <img src={c.image} alt={c.name}
                   className="w-full h-16 object-cover"
-                  onError={e => { e.target.style.display = "none"; }} />
+                  onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 <p className="text-xs text-slate-600 px-2 py-1 truncate">{c.name}</p>
               </div>
             ))}
@@ -821,7 +821,7 @@ function HomeResortsEditor({ content, onSave }) {
                     <div className="flex items-center gap-3">
                       <img src={card.image} alt={card.name}
                         className="w-10 h-10 rounded object-cover"
-                        onError={e => { e.target.style.display = "none"; }} />
+                        onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                       <span className="text-sm font-medium text-slate-700">{card.name}</span>
                     </div>
                     <i className={`fas fa-chevron-${expandedCard === i ? "up" : "down"} text-xs text-slate-400`}></i>
@@ -836,7 +836,7 @@ function HomeResortsEditor({ content, onSave }) {
                         <div className="flex items-start gap-3">
                           <div className="h-16 w-16 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
                             {card.image ? (
-                              <img src={card.image} alt="Card" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                              <img src={card.image} alt="Card" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                             ) : (
                               <i className="fas fa-image text-slate-300"></i>
                             )}
@@ -858,7 +858,7 @@ function HomeResortsEditor({ content, onSave }) {
                       <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm bg-white">
                         <div className="relative h-24 bg-slate-100">
                           {card.image
-                            ? <img src={card.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} />
+                            ? <img src={card.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display='none'; }} loading="lazy" decoding="async" />
                             : <div className="w-full h-full flex items-center justify-center text-slate-300"><i className="fas fa-image text-2xl"></i></div>
                           }
                           {card.badge && (
@@ -937,7 +937,7 @@ function ResortHeroEditor({ content, onSave }) {
         <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
           {isVideoUrl(content.background)
             ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
-            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           }
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
@@ -954,7 +954,7 @@ function ResortHeroEditor({ content, onSave }) {
                 {form.background ? (
                   isVideoUrl(form.background)
                     ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
-                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 ) : (
                   <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
                 )}
@@ -1006,7 +1006,7 @@ function ResortAboutEditor({ content, onSave }) {
             {content.image ? (
               isVideoUrl(content.image)
                 ? <video src={content.image} muted playsInline className="w-28 h-20 object-cover rounded-lg shrink-0 border border-slate-200" />
-                : <img src={content.image} alt="about" className="w-28 h-20 object-cover rounded-lg shrink-0 border border-slate-200" onError={e => { e.target.style.display = "none"; }} />
+                : <img src={content.image} alt="about" className="w-28 h-20 object-cover rounded-lg shrink-0 border border-slate-200" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
             ) : (
               <div className="w-28 h-20 rounded-lg bg-slate-200 shrink-0 flex items-center justify-center text-slate-300">
                 <i className="fas fa-image text-lg"></i>
@@ -1033,7 +1033,7 @@ function ResortAboutEditor({ content, onSave }) {
                 {form.image ? (
                   isVideoUrl(form.image)
                     ? <video src={form.image} muted playsInline className="h-full w-full object-cover" />
-                    : <img src={form.image} alt="Section" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    : <img src={form.image} alt="Section" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 ) : (
                   <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
                 )}
@@ -1058,7 +1058,7 @@ function ResortAboutEditor({ content, onSave }) {
               {form.image
                 ? isVideoUrl(form.image)
                   ? <video src={form.image} muted playsInline className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-slate-200" />
-                  : <img src={form.image} alt="" className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-slate-200" onError={e => { e.target.style.display='none'; }} />
+                  : <img src={form.image} alt="" className="w-28 h-24 object-cover rounded-lg flex-shrink-0 border border-slate-200" onError={e => { e.target.style.display='none'; }} loading="lazy" decoding="async" />
                 : <div className="w-28 h-24 rounded-lg bg-slate-200 flex-shrink-0 flex items-center justify-center text-slate-300"><i className="fas fa-image text-2xl"></i></div>
               }
               <div className="min-w-0">
@@ -1614,7 +1614,7 @@ function RoomsHeroEditor({ content, onSave }) {
         <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
           {isVideoUrl(content.background)
             ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
-            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           }
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
@@ -1630,7 +1630,7 @@ function RoomsHeroEditor({ content, onSave }) {
                 {form.background ? (
                   isVideoUrl(form.background)
                     ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
-                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 ) : (
                   <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
                 )}
@@ -1675,7 +1675,7 @@ function GalleryHeroEditor({ content, onSave }) {
         <div className="relative rounded-lg overflow-hidden h-28 bg-slate-100">
           {isVideoUrl(content.background)
             ? <video src={content.background} muted playsInline className="w-full h-full object-cover" />
-            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+            : <img src={content.background} alt="hero bg" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           }
           <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
             <p className="font-bold text-sm leading-tight">{content.title}</p>
@@ -1691,7 +1691,7 @@ function GalleryHeroEditor({ content, onSave }) {
                 {form.background ? (
                   isVideoUrl(form.background)
                     ? <video src={form.background} muted playsInline className="h-full w-full object-cover" />
-                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} />
+                    : <img src={form.background} alt="Background" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 ) : (
                   <div className="text-center"><i className="fas fa-image text-slate-300 text-lg"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
                 )}
@@ -2228,7 +2228,7 @@ function GalleryTab({ imageCount, setImageCount }) {
                     {f.file.type.startsWith("video/") ? (
                       <video src={f.preview} muted playsInline className="w-full h-full object-cover" />
                     ) : (
-                      <img src={f.preview} alt="" className="w-full h-full object-cover" />
+                      <img src={f.preview} alt="" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                     )}
                     {/* Status overlay */}
                     {f.status === "uploading" && (
@@ -2435,7 +2435,7 @@ function GalleryTab({ imageCount, setImageCount }) {
             {isVideoUrl(previewImg.image_url) ? (
               <video src={previewImg.image_url} controls autoPlay className="w-full max-h-[75vh] object-contain bg-black rounded-t-lg" />
             ) : (
-              <img src={previewImg.image_url} alt={previewImg.caption || "Preview"} className="w-full max-h-[75vh] object-contain bg-black rounded-t-lg" />
+              <img src={previewImg.image_url} alt={previewImg.caption || "Preview"} className="w-full max-h-[75vh] object-contain bg-black rounded-t-lg" loading="eager" decoding="async" />
             )}
             <div className="p-4 flex items-center justify-between">
               <div>

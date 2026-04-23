@@ -286,6 +286,8 @@ export default function Messages() {
                     alt={thread.name}
                     className="w-10 h-10 rounded-full object-cover shrink-0"
                     onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=R&background=3b82f6&color=fff&size=80`; }}
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
@@ -329,6 +331,8 @@ export default function Messages() {
                     alt={current.name}
                     className="w-8 h-8 rounded-full object-cover shrink-0"
                     onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=R&background=3b82f6&color=fff&size=80`; }}
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="min-w-0">
                     <h3 className="font-semibold text-slate-900 text-sm truncate">{current.subject}</h3>

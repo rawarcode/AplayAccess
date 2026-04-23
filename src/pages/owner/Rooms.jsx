@@ -109,7 +109,7 @@ function RoomPreview({ room }) {
       <div className="relative h-40 bg-slate-100">
         {room.image
           ? <img src={room.image} alt={room.name} className="w-full h-full object-cover"
-              onError={e => { e.target.style.display = "none"; }} />
+              onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           : <div className="w-full h-full flex items-center justify-center text-slate-300">
               <i className="fas fa-image text-4xl"></i>
             </div>
@@ -757,7 +757,7 @@ export default function AdminRooms() {
                       </td>
                       <td className="px-4 py-4">
                         {room.image
-                          ? <img src={room.image} alt={room.name} className="h-10 w-10 rounded-full object-cover" />
+                          ? <img src={room.image} alt={room.name} className="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
                           : <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i className="fas fa-bed"></i></div>
                         }
                       </td>
@@ -1160,7 +1160,7 @@ export default function AdminRooms() {
               <div className="p-5 space-y-3">
                 {editing?.image && (
                   <div className="flex items-center gap-4 p-3 bg-white border border-slate-200 rounded-lg">
-                    <img src={editing.image} alt="Current" className="h-20 w-28 rounded-lg object-cover border border-slate-100"
+                    <img src={editing.image} alt="Current" className="h-20 w-28 rounded-lg object-cover border border-slate-100" loading="lazy" decoding="async"
                       onError={e => { e.target.style.display = "none"; }} />
                     <div className="text-xs text-slate-500 min-w-0 flex-1">
                       <p className="font-semibold text-slate-700 mb-0.5">Current image</p>

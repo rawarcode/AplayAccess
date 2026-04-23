@@ -939,7 +939,7 @@ export default function AdminAnnouncements() {
                       {isVideoUrl(editing.media_url) ? (
                         <video src={editing.media_url} controls className="max-h-52 w-full object-contain" />
                       ) : (
-                        <img src={editing.media_url} alt="Preview" className="max-h-52 object-contain" onError={(e) => { e.target.style.display = "none"; }} />
+                        <img src={editing.media_url} alt="Preview" className="max-h-52 object-contain" loading="lazy" decoding="async" onError={(e) => { e.target.style.display = "none"; }} />
                       )}
                     </div>
                   )}

@@ -1614,6 +1614,8 @@ export default function Resort() {
               src={galleryDisplay[lightboxIdx].src}
               alt={galleryDisplay[lightboxIdx].alt}
               className="max-h-[80vh] w-auto mx-auto rounded-lg shadow-2xl object-contain"
+              loading="eager"
+              decoding="async"
             />
             {galleryDisplay[lightboxIdx].caption && (
               <p className="text-white/80 text-sm mt-4">{galleryDisplay[lightboxIdx].caption}</p>

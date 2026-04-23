@@ -653,6 +653,8 @@ export default function OwnerUsers() {
                               src={u.avatar}
                               alt={u.name}
                               className="h-9 w-9 rounded-full object-cover shrink-0"
+                              loading="lazy"
+                              decoding="async"
                             />
                           ) : (
                             <div className={`h-9 w-9 rounded-full ${ROLE_AVATAR[u.role] || "bg-slate-400"} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
@@ -784,6 +786,8 @@ export default function OwnerUsers() {
                     src={viewUser.avatar}
                     alt={viewUser.name}
                     className="h-14 w-14 rounded-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                   />
                 ) : (
                   <div className={`h-14 w-14 rounded-full ${ROLE_AVATAR[viewUser.role] || "bg-slate-400"} text-white flex items-center justify-center text-lg font-bold`}>
@@ -941,6 +945,8 @@ export default function OwnerUsers() {
                           src={editing.avatar}
                           alt={editing.name || "Staff"}
                           className="h-16 w-16 rounded-full object-cover border-2 border-white shadow-sm"
+                          loading="lazy"
+                          decoding="async"
                         />
                       ) : (
                         <div className={`h-16 w-16 rounded-full text-white flex items-center justify-center text-xl font-semibold ${ROLE_AVATAR[editing.role] || "bg-slate-400"}`}>

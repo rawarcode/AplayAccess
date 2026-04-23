@@ -287,6 +287,8 @@ export default function EditProfile() {
                   src={form.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent((form.firstName + " " + form.lastName).trim() || "Guest")}&background=0ea5e9&color=fff&size=128`}
                   alt="Profile"
                   className="w-28 h-28 rounded-full object-cover border-4 border-slate-200"
+                  loading="lazy"
+                  decoding="async"
                 />
                 <button
                   type="button"

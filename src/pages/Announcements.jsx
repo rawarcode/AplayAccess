@@ -190,7 +190,7 @@ export default function Announcements() {
                 {isVideoUrl(selected.media_url) ? (
                   <video src={selected.media_url} controls autoPlay className="w-full object-contain" />
                 ) : (
-                  <img src={selected.media_url} alt={selected.title} className="w-full object-contain" />
+                  <img src={selected.media_url} alt={selected.title} className="w-full object-contain" loading="eager" decoding="async" />
                 )}
               </div>
             )}
