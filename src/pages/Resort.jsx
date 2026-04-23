@@ -170,9 +170,9 @@ function TestimonialCard({ t, variant = "default" }) {
     <figure
       className={[
         "relative overflow-hidden",
-        "bg-white/10 backdrop-blur-sm ring-1 ring-white/15",
+        "bg-slate-900/40 ring-1 ring-white/20",
         "rounded-2xl text-white",
-        "transition duration-300 hover:ring-white/30 hover:bg-white/15",
+        "transition duration-300 hover:ring-white/35 hover:bg-slate-900/50",
         isHero ? "w-full max-w-2xl p-8 md:p-10" : "h-full p-6",
       ].join(" ")}
     >
@@ -753,8 +753,8 @@ export default function Resort() {
                 </div>
 
                 <div className="relative bg-white rounded-3xl shadow-md border border-slate-100 px-8 py-12 md:px-12 md:py-14 text-center">
-                  {/* Icon — gradient ring + glyph */}
-                  <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-sky-100 to-sky-200 flex items-center justify-center mb-5 ring-8 ring-sky-50">
+                  {/* Icon — solid ring + glyph */}
+                  <div className="mx-auto w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center mb-5 ring-8 ring-sky-50">
                     <i className="fas fa-bullhorn text-sky-500 text-2xl" aria-hidden="true"></i>
                   </div>
 
@@ -940,7 +940,9 @@ export default function Resort() {
         <section id="rooms" className="py-24 bg-sky-50">
           <div ref={roomsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
-              <span className="text-4xl mb-3 block">🛏️</span>
+              <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
+                <i className="fas fa-bed text-xl"></i>
+              </span>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">{pc.rooms.sectionTitle}</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
               <p className="text-lg text-slate-500 max-w-2xl mx-auto">{pc.rooms.sectionSubtitle}</p>
@@ -1035,7 +1037,9 @@ export default function Resort() {
 
           <div ref={amenitiesRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
-              <span className="text-4xl mb-3 block">🌴</span>
+              <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
+                <i className="fas fa-umbrella-beach text-xl"></i>
+              </span>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Resort Amenities</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
               <p className="text-lg text-slate-500 max-w-2xl mx-auto">
@@ -1045,13 +1049,17 @@ export default function Resort() {
 
             <div className="flex flex-wrap justify-center gap-6">
               {amenityCards.map((a, i) => {
+                // Collapsed the former rainbow 2-stop gradients into
+                // solid accents. Variety stays (6 colors still) but
+                // each card reads as an intentional category rather
+                // than an AI-picked palette sampler.
                 const accents = [
-                  "from-sky-400 to-cyan-400",
-                  "from-amber-400 to-orange-400",
-                  "from-emerald-400 to-teal-400",
-                  "from-violet-400 to-purple-400",
-                  "from-pink-400 to-rose-400",
-                  "from-sky-400 to-indigo-400",
+                  "bg-sky-500",
+                  "bg-amber-500",
+                  "bg-emerald-500",
+                  "bg-violet-500",
+                  "bg-rose-500",
+                  "bg-indigo-500",
                 ];
                 const accent = accents[i % accents.length];
                 return (
@@ -1060,9 +1068,9 @@ export default function Resort() {
                     className="group bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 flex flex-col items-center text-center overflow-hidden"
                     style={{ width: "200px", minHeight: "180px" }}
                   >
-                    <div className={`w-full h-2 bg-gradient-to-r ${accent}`} />
+                    <div className={`w-full h-2 ${accent}`} />
                     <div className="flex flex-col items-center px-5 py-6 flex-1">
-                      <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${accent} flex items-center justify-center mb-4 shadow-md text-3xl group-hover:scale-110 transition-transform duration-300`}>
+                      <div className={`w-16 h-16 rounded-2xl ${accent} flex items-center justify-center mb-4 shadow-md text-3xl group-hover:scale-110 transition-transform duration-300`}>
                         {a.icon}
                       </div>
                       <h3 className="text-base font-bold text-slate-800 leading-tight mb-1">{a.title}</h3>
@@ -1129,7 +1137,7 @@ export default function Resort() {
                   the page. Shows the same glyphs the cards use, so the
                   top-of-section summary and the per-card ratings feel
                   like one system. */}
-              <div className="inline-flex items-center gap-5 mt-7 px-6 py-3 rounded-full bg-white/10 backdrop-blur-sm ring-1 ring-white/15">
+              <div className="inline-flex items-center gap-5 mt-7 px-6 py-3 rounded-full bg-slate-900/40 ring-1 ring-white/20">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl font-bold leading-none">{avgStr}</span>
                   <div className="flex items-center gap-0.5 text-amber-300" aria-label={`${avgStr} out of 5`}>
@@ -1172,14 +1180,14 @@ export default function Resort() {
               <div className="relative">
                 <button
                   onClick={() => scrollRef.current?.scrollBy({ left: -340, behavior: "smooth" })}
-                  className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white/15 backdrop-blur hover:bg-white/25 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/40"
+                  className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/50"
                   aria-label="Previous review"
                 >
                   <i className="fas fa-chevron-left text-sm"></i>
                 </button>
                 <button
                   onClick={() => scrollRef.current?.scrollBy({ left: 340, behavior: "smooth" })}
-                  className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-white/15 backdrop-blur hover:bg-white/25 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/40"
+                  className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/50"
                   aria-label="Next review"
                 >
                   <i className="fas fa-chevron-right text-sm"></i>

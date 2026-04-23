@@ -259,7 +259,7 @@ function HeroPreview({ bg, title, subtitle, extra }) {
         ? <video src={bg} autoPlay muted loop playsInline className="w-full h-full object-cover" />
         : bg
           ? <img src={bg} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} />
-          : <div className="w-full h-full bg-gradient-to-br from-slate-300 to-slate-400" />
+          : <div className="w-full h-full bg-slate-300" />
       }
       <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white text-center px-4">
         <p className="font-bold text-sm leading-snug line-clamp-2">{title || <span className="opacity-40 italic">Title</span>}</p>
@@ -694,7 +694,7 @@ function HomeWhyEditor({ content, onSave }) {
           <p className="text-xs text-slate-500 mt-1 mb-3">{content.sectionSubtitle}</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {(content.features || []).map((f, i) => (
-              <div key={i} className="rounded-xl border border-slate-100 bg-gradient-to-b from-white to-slate-50/50 p-3 text-center hover:shadow-sm transition">
+              <div key={i} className="rounded-xl border border-slate-100 bg-white p-3 text-center hover:shadow-sm transition">
                 <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-1.5">
                   <i className={`fas ${f.icon} text-brand text-sm`}></i>
                 </div>
@@ -816,7 +816,7 @@ function HomeResortsEditor({ content, onSave }) {
                   <button
                     type="button"
                     onClick={() => setExpandedCard(expandedCard === i ? null : i)}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gradient-to-r from-slate-50 to-blue-50/30 hover:from-slate-100 hover:to-blue-50/50 text-left transition"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 text-left transition"
                   >
                     <div className="flex items-center gap-3">
                       <img src={card.image} alt={card.name}
@@ -895,7 +895,7 @@ function HomeCTAEditor({ content, onSave }) {
     <SectionCard icon="fa-bullhorn" title="CTA Banner" badge="Home page · /" editing={editing}
       onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="rounded-xl overflow-hidden bg-gradient-to-r from-blue-600 to-blue-800 p-4 text-center text-white">
+        <div className="rounded-xl overflow-hidden bg-blue-700 p-4 text-center text-white">
           <p className="font-bold text-sm">{content.title}</p>
           <p className="text-xs text-white/70 mt-1 line-clamp-1">{content.subtitle}</p>
           <span className="inline-block mt-2 text-xs bg-white text-blue-600 font-semibold px-3 py-1 rounded-lg">{content.buttonText}</span>
@@ -906,7 +906,7 @@ function HomeCTAEditor({ content, onSave }) {
           <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
           <Field label="Button Text" value={form.buttonText} onChange={f("buttonText")} />
           {/* Live preview */}
-          <div className="p-5 bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl text-center text-white">
+          <div className="p-5 bg-blue-700 rounded-xl text-center text-white">
             <p className="text-[10px] text-white/60 uppercase tracking-wide mb-3 font-medium">Live Preview</p>
             <p className="font-bold text-base">{form.title || <span className="opacity-40 italic">Title</span>}</p>
             <p className="text-xs text-white/75 mt-1">{form.subtitle || <span className="opacity-40 italic">Subtitle</span>}</p>
@@ -1091,7 +1091,7 @@ function ResortRoomsSectionEditor({ content, onSave }) {
           <div className="grid grid-cols-3 gap-2 mt-3">
             {[1, 2, 3].map(i => (
               <div key={i} className="rounded-lg border border-slate-100 bg-slate-50/50 overflow-hidden">
-                <div className="h-10 bg-gradient-to-br from-slate-100 to-slate-200"></div>
+                <div className="h-10 bg-slate-200"></div>
                 <div className="p-2 space-y-1">
                   <div className="h-2.5 bg-slate-200 rounded w-3/4"></div>
                   <div className="h-2 bg-slate-100 rounded w-1/2"></div>
@@ -1570,7 +1570,7 @@ function ResortNewsletterEditor({ content, onSave }) {
       onEdit={() => setEditing(true)} onSave={save} onCancel={cancel}
       visible={content.visible} onToggleVisible={toggleVisible}>
       {!editing ? (
-        <div className="rounded-xl overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 p-3.5 text-white">
+        <div className="rounded-xl overflow-hidden bg-sky-600 p-3.5 text-white">
           <p className="font-bold text-sm">{content.title}</p>
           <p className="text-[11px] text-white/70 mt-0.5 line-clamp-1">{content.subtitle}</p>
           <div className="flex items-center gap-2 mt-2.5">

@@ -284,7 +284,7 @@ export default function ChatWidget() {
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col" style={{ maxHeight: "520px" }}>
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-sky-600 to-sky-700 px-5 py-4 shrink-0">
+          <div className="bg-sky-600 px-5 py-4 shrink-0">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-white/20 flex items-center justify-center">
                 <i className="fas fa-umbrella-beach text-white text-lg"></i>

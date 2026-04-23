@@ -218,13 +218,15 @@ export default function Home() {
       {/* ============================================================ */}
       {/*  #6 — WHY CHOOSE US  (#8 scroll reveal)                     */}
       {/* ============================================================ */}
-      <section className="py-20 bg-gradient-to-br from-sky-50 via-white to-sky-50 relative overflow-hidden">
+      <section className="py-20 bg-sky-50 relative overflow-hidden">
         <div
           ref={whyRef}
           className="reveal-section relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"
         >
           <div className="text-center mb-14">
-            <span className="text-4xl mb-3 block">✨</span>
+            <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
+              <i className="fas fa-umbrella-beach text-xl"></i>
+            </span>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{why.sectionTitle}</h2>
             <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
             <p className="text-lg text-slate-500 max-w-2xl mx-auto">
@@ -254,8 +256,8 @@ export default function Home() {
       {/*  #7 — READY FOR PARADISE CTA  (#8 scroll reveal)            */}
       {/* ============================================================ */}
       <section className="relative overflow-hidden">
-        {/* Gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-sky-600 via-sky-700 to-indigo-700" />
+        {/* Solid brand background */}
+        <div className="absolute inset-0 bg-sky-700" />
         {/* Subtle pattern overlay */}
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 

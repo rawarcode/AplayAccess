@@ -366,7 +366,7 @@ export default function AdminGuests() {
             </div>
             <div className="p-6 space-y-5">
               {/* Avatar + name card */}
-              <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-sky-50 to-indigo-50 rounded-xl border border-sky-100">
+              <div className="flex items-center gap-4 p-4 bg-sky-50 rounded-xl border border-sky-100">
                 <div className="h-16 w-16 rounded-full bg-sky-500 text-white flex items-center justify-center text-xl font-bold shadow-md ring-4 ring-white">
                   {getInitials(viewGuest.name)}
                 </div>

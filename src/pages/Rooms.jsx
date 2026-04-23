@@ -323,7 +323,9 @@ export default function Rooms() {
             /* ── GRID ── */
             <div className="animate-hero-fade-in [animation-delay:0.1s] opacity-0">
               <div className="text-center mb-8">
-                <span className="text-4xl mb-3 block">🛏️</span>
+                <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
+                  <i className="fas fa-bed text-xl"></i>
+                </span>
                 <h2 className="text-3xl font-bold text-slate-900 mb-2">Our Accommodations</h2>
                 <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
               </div>

@@ -214,7 +214,7 @@ export default function StaffChatWidget() {
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col" style={{ maxHeight: '560px' }}>
 
           {/* Header */}
-          <div className="bg-gradient-to-r from-violet-600 to-violet-700 px-5 py-4 shrink-0 flex items-center gap-3">
+          <div className="bg-violet-600 px-5 py-4 shrink-0 flex items-center gap-3">
             {selectedThreadId && (
               <button
                 onClick={() => setSelectedId(null)}
