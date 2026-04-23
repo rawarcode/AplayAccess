@@ -1,143 +1,101 @@
-# AplayAccess — Frontend (Claude Code Context)
+# AplayAccess — Frontend
 
-## Project
-Aplaya Beach Resort booking system — Capstone project.
-**Stack:** React 19 + Vite 7 + Tailwind CSS v4 + React Router v7 + Axios
+Aplaya Beach Resort booking system (Capstone).
 
-- **Frontend repo:** `rawarcode/AplayAccess` (this repo)
-- **Backend repo:** `michaelmj23/AplayAccess-Backend` at `E:\Capstone\AplayAccess-Backend`
-- **Dev server:** `npm run dev` → http://localhost:5173
-- **Backend URL:** http://localhost:8000 (XAMPP + `php artisan serve`)
-- **Re-seed:** `php artisan migrate:fresh --seed` in the backend folder
+> **Docs hygiene:** this file only carries things that change slowly or
+> can be verified at a glance. Schema, endpoint lists, pricing tables,
+> and "completed tasks" logs live in the actual code (migrations,
+> routes, seeders) and in git history — not here. If a claim in this
+> file starts disagreeing with the code, trust the code and delete
+> the claim.
 
-## Test Accounts
+---
+
+## Repos & deployment
+
+- **Frontend:** `rawarcode/AplayAccess` → Vercel → `https://aplayabeachresort.com`
+- **Backend:** `michaelmj23/AplayAccess-Backend` → Railway → `https://api.aplayabeachresort.com`
+- **User's mirror target:** `michaelmj23/AplayAccess` (frontend) and `michaelmj23/AplayAccess-Backend` (backend). Use the `/mirror` skill to push to the user's copy.
+- **Backend local path:** `E:\Capstone\AplayAccess-Backend`
+- **Backend scheduler on Railway:** separate cron service named `bubbly-freedom`, runs `php artisan schedule:run` every 5 min via `*/5 * * * *`.
+
+## Stack
+
+React 19 · Vite 7 · Tailwind CSS v4 (via `@theme` in `src/index.css`, no `tailwind.config.js`) · React Router v7 · Axios · Laravel 12 · Sanctum (Bearer tokens, no CSRF) · MySQL.
+
+## Dev
+
+- Frontend: `npm run dev` → http://localhost:5173
+- Backend (local): XAMPP MySQL + `php artisan serve` → http://localhost:8000
+- Re-seed: `php artisan migrate:fresh --seed` from backend folder
+
+## Test accounts
+
 | Email | Password | Role |
 |---|---|---|
 | test@example.com | password | guest |
 | frontdesk@aplayaccess.test | password | front_desk |
 | owner@aplayaccess.test | password | owner |
 
-## Architecture
-- `src/main.jsx` → BrowserRouter > AuthProvider > App
-- `src/lib/api.js` — Axios; adds `Authorization: Bearer <token>` from localStorage `aplaya_token`
-- `src/lib/authApi.js` — login / register / me / logout (Sanctum Bearer token, NO CSRF)
-- `src/lib/adminApi.js` — admin stats, analytics, rooms CRUD, addons, promo codes
-- `src/lib/frontdeskApi.js` — frontdesk bookings, rooms, walk-in, transfer, housekeeping
-- `src/context/AuthContext.jsx` — auth state; localStorage: `aplaya_user_v1` + `aplaya_token`
-- `src/context/ContentContext.jsx` — site content from API; cached in `aplaya_content_cache_v1`
-
 ## Portals
-| Portal    | Pages                    | Shell                                    |
-|-----------|--------------------------|------------------------------------------|
-| Guest     | `src/pages/dashboard/`   | `src/components/DashboardShell.jsx`     |
-| Owner     | `src/pages/owner/`       | `src/components/owner/OwnerShell.jsx`   |
-| Frontdesk | `src/frontdesk/`         | `src/frontdesk/components/Layout/`      |
 
-Legacy `/admin/*` routes redirect to `/owner/*`; the admin role was removed
-and `src/pages/admin/` was merged into `src/pages/owner/`.
+| Portal | Pages | Shell | URL prefix |
+|---|---|---|---|
+| Guest | `src/pages/dashboard/` | `src/components/dashboard/DashboardShell.jsx` | `/dashboard` |
+| Owner | `src/pages/owner/` | `src/components/owner/OwnerShell.jsx` | `/owner` |
+| Front desk | `src/frontdesk/components/` | `src/frontdesk/components/Layout/Sidebar.jsx` (composed per page, not a single shell) | `/frontdesk` |
 
-## Key Files
-- `src/components/modals/BookingModal.jsx` — guest/public online booking (3 types, PayMongo)
-- `src/frontdesk/components/WalkIn.jsx` — frontdesk walk-in booking form
-- `src/pages/owner/Rooms.jsx` — owner room CRUD
+Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidated into `owner`; the `admin_role` middleware still exists and behaves as owner-only.
 
-## Pricing Model (current)
-- **4 booking types:** `day` (6AM–6PM), `night` (6PM–7AM next day), `24hr` (6AM–6AM next day), `24hr-pm` (6PM–6PM next day)
-  - UI shows 3 buttons (Day / Night / 24 Hours); selecting 24 Hours reveals AM/PM sub-toggle
-  - `is24hr = bookingType === '24hr' || bookingType === '24hr-pm'`
-- **Room rate only** in booking `total` — entrance fees stored separately in `entrance_fee` column
-- **Entrance fees** collected at gate: ₱50/pax (day), ₱80/pax (night), ₱100/pax (24hr)
-  - Walk-in: computed from `guests × rate` and stored on creation
-  - Reservation check-in: computed/sent by frontdesk at check-in, stored on `checkin` API call
-- **Online bookings:** 20% reservation fee paid upfront via PayMongo; balance at resort
-- **Walk-ins:** full amount at counter; `reservation_fee = 0`
+## Auth + storage
 
-## Room Types (rooms table key fields)
-| Field               | Notes                                              |
-|---------------------|----------------------------------------------------|
-| `day_rate`          | 6AM–6PM rate                                       |
-| `overnight_rate`    | 6PM–7AM rate (often same as day_rate)              |
-| `rate_24hr`         | 6AM–6AM next-day rate                              |
-| `capacity_label`    | Display string e.g. "4–5 pax"                      |
-| `quantity`          | Units available (e.g. 12 for Small Cottage)        |
-| `features`          | JSON array `[{text, icon}]`                        |
-| `availability_status` | available / renovation / maintenance / reserved / closed |
-| `housekeeping_status` | clean / dirty / cleaning                         |
+- Token in `localStorage['aplaya_token']`, mirrored user object in `aplaya_user_v1`.
+- `src/lib/api.js` axios instance injects `Authorization: Bearer`.
+- `src/context/AuthContext.jsx` owns session state + `login()`, `logout()`, `refreshUser()`.
+- Google Sign-In via `@react-oauth/google` `useGoogleLogin({flow:'implicit'})` → backend verifies access_token via `/api/auth/google`.
 
-## Rooms (seeded)
-### Rooms
-| Name | Day | Night | 24hr | Capacity |
-|---|---|---|---|---|
-| Rohan | ₱1,500 | ₱1,500 | ₱2,000 | 2–3 pax |
-| Ellie | ₱1,500 | ₱1,500 | ₱2,000 | 4–5 pax |
-| Quian | ₱1,500 | ₱1,500 | ₱2,000 | 4–5 pax |
-| 2nd Floor Standard | ₱1,800 | ₱1,800 | ₱2,500 | 2–3 pax |
-| Cassey | ₱1,800 | ₱1,800 | ₱2,500 | 6–7 pax |
-| Katrina | ₱1,800 | ₱1,800 | ₱2,500 | 5–6 pax |
-| Patrice | ₱3,000 | ₱3,000 | ₱4,500 | 7–8 pax · videoke add-on ₱1,000 |
+## Middleware roles (backend)
 
-### Cottages & Pavilions (with quantity)
-| Name | Day | Night | 24hr | Qty | Notes |
-|---|---|---|---|---|---|
-| Small Cottage | ₱400 | ₱400 | ₱700 | 12 | — |
-| Medium Cottage | ₱600 | ₱600 | ₱1,000 | 4 | — |
-| Large Cottage | ₱800 | ₱800 | ₱1,400 | 3 | — |
-| Red Pavilion | ₱700 | ₱700 | ₱1,200 | 2 | Videoke add-on ₱1,500 |
-| Blue Pavilion | ₱2,000 | ₱2,000 | ₱2,000 | 1 | Videoke included |
-
-## API Endpoints (summary)
-- `POST /api/login` | `GET /api/me` | `POST /api/logout`
-- `GET /api/resorts/1/rooms` — available rooms (full model: rate_24hr, capacity_label, quantity)
-- `GET /api/resorts/1/room-types` — lightweight list (id, name, day_rate, overnight_rate, rate_24hr, capacity_label, quantity)
-- `GET /api/availability?date=YYYY-MM-DD&booking_type=day|night|24hr`
-- `GET|POST /api/bookings` | `PATCH /api/bookings/{id}/cancel`
-- `POST /api/guest-booking` — booking without account
-- `POST /api/admin/walkin-booking` — frontdesk walk-in (auto sets status=Checked In)
-- `PATCH /api/admin/bookings/{id}/transfer-room`
-- `GET|POST /api/admin/rooms` | `PATCH /api/admin/rooms/{id}` | `DELETE /api/admin/rooms/{id}`
-- `GET|POST|PATCH|DELETE /api/admin/promo-codes` | `POST /api/validate-promo`
-- `GET /api/admin/stats` | `GET /api/admin/analytics/*` (owner only)
-- `GET /api/bookings/{id}/receipt` | `GET /api/admin/bookings/{id}/receipt`
-
-## Key Components — Frontdesk
-| File | Purpose |
-|---|---|
-| `src/frontdesk/components/WalkIn.jsx` | Walk-in booking form (guests field, entrance fee preview, optgroup room select, 24hr-pm sub-toggle) |
-| `src/frontdesk/components/BookingDetailModal.jsx` | Booking detail: entrance fee banner, add-ons (was amenities), check-in passes entrance_fee |
-| `src/frontdesk/components/Billing.jsx` | Bill breakdown drawer: entrance fee amber row |
-| `src/frontdesk/components/Rooms.jsx` | Rooms board: category groups, compact cards, MultiUnitCard for qty>1 |
-
-## Pending Tasks (as of 2026-04-15)
-1. **Re-seed database** — `php artisan migrate:fresh --seed` (applies all migrations cleanly)
-2. **KPI dashboards** — Admin Dashboard + Frontdesk Dashboard improvements
-
-## Completed (2026-04-15, session 2)
-- **4th booking type:** `24hr-pm` (6PM–6PM); AM/PM sub-toggle in WalkIn + BookingModal
-- **Room categories:** `room` / `cottage` / `pavilion` — DB column + category tabs in guest/admin Rooms pages; optgroup grouping in booking dropdowns
-- **Frontdesk Rooms board:** category sub-headers, compact `RoomCard`, `MultiUnitCard` for qty>1 rooms (dot grid, aggregate status counts)
-- **Entrance fee — full implementation:**
-  - `entrance_fee` column on `bookings` table (migration 2026_04_15_120000)
-  - Stored on walk-in creation + reservation check-in
-  - Shown in: BookingDetailModal (banner + check-in confirmation), Billing.jsx, admin/Transactions.jsx, PDF receipt
-- **WalkIn.jsx:** guests stepper field; entrance fee preview (amber separate section)
-- **BookingModal.jsx:** confirmation modal rewritten (was using undefined vars); `is24hr` unifies 24hr+24hr-pm
-- **BookingDetailModal.jsx:** "Add-ons" label (was "Amenities"); add-on total update fixed; `entrance_fee` from DB used when available
-- **Admin Transactions.jsx:** entrance fee amber card in detail modal
-- **BookingController::updateGuests:** simplified — no longer bundles entrance fee into room_rate (was crashing on missing pricing keys)
-- **Admin bookings API:** now returns `booking_type` and `entrance_fee` fields
-
-## Completed (2026-04-15, session 1)
-- BookingModal: reservation fee ₱0 bug fixed; 3PM day cutoff; hide prices until room selected
-- WalkIn: 3PM day cutoff added
-- Admin Rooms: rate_24hr, capacity_label, quantity in form/table/modal; Add Cottage/Pavilion buttons; Videoke icon
-- AvailabilityController: booking_type param; quantity-aware; returns remaining count
-- ResortController::roomTypes(): now returns rate_24hr, capacity_label, quantity
-- Migration + Room model: quantity field added
-- RoomSeeder: cottage quantities seeded
-- RoomController: validates rate_24hr, capacity_label, quantity
-- BookingController + WalkInController: quantity-aware conflict checks
-
-## Middleware Roles
-- `staff` — front_desk + admin
-- `admin_role` — admin only
+- `staff` — front_desk + owner
+- `admin_role` — owner only (legacy name)
 - `owner_role` — owner only
+
+## Ground truth — don't re-state here, read these
+
+| Need to know... | Go read |
+|---|---|
+| What columns exist on a table | `E:\Capstone\AplayAccess-Backend\database\migrations\*_<table_name>*.php` in filename order |
+| Full API endpoint list | `E:\Capstone\AplayAccess-Backend\routes\api.php` |
+| What a model is allowed to fill | The model's `$fillable` in `app/Models/*.php` |
+| Pricing / entrance fees defaults | `Setting::pricing()` + `SettingSeeder` — rates are editable at runtime via `/owner/settings` |
+| What rooms exist + rates | `database/seeders/RoomSeeder.php` (or the live DB — rates are editable by the owner) |
+| Booking types and slot windows | `booking_type` column is enum-like (`day`, `night`, `24hr`, `24hr-pm`). `is24hr === '24hr' || '24hr-pm'` is the common coalescing check across the app. |
+| Room categories | `category` column on `rooms` — values seen in code: `room`, `cottage`, `pavilion`, `tent`, `admission` (the last is a pseudo-room for gate-only walk-ins) |
+
+## Stable notes that the code doesn't fully spell out
+
+- **Pricing model (structural, not numeric):** Bookings store **room rate only** in `bookings.total`. Entrance fee is a **separate column** (`bookings.entrance_fee`) charged per pax and collected at the gate / billing counter. Add-ons live in `booking_amenities` with a snapshot `unit_price`. The grand total a guest sees = `total + entrance_fee + sum(amenities.total)`. Receipt PDF reconstructs this.
+- **Add-on inventory:** `addons.max_qty` is the total physical units the resort owns (not a per-booking cap). The overlap check in `Admin\AmenityController` sums allocated qty across bookings whose windows overlap — `BookingAmenity::allocatedInWindow()` is the shared helper.
+- **Auto-checkin:** 24-hour and 24hr-pm bookings get auto-checked-in via scheduled command `bookings:auto-checkin-24hr` when their `check_in` hour arrives. Cron runs every 5 min on Railway. Related: `bookings:cancel-expired` sweeps Pending bookings unpaid for 30+ min.
+- **Email change (sensitive action):** Password-gated + verify-before-swap. `PATCH /api/profile` with a new email requires `current_password`, then stores the new address in `pending_email` with its own OTP. Real swap happens only when `POST /api/verify-email-change` consumes the code. Google-linked users (`users.google_id` set) can't change email/password from the app — the Edit Profile UI hides those controls.
+- **Messaging:** One-thread-per-guest — `POST /api/messages` from a guest who already has a thread appends to it rather than creating a new root. Staff can initiate threads via `POST /api/admin/messages/compose`. Abusive guests can be flagged via `POST /api/admin/users/{user}/toggle-messaging-block`. Rate limits: 5 new / 10 replies per minute.
+- **Receipts are Booking Confirmations, not Official Receipts.** The PDF + email are labeled "Booking Confirmation" and carry a BIR disclaimer. Actual ORs are issued manually at the counter from a BIR-registered booklet.
+- **Timezone:** `config/app.php` reads `APP_TIMEZONE` from env, defaults to `Asia/Manila`. Railway must have this set or the scheduler's `now()` drifts 8 hours behind the DB's Manila-time booking rows and the auto-checkin query silently excludes everything.
+
+## User preferences (observed)
+
+- Terse responses. No trailing summaries of what you did — the diff is readable.
+- Ship-oriented: when a plan is agreed, execute; don't re-propose.
+- Decisive one-word replies ("go", "ship", "yes") = full approval to execute the most recently-scoped plan.
+- Will push back hard and bluntly on sloppy work — good. Take the correction directly, don't soften.
+
+## Known hazards (learned the hard way)
+
+- **Don't trust `.md` docs for schema.** Migrations directory is the only source. This file used to claim `housekeeping_status` and `is_active` existed on `rooms` — neither did, and a migration trusting the doc crashed production.
+- **Tailwind v4 has no `tailwind.config.js`.** Design tokens live in `src/index.css` under `@theme { ... }`. Adding custom colors means editing that block.
+- **`/api/admin/*` is accessible by BOTH front_desk AND owner** (not just "admin"). The URL prefix is misleading.
+- **Emoji can't render inside native `<option>` or `<optgroup>`** — Font Awesome won't work there either. Walk-In room picker keeps emoji deliberately; everywhere else uses FA.
+
+## Docs maintenance rule
+
+When a commit changes any of: migrations, `routes/api.php`, model `$fillable`, middleware roles, test accounts, portal URLs, scheduler behavior, or auth flow — update the affected section in this file **in the same commit**. If it doesn't update, it's rotting. The most recent housekeeping_status / is_active drift happened because six sessions of schema changes landed without a single doc sync.
