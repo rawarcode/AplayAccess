@@ -88,6 +88,7 @@ Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidat
 - Ship-oriented: when a plan is agreed, execute; don't re-propose.
 - Decisive one-word replies ("go", "ship", "yes") = full approval to execute the most recently-scoped plan.
 - Will push back hard and bluntly on sloppy work — good. Take the correction directly, don't soften.
+- **Verify → plan → code.** For any non-trivial ask: first read the actual code to confirm the issue is real (a user bug report may describe a symptom whose root cause is elsewhere, or may be based on a stale deploy / misunderstood feature — don't trust it at face value). Then state a 1–2 sentence plan so the user can redirect before code is written. Only then edit. Trivial one-liners (typos, obvious tailwind tweaks) can skip the plan step; when in doubt, plan. Explicitly requested after three back-to-back "fixes" that each missed the actual requirement.
 
 ## Known hazards (learned the hard way)
 
