@@ -11,6 +11,7 @@ import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast.jsx";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { fmtDateTime, fmtDate } from "../../lib/format";
+import Card from "../../components/ui/Card.jsx";
 
 /** Days from now until a date string. Negative = past. */
 function daysUntil(str) {
@@ -325,8 +326,11 @@ export default function GuestDashboard() {
         booking={lastBooking}
       />
 
-      {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 flex items-center justify-between">
+      {/* Header — primary card (sky left stripe distinguishes it from
+          the KPI row below). First adoption of the shared Card
+          component; migration of the rest of the dashboard can
+          happen opportunistically as pages get touched. */}
+      <Card variant="primary" className="p-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
             Welcome back, {user?.name?.split(' ')[0] || 'Guest'}!
@@ -341,22 +345,23 @@ export default function GuestDashboard() {
           <i className="fas fa-plus mr-2"></i>
           {pendingBooking ? 'Resume Pending Booking' : 'Book a Stay'}
         </button>
-      </div>
+      </Card>
 
-      {/* Error state */}
+      {/* Error state — rose callout card. Tinted bg + border
+          signals "attention" without resorting to a modal. */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex items-start gap-3">
-          <i className="fas fa-exclamation-circle text-red-500 mt-0.5 shrink-0"></i>
+        <Card variant="callout" tone="rose" className="px-5 py-4 flex items-start gap-3">
+          <i className="fas fa-exclamation-circle text-rose-500 mt-0.5 shrink-0"></i>
           <div>
-            <p className="text-sm text-red-700 font-medium">{error}</p>
+            <p className="text-sm font-medium">{error}</p>
             <button
               onClick={() => { setError(""); setLoading(true); getBookings().then(setBookings).catch(() => setError("Could not load your bookings. Please try again later.")).finally(() => setLoading(false)); }}
-              className="text-xs text-red-600 hover:underline mt-1"
+              className="text-xs text-rose-700 hover:underline mt-1"
             >
               <i className="fas fa-redo mr-1"></i>Retry
             </button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* KPI Cards */}
