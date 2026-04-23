@@ -812,10 +812,19 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   const canEdit  = ['Confirmed', 'Checked In'].includes(booking.status) && !perBookg;
                   const isEditing = editingAmenity?.id === a.id;
                   const liveTotal = Number(a.unitPrice ?? a.unit_price ?? 0) * (editingAmenity?.qty ?? 1);
+                  // Editor qty cap = catalog.max_qty ∩ (remaining + own current qty).
+                  // `remaining` from the availability endpoint already excludes this
+                  // booking's own allocation, so adding back `a.qty` reflects how high
+                  // the editor can legally bump the qty before the backend 422s.
+                  const availRow  = catalog ? addonAvailability[catalog.id] : null;
+                  const editCap   = availRow?.remaining != null
+                    ? Math.min(maxQty, availRow.remaining + (a.qty || 0))
+                    : maxQty;
 
                   if (isEditing) {
+                    const atEditCap = (editingAmenity.qty || 1) >= editCap;
                     return (
-                      <div key={a.id} className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded px-3 py-2 text-sm">
+                      <div key={a.id} className="flex items-center gap-2 bg-sky-50 border border-sky-200 rounded px-3 py-2 text-sm flex-wrap">
                         <i className={`fas ${catalog?.icon || 'fa-tag'} text-slate-500`} aria-hidden="true"></i>
                         <span className="truncate flex-1">{a.name}</span>
                         <span className="text-xs text-slate-600">Qty:</span>
@@ -825,12 +834,20 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50">−</button>
                         <span className="w-6 text-center text-sm">{editingAmenity.qty}</span>
                         <button
-                          onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.min(e.max || 10, (e.qty || 1) + 1) }))}
+                          onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.min(editCap, (e.qty || 1) + 1) }))}
                           aria-label="Increase quantity"
-                          className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50">+</button>
+                          disabled={atEditCap}
+                          title={atEditCap && availRow?.remaining != null ? `Only ${availRow.remaining + (a.qty || 0)} available for this booking window.` : undefined}
+                          className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50 disabled:opacity-40">+</button>
                         <span className="text-xs font-medium text-sky-700 w-20 text-right">
                           {fmtMoney(liveTotal)}
                         </span>
+                        {availRow?.remaining != null && (
+                          <span className="basis-full text-[11px] text-slate-500">
+                            {availRow.remaining + (a.qty || 0)} of {maxQty} available for this booking window
+                            {a.qty > 0 ? ` (${a.qty} already on this booking)` : ''}.
+                          </span>
+                        )}
                         <button
                           onClick={handleUpdateAmenity}
                           disabled={amenityLoading}
