@@ -3,6 +3,12 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../../lib/messageApi.js";
 import Toast, { useToast } from "../../components/ui/Toast.jsx";
 import { Helmet } from "react-helmet-async";
+import {
+  playMessageChime,
+  isMessageSoundMuted,
+  setMessageSoundMuted,
+  onMessageSoundMuteChange,
+} from "../../lib/notificationSound.js";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -33,6 +39,38 @@ export default function Messages() {
   const textareaRef  = useRef(null);
   const [scrollTick, setScrollTick] = useState(0);
   const [toast, showToast, clearToast, toastType] = useToast();
+
+  // ── Chime-on-new-message wiring ──────────────────────────────────────
+  // Plays a soft two-tone chime when the signature (total message count
+  // across all threads) increases between polls. Skips the very first
+  // load after mount so refreshes / navigations don't replay the sound
+  // for already-arrived messages. See src/lib/notificationSound.js.
+  const hasLoadedOnce     = useRef(false);
+  const prevSignatureRef  = useRef(0);
+  const [soundMuted, setSoundMutedLocal] = useState(isMessageSoundMuted);
+
+  // Keep the toggle icon in sync if the mute is flipped in another tab
+  // or from the shell-level toggle.
+  useEffect(() => onMessageSoundMuteChange(setSoundMutedLocal), []);
+
+  // Fires after every threads update. Compares new total-message-count
+  // to the last observed value; a genuine increase means the latest
+  // fetch brought in something new since the last poll.
+  useEffect(() => {
+    const sig = threads.reduce(
+      (n, t) => n + 1 /* root */ + (t.messages?.length ?? 0),
+      0
+    );
+    if (!hasLoadedOnce.current) {
+      hasLoadedOnce.current  = true;
+      prevSignatureRef.current = sig;
+      return;
+    }
+    if (sig > prevSignatureRef.current) {
+      playMessageChime();
+    }
+    prevSignatureRef.current = sig;
+  }, [threads]);
 
   // Load threads on mount
   useEffect(() => {
@@ -157,12 +195,23 @@ export default function Messages() {
       <div className="p-6 border-b space-y-4">
         <div className="flex items-center gap-3">
           <i className="fas fa-envelope text-sky-600 text-lg"></i>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold text-slate-900">Messages</h1>
             <p className="text-slate-500 text-sm">
               {loading ? "Loading..." : totalUnread > 0 ? `${totalUnread} unread` : "No unread messages"}
             </p>
           </div>
+          {/* Chime mute toggle. Persists to localStorage via
+              notificationSound utility; syncs across tabs + shell bell. */}
+          <button
+            type="button"
+            onClick={() => setMessageSoundMuted(!soundMuted)}
+            title={soundMuted ? "Unmute message sound" : "Mute message sound"}
+            aria-label={soundMuted ? "Unmute message sound" : "Mute message sound"}
+            className="h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition"
+          >
+            <i className={`fas ${soundMuted ? "fa-volume-xmark" : "fa-volume-high"} text-sm`}></i>
+          </button>
         </div>
 
         {/* Quick-send bar — replaces "New Message" button + compose modal */}

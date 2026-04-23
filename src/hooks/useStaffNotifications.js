@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAdminMessages, getAdminReviews } from '../lib/adminApi';
 import { getFdBookings } from '../lib/frontdeskApi';
 import { localDateStr } from '../lib/format';
+import { playMessageChime } from '../lib/notificationSound';
 
 const POLL_MS = 20_000; // 20 seconds — unified polling cadence across the app
 
@@ -67,6 +68,12 @@ export function useStaffNotifications(paths = {}) {
     overdueCheckouts: 0,
   });
   const [items, setItems] = useState([]);
+  // Chime-on-new-message tracking. First poll after mount establishes
+  // a baseline — no chime on initial load, no chime after refreshes.
+  // Subsequent polls that return a higher unread-message count play
+  // a soft two-tone via notificationSound.playMessageChime.
+  const hasPolledOnce          = useRef(false);
+  const prevUnreadMessagesRef  = useRef(0);
 
   const poll = useCallback(async () => {
     const today = todayStr();
@@ -123,6 +130,20 @@ export function useStaffNotifications(paths = {}) {
         if (String(r.status ?? '').toLowerCase() === 'pending') pendingReviews++;
       }
     }
+
+    // Chime trigger — only on a genuine increase AFTER the first poll.
+    // First poll sets the baseline so staff who already have N unread
+    // on page open don't get bombarded with chimes. Refresh = new
+    // hook instance = new baseline = silent, which is exactly what
+    // we want.
+    if (hasPolledOnce.current) {
+      if (unreadMessages > prevUnreadMessagesRef.current) {
+        playMessageChime();
+      }
+    } else {
+      hasPolledOnce.current = true;
+    }
+    prevUnreadMessagesRef.current = unreadMessages;
 
     setCounts({ unreadMessages, todayArrivals, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
 

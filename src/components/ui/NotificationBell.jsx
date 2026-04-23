@@ -2,6 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useNotifications } from '../../context/NotificationContext';
 import ConfirmDialog from './ConfirmDialog';
+import {
+  isMessageSoundMuted,
+  setMessageSoundMuted,
+  onMessageSoundMuteChange,
+} from '../../lib/notificationSound';
 
 const COLOR_MAP = {
   yellow: 'bg-yellow-100 text-yellow-600',
@@ -29,6 +34,11 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
   const visibleTotal = visibleItems.length;
   const btnRef                    = useRef(null);
   const dropRef                   = useRef(null);
+
+  // Chime mute state. Shared across tabs + the guest-side Messages
+  // toggle via the notificationSound utility's custom-event bus.
+  const [soundMuted, setSoundMutedLocal] = useState(isMessageSoundMuted);
+  useEffect(() => onMessageSoundMuteChange(setSoundMutedLocal), []);
 
   // Position dropdown using fixed coords so it's never clipped by overflow:hidden parents
   const openDropdown = useCallback(() => {
@@ -148,8 +158,19 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
                   <i className="fas fa-times mr-1"></i>Clear
                 </button>
               )}
+              {/* Chime mute toggle — scopes to new-message sound only,
+                  not to the red badge. Synced with the guest Messages
+                  toggle via localStorage + a window event. */}
+              <button
+                onClick={() => setMessageSoundMuted(!soundMuted)}
+                title={soundMuted ? "Unmute new-message sound" : "Mute new-message sound"}
+                className="text-xs text-slate-500 hover:text-slate-700 hover:underline font-medium"
+              >
+                <i className={`fas ${soundMuted ? "fa-volume-xmark" : "fa-volume-high"} mr-1`}></i>
+                {soundMuted ? "Muted" : "Sound"}
+              </button>
             </div>
-            <span className="text-[11px] text-gray-400">Updates every 10s</span>
+            <span className="text-[11px] text-gray-400">Updates every 20s</span>
           </div>
         </div>
       )}
