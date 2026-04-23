@@ -174,12 +174,18 @@ export default function Rooms() {
   );
 
   function openDetails(id) {
+    // No scroll — the detail view takes the grid's slot in the layout,
+    // so keeping the user's current scroll position is less disorienting
+    // than yanking them back to the hero. Feedback: the previous
+    // smooth-scroll-to-top felt like the page "ran away" on click.
     setSelectedId(id);
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }
 
   function backToGrid() {
     setSelectedId(null);
+    // Grid-top scroll on the way back is useful — user gets a fresh
+    // view of all rooms rather than landing mid-list at whatever
+    // scroll position the detail view happened to leave them in.
     window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
   }
 
@@ -249,17 +255,24 @@ export default function Rooms() {
       </Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
 
-      {/* HERO */}
-      <section
-        className="relative h-[60vh] flex items-center justify-center text-center overflow-hidden"
-        style={{
-          backgroundImage:
-            `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${roomsHero.background}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        <div className="max-w-4xl mx-auto px-4 text-white z-10">
+      {/* HERO — background is a real <img> (not CSS) so it can carry
+          srcSet + sizes. Previously the CSS background-image served the
+          full 2073w Unsplash asset to every viewport, costing mobile
+          ~400KB of unnecessary bandwidth. */}
+      <section className="relative h-[60vh] flex items-center justify-center text-center overflow-hidden">
+        <img
+          src={roomsHero.background}
+          srcSet={unsplashSrcSet(roomsHero.background)}
+          sizes="100vw"
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Darkening overlay — separated from the image so the gradient
+            doesn't depend on `background-image` shorthand order. */}
+        <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+
+        <div className="relative max-w-4xl mx-auto px-4 text-white z-10">
           <h1 className="text-3xl md:text-5xl font-bold mb-4 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
             {roomsHero.title}
           </h1>
@@ -316,7 +329,11 @@ export default function Rooms() {
                   page ("Our Luxurious Accommodations"), so a second
                   "Our Accommodations" h2 + decorative bar + icon-in-circle
                   was template chrome that repeated the same message. The
-                  category tabs below act as the implicit section anchor. */}
+                  category tabs below act as the implicit section anchor.
+                  An sr-only h2 keeps the heading tree valid for screen
+                  readers (otherwise we jump h1 → h3 on the card titles). */}
+              <h2 className="sr-only">Rooms, cottages, and pavilions</h2>
+
 
               {/* Category tabs — 44px min-height to pass WCAG 2.5.5 mobile
                   target size. aria-pressed gives screen-reader users the
@@ -341,8 +358,10 @@ export default function Rooms() {
                     >
                       <i className={`fas ${tab.icon} text-xs`} aria-hidden="true" />
                       {tab.label}
+                      {/* Count badge — text-slate-600 clears AA 4.5:1 on
+                          slate-100 (slate-500 was ~4.3:1, borderline). */}
                       <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold tabular-nums ${
-                        active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                        active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"
                       }`}>{count}</span>
                     </button>
                   );
@@ -359,7 +378,7 @@ export default function Rooms() {
                   <p className="text-slate-400 text-sm mb-4">Try selecting a different category above.</p>
                   <button
                     onClick={() => setActiveTab("all")}
-                    className="text-sky-600 hover:text-sky-800 text-sm font-medium transition"
+                    className="text-sky-600 hover:text-sky-800 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
                   >
                     View all accommodations →
                   </button>
@@ -370,11 +389,15 @@ export default function Rooms() {
                     <div key={r.id ?? r.name}
                       className="group relative bg-white rounded-2xl overflow-hidden shadow-sm duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-300 transition-[transform,box-shadow,--tw-ring-color]">
                       {/* Image — srcSet serves 400/800/1600 widths off
-                          Unsplash so mobile doesn't pay desktop bandwidth. */}
+                          Unsplash so mobile doesn't pay desktop bandwidth.
+                          width/height attrs hint the aspect ratio so the
+                          browser reserves layout before the image decodes,
+                          avoiding CLS as the grid populates. */}
                       <div className="relative overflow-hidden shrink-0">
                         <img src={r.img}
                           srcSet={unsplashSrcSet(r.img)}
                           sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                          width="800" height="600"
                           alt={r.name}
                           className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy" />
@@ -483,6 +506,7 @@ export default function Rooms() {
                     <img src={detailRoom.img}
                       srcSet={unsplashSrcSet(detailRoom.img)}
                       sizes="(min-width: 1024px) 50vw, 100vw"
+                      width="1200" height="900"
                       alt={detailRoom.name}
                       className="w-full h-full object-cover" loading="lazy" />
                     {/* Bottom-only darken so badges sit on pills against the
