@@ -732,7 +732,19 @@ export default function WalkIn() {
                       </option>
                       {(() => {
                         const visible = rooms.filter(r => availability === null || availability?.[String(r.id)] === true);
-                        const getCat  = r => r.category || (r.name.toLowerCase().includes('cottage') ? 'cottage' : r.name.toLowerCase().includes('pavilion') ? 'pavilion' : 'room');
+                        // Name-based fallback matches owner/Rooms.jsx so
+                        // rooms without an explicit category column still
+                        // land in the right optgroup. Adding 'tent' here
+                        // fixes a pre-existing bug where tent rooms fell
+                        // through to 'room' and made the Tent Pitching
+                        // optgroup render empty (which then got hidden
+                        // entirely by the !items.length guard below).
+                        const getCat  = r => r.category || (
+                          r.name.toLowerCase().includes('cottage')  ? 'cottage'  :
+                          r.name.toLowerCase().includes('pavilion') ? 'pavilion' :
+                          r.name.toLowerCase().includes('tent')     ? 'tent'     :
+                          'room'
+                        );
                         // Price shown matches the booking type the user
                         // picked on the previous step. Fallback matches
                         // the defaults computed at line 175-177.
