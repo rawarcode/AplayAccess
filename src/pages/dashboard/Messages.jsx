@@ -251,7 +251,7 @@ export default function Messages() {
               </div>
             ))}
           </div>
-          <div className="hidden lg:flex items-center justify-center min-h-[520px] text-slate-300">
+          <div className="hidden lg:flex items-center justify-center min-h-[420px] max-h-[72vh] text-slate-300">
             <div className="text-center">
               <i className="fas fa-comments text-5xl mb-3"></i>
               <p className="text-sm">Loading conversations...</p>
@@ -312,7 +312,7 @@ export default function Messages() {
           </div>
 
           {/* Chat view */}
-          <div className={`flex flex-col min-h-[520px] ${!mobileChat ? "hidden lg:flex" : ""}`}>
+          <div className={`flex flex-col min-h-[420px] max-h-[72vh] ${!mobileChat ? "hidden lg:flex" : ""}`}>
             {/* Chat header */}
             <div className="p-4 border-b flex items-center gap-3">
               <button
