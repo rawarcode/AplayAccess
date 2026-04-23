@@ -5,6 +5,7 @@ import {
   updateBookingStatus, checkInBooking, checkOutBooking,
   addAmenity, updateAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
   getFdRooms, getFdBookings, transferRoom,
+  addonAvailabilityForBooking,
 } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
@@ -148,11 +149,31 @@ const COLOR = {
 export default function BookingDetailModal({ booking: initialBooking, onClose, onUpdated, showToast }) {
   const [booking,       setBooking]       = useState(initialBooking);
   const [addonCatalog,     setAddonCatalog]     = useState([]);
+  // Map of addon_id → { remaining, allocated, max_qty } for THIS
+  // booking's window (server computes with exceptBookingId=self so
+  // the booking's own lines aren't counted against itself).
+  // Refreshed on mount + after every add/edit/remove.
+  const [addonAvailability, setAddonAvailability] = useState({});
   const [actionLoading,    setActionLoading]    = useState(false);
   const [addingAmenity,    setAddingAmenity]    = useState(null);
   // Live entrance rates from /api/pricing so the modal never displays or
   // sends stale hardcoded numbers after the owner updates pricing.
   const [entranceRates,    setEntranceRates]    = useState(FALLBACK_RATES);
+
+  // Fetch + set availability map for this booking's window. Keyed by
+  // addon_id for O(1) lookup in the picker render. Called on mount
+  // and after every amenity CRUD to keep counts in sync.
+  const refreshAddonAvailability = () => {
+    if (!booking?.bookingId) return;
+    addonAvailabilityForBooking(booking.bookingId)
+      .then(r => {
+        const rows = r?.data ?? [];
+        const map  = {};
+        for (const row of rows) map[row.id] = row;
+        setAddonAvailability(map);
+      })
+      .catch(() => {});
+  };
 
   useEffect(() => {
     api.get('/api/addons')
@@ -169,6 +190,8 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         });
       })
       .catch(() => {});
+    refreshAddonAvailability();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [amenityLoading,   setAmenityLoading]   = useState(false);
   // Inline qty editor state for an existing amenity row:
@@ -282,6 +305,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         };
         setBooking(updated);
         onUpdated?.(updated);
+        refreshAddonAvailability();
       }
     } catch (err) {
       // Surface the backend's specific 422 message when one is
@@ -363,6 +387,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       setBooking(updated);
       onUpdated?.(updated);
       setAddingAmenity(null);
+      refreshAddonAvailability();
     } catch (err) {
       showToast?.(err?.response?.data?.message || 'Failed to add add-on.');
     } finally { setAmenityLoading(false); }
@@ -392,6 +417,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       setBooking(updated);
       onUpdated?.(updated);
       setEditingAmenity(null);
+      refreshAddonAvailability();
       showToast?.(`Updated ${updatedRow.name} to qty ${updatedRow.qty}.`);
     } catch (err) {
       showToast?.(err?.response?.data?.message || 'Failed to update add-on.');
@@ -876,25 +902,50 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               const attachedNames = new Set((booking.amenities || []).map(a => a.name));
               const pickable      = addonCatalog.filter(c => !attachedNames.has(c.name));
               const isAttached    = (name) => attachedNames.has(name);
-              const noneLeft      = pickable.length === 0;
+              // "Sold out" = inventory pool exhausted by *other* bookings in
+              // this window. We can still edit our own existing row via the
+              // pencil, but the picker shouldn't offer a fresh add.
+              const remainingFor  = (id) => addonAvailability[id]?.remaining;
+              const isSoldOut     = (cat) => remainingFor(cat.id) === 0 && !isAttached(cat.name);
+              const selectable    = pickable.filter(c => !isSoldOut(c));
+              const noneLeft      = selectable.length === 0;
+              const selAvail      = addingAmenity ? addonAvailability[addingAmenity.id] : null;
+              const qtyCap        = addingAmenity
+                ? Math.min(addingAmenity.max_qty || 10, selAvail?.remaining ?? (addingAmenity.max_qty || 10))
+                : 10;
 
               return addingAmenity ? (
                 <div className="border rounded-lg p-3 bg-sky-50">
                   <p className="text-xs font-medium text-slate-700 mb-2">Add Add-on</p>
                   <div className="flex gap-2 flex-wrap mb-2">
                     {addonCatalog.map(cat => {
-                      const attached = isAttached(cat.name);
-                      const selected = addingAmenity.name === cat.name;
+                      const attached  = isAttached(cat.name);
+                      const soldOut   = isSoldOut(cat);
+                      const disabled  = attached || soldOut;
+                      const selected  = addingAmenity.name === cat.name;
+                      const remaining = remainingFor(cat.id);
+                      const statusLine = attached
+                        ? 'Already added'
+                        : soldOut
+                          ? 'Sold out'
+                          : remaining != null
+                            ? `${remaining} of ${cat.max_qty} left`
+                            : <>₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</>;
+                      const title = attached
+                        ? 'Already on this booking — use the pencil icon above to edit its quantity.'
+                        : soldOut
+                          ? 'All units of this add-on are booked during this booking window.'
+                          : undefined;
                       return (
                         <button
                           key={cat.id}
                           type="button"
-                          disabled={attached}
-                          onClick={() => !attached && setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
-                          title={attached ? 'Already on this booking — use the pencil icon above to edit its quantity.' : undefined}
-                          aria-label={attached ? `${cat.name} — already added to this booking` : `Select ${cat.name}`}
+                          disabled={disabled}
+                          onClick={() => !disabled && setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
+                          title={title}
+                          aria-label={attached ? `${cat.name} — already added to this booking` : soldOut ? `${cat.name} — sold out` : `Select ${cat.name}`}
                           className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
-                            attached
+                            disabled
                               ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
                               : selected
                                 ? 'border-sky-500 bg-sky-100 text-sky-700'
@@ -903,12 +954,13 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         >
                           <i className={`fas ${cat.icon || 'fa-tag'} mr-1`} aria-hidden="true"></i>{cat.name}
                           <br />
-                          <span className="text-slate-400">
-                            {attached
-                              ? 'Already added'
-                              : <>₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</>
-                            }
-                          </span>
+                          <span className={soldOut ? 'text-rose-500' : 'text-slate-400'}>{statusLine}</span>
+                          {!attached && !soldOut && remaining != null && (
+                            <>
+                              <br />
+                              <span className="text-slate-400">₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</span>
+                            </>
+                          )}
                         </button>
                       );
                     })}
@@ -920,9 +972,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         aria-label="Decrease quantity"
                         className="w-11 h-11 border rounded text-sm">−</button>
                       <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
-                      <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(a.max_qty || 10, (a.qty || 1) + 1) }))}
+                      <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(qtyCap, (a.qty || 1) + 1) }))}
                         aria-label="Increase quantity"
-                        className="w-11 h-11 border rounded text-sm">+</button>
+                        disabled={(addingAmenity.qty || 1) >= qtyCap}
+                        className="w-11 h-11 border rounded text-sm disabled:opacity-40">+</button>
                       <span className="ml-auto text-xs font-medium text-sky-700">
                         {/* State shape is unit_price (snake) — reading
                             unitPrice (camel) here produced qty × undefined
@@ -930,6 +983,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         ₱{(Number(addingAmenity.qty || 1) * Number(addingAmenity.unit_price || 0)).toLocaleString()}
                       </span>
                     </div>
+                  )}
+                  {selAvail?.remaining != null && (
+                    <p className="text-[11px] text-slate-500 mb-2">
+                      {selAvail.remaining} of {addingAmenity.max_qty} available for this booking window.
+                    </p>
                   )}
                   {/* Disable Add if the currently-selected add-on is already
                       attached — defensive in case the picker state desyncs. */}
@@ -945,12 +1003,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </div>
               ) : noneLeft ? (
                 <p className="text-xs text-slate-400 italic">
-                  All add-ons are already on this booking. Use the pencil icon above to change a quantity, or the × to remove.
+                  {pickable.length === 0
+                    ? 'All add-ons are already on this booking. Use the pencil icon above to change a quantity, or the × to remove.'
+                    : 'All available add-ons are sold out for this booking window.'}
                 </p>
               ) : (
                 <button
                   onClick={() => {
-                    const first = pickable[0];
+                    const first = selectable[0];
                     setAddingAmenity({ id: first.id, name: first.name, qty: 1, unit_price: first.price, per_booking: first.per_booking, max_qty: first.max_qty, icon: first.icon });
                   }}
                   className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"

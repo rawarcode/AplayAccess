@@ -82,6 +82,27 @@ export async function removeAmenity(bookingId, amenityId) {
   return res.data;
 }
 
+// GET /api/admin/addons/availability
+// Two calling modes per backend signature:
+//   - addonAvailabilityForBooking(bookingId): uses the booking's own
+//     window and excludes its own allocation from the pool. For the
+//     BookingDetailModal post-booking add-on picker.
+//   - addonAvailabilityForSlot({ date, bookingType, hour }): computes
+//     the window from scratch. For the Walk-In form where no booking
+//     exists yet.
+// Response: { data: [{id, name, icon, price, max_qty, allocated,
+// remaining, per_booking}], window: {check_in, check_out} }
+export async function addonAvailabilityForBooking(bookingId) {
+  const res = await api.get(`/api/admin/addons/availability`, { params: { booking_id: bookingId } });
+  return res.data;
+}
+export async function addonAvailabilityForSlot({ date, bookingType, hour }) {
+  const params = { date, booking_type: bookingType };
+  if (bookingType === '24hr' && hour != null) params.hour = hour;
+  const res = await api.get(`/api/admin/addons/availability`, { params });
+  return res.data;
+}
+
 // PATCH /api/admin/bookings/{id}/transfer-room — move a Checked In booking to another room
 export async function transferRoom(bookingId, roomId) {
   const res = await api.patch(`/api/admin/bookings/${bookingId}/transfer-room`, { room_id: roomId });

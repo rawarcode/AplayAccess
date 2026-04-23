@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
-import { getFdRooms, createWalkInBooking } from '../../lib/frontdeskApi';
+import { getFdRooms, createWalkInBooking, addonAvailabilityForSlot } from '../../lib/frontdeskApi';
 import { validatePromo } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import Modal from '../../components/modals/Modal';
@@ -60,6 +60,10 @@ export default function WalkIn() {
   // Promo code
   const [addons,       setAddons]        = useState([]);   // from API
   const [addonQtys,    setAddonQtys]    = useState({});   // { [id]: qty }
+  // Live per-window remaining counts. Keyed by addon id — {allocated, remaining,
+  // max_qty, per_booking}. Empty map when slot inputs aren't yet valid; the UI
+  // falls back to `a.max_qty` in that case, so the flow degrades gracefully.
+  const [addonAvailability, setAddonAvailability] = useState({});
 
   const [promoInput,   setPromoInput]   = useState('');
   const [promoResult,  setPromoResult]  = useState(null);
@@ -193,6 +197,36 @@ export default function WalkIn() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.date, form.bookingType]);
+
+  // Fetch per-window add-on availability whenever the slot inputs change.
+  // Mirrors the shared inventory check that the backend walk-in endpoint runs
+  // at submit, so staff see "sold out" before they pick a qty that will fail.
+  useEffect(() => {
+    if (!form.date || addons.length === 0) { setAddonAvailability({}); return; }
+    let cancelled = false;
+    const hour = form.bookingType === '24hr' ? (form.checkInHour ?? 6) : null;
+    addonAvailabilityForSlot({ date: form.date, bookingType: form.bookingType, hour })
+      .then(r => {
+        if (cancelled) return;
+        const map = {};
+        for (const row of (r?.data ?? [])) map[row.id] = row;
+        setAddonAvailability(map);
+        // If a staged qty now exceeds live remaining, clamp it so the submit
+        // doesn't 422. Happens when staff changes date/type after staging.
+        setAddonQtys(prev => {
+          let touched = false;
+          const next = { ...prev };
+          for (const row of (r?.data ?? [])) {
+            const cur = Number(next[row.id] || 0);
+            if (cur > row.remaining) { next[row.id] = row.remaining; touched = true; }
+          }
+          return touched ? next : prev;
+        });
+      })
+      .catch(() => { if (!cancelled) setAddonAvailability({}); });
+    return () => { cancelled = true; };
+  }, [form.date, form.bookingType, form.checkInHour, addons.length]);
+
   const amenityTotal = addons.reduce((sum, a) => {
     const qty = Number(addonQtys[a.id] || 0);
     if (qty <= 0) return sum;
@@ -906,39 +940,68 @@ export default function WalkIn() {
                     </div>
                     <div className="grid grid-cols-2 gap-3 mb-4">
                       {addons.map(a => {
-                        const qty = Number(addonQtys[a.id] || 0);
-                        const isFixed = a.per_booking;
-                        const active = qty > 0;
+                        const qty       = Number(addonQtys[a.id] || 0);
+                        const isFixed   = a.per_booking;
+                        const active    = qty > 0;
+                        const avail     = addonAvailability[a.id];
+                        const remaining = avail?.remaining;
+                        // Cap by both backend inventory (`remaining` across overlapping
+                        // bookings) and catalog `max_qty`. If availability hasn't loaded
+                        // yet, fall back to max_qty so the UI still works.
+                        const cap       = remaining != null ? Math.min(remaining, a.max_qty) : a.max_qty;
+                        const soldOut   = remaining === 0 && !active;
+                        const atCap     = qty >= cap;
                         if (isFixed) {
                           return (
                             <button key={a.id} type="button"
-                              onClick={() => setAddonQtys(q => ({ ...q, [a.id]: active ? 0 : 1 }))}
-                              className={`border rounded-lg p-3 text-left transition-colors ${active ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 hover:border-slate-300'}`}
+                              disabled={soldOut}
+                              onClick={() => !soldOut && setAddonQtys(q => ({ ...q, [a.id]: active ? 0 : 1 }))}
+                              title={soldOut ? 'All units reserved for this window.' : undefined}
+                              className={`border rounded-lg p-3 text-left transition-colors ${
+                                soldOut
+                                  ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
+                                  : active
+                                    ? 'border-indigo-400 bg-indigo-50'
+                                    : 'border-slate-200 hover:border-slate-300'
+                              }`}
                             >
                               <div className="flex items-center gap-2 mb-1">
                                 <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-slate-400'}`}></i>
-                                <p className={`text-sm font-medium ${active ? 'text-indigo-700' : 'text-slate-700'}`}>{a.name}</p>
+                                <p className={`text-sm font-medium ${active ? 'text-indigo-700' : soldOut ? 'text-slate-400' : 'text-slate-700'}`}>{a.name}</p>
                               </div>
                               <p className="text-xs text-slate-500">₱{Number(a.price).toLocaleString()} flat</p>
+                              {soldOut ? (
+                                <p className="text-xs font-medium text-rose-500 mt-1">Sold out for this window</p>
+                              ) : remaining != null ? (
+                                <p className="text-[11px] text-slate-500 mt-1">{remaining} of {a.max_qty} left</p>
+                              ) : null}
                               {active && <p className="text-xs font-medium text-indigo-700 mt-1">Added ✓</p>}
                             </button>
                           );
                         }
                         return (
-                          <div key={a.id} className="border rounded-lg p-3">
+                          <div key={a.id} className={`border rounded-lg p-3 ${soldOut ? 'bg-slate-50 border-slate-200' : ''}`}>
                             <div className="flex items-center gap-2 mb-2">
                               <i className={`fas ${a.icon || 'fa-tag'} text-slate-500`}></i>
-                              <p className="text-sm font-medium text-slate-700">{a.name}</p>
+                              <p className={`text-sm font-medium ${soldOut ? 'text-slate-400' : 'text-slate-700'}`}>{a.name}</p>
                               <span className="ml-auto text-xs text-slate-500">₱{Number(a.price).toLocaleString()} each</span>
                             </div>
+                            {soldOut ? (
+                              <p className="text-xs font-medium text-rose-500 mb-1">Sold out for this window</p>
+                            ) : remaining != null ? (
+                              <p className="text-[11px] text-slate-500 mb-1">{remaining} of {a.max_qty} left for this window</p>
+                            ) : null}
                             <div className="flex items-center gap-2">
                               <button type="button"
+                                disabled={qty === 0}
                                 onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.max(0, qty - 1) }))}
-                                className="w-11 h-11 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold">−</button>
+                                className="w-11 h-11 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">−</button>
                               <span className="w-8 text-center text-sm font-medium">{qty}</span>
                               <button type="button"
-                                onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.min(a.max_qty, qty + 1) }))}
-                                className="w-11 h-11 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold">+</button>
+                                disabled={atCap}
+                                onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.min(cap, qty + 1) }))}
+                                title={atCap && remaining != null ? `Only ${remaining} left for this window.` : undefined}
+                                className="w-11 h-11 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">+</button>
                               {qty > 0 && (
                                 <span className="ml-auto text-xs font-medium text-sky-700">₱{(qty * a.price).toLocaleString()}</span>
                               )}

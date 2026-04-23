@@ -848,10 +848,21 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     // bookings from this endpoint with "Tent pitching is
                     // available for walk-in only"), so filter them out of
                     // the public picker entirely.
-                    const visible = rooms.filter(r =>
-                      r.category !== 'tent' &&
-                      (availability === null || availability?.[String(r.id)] === true)
-                    );
+                    //
+                    // Unavailable rooms are NOT filtered out — they render
+                    // at the bottom of the list in a dedicated optgroup
+                    // with disabled=true. Users can see the room exists
+                    // (useful context: "Rohan is booked for that night,
+                    // try a different date") but can't pick it. Previous
+                    // behavior of hiding them made the picker's length
+                    // jump around unpredictably as availability loaded.
+                    const nonTent = rooms.filter(r => r.category !== 'tent');
+                    const isAvailable = r =>
+                      availability === null || availability?.[String(r.id)] === true;
+
+                    const available   = nonTent.filter(isAvailable);
+                    const unavailable = nonTent.filter(r => !isAvailable(r));
+
                     const getCategory = r => {
                       if (r.category) return r.category;
                       const n = (r.name || "").toLowerCase();
@@ -876,8 +887,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       { key: "cottage",  label: "\u26F1\uFE0F  Cottages"  },
                       { key: "pavilion", label: "\uD83C\uDFDB\uFE0F  Pavilions" },
                     ];
-                    return groups.map(g => {
-                      const items = visible.filter(r => getCategory(r) === g.key);
+                    const availableNodes = groups.map(g => {
+                      const items = available.filter(r => getCategory(r) === g.key);
                       if (!items.length) return null;
                       return (
                         <optgroup key={g.key} label={g.label}>
@@ -891,6 +902,23 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         </optgroup>
                       );
                     });
+                    // Single unavailable group at the bottom — don't
+                    // sub-group by category, because the point is
+                    // "these are out" not "these are small-cottage
+                    // variants of out." Each option is disabled so
+                    // the user can see but not pick.
+                    const unavailableNode = unavailable.length > 0 ? (
+                      <optgroup key="unavailable" label="\u26D4  Unavailable for this slot">
+                        {unavailable.map(r => (
+                          <option key={r.id} value={r.id} disabled>
+                            {r.name}
+                            {r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
+                            {" \u2014 booked"}
+                          </option>
+                        ))}
+                      </optgroup>
+                    ) : null;
+                    return <>{availableNodes}{unavailableNode}</>;
                   })()}
                 </select>
                 {/* Capacity label + availability badge */}
