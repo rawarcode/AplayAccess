@@ -372,39 +372,42 @@ export default function Rooms() {
                   </button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
                   {roomCards.map((r) => (
                     <div key={r.id ?? r.name}
-                      className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-400/50">
+                      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-300">
                       {/* Image */}
                       <div className="relative overflow-hidden shrink-0">
                         <img src={r.img} alt={r.name}
                           className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                        {/* Soft darken bottom-only so the capacity chip reads,
+                            but the top badges sit on their own pills and stay
+                            crisp against the photograph. */}
+                        <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
                         {/* Badges — respect allowed_booking_types so a night-only
                             or 24hr-only room isn't merchandised as day-use. */}
-                        <div className="absolute top-3 left-3 flex flex-wrap gap-2">
+                        <div className="absolute top-3 left-3 flex flex-wrap gap-1.5">
                           {roomOffers(r, 'day') && (
-                            <span className="bg-white/90 text-sky-700 text-xs font-bold px-3 py-1 rounded-full shadow">
+                            <span className="bg-white/95 text-sky-700 text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
                               Day Use
                             </span>
                           )}
                           {roomOffers(r, 'night') && (
-                            <span className="bg-indigo-600/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                            <span className="bg-indigo-600/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
                               Overnight
                             </span>
                           )}
                           {roomOffers(r, '24hr') && (
-                            <span className="bg-amber-500/90 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                            <span className="bg-amber-500/95 text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow-sm">
                               24 Hours
                             </span>
                           )}
                         </div>
                         {/* Capacity chip */}
                         {r.capacity > 0 && (
-                          <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
-                            <i className="fas fa-users text-[10px]" /> Up to {r.capacity} guests
+                          <span className="absolute bottom-3 right-3 bg-black/55 text-white text-[11px] px-2.5 py-1 rounded-full flex items-center gap-1 backdrop-blur-sm">
+                            <i className="fas fa-users text-[10px]" /> Up to {r.capacity}
                           </span>
                         )}
                       </div>
