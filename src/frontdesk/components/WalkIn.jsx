@@ -739,10 +739,16 @@ export default function WalkIn() {
                         // through to 'room' and made the Tent Pitching
                         // optgroup render empty (which then got hidden
                         // entirely by the !items.length guard below).
+                        //
+                        // 'admission' — backing the "Entrance Only"
+                        // pseudo-room. Matches on both category and
+                        // name-substring so even a DB without the
+                        // category column drifts into the right group.
                         const getCat  = r => r.category || (
-                          r.name.toLowerCase().includes('cottage')  ? 'cottage'  :
-                          r.name.toLowerCase().includes('pavilion') ? 'pavilion' :
-                          r.name.toLowerCase().includes('tent')     ? 'tent'     :
+                          r.name.toLowerCase().includes('cottage')   ? 'cottage'   :
+                          r.name.toLowerCase().includes('pavilion')  ? 'pavilion'  :
+                          r.name.toLowerCase().includes('tent')      ? 'tent'      :
+                          r.name.toLowerCase().includes('entrance')  ? 'admission' :
                           'room'
                         );
                         // Price shown matches the booking type the user
@@ -764,10 +770,16 @@ export default function WalkIn() {
                         // chrome — so this is an intentional exception to
                         // the broader "no emoji in labels" rule.
                         const groups  = [
-                          { key: 'room',     label: '🛏️  Rooms'        },
-                          { key: 'cottage',  label: '⛱️  Cottages'     },
-                          { key: 'pavilion', label: '🏛️  Pavilions'    },
-                          { key: 'tent',     label: '⛺  Tent Pitching' },
+                          // 'admission' first — it's the shortest path
+                          // through the form for walk-in day-trippers
+                          // who just want gate entry + maybe add-ons.
+                          // Rate column shows ₱0 because only entrance
+                          // fee + add-ons charge, not a room rate.
+                          { key: 'admission', label: '🎫  Entrance Only'  },
+                          { key: 'room',      label: '🛏️  Rooms'         },
+                          { key: 'cottage',   label: '⛱️  Cottages'      },
+                          { key: 'pavilion',  label: '🏛️  Pavilions'     },
+                          { key: 'tent',      label: '⛺  Tent Pitching' },
                         ];
                         return groups.map(g => {
                           const items = visible.filter(r => getCat(r) === g.key);
