@@ -9,6 +9,7 @@ import { RESORT_ID } from "../lib/config.js";
 import { rooms as roomsFallback } from "../data/rooms.js";
 import BookingModal from "../components/modals/BookingModal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
+import GuestWarningModal from "../components/modals/GuestWarningModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import Toast, { useToast } from "../components/ui/Toast.jsx";
@@ -110,6 +111,13 @@ export default function Rooms() {
   const [lastBooking,  setLastBooking]  = useState(null);
   const [selectedRoom, setSelectedRoom] = useState("");
   const [pendingRoom,  setPendingRoom]  = useState(null);
+  // Guest-booking flow state — mirrors Resort.jsx. Non-logged-in users
+  // first see the GuestWarningModal explaining what they lose without an
+  // account, then branch: either open login, or continue as guest with
+  // guestMode=true threaded into BookingModal + SuccessModal.
+  const [guestWarningOpen, setGuestWarningOpen] = useState(false);
+  const [guestMode,        setGuestMode]        = useState(false);
+  const [successIsGuest,   setSuccessIsGuest]   = useState(false);
   // One-Pending-at-a-time: fetched on login so Book Now knows whether
   // to funnel into a resume flow instead of creating a duplicate row.
   // Refetched after a resume completes / cancels so the rule self-heals
@@ -134,7 +142,7 @@ export default function Rooms() {
     return () => { active = false; };
   }, [user]);
 
-  const anyOverlay = bookingOpen || loginOpen || successOpen;
+  const anyOverlay = bookingOpen || loginOpen || guestWarningOpen || successOpen;
   useLockBodyScroll(anyOverlay);
 
   function load() {
@@ -216,8 +224,11 @@ export default function Rooms() {
 
   function requestBooking(roomName = "") {
     if (!user) {
+      // Show the guest-warning modal first — user can pick Log In / Sign
+      // Up, Continue as Guest, or Cancel. Matches /resort's flow so the
+      // booking entry points feel consistent across the marketing site.
       setPendingRoom(roomName);
-      setLoginOpen(true);
+      setGuestWarningOpen(true);
       return;
     }
     // One-Pending rule: funnel authed users with an existing Pending
@@ -228,6 +239,7 @@ export default function Rooms() {
       setResumingBooking(toResumeBooking(userPendingBooking));
       return;
     }
+    setGuestMode(false);
     setSelectedRoom(roomName);
     setBookingOpen(true);
   }
@@ -605,12 +617,15 @@ export default function Rooms() {
 
       <BookingModal
         open={bookingOpen}
-        onClose={() => setBookingOpen(false)}
+        onClose={() => { setBookingOpen(false); setGuestMode(false); }}
         rooms={bookingRooms}
         selectedRoom={selectedRoom}
+        guestMode={guestMode}
         onBooked={(booking) => {
           setBookingOpen(false);
           setLastBooking(booking);
+          setSuccessIsGuest(guestMode);
+          setGuestMode(false);
           setSuccessOpen(true);
         }}
       />
@@ -638,10 +653,30 @@ export default function Rooms() {
         onLoginSuccess={handleLoginSuccess}
       />
 
+      {/* Guest-warning gate for non-logged-in Book Now clicks. Lets the
+          user pick Log In / Sign Up, Continue as Guest, or Cancel —
+          matches the /resort page's flow. */}
+      <GuestWarningModal
+        open={guestWarningOpen}
+        onClose={() => { setGuestWarningOpen(false); setPendingRoom(null); }}
+        onLoginSignup={() => {
+          setGuestWarningOpen(false);
+          setLoginOpen(true);
+        }}
+        onContinueAsGuest={() => {
+          setGuestWarningOpen(false);
+          setGuestMode(true);
+          setSelectedRoom(pendingRoom || "");
+          setPendingRoom(null);
+          setBookingOpen(true);
+        }}
+      />
+
       <SuccessModal
         open={successOpen}
         onClose={() => setSuccessOpen(false)}
         booking={lastBooking}
+        guestMode={successIsGuest}
       />
     </div>
   );
