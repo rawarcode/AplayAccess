@@ -40,6 +40,24 @@ function enrichRoom(room) {
   };
 }
 
+// Sum the per-room prices × qty of all package-attached add-ons on a
+// room. These are bundled into the guest-facing rate — Blue Pavilion
+// videoke, for example. Optional-relation entries don't contribute to
+// the bundle (guest pays only if they opt in). Returns 0 when the room
+// has no attachments (resort-wide or legacy rooms).
+function packageTotalFor(room) {
+  if (!Array.isArray(room?.attached_addons)) return 0;
+  return room.attached_addons
+    .filter(a => a.relation === 'package')
+    .reduce((sum, a) => sum + (Number(a.price) || 0) * (Number(a.qty) || 1), 0);
+}
+
+// List of package add-ons as "Name" strings for "Includes X, Y" chip.
+function packageNamesFor(room) {
+  if (!Array.isArray(room?.attached_addons)) return [];
+  return room.attached_addons.filter(a => a.relation === 'package').map(a => a.name);
+}
+
 // Unsplash URLs accept ?w= to return a pre-sized image. Generate a small
 // srcSet so mobile doesn't pay the desktop bandwidth cost. For non-Unsplash
 // sources (user-uploaded Cloudinary etc.) we skip srcSet and let the
@@ -313,26 +331,46 @@ export default function Rooms() {
       <div className="p-5 flex flex-col flex-1">
         <h3 className="text-lg font-bold text-slate-900 mb-1">{r.name}</h3>
         <p className="text-slate-500 text-sm mb-4 line-clamp-2 flex-1">{r.description}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {roomOffers(r, 'day') && (
-            <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
-              <p className="text-[10px] text-sky-700 font-semibold uppercase tracking-wide">Day</p>
-              <p className="text-sm font-bold text-sky-800 tabular-nums">{formatPHP(r.day_rate)}</p>
-            </div>
-          )}
-          {roomOffers(r, 'night') && (
-            <div className="flex-1 min-w-[80px] bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
-              <p className="text-[10px] text-indigo-700 font-semibold uppercase tracking-wide">Night</p>
-              <p className="text-sm font-bold text-indigo-800 tabular-nums">{formatPHP(r.overnight_rate)}</p>
-            </div>
-          )}
-          {roomOffers(r, '24hr') && (
-            <div className="flex-1 min-w-[80px] bg-amber-50 rounded-xl px-3 py-2 text-center border border-amber-100">
-              <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wide">24 Hrs</p>
-              <p className="text-sm font-bold text-amber-800 tabular-nums">{formatPHP(r.rate_24hr)}</p>
-            </div>
-          )}
-        </div>
+        {/* Pricing row. Package add-ons (videoke bundled with the room
+            etc.) are folded into the displayed price so the guest sees
+            one clean "all-inclusive" total — no option to remove per
+            business rule. An "Includes X" chip below signals what's
+            in the bundle. */}
+        {(() => {
+          const pkgTotal = packageTotalFor(r);
+          const pkgNames = packageNamesFor(r);
+          const bundle   = (base) => Number(base || 0) + pkgTotal;
+          return (
+            <>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {roomOffers(r, 'day') && (
+                  <div className="flex-1 min-w-[80px] bg-sky-50 rounded-xl px-3 py-2 text-center border border-sky-100">
+                    <p className="text-[10px] text-sky-700 font-semibold uppercase tracking-wide">Day</p>
+                    <p className="text-sm font-bold text-sky-800 tabular-nums">{formatPHP(bundle(r.day_rate))}</p>
+                  </div>
+                )}
+                {roomOffers(r, 'night') && (
+                  <div className="flex-1 min-w-[80px] bg-indigo-50 rounded-xl px-3 py-2 text-center border border-indigo-100">
+                    <p className="text-[10px] text-indigo-700 font-semibold uppercase tracking-wide">Night</p>
+                    <p className="text-sm font-bold text-indigo-800 tabular-nums">{formatPHP(bundle(r.overnight_rate))}</p>
+                  </div>
+                )}
+                {roomOffers(r, '24hr') && (
+                  <div className="flex-1 min-w-[80px] bg-amber-50 rounded-xl px-3 py-2 text-center border border-amber-100">
+                    <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wide">24 Hrs</p>
+                    <p className="text-sm font-bold text-amber-800 tabular-nums">{formatPHP(bundle(r.rate_24hr))}</p>
+                  </div>
+                )}
+              </div>
+              {pkgNames.length > 0 && (
+                <p className="text-[11px] text-emerald-700 font-medium mb-4 flex items-center gap-1.5">
+                  <i className="fas fa-box text-emerald-500 text-[10px]" aria-hidden="true"></i>
+                  Includes {pkgNames.join(', ')}
+                </p>
+              )}
+            </>
+          );
+        })()}
         <div className="flex gap-2">
           <button onClick={() => openDetails(r.id)}
             className="flex-1 border border-sky-200 text-sky-600 hover:border-sky-400 hover:bg-sky-50 px-3 py-2.5 rounded-xl text-sm font-semibold min-h-[44px] transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
@@ -603,28 +641,48 @@ export default function Rooms() {
                     )}
 
                     {/* Pricing — same color-coded tiles as the card, just
-                        bigger. AA contrast lifted to 800 on -50 background. */}
+                        bigger. AA contrast lifted to 800 on -50 background.
+                        Package add-on cost folded into each displayed rate;
+                        an "Includes: X" line below spells out what's
+                        bundled so the guest understands the total. */}
                     <div className="border-t border-slate-100 pt-6">
-                      <div className="flex flex-wrap gap-3 mb-5">
-                        {roomOffers(detailRoom, 'day') && (
-                          <div className="flex-1 min-w-[100px] bg-sky-50 rounded-2xl p-4 text-center border border-sky-100">
-                            <p className="text-[10px] text-sky-700 font-semibold uppercase tracking-wide mb-0.5">Day Use</p>
-                            <p className="text-2xl font-bold text-sky-800 tabular-nums">{formatPHP(detailRoom.day_rate)}</p>
-                          </div>
-                        )}
-                        {roomOffers(detailRoom, 'night') && (
-                          <div className="flex-1 min-w-[100px] bg-indigo-50 rounded-2xl p-4 text-center border border-indigo-100">
-                            <p className="text-[10px] text-indigo-700 font-semibold uppercase tracking-wide mb-0.5">Overnight</p>
-                            <p className="text-2xl font-bold text-indigo-800 tabular-nums">{formatPHP(detailRoom.overnight_rate)}</p>
-                          </div>
-                        )}
-                        {roomOffers(detailRoom, '24hr') && (
-                          <div className="flex-1 min-w-[100px] bg-amber-50 rounded-2xl p-4 text-center border border-amber-100">
-                            <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wide mb-0.5">24 Hours</p>
-                            <p className="text-2xl font-bold text-amber-800 tabular-nums">{formatPHP(detailRoom.rate_24hr)}</p>
-                          </div>
-                        )}
-                      </div>
+                      {(() => {
+                        const pkgTotal = packageTotalFor(detailRoom);
+                        const pkgNames = packageNamesFor(detailRoom);
+                        const bundle   = (base) => Number(base || 0) + pkgTotal;
+                        return (
+                          <>
+                            <div className="flex flex-wrap gap-3 mb-3">
+                              {roomOffers(detailRoom, 'day') && (
+                                <div className="flex-1 min-w-[100px] bg-sky-50 rounded-2xl p-4 text-center border border-sky-100">
+                                  <p className="text-[10px] text-sky-700 font-semibold uppercase tracking-wide mb-0.5">Day Use</p>
+                                  <p className="text-2xl font-bold text-sky-800 tabular-nums">{formatPHP(bundle(detailRoom.day_rate))}</p>
+                                </div>
+                              )}
+                              {roomOffers(detailRoom, 'night') && (
+                                <div className="flex-1 min-w-[100px] bg-indigo-50 rounded-2xl p-4 text-center border border-indigo-100">
+                                  <p className="text-[10px] text-indigo-700 font-semibold uppercase tracking-wide mb-0.5">Overnight</p>
+                                  <p className="text-2xl font-bold text-indigo-800 tabular-nums">{formatPHP(bundle(detailRoom.overnight_rate))}</p>
+                                </div>
+                              )}
+                              {roomOffers(detailRoom, '24hr') && (
+                                <div className="flex-1 min-w-[100px] bg-amber-50 rounded-2xl p-4 text-center border border-amber-100">
+                                  <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wide mb-0.5">24 Hours</p>
+                                  <p className="text-2xl font-bold text-amber-800 tabular-nums">{formatPHP(bundle(detailRoom.rate_24hr))}</p>
+                                </div>
+                              )}
+                            </div>
+                            {pkgNames.length > 0 && (
+                              <div className="mb-5 rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm flex items-center gap-2">
+                                <i className="fas fa-box text-emerald-500" aria-hidden="true"></i>
+                                <span className="text-emerald-800">
+                                  <strong className="font-semibold">Includes:</strong> {pkgNames.join(', ')}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       <button onClick={() => requestBooking(detailRoom.name)}
                         className="w-full bg-sky-600 hover:bg-sky-700 text-white py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-[background-color,box-shadow] text-base focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
                         Book This Room

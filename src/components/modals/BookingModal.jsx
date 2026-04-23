@@ -376,8 +376,25 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       ? pricing.rate_24hr
       : pricing.day_rate;
   const discount           = promoResult?.discount_amount ?? 0;
-  const discountedTotal    = Math.max(baseRate - discount, 0);
-  const reservationFee     = Math.round(discountedTotal * (pricing.reservation_fee_pct / 100));
+  // Package add-ons attached to the selected room (videoke on Blue
+  // Pavilion, etc.). The backend auto-creates BookingAmenity rows for
+  // each on booking creation and increments booking.total by the sum
+  // — so the guest's visible total must include this up front.
+  // `selectedRoomObj` is already memoized further up in the file.
+  const packageAddons   = (selectedRoomObj?.attached_addons ?? [])
+    .filter(a => a.relation === 'package');
+  const packageTotal    = packageAddons.reduce(
+    (sum, a) => sum + (Number(a.price) || 0) * (Number(a.qty) || 1), 0
+  );
+  const packageNames    = packageAddons.map(a => a.name);
+  // Discounted room-only subtotal — matches backend `reservation_fee`
+  // math which is `pct × (roomRate - discount)`, excluding package.
+  const discountedRoom     = Math.max(baseRate - discount, 0);
+  // What the guest actually pays for room + bundle: discounted room
+  // + package add-ons. The reservation fee below stays based on
+  // discountedRoom only to match backend behavior.
+  const discountedTotal    = discountedRoom + packageTotal;
+  const reservationFee     = Math.round(discountedRoom * (pricing.reservation_fee_pct / 100));
   const amountDue          = paymentOption === "full" ? discountedTotal : reservationFee;
   const balanceDue         = discountedTotal - amountDue;
   // Gate entrance fee — BookingModal doesn't collect guest count, so the
@@ -1087,9 +1104,21 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     </div>
                     <div className="flex justify-between mb-1 text-sm font-semibold">
                       <span className="text-gray-800">Discounted Rate:</span>
-                      <span className="text-gray-900">{formatPHP(discountedTotal)}</span>
+                      <span className="text-gray-900">{formatPHP(discountedRoom)}</span>
                     </div>
                   </>
+                )}
+                {/* Package add-ons bundled into the room — e.g. videoke
+                    included with Blue Pavilion. Auto-attached on booking
+                    creation server-side at these per-room prices. */}
+                {packageTotal > 0 && (
+                  <div className="flex justify-between mb-1 text-sm text-emerald-800 border-t border-blue-200 pt-2 mt-2">
+                    <span className="flex items-center gap-1.5">
+                      <i className="fas fa-box text-[11px] text-emerald-500"></i>
+                      Includes: {packageNames.join(', ')}
+                    </span>
+                    <span className="font-medium">+ {formatPHP(packageTotal)}</span>
+                  </div>
                 )}
                 {/* Entrance fee — first-class line, not fine print.
                     Displayed before the payment-schedule math so the
@@ -1534,9 +1563,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       </div>
                       <div className="flex justify-between font-semibold text-gray-900 border-t border-blue-200 pt-2">
                         <span>Discounted Rate</span>
-                        <span>{formatPHP(discountedTotal)}</span>
+                        <span>{formatPHP(discountedRoom)}</span>
                       </div>
                     </>
+                  )}
+                  {packageTotal > 0 && (
+                    <div className="flex justify-between text-emerald-800 border-t border-blue-200 pt-2">
+                      <span className="flex items-center gap-1.5">
+                        <i className="fas fa-box text-[11px] text-emerald-500"></i>
+                        Includes: {packageNames.join(', ')}
+                      </span>
+                      <span className="font-medium">+ {formatPHP(packageTotal)}</span>
+                    </div>
                   )}
                   {/* Entrance fee line in the final confirmation.
                       Previously this just said "₱0.00 — Fully Paid" for
