@@ -210,6 +210,11 @@ export default function Rooms() {
         quantity:              Number(r.quantity ?? 1),
         capacity:              Number(r.capacity ?? 20),
         allowed_booking_types: r.allowed_booking_types ?? null,
+        // Pass through so BookingModal can build the Optional add-on
+        // picker + bundled-rate display. Stripped previously — caused
+        // optionalAddons to always be empty and the picker to never
+        // render, even when the owner had configured optionals.
+        attached_addons:       r.attached_addons ?? [],
       })), [roomsApi]);
 
   const detailRoom = useMemo(

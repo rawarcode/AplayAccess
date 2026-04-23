@@ -302,6 +302,10 @@ export default function Resort() {
         quantity:              Number(r?.quantity ?? 1),
         capacity:              Number(r?.capacity ?? 20),
         allowed_booking_types: r?.allowed_booking_types ?? null,
+        // Pass through so BookingModal can render package bundle +
+        // Optional add-on picker. Stripped previously meant the picker
+        // was invisible even when the owner had configured add-ons.
+        attached_addons:       r?.attached_addons ?? [],
       }));
   }, [roomsApi]);
 
