@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
 import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
-import { getAdminRooms, createAdminRoom, updateAdminRoom, deleteAdminRoom } from "../../lib/adminApi";
+import { getAdminRooms, createAdminRoom, updateAdminRoom, deleteAdminRoom, getAdminAddons } from "../../lib/adminApi";
 import { RESORT_ID } from "../../lib/config.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 import ImageUpload from "../../components/ui/ImageUpload.jsx";
@@ -182,6 +182,64 @@ export default function AdminRooms() {
   // Feature input state
   const [featureInput,   setFeatureInput]   = useState("");
   const [selectedIcon,   setSelectedIcon]   = useState("fa-check");
+
+  // Catalog of addons for the "Attached add-ons" section. Fetched once,
+  // used to render Package/Optional/None pickers inside the room form.
+  const [addonCatalog, setAddonCatalog] = useState([]);
+  useEffect(() => {
+    getAdminAddons()
+      .then(r => setAddonCatalog(r.data?.data ?? []))
+      .catch(() => {});
+  }, []);
+
+  // Map of addon_id → { relation: 'package' | 'optional', price, qty }.
+  // Rows missing from the map are "None" (not attached). Kept separate
+  // from `editing` so the addons UI can mutate independently of the
+  // rest of the form — simpler reducer than nesting into `editing`.
+  const [attachedAddons, setAttachedAddons] = useState({});
+
+  // Seed attachedAddons from a room's pivot data (openEdit / openDuplicate)
+  // or clear it (openCreate). Called from each of those paths.
+  const loadAttachedFromRoom = (room) => {
+    const map = {};
+    for (const a of (room?.addons ?? [])) {
+      const rel = a.pivot?.relation;
+      if (rel !== 'package' && rel !== 'optional') continue;
+      map[a.id] = {
+        relation: rel,
+        price: Number(a.pivot.price ?? a.price ?? 0),
+        qty:   Number(a.pivot.qty ?? 1),
+      };
+    }
+    setAttachedAddons(map);
+  };
+
+  // Three-way status change: null (None) | 'optional' | 'package'.
+  const setAddonRelation = (addonId, relation) => {
+    setAttachedAddons(prev => {
+      const next = { ...prev };
+      if (!relation) {
+        delete next[addonId];
+        return next;
+      }
+      const catalog = addonCatalog.find(c => c.id === addonId);
+      const existing = next[addonId];
+      next[addonId] = {
+        relation,
+        price: existing?.price ?? Number(catalog?.price ?? 0),
+        qty:   existing?.qty ?? 1,
+      };
+      return next;
+    });
+  };
+
+  const setAddonField = (addonId, key, value) => {
+    setAttachedAddons(prev => {
+      const row = prev[addonId];
+      if (!row) return prev;
+      return { ...prev, [addonId]: { ...row, [key]: value } };
+    });
+  };
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
   const iconPickerRef    = useRef(null);
   const iconButtonRef    = useRef(null);
@@ -379,6 +437,8 @@ export default function AdminRooms() {
     setSelectedIcon(CATEGORY_META[template.category]?.icon === "fa-bed" ? "fa-check" : (template.features?.[0]?.icon || "fa-check"));
     setIconPickerOpen(false);
     setAddMenuOpen(false);
+    // No attachments on a fresh room.
+    setAttachedAddons({});
     setModalOpen(true);
     setTimeout(() => formRef.current?.scrollTo({ top: 0 }), 50);
   }
@@ -394,6 +454,9 @@ export default function AdminRooms() {
     setFeatureInput("");
     setSelectedIcon("fa-check");
     setIconPickerOpen(false);
+    // Hydrate attached-addons from the room's pivot data the backend
+    // ships in `room.addons[].pivot.{relation,price,qty}`.
+    loadAttachedFromRoom(room);
     setViewRoom(null);
     setModalOpen(true);
     setTimeout(() => formRef.current?.scrollTo({ top: 0 }), 50);
@@ -454,6 +517,8 @@ export default function AdminRooms() {
     setFeatureInput("");
     setSelectedIcon("fa-check");
     setIconPickerOpen(false);
+    // Duplicate inherits the original's attachments — owner can trim.
+    loadAttachedFromRoom(room);
     setViewRoom(null);
     setModalOpen(true);
     setTimeout(() => formRef.current?.scrollTo({ top: 0 }), 50);
@@ -500,6 +565,15 @@ export default function AdminRooms() {
   async function saveRoom(e) {
     e.preventDefault();
     setSaving(true);
+    // Flatten the attachedAddons map into the array shape the backend
+    // expects. Empty array = "no attached add-ons" and will clear any
+    // existing pivot rows server-side on PATCH.
+    const attached_addons = Object.entries(attachedAddons).map(([addonId, row]) => ({
+      addon_id: Number(addonId),
+      relation: row.relation,
+      price:    Number(row.price ?? 0),
+      qty:      Number(row.qty ?? 1),
+    }));
     const payload = {
       name:                editing.name,
       category:            editing.category || "room",
@@ -515,6 +589,7 @@ export default function AdminRooms() {
       image:               editing.image     || undefined,
       features:               editing.features?.length ? editing.features : null,
       allowed_booking_types:  editing.allowed_booking_types?.length ? editing.allowed_booking_types : null,
+      attached_addons,
       resort_id:              RESORT_ID,
     };
     try {
@@ -1326,6 +1401,131 @@ export default function AdminRooms() {
                 )}
               </div>
             </div>
+
+            {/* ── Section 7: Attached add-ons ───────────────────────────
+                Each catalog add-on gets a three-way status (None /
+                Optional / Package) + per-room price override + qty.
+                Package items auto-attach to every booking of this
+                room (bundled); Optional only surfaces in this room's
+                picker when a guest is booking it. Priced here at the
+                room's per-room rate, not the addon catalog's default. */}
+            {addonCatalog.length > 0 && (() => {
+              const basePackageTotal = Object.entries(attachedAddons)
+                .filter(([, row]) => row.relation === 'package')
+                .reduce((sum, [, row]) => sum + (Number(row.price) || 0) * (Number(row.qty) || 1), 0);
+              const baseDay = Number(editing?.day_rate ?? 0);
+              return (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
+                  <div className="px-5 py-3 border-b border-slate-200 bg-white">
+                    <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
+                      <span className="h-6 w-6 rounded-md bg-amber-100 flex items-center justify-center">
+                        <i className="fas fa-link text-amber-500 text-[11px]"></i>
+                      </span>
+                      Attached Add-ons
+                    </h3>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <p className="text-xs text-slate-500">
+                      <strong>Package</strong> = bundled into the room rate, auto-added to every booking.
+                      <strong className="ml-2">Optional</strong> = shown in this room's add-on picker for guests to opt into.
+                    </p>
+
+                    <div className="space-y-2">
+                      {addonCatalog.map(cat => {
+                        const row      = attachedAddons[cat.id];
+                        const relation = row?.relation ?? null;
+                        return (
+                          <div key={cat.id}
+                            className={`rounded-lg border bg-white p-3 transition-colors ${
+                              relation === 'package'  ? 'border-emerald-300 ring-1 ring-emerald-100' :
+                              relation === 'optional' ? 'border-sky-300 ring-1 ring-sky-100' :
+                              'border-slate-200'
+                            }`}>
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <i className={`fas ${cat.icon || 'fa-tag'} text-slate-500 w-5 text-center`} aria-hidden="true"></i>
+                              <span className="font-medium text-slate-700 text-sm min-w-[140px]">{cat.name}</span>
+
+                              {/* Status picker */}
+                              <div className="inline-flex rounded-lg overflow-hidden border border-slate-200 text-[11px] font-semibold">
+                                {[
+                                  { key: null,        label: 'None' },
+                                  { key: 'optional',  label: 'Optional' },
+                                  { key: 'package',   label: 'Package' },
+                                ].map(opt => {
+                                  const active = relation === opt.key;
+                                  return (
+                                    <button
+                                      key={opt.label}
+                                      type="button"
+                                      onClick={() => setAddonRelation(cat.id, opt.key)}
+                                      aria-pressed={active}
+                                      className={`px-3 py-1.5 transition-colors ${
+                                        active
+                                          ? opt.key === 'package'  ? 'bg-emerald-500 text-white' :
+                                            opt.key === 'optional' ? 'bg-sky-500 text-white' :
+                                                                     'bg-slate-500 text-white'
+                                          : 'bg-white text-slate-500 hover:bg-slate-50'
+                                      }`}>
+                                      {opt.label}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+
+                              {/* Per-room price + qty, only meaningful when attached */}
+                              {relation && (
+                                <>
+                                  <div className="flex items-center gap-1.5 ml-auto">
+                                    <span className="text-[11px] text-slate-400">₱</span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      value={row.price}
+                                      onChange={e => setAddonField(cat.id, 'price', e.target.value)}
+                                      className="w-24 px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-sky-400"
+                                      aria-label={`${cat.name} price for this room`}
+                                    />
+                                    <span className="text-[11px] text-slate-400">×</span>
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      step="1"
+                                      value={row.qty}
+                                      onChange={e => setAddonField(cat.id, 'qty', e.target.value)}
+                                      className="w-14 px-2 py-1.5 text-sm border border-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-sky-400"
+                                      aria-label={`${cat.name} qty for this room`}
+                                    />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Bundled-total preview — shows what the guest sees */}
+                    {basePackageTotal > 0 && (
+                      <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm">
+                        <div className="flex items-center justify-between text-emerald-800">
+                          <span className="font-medium flex items-center gap-2">
+                            <i className="fas fa-box text-emerald-500"></i>
+                            Bundled day rate (shown to guest)
+                          </span>
+                          <span className="font-bold tabular-nums">
+                            ₱{(baseDay + basePackageTotal).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-emerald-700 mt-1">
+                          ₱{baseDay.toLocaleString()} base + ₱{basePackageTotal.toLocaleString()} package add-ons
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* ── Live Preview ── */}
             {editing && (
