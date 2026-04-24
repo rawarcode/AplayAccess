@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
@@ -446,7 +446,11 @@ function RoomCard({ room, info, onClick }) {
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function FDRooms() {
+// `embedded` prop: see Bookings.jsx for the rationale — when true,
+// the front-desk Sidebar + top bar are skipped so an outer shell
+// (AdminShell) can wrap the page body instead.
+export default function FDRooms({ embedded = false }) {
+  const Shell = embedded ? Fragment : Sidebar;
   const navigate = useNavigate();
   const [rooms, setRooms]       = useState([]);
   const [bookings, setBookings] = useState([]);
@@ -531,7 +535,7 @@ export default function FDRooms() {
   ];
 
   return (
-    <Sidebar>
+    <Shell>
       <Helmet><title>Rooms — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
       {selectedSlot && (
@@ -838,6 +842,6 @@ export default function FDRooms() {
         </div>
 
       </main>
-    </Sidebar>
+    </Shell>
   );
 }

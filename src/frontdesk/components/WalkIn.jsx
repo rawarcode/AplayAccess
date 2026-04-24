@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
@@ -38,7 +38,11 @@ const EMPTY_FORM = {
 };
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function WalkIn() {
+// `embedded` prop: see Bookings.jsx for the rationale — when true,
+// the front-desk Sidebar + top bar are skipped so an outer shell
+// (AdminShell) can wrap the page body instead.
+export default function WalkIn({ embedded = false }) {
+  const Shell = embedded ? Fragment : Sidebar;
   const location = useLocation();
   const navigate = useNavigate();
   const preselectedRoom = location.state?.preselectedRoom ?? null;
@@ -418,7 +422,7 @@ export default function WalkIn() {
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
-    <Sidebar>
+    <Shell>
       <Helmet><title>Walk-in — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
@@ -1255,6 +1259,6 @@ export default function WalkIn() {
           </button>
         </div>
       </main>
-    </Sidebar>
+    </Shell>
   );
 }

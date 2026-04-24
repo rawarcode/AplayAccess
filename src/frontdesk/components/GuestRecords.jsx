@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
@@ -29,7 +29,11 @@ function parseWalkIn(b) {
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function GuestRecords() {
+// `embedded` prop: see Bookings.jsx for the rationale — when true,
+// the front-desk Sidebar + top bar are skipped so an outer shell
+// (AdminShell) can wrap the page body instead.
+export default function GuestRecords({ embedded = false }) {
+  const Shell = embedded ? Fragment : Sidebar;
   const [sortBy,  setSortBy]  = useState('Last Visit');
   const [sortDir, setSortDir] = useState('desc');
   const [bookings, setBookings] = useState([]);
@@ -128,7 +132,7 @@ export default function GuestRecords() {
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
-    <Sidebar>
+    <Shell>
       <Helmet><title>Guest Records — Frontdesk</title></Helmet>
       {/* ── View Guest Modal ── */}
       {viewGuest && (
@@ -296,6 +300,6 @@ export default function GuestRecords() {
         </div>
       </main>
       <Toast message={toast} type={toastType} onClose={clearToast} />
-    </Sidebar>
+    </Shell>
   );
 }

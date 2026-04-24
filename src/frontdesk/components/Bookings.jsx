@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
@@ -95,7 +95,13 @@ function SourcePill({ source }) {
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function Bookings() {
+//
+// `embedded` prop: when true, skip rendering the front-desk Sidebar +
+// top bar and just render the page body. Lets AdminShell (or any
+// other outer shell) wrap this same component without doubling up
+// on sidebars. Default false so /frontdesk/* routes behave unchanged.
+export default function Bookings({ embedded = false }) {
+  const Shell                             = embedded ? Fragment : Sidebar;
   const navigate                          = useNavigate();
   const [bookings, setBookings]           = useState([]);
   const [loading, setLoading]             = useState(true);
@@ -353,7 +359,7 @@ export default function Bookings() {
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
-    <Sidebar>
+    <Shell>
       <Helmet><title>Bookings — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── Quick-Action Confirmation Modal ── */}
@@ -794,6 +800,6 @@ export default function Bookings() {
           </div>
         </div>
       </main>
-    </Sidebar>
+    </Shell>
   );
 }

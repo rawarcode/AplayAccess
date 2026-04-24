@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
-import PortalTransition from "../PortalTransition.jsx";
 import { useStaffNotifications } from "../../hooks/useStaffNotifications.js";
 import NotificationContext from "../../context/NotificationContext.jsx";
 import NotificationBell from "../ui/NotificationBell.jsx";
@@ -13,6 +12,11 @@ import { Helmet } from "react-helmet-async";
 
 const PAGE_TITLES = {
   "/admin":                "Dashboard",
+  "/admin/bookings":       "Bookings",
+  "/admin/walk-in":        "Walk-In",
+  "/admin/billing":        "Billing",
+  "/admin/guest-records":  "Guest Records",
+  "/admin/rooms":          "Rooms",
   "/admin/messages":       "Messages",
   "/admin/content":        "Manage Website",
   "/admin/reviews":        "Reviews",
@@ -20,22 +24,31 @@ const PAGE_TITLES = {
   "/admin/newsletter":     "Newsletter",
 };
 
-// Admin menu — mirrors the admin_or_owner rows of docs/roles.xlsx.
-// Owner-only routes (Rooms CRUD, Users, Analytics, Settings, Activity
-// Log, Stats) deliberately aren't here — if the owner is logged in
-// and wants those, they use /owner/* instead.
+// Admin menu — the "deputy manager" role, covering front-desk duties
+// (when FD is absent) plus owner-side management work (when owner is
+// away). Wire frontdesk pages under /admin/* via the `embedded` prop
+// on FD components so AdminShell provides the sidebar instead of each
+// FD page rendering its own. Owner-only routes (Rooms CRUD, Users,
+// Analytics, Settings, Activity Log, Stats) stay off this menu.
 const MENU = {
   main: [
-    { path: "/admin",            icon: "fa-tachometer-alt", label: "Dashboard" },
+    { path: "/admin",                icon: "fa-tachometer-alt", label: "Dashboard" },
+  ],
+  operations: [
+    { path: "/admin/bookings",       icon: "fa-calendar-check", label: "Bookings" },
+    { path: "/admin/walk-in",        icon: "fa-person-walking-arrow-right", label: "Walk-In" },
+    { path: "/admin/billing",        icon: "fa-file-invoice-dollar", label: "Billing" },
+    { path: "/admin/guest-records",  icon: "fa-id-card",        label: "Guest Records" },
+    { path: "/admin/rooms",          icon: "fa-bed",            label: "Rooms" },
   ],
   manage: [
-    { path: "/admin/messages",    icon: "fa-envelope",   label: "Messages",    badgeKey: "unreadMessages" },
-    { path: "/admin/content",     icon: "fa-globe",      label: "Manage Website" },
+    { path: "/admin/messages",       icon: "fa-envelope",       label: "Messages", badgeKey: "unreadMessages" },
+    { path: "/admin/content",        icon: "fa-globe",          label: "Manage Website" },
     // Reviews dropped from the sidebar — same list is a tab inside
     // Manage Website. /admin/reviews still resolves (redirects to the
     // Content page's Reviews tab in App.jsx) for legacy deep-links.
-    { path: "/admin/promo-codes", icon: "fa-tag",        label: "Promo Codes"  },
-    { path: "/admin/newsletter",  icon: "fa-paper-plane", label: "Newsletter"  },
+    { path: "/admin/promo-codes",    icon: "fa-tag",            label: "Promo Codes" },
+    { path: "/admin/newsletter",     icon: "fa-paper-plane",    label: "Newsletter" },
   ],
 };
 
@@ -53,7 +66,6 @@ export default function AdminShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isEditing,    setIsEditing]    = useState(false);
   const [saving,       setSaving]       = useState(false);
-  const [switching,    setSwitching]    = useState(null);
 
   const [showCurrent,  setShowCurrent]  = useState(false);
   const [showNew,      setShowNew]      = useState(false);
@@ -135,11 +147,6 @@ export default function AdminShell() {
     setIsEditing(false);
   }
 
-  const switchPortal = (path, label) => {
-    setSwitching(label);
-    setTimeout(() => navigate(path), 1800);
-  };
-
   const saveSettings = async () => {
     if (passwordData.new && passwordData.new !== passwordData.confirm) {
       showToast("New passwords do not match.", "error");
@@ -181,8 +188,6 @@ export default function AdminShell() {
     await logout();
     navigate("/staff-login");
   };
-
-  if (switching) return <PortalTransition label={switching} />;
 
   const notifCtx = { counts, items: notifItems, total: notifTotal, refresh: notifRefresh };
 
@@ -251,6 +256,44 @@ export default function AdminShell() {
         </div>
 
         <div className="mb-6">
+          {(!collapsed || mobile) && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Operations</h3>}
+          <ul>
+            {MENU.operations.map((item) => {
+              const badge = item.badgeKey ? counts[item.badgeKey] : 0;
+              return (
+                <li key={item.path} className="mb-2 relative">
+                  <Link
+                    to={item.path}
+                    onClick={mobile ? () => setMobileOpen(false) : undefined}
+                    className={`flex items-center p-2 rounded transition ${
+                      isActive(item.path)
+                        ? "bg-brand-hover text-white"
+                        : "text-blue-100 hover:bg-brand-hover hover:text-white"
+                    }`}
+                  >
+                    <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
+                    {(!collapsed || mobile) && (
+                      <>
+                        <span className="text-sm flex-1">{item.label}</span>
+                        {badge > 0 && (
+                          <span className="ml-1 min-w-[18px] h-[18px] rounded-full bg-amber-500 text-white
+                            text-[10px] font-bold flex items-center justify-center px-1 leading-none shrink-0">
+                            {badge > 99 ? "99+" : badge}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {!mobile && collapsed && badge > 0 && (
+                      <span className="absolute right-1 top-0.5 w-2.5 h-2.5 rounded-full bg-amber-500 pointer-events-none"></span>
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="mb-6">
           {(!collapsed || mobile) && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Management</h3>}
           <ul>
             {MENU.manage.map((item) => {
@@ -289,34 +332,11 @@ export default function AdminShell() {
         </div>
       </nav>
 
-      {/* Portal switcher — owner only. Admin doesn't switch portals;
-          operational workflow lives inside /admin. The "Front Desk"
-          entry that used to live here sent admin users to /frontdesk,
-          which RequireFrontdesk rejects for the admin role — silently
-          bouncing to /dashboard. Removed. A dedicated operational
-          surface under /admin (bookings, walk-ins, check-in/out) is
-          planned follow-up work; tracked separately. */}
-      {user?.role === "owner" && (
-        <div className="px-4 pb-2 border-t border-brand-hover pt-3">
-          {(!collapsed || mobile) && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
-          <button
-            onClick={() => switchPortal("/owner", "Switching to Owner Panel...")}
-            className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition mb-1"
-            title="Switch to Owner Panel"
-          >
-            <i className="fas fa-crown mr-3 w-5 text-center"></i>
-            {(!collapsed || mobile) && <span className="text-sm">Owner Panel</span>}
-          </button>
-          <button
-            onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
-            className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
-            title="Switch to Front Desk"
-          >
-            <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
-            {(!collapsed || mobile) && <span className="text-sm">Front Desk</span>}
-          </button>
-        </div>
-      )}
+      {/* Portal switcher intentionally not rendered here. Admin has
+          operations + management in one portal — no switching needed.
+          Owner has their own switcher inside OwnerShell when they want
+          to jump to /frontdesk; they don't come here. Front desk is
+          gated to their own portal. */}
 
       {/* User info + logout */}
       <div className="p-4 border-t border-brand-hover">

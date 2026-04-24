@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
@@ -322,7 +322,11 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
-export default function Billing() {
+// `embedded` prop: see Bookings.jsx for the rationale — when true,
+// the front-desk Sidebar + top bar are skipped so an outer shell
+// (AdminShell) can wrap the page body instead.
+export default function Billing({ embedded = false }) {
+  const Shell = embedded ? Fragment : Sidebar;
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
@@ -598,7 +602,7 @@ export default function Billing() {
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
-    <Sidebar>
+    <Shell>
       <Helmet><title>Billing — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
 
@@ -1176,6 +1180,6 @@ export default function Billing() {
           </aside>
         </>
       )}
-    </Sidebar>
+    </Shell>
   );
 }

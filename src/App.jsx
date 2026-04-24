@@ -174,7 +174,13 @@ export default function App() {
         <Route path="announcements" element={<Navigate to="/owner/content?tab=announcements" replace />} />
       </Route>
 
-      {/* ── Admin portal — operational management for admin + owner ── */}
+      {/* ── Admin portal — one panel for the "deputy manager" role:
+             front-desk operations (bookings, walk-in, billing, guest
+             records, rooms) + owner-side management (messages, content,
+             promo codes, newsletter), all rendered inside AdminShell.
+             Front-desk pages reuse the same components /frontdesk/*
+             uses; the `embedded` prop makes them skip their own
+             sidebar so AdminShell's sidebar provides the chrome. ── */}
       <Route
         path="/admin"
         element={
@@ -184,11 +190,20 @@ export default function App() {
         }
       >
         <Route index element={<AdminDashboard />} />
+
+        {/* Operations — front-desk duties mounted embedded */}
+        <Route path="bookings"       element={<FDBookings embedded />} />
+        <Route path="walk-in"        element={<FDWalkIn embedded />} />
+        <Route path="billing"        element={<FDBilling embedded />} />
+        <Route path="guest-records"  element={<FDGuestRecords embedded />} />
+        <Route path="rooms"          element={<FDRooms embedded />} />
+
+        {/* Management — owner pages, no embed needed (they render
+            shell-less by design, relying on the parent shell) */}
         <Route path="messages"    element={<OwnerMessages />} />
         <Route path="content"     element={<OwnerContent />} />
         {/* Reviews live as a tab inside Manage Website; redirect the
-            standalone URL so the admin dashboard's "Reviews" cards +
-            any legacy deep-links land on the tabbed surface. */}
+            standalone URL so legacy deep-links land on the tabbed surface. */}
         <Route path="reviews"     element={<Navigate to="/admin/content?tab=reviews" replace />} />
         <Route path="promo-codes" element={<OwnerPromoCodes />} />
         <Route path="newsletter"  element={<OwnerNewsletter />} />
