@@ -1,7 +1,7 @@
 // src/context/AuthContext.jsx
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { loginRequest, staffLoginRequest, googleLoginRequest, meRequest, logoutRequest } from "../lib/authApi";
-import { TOKEN_KEY } from "../lib/api";
+import { TOKEN_KEY, primeCsrf } from "../lib/api";
 
 const AuthContext = createContext(null);
 
@@ -32,6 +32,13 @@ export function AuthProvider({ children }) {
 
     async function boot() {
       try {
+        // Prime Laravel's XSRF-TOKEN cookie on app start so any
+        // mutating request later (register, password reset, etc.)
+        // goes out with a valid X-XSRF-TOKEN header. Axios auto-
+        // forwards the cookie → header once it's present. Fire
+        // and forget — meRequest below runs regardless.
+        primeCsrf();
+
         const data = await meRequest();
         if (!alive) return;
 
@@ -60,9 +67,19 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // All three login paths start with primeCsrf() so Laravel sets the
+  // XSRF-TOKEN cookie before we send a mutating request. The response
+  // from the login endpoint now sets a Sanctum session cookie, which
+  // is what actually carries the auth going forward.
+  //
+  // We still stash data.token in localStorage for now — Sanctum's
+  // auth:sanctum guard falls back to Bearer if the session cookie
+  // isn't present (e.g. cross-device, private browsing, third-party
+  // cookies blocked). Once cookie-auth is confirmed stable across
+  // all flows, a follow-up commit will drop the localStorage writes.
   async function loginWithEmail(email, password) {
+    await primeCsrf();
     const data = await loginRequest(email, password);
-    // data = { user, token }
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
     }
@@ -73,6 +90,7 @@ export function AuthProvider({ children }) {
   }
 
   async function loginStaff(email, password) {
+    await primeCsrf();
     const data = await staffLoginRequest(email, password);
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
@@ -89,6 +107,7 @@ export function AuthProvider({ children }) {
   // generic UI is the whole point. The backend verifies the
   // access_token by calling Google's userinfo endpoint.
   async function loginWithGoogle(accessToken) {
+    await primeCsrf();
     const data = await googleLoginRequest(accessToken);
     if (data.token) {
       localStorage.setItem(TOKEN_KEY, data.token);
