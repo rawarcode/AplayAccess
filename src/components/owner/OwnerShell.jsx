@@ -369,8 +369,14 @@ export default function OwnerShell() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 overflow-auto flex flex-col bg-slate-50">
+      {/* Main content — overflow-hidden on the wrapper + overflow-auto
+          on <main> (see below) so flex-1 child pages (e.g. Messages) can
+          use h-full and fill the remaining viewport height exactly.
+          Previously this wrapper had overflow-auto and <main> had no
+          overflow rule, which let main grow to content height and
+          broke h-full-based layouts on the Messages page. Matches the
+          pattern the frontdesk Sidebar already uses. */}
+      <div className="flex-1 overflow-hidden flex flex-col bg-slate-50">
 
         {/* Header */}
         <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-20">
@@ -451,7 +457,7 @@ export default function OwnerShell() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1">
+        <main className="flex-1 overflow-auto min-h-0">
           <Outlet />
         </main>
       </div>
