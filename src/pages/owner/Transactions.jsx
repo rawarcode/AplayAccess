@@ -70,8 +70,18 @@ function printTransactions(rows) {
 <div class="sech">All Transactions</div>
 <table><thead><tr><th>Booking ID</th><th>Check-in</th><th>Guest</th><th>Room</th><th style="text-align:right">Discount</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th style="text-align:right">Collected</th><th>Status</th><th>Payment</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="4">Totals</td><td style="text-align:right">₱${fmtN(discTotal)}</td><td style="text-align:right">₱${fmtN(total - efTotal)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right">₱${fmtN(efTotal)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right;color:#6ee7b7">₱${fmtN(revenueCollected)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">all rows</div></td><td colspan="2"></td></tr></tfoot></table>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
-<script>window.onload=()=>{window.print();window.onafterprint=()=>window.close();}</script></body></html>`;
-  const w = window.open('','_blank'); w.document.write(html); w.document.close();
+</body></html>`;
+  // Fire print() from the opener — inline <script> in the popup is
+  // blocked by the parent page's CSP (script-src no longer allows
+  // 'unsafe-inline' since the P1 hardening pass). Chromium
+  // propagates the opener's CSP to about:blank popups. Same fix
+  // pattern as frontdesk/Reports.jsx.
+  const w = window.open('','_blank');
+  if (!w) return;
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { w.print(); w.onafterprint = () => w.close(); }, 250);
 }
 
 
