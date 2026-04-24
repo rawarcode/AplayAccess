@@ -14,9 +14,16 @@ export const TOKEN_KEY = "aplaya_token";
 // rollout — if the session cookie isn't set yet (user logged in
 // before the migration landed), the Authorization header keeps
 // their session alive until they log in again.
+// withXSRFToken: true — axios 1.x skips XSRF cookie→header mirroring
+// on cross-origin requests unless this is explicitly set, even with
+// withCredentials. www.aplayabeachresort.com → api.aplayabeachresort.com
+// is cross-origin (same-site, different subdomain), so without this
+// flag axios silently drops the X-XSRF-TOKEN header and Laravel's
+// CSRF middleware 419s every mutating request.
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
   withCredentials: true,
+  withXSRFToken: true,
   headers: { Accept: "application/json" },
 });
 
