@@ -83,6 +83,10 @@ export default function ChatWidget() {
     return (thread.messages ?? []).map(m => ({
       id:   `m-${m.id}`,
       type: m.sender === 'user' ? 'user' : 'bot',
+      // Surfaced on resort-sent bubbles so the guest sees which
+      // staff member replied. Null for auto-reply-rule matches and
+      // legacy rows — the bubble hides the label in that case.
+      senderName: m.sender_name ?? null,
       text: m.text,
     }));
   }
@@ -313,6 +317,9 @@ export default function ChatWidget() {
                     ? "bg-sky-600 text-white rounded-br-sm"
                     : "bg-white text-slate-700 border border-slate-200 rounded-bl-sm shadow-sm"
                 }`}>
+                  {msg.type === "bot" && msg.senderName && (
+                    <p className="text-[10px] font-semibold text-sky-600 mb-0.5">{msg.senderName}</p>
+                  )}
                   {msg.type === "bot" ? <BotText text={msg.text} /> : msg.text}
                 </div>
               </div>

@@ -383,7 +383,9 @@ export default function Messages() {
                       ].join(" ")}
                     >
                       {m.sender !== "user" && (
-                        <p className="text-[10px] font-semibold text-sky-600 mb-0.5">Aplaya Beach Resort</p>
+                        <p className="text-[10px] font-semibold text-sky-600 mb-0.5">
+                          {m.sender_name || "Aplaya Beach Resort"}
+                        </p>
                       )}
                       <div className="whitespace-pre-wrap">{m.text}</div>
                       <div className={`mt-1 text-[10px] ${m.sender === "user" ? "text-sky-200" : "text-slate-400"}`}>
