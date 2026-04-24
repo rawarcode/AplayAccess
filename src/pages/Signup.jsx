@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import AlertModal from "../components/modals/AlertModal.jsx";
+import PasswordRequirements, { checkPasswordStrength } from "../components/ui/PasswordRequirements.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { registerRequest } from "../lib/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -47,6 +48,13 @@ export default function Signup() {
   async function submit(e) {
     e.preventDefault();
 
+    // Match Laravel's Password::defaults() on the backend so a password
+    // that passes here also passes the /api/register validator.
+    // Prevents "looks fine client-side, server rejected" surprises.
+    if (!checkPasswordStrength(form.password)) {
+      setAlert({ open: true, type: "error", title: "Weak Password", message: "Your password must meet all the strength requirements shown below the password field." });
+      return;
+    }
     if (form.password !== form.confirmPassword) {
       setAlert({ open: true, type: "error", title: "Error", message: "Passwords do not match!" });
       return;
@@ -168,6 +176,10 @@ export default function Signup() {
                   <i className={`fas ${showPass ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
                 </button>
               </div>
+              {/* Live strength checklist — rules mirror the backend's
+                  Password::defaults() policy exactly. Submit button is
+                  disabled below until every rule turns green. */}
+              <PasswordRequirements value={form.password} />
             </div>
 
             <div>
@@ -220,12 +232,27 @@ export default function Signup() {
               <span>Sign me up for the Aplaya Beach Resort newsletter (optional)</span>
             </label>
 
-            <button
-              disabled={submitting}
-              className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-md"
-            >
-              {submitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Creating account...</> : "Sign Up"}
-            </button>
+            {/* Submit disabled until: all strength rules pass, passwords
+                match, terms accepted. Tooltip spells out the reason so
+                users aren't left staring at a greyed-out button. */}
+            {(() => {
+              const pwStrong      = checkPasswordStrength(form.password);
+              const pwMatch       = form.password && form.password === form.confirmPassword;
+              const canSubmit     = pwStrong && pwMatch && form.terms;
+              const blockedReason = !pwStrong ? 'Password does not meet all strength requirements.'
+                                  : !pwMatch  ? 'Passwords do not match.'
+                                  : !form.terms ? 'Please accept the Terms and Conditions.'
+                                  : undefined;
+              return (
+                <button
+                  disabled={submitting || !canSubmit}
+                  title={blockedReason}
+                  className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 px-4 rounded-md"
+                >
+                  {submitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Creating account...</> : "Sign Up"}
+                </button>
+              );
+            })()}
           </form>
 
           <div className="text-center mt-6 text-sm text-slate-600">
