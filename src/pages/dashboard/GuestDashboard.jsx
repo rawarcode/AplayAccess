@@ -725,7 +725,7 @@ export default function GuestDashboard() {
                     className="px-4 py-2 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200 disabled:opacity-50">
                     {downloadingId === selected.bookingId
                       ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
-                      : <><i className="fas fa-file-pdf mr-1"></i>Confirmation</>}
+                      : <><i className="fas fa-file-pdf mr-1"></i>Download Confirmation</>}
                   </button>
                 </>
               )}
