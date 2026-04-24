@@ -200,11 +200,11 @@ export default function Signup() {
               />
               <span>
                 I agree to the{" "}
-                <a href="#" className="font-medium text-sky-600 hover:text-sky-500">
+                <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-sky-600 hover:text-sky-500">
                   Terms and Conditions
                 </a>{" "}
                 and{" "}
-                <a href="#" className="font-medium text-sky-600 hover:text-sky-500">
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-sky-600 hover:text-sky-500">
                   Privacy Policy
                 </a>
               </span>

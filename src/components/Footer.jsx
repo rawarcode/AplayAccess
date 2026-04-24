@@ -93,10 +93,17 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar — legal links live here so every public page has
+          a discoverable path to the Privacy Policy + Terms, per
+          DPA § 16(b) "right to be informed." */}
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
           <p className="text-gray-500 text-sm">{ft.copyright}</p>
+          <nav className="flex items-center gap-4 text-xs" aria-label="Legal">
+            <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</Link>
+            <span className="text-gray-700" aria-hidden="true">·</span>
+            <Link to="/terms" className="text-gray-400 hover:text-white transition-colors">Terms &amp; Conditions</Link>
+          </nav>
           <p className="text-gray-600 text-xs">Built with ❤️ for Aplaya</p>
         </div>
       </div>

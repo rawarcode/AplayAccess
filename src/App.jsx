@@ -13,6 +13,8 @@ const PaymentReturn = lazy(() => import("./pages/PaymentReturn.jsx"));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail.jsx"));
 const NewsletterUnsubscribe = lazy(() => import("./pages/NewsletterUnsubscribe.jsx"));
 const ResumeGuestBooking = lazy(() => import("./pages/ResumeGuestBooking.jsx"));
+const Privacy = lazy(() => import("./pages/Privacy.jsx"));
+const Terms = lazy(() => import("./pages/Terms.jsx"));
 
 // Guest dashboard (protected) — lazy-loaded portal shell
 import RequireAuth from "./components/auth/RequireAuth.jsx";
@@ -82,6 +84,8 @@ export default function App() {
         <Route path="/rooms" element={<Rooms />} />
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/announcements" element={<Announcements />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password"  element={<ResetPassword />} />
         <Route path="/verify-email"    element={<VerifyEmail />} />

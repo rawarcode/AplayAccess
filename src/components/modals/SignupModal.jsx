@@ -289,9 +289,9 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
                 />
                 <span>
                   I agree to the{" "}
-                  <button type="button" className="font-medium text-blue-600 hover:underline">Terms and Conditions</button>{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Terms and Conditions</a>{" "}
                   and{" "}
-                  <button type="button" className="font-medium text-blue-600 hover:underline">Privacy Policy</button>
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">Privacy Policy</a>
                 </span>
               </label>
 
