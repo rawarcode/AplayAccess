@@ -741,7 +741,7 @@ export default function AdminMessages() {
     : [];
 
   return (
-    <div className="p-6 space-y-4 h-full flex flex-col">
+    <div className="p-4 md:p-5 space-y-3 h-full flex flex-col">
       <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
 
       {/* Auto-Reply Rules Panel */}
@@ -974,32 +974,24 @@ export default function AdminMessages() {
         )}
       </Modal>
 
-      {/* Header — stats inlined as a muted text strip next to the
-          title. Previous layout had a separate 3-card stats grid below
-          the header taking ~90-100px of vertical space. Merging means
-          the main thread panel gets that height back. Same data — just
-          no decorative icon bubbles. */}
-      <div className="bg-white rounded-xl shadow-sm px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 shrink-0">
-            <span className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
-              <i className="fas fa-envelope text-sky-600"></i>
+      {/* Slim toolbar — OwnerShell's top bar already renders "Messages"
+          as the page title, so a second title here was pure duplication.
+          Dropped the h1 + icon bubble + card background; kept only the
+          inline stats + action buttons as a flat horizontal strip. Saves
+          another ~50-60px above the thread panel. */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {!loading && (
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <span className="tabular-nums"><span className="font-semibold text-slate-700">{stats.total}</span> total</span>
+            <span className="tabular-nums">
+              <span className={`font-semibold ${stats.unread > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{stats.unread}</span> unread
             </span>
-            Messages
-          </h1>
-          {!loading && (
-            <div className="hidden sm:flex items-center gap-3 text-xs text-slate-500 pl-3 border-l border-slate-200">
-              <span className="tabular-nums"><span className="font-semibold text-slate-700">{stats.total}</span> total</span>
-              <span className="tabular-nums">
-                <span className={`font-semibold ${stats.unread > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{stats.unread}</span> unread
-              </span>
-              <span className="tabular-nums">
-                <span className={`font-semibold ${stats.pending > 0 ? 'text-rose-600' : 'text-slate-700'}`}>{stats.pending}</span> need reply
-              </span>
-            </div>
-          )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
+            <span className="tabular-nums">
+              <span className={`font-semibold ${stats.pending > 0 ? 'text-rose-600' : 'text-slate-700'}`}>{stats.pending}</span> need reply
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-2 ml-auto">
           <button onClick={openCompose}
             className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-1.5 rounded-lg text-sm font-semibold transition">
             <i className="fas fa-plus text-xs"></i>
