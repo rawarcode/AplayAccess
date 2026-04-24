@@ -195,24 +195,19 @@ export default function WalkIn() {
     return ids;
   }, [rooms]);
 
-  // The picker's working list. Catalog addons not attached to any
-  // room stay as-is (shared pool); room-scoped addons only appear
-  // when the staff has picked their matching room AND the attach is
-  // optional — the per-room price overrides the catalog price so
-  // totals match what the backend will record.
-  const visibleAddons = useMemo(() => {
-    const selectedRoomOptionals = new Map(
-      (selectedRoom?.attached_addons ?? [])
-        .filter(a => a.relation === 'optional')
-        .map(a => [a.id, a])
-    );
-    return addons.flatMap(a => {
-      if (!roomScopedAddonIds.has(a.id)) return [a]; // shared pool
-      const opt = selectedRoomOptionals.get(a.id);
-      if (!opt) return [];                           // attached to another room, or package here
-      return [{ ...a, price: Number(opt.price) }];   // per-room price override
-    });
-  }, [addons, roomScopedAddonIds, selectedRoom]);
+  // The picker's working list. Walk-in shows SHARED-POOL addons only
+  // (pillows, towel, parking, common table). Room-scoped addons —
+  // whether relation=package (auto-attached server-side at booking
+  // creation) or relation=optional (per-room attachments) — are
+  // excluded from the walk-in picker per staff request: package
+  // items go on automatically, and optional room-fixture add-ons
+  // are handled post-booking in BookingDetailModal instead of during
+  // the walk-in form. Keeps the walk-in picker short and focused on
+  // items staff commonly charge at the counter.
+  const visibleAddons = useMemo(
+    () => addons.filter(a => !roomScopedAddonIds.has(a.id)),
+    [addons, roomScopedAddonIds]
+  );
 
   // Clear qtys for any addon that disappeared from the visible list
   // after switching rooms (e.g. staged Patrice videoke qty=1 then
