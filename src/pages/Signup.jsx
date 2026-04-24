@@ -6,7 +6,7 @@ import PasswordRequirements, { checkPasswordStrength } from "../components/ui/Pa
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { registerRequest } from "../lib/authApi.js";
 import { useAuth } from "../context/AuthContext.jsx";
-import { api, TOKEN_KEY } from "../lib/api.js";
+import { api } from "../lib/api.js";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -74,8 +74,12 @@ export default function Signup() {
         password_confirmation: form.confirmPassword,
       });
 
-      // Store token first so refreshUser's /api/me call is authenticated.
-      if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+      // Register sets a Sanctum session cookie via the backend's
+      // Auth::login + hasSession guard, so refreshUser's /api/me call
+      // is authenticated by cookie. We deliberately don't stash the
+      // bearer token in localStorage anymore — closes the P1 XSS-to-
+      // token-theft surface.
+      //
       // Set user immediately for snappy UI, then re-fetch canonical data
       // from /api/me so UnverifiedEmailBanner and other hooks see the
       // exact shape the app relies on elsewhere (avoids subtle drift

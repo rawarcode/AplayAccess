@@ -72,19 +72,15 @@ export function AuthProvider({ children }) {
   // from the login endpoint sets a Sanctum session cookie — that's
   // what carries auth going forward.
   //
-  // We deliberately ignore `data.token` in the response now. The
+  // We deliberately ignore `data.token` in the response. The
   // XSS-exfiltration risk was the whole point of P1.2: a bearer token
   // sitting in localStorage is readable by any script injected into
-  // the page; a HttpOnly session cookie is not. New logins are
-  // cookie-only from this commit on.
+  // the page; a HttpOnly session cookie is not. Auth is cookie-only.
   //
-  // api.js still READS `TOKEN_KEY` from localStorage and attaches it
-  // as Authorization: Bearer on outgoing requests — that's the
-  // back-compat path for users who logged in before this commit
-  // landed. Their stale token keeps working until they log out (which
-  // clears TOKEN_KEY) or re-login (which writes no token). Over time
-  // the stale-token population decays to zero and the read-side can
-  // be ripped out too.
+  // TOKEN_KEY removeItem calls below (boot 401, logout) just sweep
+  // any legacy token still left on a pre-P1.2 client. Once the
+  // old-token population is fully gone, the TOKEN_KEY export and
+  // these removeItem calls can be dropped too.
   async function loginWithEmail(email, password) {
     await primeCsrf();
     const data = await loginRequest(email, password);

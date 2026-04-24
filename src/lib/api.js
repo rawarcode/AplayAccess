@@ -5,38 +5,25 @@ export const TOKEN_KEY = "aplaya_token";
 // withCredentials: true — sends the Sanctum session cookie cross-
 // origin (www.aplayabeachresort.com → api.aplayabeachresort.com).
 // Paired with the backend's supports_credentials=true CORS rule.
-// Axios also auto-forwards the XSRF-TOKEN cookie as an
-// X-XSRF-TOKEN header on mutating requests, which the Sanctum
-// CSRF middleware validates. Same-site cross-origin + SameSite=Lax
-// cookies cover the cookie-send requirement.
 //
-// Bearer token auth stays wired as a fallback during the P1.2
-// rollout — if the session cookie isn't set yet (user logged in
-// before the migration landed), the Authorization header keeps
-// their session alive until they log in again.
 // withXSRFToken: true — axios 1.x skips XSRF cookie→header mirroring
 // on cross-origin requests unless this is explicitly set, even with
-// withCredentials. www.aplayabeachresort.com → api.aplayabeachresort.com
-// is cross-origin (same-site, different subdomain), so without this
-// flag axios silently drops the X-XSRF-TOKEN header and Laravel's
-// CSRF middleware 419s every mutating request.
+// withCredentials. Without this flag axios silently drops the
+// X-XSRF-TOKEN header and Laravel's CSRF middleware 419s every
+// mutating request.
+//
+// Auth is now session-cookie only. We dropped the
+// Authorization: Bearer fallback — any DOM-readable token in
+// localStorage is an XSS-to-account-takeover vector, and cookie
+// auth has been confirmed working end-to-end (refresh + token
+// deletion both keep the session). TOKEN_KEY export stays so
+// AuthContext can keep cleaning up any legacy tokens left on
+// pre-P1.2 clients via removeItem on boot 401 and on logout.
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
   withCredentials: true,
   withXSRFToken: true,
   headers: { Accept: "application/json" },
-});
-
-// Attach Bearer token when one is stored. Session cookie is
-// attached automatically by the browser. Sanctum's auth:sanctum
-// guard tries the session first then falls back to the token, so
-// sending both simultaneously is safe.
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem(TOKEN_KEY);
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
 });
 
 // Prime Laravel's XSRF-TOKEN cookie before any mutating request

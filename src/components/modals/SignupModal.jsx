@@ -5,7 +5,7 @@ import PasswordRequirements, { checkPasswordStrength } from "../ui/PasswordRequi
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { registerRequest } from "../../lib/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { api, TOKEN_KEY } from "../../lib/api.js";
+import { api } from "../../lib/api.js";
 
 export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) {
   const { user, loginWithGoogle, refreshUser } = useAuth();
@@ -82,8 +82,11 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
         password_confirmation: form.confirmPassword,
       });
 
-      // Persist token first so refreshUser's /api/me call can authenticate.
-      if (data.token) localStorage.setItem(TOKEN_KEY, data.token);
+      // Register sets a Sanctum session cookie (Auth::login + hasSession
+      // guard on the backend), so refreshUser's /api/me call is
+      // authenticated by cookie. No bearer token in localStorage — that
+      // was the XSS-to-token-theft surface P1.2 closed.
+      //
       // Parent handler (Navbar / Resort) sets AuthContext user via login(u)
       // and takes care of welcome toast + navigation.
       if (data.user) onSignedUp?.(data.user);
