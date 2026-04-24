@@ -35,6 +35,7 @@ React 19 · Vite 7 · Tailwind CSS v4 (via `@theme` in `src/index.css`, no `tail
 |---|---|---|
 | test@example.com | password | guest |
 | frontdesk@aplayaccess.test | password | front_desk |
+| admin@aplayaccess.test | password | admin |
 | owner@aplayaccess.test | password | owner |
 
 ## Portals
@@ -42,10 +43,11 @@ React 19 · Vite 7 · Tailwind CSS v4 (via `@theme` in `src/index.css`, no `tail
 | Portal | Pages | Shell | URL prefix |
 |---|---|---|---|
 | Guest | `src/pages/dashboard/` | `src/components/dashboard/DashboardShell.jsx` | `/dashboard` |
-| Owner | `src/pages/owner/` | `src/components/owner/OwnerShell.jsx` | `/owner` |
 | Front desk | `src/frontdesk/components/` | `src/frontdesk/components/Layout/Sidebar.jsx` (composed per page, not a single shell) | `/frontdesk` |
+| Admin | `src/pages/admin/` (minimal) + reused owner pages | `src/components/admin/AdminShell.jsx` | `/admin` |
+| Owner | `src/pages/owner/` | `src/components/owner/OwnerShell.jsx` | `/owner` |
 
-Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidated into `owner`; the `admin_role` middleware still exists and behaves as owner-only.
+Admin was reintroduced as a distinct role in 2026-04-24 (commits `3030b6b` → `73f7757` → `1365f60`). It sits between front desk and owner: admin runs day-to-day operations (content, reviews, messages, promo codes, newsletter, addons catalog, auto-replies) but cannot change rates, manage staff, view revenue, or access the audit log. Full permission matrix lives in `docs/roles.xlsx`. Owner keeps every admin capability, so an owner logged in can also navigate `/admin/*` directly.
 
 ## Auth + storage
 
@@ -56,9 +58,12 @@ Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidat
 
 ## Middleware roles (backend)
 
-- `staff` — front_desk + owner
-- `admin_role` — owner only (legacy name)
-- `owner_role` — owner only
+- `staff` — front_desk + admin + owner. Operational routes everyone at the counter touches.
+- `admin_or_owner` — admin + owner. Day-to-day management (content, reviews, addons catalog, auto-replies, promo codes, newsletter, guests list, announcements).
+- `admin_role` — owner only (legacy alias name). Strategic inventory (rooms CRUD), pricing settings, audit log, stats.
+- `owner_role` — owner only. Staff management, analytics, financial reports.
+
+Aliases live in `bootstrap/app.php`. The `admin_role` alias name is kept for historical reasons — when the admin role was consolidated into owner in 2026-04-21 and again split back out in 2026-04-24, the alias stayed pointed at `AdminMiddleware` (owner-only) rather than getting renamed. Don't confuse the alias name with the role name — `admin_role` middleware is OWNER-ONLY and always has been.
 
 ## Ground truth — don't re-state here, read these
 
