@@ -69,20 +69,25 @@ export function AuthProvider({ children }) {
 
   // All three login paths start with primeCsrf() so Laravel sets the
   // XSRF-TOKEN cookie before we send a mutating request. The response
-  // from the login endpoint now sets a Sanctum session cookie, which
-  // is what actually carries the auth going forward.
+  // from the login endpoint sets a Sanctum session cookie — that's
+  // what carries auth going forward.
   //
-  // We still stash data.token in localStorage for now — Sanctum's
-  // auth:sanctum guard falls back to Bearer if the session cookie
-  // isn't present (e.g. cross-device, private browsing, third-party
-  // cookies blocked). Once cookie-auth is confirmed stable across
-  // all flows, a follow-up commit will drop the localStorage writes.
+  // We deliberately ignore `data.token` in the response now. The
+  // XSS-exfiltration risk was the whole point of P1.2: a bearer token
+  // sitting in localStorage is readable by any script injected into
+  // the page; a HttpOnly session cookie is not. New logins are
+  // cookie-only from this commit on.
+  //
+  // api.js still READS `TOKEN_KEY` from localStorage and attaches it
+  // as Authorization: Bearer on outgoing requests — that's the
+  // back-compat path for users who logged in before this commit
+  // landed. Their stale token keeps working until they log out (which
+  // clears TOKEN_KEY) or re-login (which writes no token). Over time
+  // the stale-token population decays to zero and the read-side can
+  // be ripped out too.
   async function loginWithEmail(email, password) {
     await primeCsrf();
     const data = await loginRequest(email, password);
-    if (data.token) {
-      localStorage.setItem(TOKEN_KEY, data.token);
-    }
     const u = normalizeUser(data);
     setUser(u);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
@@ -92,9 +97,6 @@ export function AuthProvider({ children }) {
   async function loginStaff(email, password) {
     await primeCsrf();
     const data = await staffLoginRequest(email, password);
-    if (data.token) {
-      localStorage.setItem(TOKEN_KEY, data.token);
-    }
     const u = normalizeUser(data);
     setUser(u);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
@@ -109,9 +111,6 @@ export function AuthProvider({ children }) {
   async function loginWithGoogle(accessToken) {
     await primeCsrf();
     const data = await googleLoginRequest(accessToken);
-    if (data.token) {
-      localStorage.setItem(TOKEN_KEY, data.token);
-    }
     const u = normalizeUser(data);
     setUser(u);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
