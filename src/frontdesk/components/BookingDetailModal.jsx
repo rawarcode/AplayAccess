@@ -1043,36 +1043,40 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                             : 'hover:bg-slate-50'
                           }`}
                         >
-                          <i className={`fas ${cat.icon || 'fa-tag'} w-4 text-center text-[13px] ${
+                          <i className={`fas ${cat.icon || 'fa-tag'} w-4 text-center text-[13px] shrink-0 ${
                             selected ? 'text-sky-600'
                             : disabled ? 'text-slate-300'
                             : isOptional ? 'text-amber-600'
                             : 'text-slate-400'
                           }`} aria-hidden="true"></i>
-                          <span className={`text-sm font-medium min-w-0 flex-1 truncate ${
-                            disabled ? 'text-slate-400' : selected ? 'text-sky-800' : 'text-slate-700'
-                          }`}>{cat.name}</span>
-                          {/* Room-fixture badge — bright amber pill so the
-                              row stands out. Paired with amber-tinted bg
-                              + left-border accent above. */}
-                          {isOptional && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-white text-[10px] font-bold uppercase tracking-wide shadow-sm shrink-0">
-                              <i className="fas fa-link text-[9px]" aria-hidden="true"></i>For {bookingRoom?.name || 'this room'}
-                            </span>
-                          )}
+                          {/* Name + (if optional) room badge stacked so
+                              the name always gets full width — badge
+                              doesn't squeeze the name into an ellipsis. */}
+                          <div className="min-w-0 flex-1">
+                            <div className={`text-sm font-medium truncate ${
+                              disabled ? 'text-slate-400' : selected ? 'text-sky-800' : 'text-slate-700'
+                            }`}>{cat.name}</div>
+                            {isOptional && (
+                              <div className="mt-0.5">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-white text-[10px] font-bold uppercase tracking-wide shadow-sm">
+                                  <i className="fas fa-link text-[9px]" aria-hidden="true"></i>For {bookingRoom?.name || 'this room'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                           {status && (
-                            <span className={`text-[11px] ${
+                            <span className={`text-[11px] shrink-0 ${
                               soldOut ? 'text-rose-500' : disabled ? 'text-slate-400' : 'text-slate-400'
                             }`}>{status}</span>
                           )}
-                          <span className={`text-xs tabular-nums w-20 text-right ${
+                          <span className={`text-xs tabular-nums w-20 text-right shrink-0 ${
                             disabled ? 'text-slate-400' : selected ? 'text-sky-700 font-semibold' : 'text-slate-600'
                           }`}>
                             ₱{Number(cat.price).toLocaleString()}
                             <span className="text-[10px] text-slate-400 ml-0.5">{cat.per_booking ? 'flat' : '/ea'}</span>
                           </span>
                           {selected && !disabled && (
-                            <i className="fas fa-check-circle text-sky-600 text-sm" aria-hidden="true"></i>
+                            <i className="fas fa-check-circle text-sky-600 text-sm shrink-0" aria-hidden="true"></i>
                           )}
                         </button>
                       );
