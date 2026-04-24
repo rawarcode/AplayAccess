@@ -995,22 +995,24 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 : 10;
 
               return addingAmenity ? (
-                <div className="border rounded-lg p-3 bg-sky-50">
-                  <p className="text-xs font-medium text-slate-700 mb-2">Add Add-on</p>
-                  <div className="flex gap-2 flex-wrap mb-2">
+                <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">Add Add-on</p>
+                  </div>
+                  {/* Vertical list — one row per addon. Previous layout was
+                      cramped horizontal pills with wrapped multi-line
+                      labels; this reads left-to-right like a menu. */}
+                  <div className="divide-y divide-slate-100">
                     {visibleCatalog.map(cat => {
                       const attached  = isAttached(cat.name);
                       const soldOut   = isSoldOut(cat);
                       const disabled  = attached || soldOut;
                       const selected  = addingAmenity.name === cat.name;
                       const remaining = remainingFor(cat.id);
-                      const statusLine = attached
-                        ? 'Already added'
-                        : soldOut
-                          ? 'Sold out'
-                          : remaining != null
-                            ? `${remaining} of ${cat.max_qty} left in pool`
-                            : <>₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</>;
+                      const status = attached ? 'Already added'
+                                   : soldOut  ? 'Sold out'
+                                   : remaining != null ? `${remaining} of ${cat.max_qty} left in pool`
+                                   : null;
                       const title = attached
                         ? 'Already on this booking — use the pencil icon above to edit its quantity.'
                         : soldOut
@@ -1024,69 +1026,73 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           onClick={() => !disabled && setAddingAmenity({ id: cat.id, name: cat.name, qty: 1, unit_price: cat.price, per_booking: cat.per_booking, max_qty: cat.max_qty, icon: cat.icon })}
                           title={title}
                           aria-label={attached ? `${cat.name} — already added to this booking` : soldOut ? `${cat.name} — sold out` : `Select ${cat.name}`}
-                          className={`flex-1 py-2 rounded border text-xs font-medium transition-colors ${
-                            disabled
-                              ? 'border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed'
-                              : selected
-                                ? 'border-sky-500 bg-sky-100 text-sky-700'
-                                : 'border-slate-300 bg-white text-slate-600'
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                            selected  ? 'bg-sky-50'
+                            : disabled ? 'bg-slate-50/60 cursor-not-allowed'
+                            : 'hover:bg-slate-50'
                           }`}
                         >
-                          <i className={`fas ${cat.icon || 'fa-tag'} mr-1`} aria-hidden="true"></i>{cat.name}
-                          <br />
-                          <span className={soldOut ? 'text-rose-500' : 'text-slate-400'}>{statusLine}</span>
-                          {!attached && !soldOut && remaining != null && (
-                            <>
-                              <br />
-                              <span className="text-slate-400">₱{Number(cat.price).toLocaleString()}{!cat.per_booking ? '/ea' : ' flat'}</span>
-                            </>
+                          <i className={`fas ${cat.icon || 'fa-tag'} w-4 text-center text-[13px] ${
+                            selected ? 'text-sky-600' : disabled ? 'text-slate-300' : 'text-slate-400'
+                          }`} aria-hidden="true"></i>
+                          <span className={`text-sm font-medium min-w-0 flex-1 truncate ${
+                            disabled ? 'text-slate-400' : selected ? 'text-sky-800' : 'text-slate-700'
+                          }`}>{cat.name}</span>
+                          {status && (
+                            <span className={`text-[11px] ${
+                              soldOut ? 'text-rose-500' : disabled ? 'text-slate-400' : 'text-slate-400'
+                            }`}>{status}</span>
+                          )}
+                          <span className={`text-xs tabular-nums w-20 text-right ${
+                            disabled ? 'text-slate-400' : selected ? 'text-sky-700 font-semibold' : 'text-slate-600'
+                          }`}>
+                            ₱{Number(cat.price).toLocaleString()}
+                            <span className="text-[10px] text-slate-400 ml-0.5">{cat.per_booking ? 'flat' : '/ea'}</span>
+                          </span>
+                          {selected && !disabled && (
+                            <i className="fas fa-check-circle text-sky-600 text-sm" aria-hidden="true"></i>
                           )}
                         </button>
                       );
                     })}
                   </div>
-                  {!addingAmenity.per_booking && (
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs text-slate-600">Qty:</span>
-                      <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
-                        aria-label="Decrease quantity"
-                        className="w-11 h-11 border rounded text-sm">−</button>
-                      <span className="w-6 text-center text-sm">{addingAmenity.qty}</span>
-                      <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(qtyCap, (a.qty || 1) + 1) }))}
-                        aria-label="Increase quantity"
-                        disabled={(addingAmenity.qty || 1) >= qtyCap}
-                        className="w-11 h-11 border rounded text-sm disabled:opacity-40">+</button>
-                      <span className="ml-auto text-xs font-medium text-sky-700">
-                        {/* State shape is unit_price (snake) — reading
-                            unitPrice (camel) here produced qty × undefined
-                            = NaN, rendering as "₱NaN" in the preview. */}
-                        ₱{(Number(addingAmenity.qty || 1) * Number(addingAmenity.unit_price || 0)).toLocaleString()}
-                      </span>
+                  {/* Qty + total + actions */}
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 space-y-2">
+                    {!addingAmenity.per_booking && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-slate-600">Qty</span>
+                        <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
+                          aria-label="Decrease quantity"
+                          className="w-9 h-9 border border-slate-200 rounded bg-white text-sm hover:bg-slate-100">−</button>
+                        <span className="w-8 text-center text-sm font-medium tabular-nums">{addingAmenity.qty}</span>
+                        <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(qtyCap, (a.qty || 1) + 1) }))}
+                          aria-label="Increase quantity"
+                          disabled={(addingAmenity.qty || 1) >= qtyCap}
+                          className="w-9 h-9 border border-slate-200 rounded bg-white text-sm hover:bg-slate-100 disabled:opacity-40">+</button>
+                        <span className="ml-auto text-sm font-semibold text-sky-700 tabular-nums">
+                          ₱{(Number(addingAmenity.qty || 1) * Number(addingAmenity.unit_price || 0)).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    {selAvail?.remaining != null && (() => {
+                      const stagedQty  = addingAmenity.qty || 1;
+                      const freeInPool = Math.max(0, selAvail.remaining - stagedQty);
+                      return (
+                        <p className="text-[11px] text-slate-500">
+                          {freeInPool} of {addingAmenity.max_qty} left in pool after this add
+                          {selAvail.allocated > 0 ? ` (${selAvail.allocated} held by other bookings)` : ''}.
+                        </p>
+                      );
+                    })()}
+                    <div className="flex gap-2 justify-end pt-1">
+                      <button onClick={() => setAddingAmenity(null)}
+                        className="px-3 py-1.5 border border-slate-200 rounded text-xs font-medium text-slate-600 hover:bg-white">Cancel</button>
+                      <button onClick={handleAddAmenity} disabled={amenityLoading || isAttached(addingAmenity.name)}
+                        title={isAttached(addingAmenity.name) ? 'Already on this booking.' : undefined}
+                        className="px-4 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-40">
+                        {amenityLoading ? 'Adding…' : 'Add'}
+                      </button>
                     </div>
-                  )}
-                  {selAvail?.remaining != null && (() => {
-                    // Live pool free = API remaining (excl self) − staged qty.
-                    // Since this add-on isn't attached yet, `remaining` equals
-                    // the global pool free from the booking's vantage point.
-                    const stagedQty  = addingAmenity.qty || 1;
-                    const freeInPool = Math.max(0, selAvail.remaining - stagedQty);
-                    return (
-                      <p className="text-[11px] text-slate-500 mb-2">
-                        {freeInPool} of {addingAmenity.max_qty} left in pool after this add
-                        {selAvail.allocated > 0 ? ` (${selAvail.allocated} held by other bookings in this window)` : ''}.
-                      </p>
-                    );
-                  })()}
-                  {/* Disable Add if the currently-selected add-on is already
-                      attached — defensive in case the picker state desyncs. */}
-                  <div className="flex gap-2">
-                    <button onClick={() => setAddingAmenity(null)}
-                      className="px-3 py-1 border rounded text-xs text-slate-600">Cancel</button>
-                    <button onClick={handleAddAmenity} disabled={amenityLoading || isAttached(addingAmenity.name)}
-                      title={isAttached(addingAmenity.name) ? 'Already on this booking.' : undefined}
-                      className="px-3 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-40">
-                      {amenityLoading ? 'Adding...' : 'Add'}
-                    </button>
                   </div>
                 </div>
               ) : noneLeft ? (
