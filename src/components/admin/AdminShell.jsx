@@ -287,10 +287,16 @@ export default function AdminShell() {
         </div>
       </nav>
 
-      {/* Portal switcher */}
-      <div className="px-4 pb-2 border-t border-brand-hover pt-3">
-        {(!collapsed || mobile) && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
-        {user?.role === "owner" && (
+      {/* Portal switcher — owner only. Admin doesn't switch portals;
+          operational workflow lives inside /admin. The "Front Desk"
+          entry that used to live here sent admin users to /frontdesk,
+          which RequireFrontdesk rejects for the admin role — silently
+          bouncing to /dashboard. Removed. A dedicated operational
+          surface under /admin (bookings, walk-ins, check-in/out) is
+          planned follow-up work; tracked separately. */}
+      {user?.role === "owner" && (
+        <div className="px-4 pb-2 border-t border-brand-hover pt-3">
+          {(!collapsed || mobile) && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
           <button
             onClick={() => switchPortal("/owner", "Switching to Owner Panel...")}
             className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition mb-1"
@@ -299,16 +305,16 @@ export default function AdminShell() {
             <i className="fas fa-crown mr-3 w-5 text-center"></i>
             {(!collapsed || mobile) && <span className="text-sm">Owner Panel</span>}
           </button>
-        )}
-        <button
-          onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
-          className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
-          title="Switch to Front Desk"
-        >
-          <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
-          {(!collapsed || mobile) && <span className="text-sm">Front Desk</span>}
-        </button>
-      </div>
+          <button
+            onClick={() => switchPortal("/frontdesk", "Switching to Front Desk...")}
+            className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
+            title="Switch to Front Desk"
+          >
+            <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
+            {(!collapsed || mobile) && <span className="text-sm">Front Desk</span>}
+          </button>
+        </div>
+      )}
 
       {/* User info + logout */}
       <div className="p-4 border-t border-brand-hover">
