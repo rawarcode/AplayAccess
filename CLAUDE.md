@@ -96,6 +96,23 @@ Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidat
 - **Tailwind v4 has no `tailwind.config.js`.** Design tokens live in `src/index.css` under `@theme { ... }`. Adding custom colors means editing that block.
 - **`/api/admin/*` is accessible by BOTH front_desk AND owner** (not just "admin"). The URL prefix is misleading.
 - **Emoji can't render inside native `<option>` or `<optgroup>`** — Font Awesome won't work there either. Walk-In room picker keeps emoji deliberately; everywhere else uses FA.
+- **`bookingRooms` strip trap.** `Rooms.jsx`, `Resort.jsx`, and `GuestDashboard.jsx` each re-map the raw rooms array into a whitelisted `bookingRooms` prop before passing to `BookingModal`. Adding a new field to the rooms API response (e.g. `attached_addons`) does **not** automatically flow through — each mapping silently drops unlisted keys. Any field BookingModal needs must be added to all three whitelists. `MyBookings.jsx` + `ResumeGuestBooking.jsx` pass `rooms={[]}` (resume-only flow) so they're exempt.
+
+## Per-room add-on pricing — the 4 write paths that must stay aligned
+
+Optional add-ons attached to a specific room have a per-room `price` on the `room_addons` pivot that overrides `addons.price`. Every place a `BookingAmenity` row is created must look up the per-room price to avoid charging catalog when it should be charging the override. The four paths:
+
+| Path | File | Lookup |
+|---|---|---|
+| Guest online booking (authed + guest) | `Api\BookingController::attachOptionalAmenities` | `$room->optionalAddons->keyBy('id')` |
+| Walk-in form submit | `Admin\WalkInController::store` (inline loop) | `$room->optionalAddons->keyBy('id')` |
+| Post-booking staff add | `Admin\AmenityController::store` | `$booking->room->optionalAddons` |
+| Auto-attach of packages | `Api\BookingController::attachPackageAddons` / walk-in inline | `$room->packageAddons->pivot->price` directly |
+
+On the frontend, each picker filters the catalog by the booking's room and overrides `price` in a `visibleCatalog`/`visibleAddons` memo so the ₱ shown = ₱ charged. Surfaces:
+- `src/components/modals/BookingModal.jsx` — guest new-booking (optionalAddons memo)
+- `src/frontdesk/components/WalkIn.jsx` — walk-in form (visibleAddons memo)
+- `src/frontdesk/components/BookingDetailModal.jsx` — post-booking staff picker (visibleCatalog memo)
 
 ## Docs maintenance rule
 
