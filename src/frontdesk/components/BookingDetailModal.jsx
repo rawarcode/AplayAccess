@@ -190,6 +190,13 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         });
       })
       .catch(() => {});
+    // Fetch rooms up-front so the addon picker below can filter by
+    // the booking's room + apply per-room price overrides, matching
+    // the walk-in and guest-booking flows. Previously rooms only
+    // loaded when the Transfer picker opened.
+    getFdRooms()
+      .then(setRooms)
+      .catch(() => {});
     refreshAddonAvailability();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -935,6 +942,35 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             )}
 
             {['Confirmed', 'Checked In'].includes(booking.status) && addonCatalog.length > 0 && (() => {
+              // Filter the catalog by this booking's room the same way
+              // the walk-in + guest booking forms do:
+              //   - Addons in NO room_addons pivot → shared pool, show as-is
+              //   - Addons attached to THIS room as 'optional' → show with
+              //     per-room price override
+              //   - Addons attached to other rooms (any relation) → hidden
+              //   - Package attachments anywhere → also hidden; they're
+              //     auto-created at booking time and live in booking.amenities
+              //     already (pencil-editable).
+              // Backend AmenityController::store applies the same per-room
+              // price lookup on write, so the ₱ shown here matches what
+              // lands on the receipt.
+              const bookingRoom    = rooms.find(r => String(r.id) === String(booking.roomId));
+              const roomScopedIds  = new Set();
+              for (const rm of rooms) {
+                for (const a of (rm.attached_addons ?? [])) roomScopedIds.add(a.id);
+              }
+              const thisRoomOpt = new Map(
+                (bookingRoom?.attached_addons ?? [])
+                  .filter(a => a.relation === 'optional')
+                  .map(a => [a.id, a])
+              );
+              const visibleCatalog = addonCatalog.flatMap(c => {
+                if (!roomScopedIds.has(c.id)) return [c];       // shared pool
+                const opt = thisRoomOpt.get(c.id);
+                if (!opt) return [];                             // attached elsewhere or package here
+                return [{ ...c, price: Number(opt.price) }];     // per-room override
+              });
+
               // Guard against duplicate add-on rows. The backend's addAmenity
               // endpoint creates a new BookingAmenity row every call, so
               // "add Parking Fee ×5" then "add Parking Fee ×5" leaves two
@@ -944,7 +980,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               // block the picker for add-ons already attached and point staff
               // to the existing row if they want a different quantity.
               const attachedNames = new Set((booking.amenities || []).map(a => a.name));
-              const pickable      = addonCatalog.filter(c => !attachedNames.has(c.name));
+              const pickable      = visibleCatalog.filter(c => !attachedNames.has(c.name));
               const isAttached    = (name) => attachedNames.has(name);
               // "Sold out" = inventory pool exhausted by *other* bookings in
               // this window. We can still edit our own existing row via the
@@ -962,7 +998,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 <div className="border rounded-lg p-3 bg-sky-50">
                   <p className="text-xs font-medium text-slate-700 mb-2">Add Add-on</p>
                   <div className="flex gap-2 flex-wrap mb-2">
-                    {addonCatalog.map(cat => {
+                    {visibleCatalog.map(cat => {
                       const attached  = isAttached(cat.name);
                       const soldOut   = isSoldOut(cat);
                       const disabled  = attached || soldOut;
