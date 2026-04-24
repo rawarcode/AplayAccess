@@ -1361,7 +1361,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   className="px-3 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50">
                   {receiptLoading
                     ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
-                    : <><i className="fas fa-file-pdf mr-1"></i>Confirmation</>}
+                    : <><i className="fas fa-file-pdf mr-1"></i>Download Confirmation</>}
                 </button>
               )}
               <button onClick={onClose}
