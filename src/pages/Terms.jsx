@@ -12,7 +12,7 @@ import { Helmet } from "react-helmet-async";
  *   - Auto-cancel of Pending bookings unpaid for 30 minutes
  *
  * Placeholders to fill before going live:
- *   [LAST UPDATED]   — revision date
+ *   April 24, 2026   — revision date
  *
  * Cavite is hard-coded as the governing venue per the resort's
  * physical location. Owner should confirm.
@@ -31,7 +31,7 @@ export default function Terms() {
             <p className="text-xs uppercase tracking-[0.2em] text-sky-600 font-semibold mb-2">Legal</p>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">Terms &amp; Conditions</h1>
             <p className="text-sm text-slate-500">
-              <strong>Last updated:</strong> [LAST UPDATED]
+              <strong>Last updated:</strong> April 24, 2026
             </p>
           </header>
 

@@ -11,7 +11,7 @@ import { Helmet } from "react-helmet-async";
  * live:
  *   [DPO NAME]       — name of the designated Data Protection Officer
  *   [DPO EMAIL]      — contact email, e.g. dpo@aplayabeachresort.com
- *   [LAST UPDATED]   — date this policy was last revised
+ *   April 24, 2026   — date this policy was last revised
  *
  * Retention window (7 years) matches the BIR audit / bookkeeping
  * requirement for financial records. Adjust if the resort's internal
@@ -31,7 +31,7 @@ export default function Privacy() {
             <p className="text-xs uppercase tracking-[0.2em] text-sky-600 font-semibold mb-2">Legal</p>
             <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">Privacy Policy</h1>
             <p className="text-sm text-slate-500">
-              <strong>Last updated:</strong> [LAST UPDATED]
+              <strong>Last updated:</strong> April 24, 2026
             </p>
           </header>
 
@@ -164,8 +164,8 @@ export default function Privacy() {
               questions about this policy, or raise concerns:
             </p>
             <div className="mt-3 rounded-xl bg-sky-50 border border-sky-100 p-4 text-sm">
-              <p><strong>Name:</strong> [DPO NAME]</p>
-              <p><strong>Email:</strong> [DPO EMAIL]</p>
+              <p><strong>Name:</strong> Michael Jason Mayol</p>
+              <p><strong>Email:</strong> michaeljmayol@gmail.com</p>
               <p className="mt-2 text-slate-500">
                 If your concern is not addressed, you may also file a complaint with the
                 National Privacy Commission at{" "}
