@@ -105,6 +105,10 @@ Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidat
 - **Axios 1.x drops XSRF on cross-origin requests.** Default axios only mirrors the `XSRF-TOKEN` cookie into an `X-XSRF-TOKEN` header for **same-origin** requests, even when `withCredentials: true`. `www → api` is cross-origin (same-site, different subdomain), so without the explicit `withXSRFToken: true` flag on the axios instance, Laravel's CSRF middleware 419s every mutating request once `SANCTUM_STATEFUL_DOMAINS` is active. Symptom: "CSRF token mismatch" on login even with fresh InPrivate cookies. Fix lives on the axios instance in `src/lib/api.js`. Don't remove this flag.
 - **Sanctum stateful is Origin-gated, so session code must be guarded.** `EnsureFrontendRequestsAreStateful` only prepends the web-guard middleware group (EncryptCookies, StartSession, ShareErrorsFromSession, ValidateCsrfToken) when the request's Origin matches `SANCTUM_STATEFUL_DOMAINS`. Token-only callers bypass it, meaning `$request->session()` and `$request->session()->regenerate()` throw `Session store not set on request` for those callers. Every session touch in controllers (`register`, `login`, `googleLogin`, `logout`, admin `login`/`logout`) must be wrapped in `if ($request->hasSession()) { ... }`. P1.2 shipped a crash when this was overlooked; fixed in `2839f6a`.
 - **Vercel deploy is wired to the mirror, not the source repo.** See "Repos & deployment" at top — `rawarcode/AplayAccess` is push target, `michaelmj23/AplayAccess` is the deploy trigger. Running `/mirror` is part of shipping, not housekeeping.
+- **Signup paths need `primeCsrf()` too.** Every login variant (email / staff / Google) calls `await primeCsrf()` before the mutating POST, but the two register paths (`Signup.jsx` + `SignupModal.jsx`) historically relied on app-boot's single priming call. That's brittle — if the session rotated between boot and the signup click (e.g. previous logout invalidated the session), the XSRF-TOKEN cookie points at a dead session and the POST 419s. Both signup handlers now prime explicitly. Any new mutating endpoint reached without going through AuthContext's login helpers must prime too.
+- **MessageController `store()` and `reply()` must stay in parity for cross-cutting message logic.** `store()` is the new-thread path (also handles one-thread-per-guest append); `reply()` is the existing-thread follow-up. The auto-reply engine originally lived only in `store()`, so a guest's very first message triggered bot responses but every follow-up went silent. Any feature that belongs on "every inbound guest message" (auto-reply, keyword routing, notification fan-out, activity log, etc.) has to be added to both endpoints. Consider extracting to a shared private helper if this pattern grows.
+- **`/api/rooms` is owner/staff-gated** despite the casual-sounding URL. The public room listing is `/api/resorts/{id}/rooms`. Tests that need a "public 200 GET" should hit `/api/resorts`, not `/api/rooms`.
+- **`git add -A` sweeps untracked files you may not have meant to commit.** The worktree has files that aren't tracked (`AGENTS.md` parallel to `CLAUDE.md`, various Claude machinery). Prefer staging specific paths with `git add <file1> <file2>` when the commit is supposed to be scoped. Check `git status` before committing scoped changes.
 
 ## Per-room add-on pricing — the 4 write paths that must stay aligned
 
@@ -122,35 +126,63 @@ On the frontend, each picker filters the catalog by the booking's room and overr
 - `src/frontdesk/components/WalkIn.jsx` — walk-in form (visibleAddons memo)
 - `src/frontdesk/components/BookingDetailModal.jsx` — post-booking staff picker (visibleCatalog memo)
 
-## Cookie auth topology (post-P1.2)
+## Auth topology (current, post-P1 hardening cycle)
 
-Session-cookie auth is the primary path; Bearer is a decaying back-compat path.
+Session-cookie auth is the **sole** SPA auth path. No bearer tokens are minted by register/login/googleLogin/admin-login anymore — response shape is `{user}`, not `{user, token}`. Google is on OAuth2 auth-code + PKCE, no longer implicit.
 
 **Required Railway env (backend):**
 - `SANCTUM_STATEFUL_DOMAINS=www.aplayabeachresort.com,aplayabeachresort.com`
 - `SESSION_DOMAIN=.aplayabeachresort.com` (leading dot = parent domain, readable by both `www.` and `api.` subdomains)
 - `SESSION_SECURE_COOKIE=true`
+- `GOOGLE_CLIENT_ID=...apps.googleusercontent.com` (public, identifies the OAuth client)
+- `GOOGLE_CLIENT_SECRET=GOCSPX-...` (backend-only, proves to Google's token endpoint that the code exchange is coming from our server). **The frontend MUST NOT have this.** It's only in the backend Railway env.
 
-Missing any of these → `EnsureFrontendRequestsAreStateful` sees no match, web middleware never prepends, session+CSRF silently off, cookies never set → refresh logs user out.
+Missing any of the first three → `EnsureFrontendRequestsAreStateful` sees no Origin match, web middleware never prepends, session+CSRF silently off, cookies never set → refresh logs user out. Missing `GOOGLE_CLIENT_SECRET` → Google login fails with "Google token exchange returned no access token."
 
 **Frontend axios (`src/lib/api.js`):**
 - `withCredentials: true` — sends cookies cross-origin
 - `withXSRFToken: true` — opts into cross-origin XSRF header mirroring (see hazards above)
-- Still injects `Authorization: Bearer` if `aplaya_token` exists in localStorage — back-compat for users who logged in pre-P1.2
+- No bearer injection, no Authorization interceptor. `TOKEN_KEY` export is kept only so AuthContext can sweep any legacy `aplaya_token` left on pre-P1.2 clients (removeItem on boot 401 + on logout); once that population decays to zero, the export + sweeps can go too.
 
 **CORS (`config/cors.php`):** must include `X-XSRF-TOKEN` in `allowed_headers` or preflight rejects the CSRF header.
 
-**Login flow:** `primeCsrf()` hits `/sanctum/csrf-cookie` first to get an `XSRF-TOKEN` cookie; axios auto-mirrors it as `X-XSRF-TOKEN` on the login POST; Laravel's CSRF middleware validates; login endpoint returns a session cookie (`aplayaccess-session`, HttpOnly, SameSite=Lax, Domain=.aplayabeachresort.com). From that point on, every request carries the session cookie; the bearer token in the response is ignored by new clients.
+**Email login flow:** `primeCsrf()` hits `/sanctum/csrf-cookie` first → axios auto-mirrors the cookie as `X-XSRF-TOKEN` on the login POST → Laravel's CSRF middleware validates → login endpoint regenerates the session + returns `{user}`. Session cookie (`aplayaccess-session`, HttpOnly, SameSite=Lax, Domain=.aplayabeachresort.com) now carries auth. Same priming happens on register, Google, staff login.
+
+**Google login flow (auth-code + PKCE, popup mode):**
+1. Frontend: `useGoogleLogin({flow: 'auth-code'})` from `@react-oauth/google` opens the Google popup. PKCE code_verifier is generated internally by Google's JS SDK — we never touch it.
+2. Popup returns `{code}` to the opener via postMessage. The `access_token` never enters the browser.
+3. Frontend posts `{code}` to `POST /api/auth/google`.
+4. Backend exchanges the code at `https://oauth2.googleapis.com/token` with `grant_type=authorization_code`, `redirect_uri=postmessage` (the literal string Google documents for popup mode — no URI needs to be whitelisted in Google Console for this), `client_id`, and `client_secret`.
+5. Exchange returns `{access_token, id_token, ...}`. Backend reuses the existing `userinfo` call to resolve the identity and proceed with find-or-create + session regenerate.
 
 **localStorage state:**
 - `aplaya_user_v1` (STORAGE_KEY) — cached user object for instant render on reload. NOT a source of truth — `/api/me` always runs on boot and overwrites. Safe to delete; causes a brief "logged out" flash while `/api/me` resolves.
-- `aplaya_token` (TOKEN_KEY) — legacy bearer token. New logins don't write it. Pre-P1.2 sessions still have it and still work via the Authorization header fallback. Logout clears it.
+- `aplaya_token` (TOKEN_KEY) — legacy. Not written by any current code path. Removed on logout / boot 401. Decays naturally.
 
 **Diagnostic rule for "CSRF token mismatch":** always inspect the **Request** Headers of the failing POST (not Response). Checklist:
 1. Is `X-Xsrf-Token:` present? If not → axios isn't mirroring (check `withXSRFToken: true` is deployed, not just committed).
 2. Does its value match the `XSRF-TOKEN` cookie in Application → Cookies? If different → stale JS cached from a pre-fix deploy.
 3. Is `Cookie:` sending `aplayaccess-session=...`? If not → SameSite / Domain scoping issue on the session cookie.
 4. If all three pass and still 419 → clear all cookies for `.aplayabeachresort.com` (not just one subdomain) and retry fresh.
+5. If it's the register POST specifically → make sure the calling code primes CSRF first. See the signup primeCsrf hazard above.
+
+## Rate limiting & enumeration defense patterns
+
+Sensitive public/semi-public endpoints need two complementary defenses. Current conventions:
+
+**Brute-force (OTP, auth, sensitive mutations):**
+- **Route-level throttle** via Laravel's built-in `throttle:N,1` middleware caps the request rate regardless of user. Use it as the outer guard — the per-minute window makes a flood obvious and cheap to reject before controllers run.
+- **Per-user `RateLimiter`** keyed on a stable identifier (`user->id` for authed paths, user agent + IP for anon) counts attempts against a single target. Decay window should match the target's own TTL (e.g. OTP lives 15 min → limiter decays in 15 min). Clear on success + on any path that issues a fresh target (e.g. resend OTP resets the counter).
+- **Example**: `Api\AuthController::verifyEmail` — route throttle `throttle:10,1` + per-user limiter at 5 attempts / 900s, cleared in both `verifyEmail` (on success) and `resendVerification` (on fresh OTP).
+
+**Enumeration defense (public probes that could reveal membership):**
+- Return **identical** user-visible response whether the target is new or already known. The DB side-effect can differ (skip duplicate insert, etc.), but the response body must not leak state.
+- **Example**: `Api\NewsletterController::store` and `Api\NewsletterController::unsubscribe` both return the same message regardless of whether the email was on the list. Pattern introduced for unsubscribe first; signup retrofitted in `3a181ad`.
+- Watch for timing leaks too — if the "already subscribed" path skips an outbound HTTP call (Brevo) while the "new" path makes one, a sufficiently patient attacker can enumerate via response latency. Not currently a concern here but something to keep in mind for future endpoints.
+
+**Endpoints still on the backlog:**
+- `/api/forgot-password` — currently acknowledges existence / non-existence with the same message (good), but no route throttle. Should have `throttle:5,1` to prevent bulk email triggering.
+- Guest-booking endpoints (`/api/guest-*`) still use the bearer-secret-in-URL model for `{guest_token}`. Structural fix would be short-lived tokens + one-time receipt links; sizable refactor, tracked as P2 residual from the OWASP audit.
 
 ## Docs maintenance rule
 
