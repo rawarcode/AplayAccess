@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import AlertModal from "../components/modals/AlertModal.jsx";
+import VerifyEmailModal from "../components/modals/VerifyEmailModal.jsx";
 import PasswordRequirements, { checkPasswordStrength } from "../components/ui/PasswordRequirements.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import { registerRequest } from "../lib/authApi.js";
@@ -16,6 +17,13 @@ export default function Signup() {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const [alert, setAlert] = useState({ open: false, type: "info", title: "Information", message: "" });
+  // Shown immediately after a successful signup. Skips the "success
+  // alert → dashboard → click the amber banner" dance; the OTP email
+  // is already in flight by the time register returns, so surfacing
+  // the verify modal right away is the shortest path to a verified
+  // account. Closing it (via success or manual dismiss) still lands
+  // the user on the dashboard.
+  const [verifyOpen, setVerifyOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -97,12 +105,10 @@ export default function Signup() {
         try { await api.post("/api/newsletter", { email: form.email }); } catch {}
       }
 
-      setAlert({
-        open: true,
-        type: "success",
-        title: "Success",
-        message: "Sign Up Successful! Welcome to Aplaya Beach Resort.",
-      });
+      // Open the OTP modal immediately. Verified users flow straight
+      // into the dashboard; users who dismiss without verifying still
+      // get there and will see the amber banner.
+      setVerifyOpen(true);
     } catch (err) {
       const msg =
         err?.response?.data?.message ||
@@ -281,6 +287,14 @@ export default function Signup() {
         type={alert.type}
         title={alert.title}
         message={alert.message}
+      />
+
+      <VerifyEmailModal
+        open={verifyOpen}
+        onClose={() => {
+          setVerifyOpen(false);
+          navigate("/dashboard");
+        }}
       />
     </div>
   );

@@ -7,6 +7,7 @@ import { useContent, DEFAULT_NAVBAR } from "../context/ContentContext.jsx";
 
 import LoginModal from "./modals/LoginModal.jsx";
 import SignupModal from "./modals/SignupModal.jsx";
+import VerifyEmailModal from "./modals/VerifyEmailModal.jsx";
 import Toast, { useToast } from "./ui/Toast.jsx";
 
 export default function Navbar() {
@@ -16,6 +17,11 @@ export default function Navbar() {
   const [loginOpen,  setLoginOpen]  = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
   const [menuOpen,   setMenuOpen]   = useState(false);
+  // Opened immediately after a fresh (unverified) signup. Google
+  // signups skip this — backend marks them verified since Google
+  // confirmed the email.
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [pendingWelcomeName, setPendingWelcomeName] = useState("");
 
   const siteContent = useContent();
   const brand = siteContent?.page_navbar
@@ -33,7 +39,15 @@ export default function Navbar() {
   function handleSignupSuccess(u) {
     login(u);
     setSignupOpen(false);
-    showToast(`Welcome, ${u?.name || ""}!`, "success");
+    // Verified signups (Google) go straight to a welcome toast.
+    // Unverified signups (email+password) see the OTP modal right
+    // away — the welcome toast fires when they close it.
+    if (u?.email_verified_at) {
+      showToast(`Welcome, ${u?.name || ""}!`, "success");
+    } else {
+      setPendingWelcomeName(u?.name || "");
+      setVerifyOpen(true);
+    }
   }
 
   return (
@@ -153,6 +167,17 @@ export default function Navbar() {
         onClose={() => setSignupOpen(false)}
         onSignedUp={handleSignupSuccess}
         onOpenLogin={() => { setSignupOpen(false); setLoginOpen(true); }}
+      />
+
+      <VerifyEmailModal
+        open={verifyOpen}
+        onClose={() => {
+          setVerifyOpen(false);
+          if (pendingWelcomeName) {
+            showToast(`Welcome, ${pendingWelcomeName}!`, "success");
+            setPendingWelcomeName("");
+          }
+        }}
       />
 
       <Toast message={toast} type={toastType} onClose={clearToast} />

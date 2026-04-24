@@ -20,6 +20,7 @@ import { gallery as galleryFallback } from "../data/gallery.js";
 import Modal from "../components/modals/Modal.jsx";
 import LoginModal from "../components/modals/LoginModal.jsx";
 import SignupModal from "../components/modals/SignupModal.jsx";
+import VerifyEmailModal from "../components/modals/VerifyEmailModal.jsx";
 import BookingModal from "../components/modals/BookingModal.jsx";
 import GuestWarningModal from "../components/modals/GuestWarningModal.jsx";
 import SuccessModal from "../components/modals/SuccessModal.jsx";
@@ -236,6 +237,10 @@ export default function Resort() {
   const [userPendingBooking, setUserPendingBooking] = useState(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signupOpen, setSignupOpen] = useState(false);
+  // Opened immediately after a fresh (unverified) email signup. Google
+  // signups skip this since the backend marks them verified.
+  const [verifyOpen, setVerifyOpen] = useState(false);
+  const [pendingWelcomeName, setPendingWelcomeName] = useState("");
   const [guestWarningOpen, setGuestWarningOpen] = useState(false);
   const [guestMode, setGuestMode] = useState(false); // true = booking without account
   const [successOpen, setSuccessOpen] = useState(false);
@@ -1505,9 +1510,28 @@ export default function Resort() {
         onSignedUp={(u) => {
           login(u);
           setSignupOpen(false);
-          showToast(`Welcome, ${u?.name || ""}!`, "success");
+          // Verified signups (Google) go straight to a welcome toast.
+          // Unverified (email+password) open the OTP modal right away;
+          // the toast fires when they close it.
+          if (u?.email_verified_at) {
+            showToast(`Welcome, ${u?.name || ""}!`, "success");
+          } else {
+            setPendingWelcomeName(u?.name || "");
+            setVerifyOpen(true);
+          }
         }}
         onOpenLogin={() => { setSignupOpen(false); setLoginOpen(true); }}
+      />
+
+      <VerifyEmailModal
+        open={verifyOpen}
+        onClose={() => {
+          setVerifyOpen(false);
+          if (pendingWelcomeName) {
+            showToast(`Welcome, ${pendingWelcomeName}!`, "success");
+            setPendingWelcomeName("");
+          }
+        }}
       />
 
       <GuestWarningModal
