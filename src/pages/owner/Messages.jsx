@@ -974,66 +974,43 @@ export default function AdminMessages() {
         )}
       </Modal>
 
-      {/* Header — trimmed from p-5 → p-4 and dropped the subtitle
-          below the h1. The subtitle was redundant: page title plus
-          the envelope icon already communicate "this is Messages";
-          "Read and respond to guest inquiries" just restated it. */}
-      <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-        <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 shrink-0">
-          <span className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
-            <i className="fas fa-envelope text-sky-600"></i>
-          </span>
-          Messages
-        </h1>
-        <div className="flex items-center gap-2">
-          {/* Compose new message — staff-initiated thread to any
-              currently-booked guest. Appends to their existing thread
-              if one exists (one-thread-per-guest model); otherwise
-              creates a new root thread. */}
+      {/* Header — stats inlined as a muted text strip next to the
+          title. Previous layout had a separate 3-card stats grid below
+          the header taking ~90-100px of vertical space. Merging means
+          the main thread panel gets that height back. Same data — just
+          no decorative icon bubbles. */}
+      <div className="bg-white rounded-xl shadow-sm px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2.5 shrink-0">
+            <span className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center">
+              <i className="fas fa-envelope text-sky-600"></i>
+            </span>
+            Messages
+          </h1>
+          {!loading && (
+            <div className="hidden sm:flex items-center gap-3 text-xs text-slate-500 pl-3 border-l border-slate-200">
+              <span className="tabular-nums"><span className="font-semibold text-slate-700">{stats.total}</span> total</span>
+              <span className="tabular-nums">
+                <span className={`font-semibold ${stats.unread > 0 ? 'text-amber-600' : 'text-slate-700'}`}>{stats.unread}</span> unread
+              </span>
+              <span className="tabular-nums">
+                <span className={`font-semibold ${stats.pending > 0 ? 'text-rose-600' : 'text-slate-700'}`}>{stats.pending}</span> need reply
+              </span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
           <button onClick={openCompose}
-            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-1.5 rounded-lg text-sm font-semibold transition">
             <i className="fas fa-plus text-xs"></i>
             Compose
           </button>
-          {/* Auto-Reply Rules button */}
           <button onClick={() => setRulesOpen(true)}
-            className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 text-violet-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-violet-100 transition">
+            className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 text-violet-700 px-3.5 py-1.5 rounded-lg text-sm font-semibold hover:bg-violet-100 transition">
             <i className="fas fa-robot text-xs"></i>
             Auto-Replies
           </button>
-          {/* Unread badge */}
-          {stats.unread > 0 && !loading && (
-            <button onClick={() => setFilterRead("unread")}
-              className="inline-flex items-center gap-2 bg-sky-50 border border-sky-200 text-sky-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-sky-100 transition">
-              <span className="h-6 w-6 rounded-full bg-sky-500 text-white text-xs font-bold flex items-center justify-center">{stats.unread}</span>
-              Unread
-            </button>
-          )}
         </div>
-      </div>
-
-      {/* Stat cards — p-5 → p-3 + rounded-2xl → rounded-xl and smaller
-          icon bubble. These are decorative metrics, not the primary
-          content; letting them eat 100px of vertical height above
-          the actual thread panel was why the page felt too tall. */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Total",        value: stats.total,   icon: "fa-envelope",      bg: "bg-sky-100",    text: "text-sky-600"    },
-          { label: "Unread",       value: stats.unread,  icon: "fa-envelope-open", bg: "bg-amber-100",  text: "text-amber-600"  },
-          { label: "Needs Reply",  value: stats.pending, icon: "fa-reply",         bg: "bg-rose-100",   text: "text-rose-600"   },
-        ].map(c => (
-          <div key={c.label} className="rounded-xl bg-white border border-slate-200 shadow-sm p-3">
-            <div className="flex items-center gap-2.5">
-              <span className={`h-8 w-8 rounded-lg ${c.bg} flex items-center justify-center shrink-0`}>
-                <i className={`fas ${c.icon} ${c.text} text-sm`}></i>
-              </span>
-              <div className="min-w-0">
-                <p className="text-[11px] text-slate-500 font-medium truncate">{c.label}</p>
-                <p className="text-lg font-bold text-slate-900 leading-tight">{loading ? "—" : c.value}</p>
-              </div>
-            </div>
-          </div>
-        ))}
       </div>
 
       {/* Main panel — flex-1 + min-h-0 alone carries the height now.
