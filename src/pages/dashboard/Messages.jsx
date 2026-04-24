@@ -122,13 +122,20 @@ export default function Messages() {
     try {
       const res = await replyMessage(current.id, text);
       const newMsg = res.data;
+      // Auto-reply is returned inline when a rule matched. Append
+      // the bot bubble immediately so the user sees the response
+      // on the next paint — no extra refetch needed.
+      const botReply = res.auto_reply;
       setThreads((prev) =>
         prev.map((t) => {
           if (t.id !== current.id) return t;
+          const appended = botReply
+            ? [...t.messages, newMsg, botReply]
+            : [...t.messages, newMsg];
           return {
             ...t,
-            messages: [...t.messages, newMsg],
-            lastMessage: text,
+            messages: appended,
+            lastMessage: botReply ? botReply.text : text,
             timestamp: "Just now",
           };
         })
