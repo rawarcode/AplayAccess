@@ -3,6 +3,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useStaffNotifications } from "../../hooks/useStaffNotifications.js";
 import NotificationContext from "../../context/NotificationContext.jsx";
+import StaffChatWidget from "../StaffChatWidget.jsx";
 import NotificationBell from "../ui/NotificationBell.jsx";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { updateProfile, changePassword } from "../../lib/profileApi.js";
@@ -712,6 +713,12 @@ export default function AdminShell() {
 
       {/* Shared Toast */}
       <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      {/* Floating quick-reply widget — same pattern as OwnerShell.
+          Lets admin answer a recent guest message without leaving
+          whatever page they're on. Shell-level so it's present
+          across all /admin/* routes. */}
+      <StaffChatWidget />
     </div>
     </NotificationContext.Provider>
   );
