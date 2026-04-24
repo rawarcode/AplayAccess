@@ -5,7 +5,7 @@ import PasswordRequirements, { checkPasswordStrength } from "../ui/PasswordRequi
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { registerRequest } from "../../lib/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { api } from "../../lib/api.js";
+import { api, primeCsrf } from "../../lib/api.js";
 
 export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) {
   const { user, loginWithGoogle, refreshUser } = useAuth();
@@ -74,6 +74,11 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
 
     setSubmitting(true);
     try {
+      // Prime XSRF-TOKEN so the register POST carries a header that
+      // matches the current session's _token. Without this, a stale
+      // cookie from before the last session rotation (e.g. a previous
+      // logout) causes "CSRF token mismatch". Mirrors the login paths.
+      await primeCsrf();
       const data = await registerRequest({
         name: form.name,
         email: form.email,
