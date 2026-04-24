@@ -148,7 +148,11 @@ export default function App() {
         {/* Management */}
         <Route path="rooms"         element={<OwnerRooms />} />
         <Route path="users"         element={<OwnerUsers />} />
-        <Route path="reviews"       element={<OwnerReviews />} />
+        {/* Reviews moved into Manage Website as a tab — redirect old
+            /owner/reviews bookmarks + notification deep-links there
+            instead of rendering the standalone page. OwnerReviews.jsx
+            still exists in the tree for safe revert. */}
+        <Route path="reviews"       element={<Navigate to="/owner/content?tab=reviews" replace />} />
         {/* Website */}
         <Route path="content"       element={<OwnerContent />} />
         {/* Marketing */}
@@ -182,7 +186,10 @@ export default function App() {
         <Route index element={<AdminDashboard />} />
         <Route path="messages"    element={<OwnerMessages />} />
         <Route path="content"     element={<OwnerContent />} />
-        <Route path="reviews"     element={<OwnerReviews />} />
+        {/* Reviews live as a tab inside Manage Website; redirect the
+            standalone URL so the admin dashboard's "Reviews" cards +
+            any legacy deep-links land on the tabbed surface. */}
+        <Route path="reviews"     element={<Navigate to="/admin/content?tab=reviews" replace />} />
         <Route path="promo-codes" element={<OwnerPromoCodes />} />
         <Route path="newsletter"  element={<OwnerNewsletter />} />
       </Route>

@@ -49,7 +49,10 @@ const MENU = {
   daily: [
     { path: "/owner/messages",     icon: "fa-envelope",            label: "Messages", badgeKey: "unreadMessages" },
     { path: "/owner/transactions", icon: "fa-file-invoice-dollar", label: "Transactions" },
-    { path: "/owner/reviews",      icon: "fa-star",                label: "Reviews", badgeKey: "pendingReviews" },
+    // Reviews dropped from the sidebar — same list is reachable via
+    // Website → Reviews tab. Standalone /owner/reviews still resolves
+    // (redirects to the Content page's Reviews tab in App.jsx) so old
+    // bookmarks and notification deep-links don't break.
   ],
   management: [
     { path: "/owner/rooms",    icon: "fa-bed",        label: "Catalog" },

@@ -31,7 +31,9 @@ const MENU = {
   manage: [
     { path: "/admin/messages",    icon: "fa-envelope",   label: "Messages",    badgeKey: "unreadMessages" },
     { path: "/admin/content",     icon: "fa-globe",      label: "Manage Website" },
-    { path: "/admin/reviews",     icon: "fa-star",       label: "Reviews"      },
+    // Reviews dropped from the sidebar — same list is a tab inside
+    // Manage Website. /admin/reviews still resolves (redirects to the
+    // Content page's Reviews tab in App.jsx) for legacy deep-links.
     { path: "/admin/promo-codes", icon: "fa-tag",        label: "Promo Codes"  },
     { path: "/admin/newsletter",  icon: "fa-paper-plane", label: "Newsletter"  },
   ],
