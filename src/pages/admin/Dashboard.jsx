@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useNotifications } from "../../context/NotificationContext.jsx";
-import { getPromoCodes, getNewsletterSubscribers } from "../../lib/adminApi.js";
 
-// Operational KPI dashboard for admin. Aligns with the tactical-tier
-// guidance in the kpi-dashboard-design skill: 4 headline KPIs that
-// are real-time (fed from the 20s-polling useStaffNotifications hook
-// AdminShell already runs), each click-through to the drilldown
-// surface admin actually has permission for. Revenue / occupancy
-// dashboards are intentionally absent — those are owner-only per
+// Operational KPI dashboard for admin, following the kpi-dashboard-
+// design skill's tactical-tier pattern: ≤ 5 headline KPIs, real-time
+// (20s poll via useStaffNotifications in AdminShell), actionable
+// click-through, tone colours (emerald/amber/rose) carrying urgency.
+//
+// All KPIs surface capabilities admin now actually has — operations
+// (bookings, billing, walk-ins) + management (messages, reviews).
+// Revenue / occupancy / staff metrics stay owner-only per
 // docs/roles.xlsx and live in /owner/reports.
 
 // ── Small presentational building blocks ──────────────────────────
@@ -74,22 +74,30 @@ function SectionCard({ title, icon, children, action }) {
   );
 }
 
-function OpsStat({ label, value, tone = "neutral", icon }) {
+function OpsRow({ label, value, tone = "neutral", icon, to }) {
   const toneColor = {
     neutral: "text-slate-700",
     urgent:  "text-rose-600",
     warn:    "text-amber-600",
     good:    "text-emerald-600",
   }[tone];
-  return (
+  const body = (
     <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-b-0">
       <div className="flex items-center gap-3">
         {icon && <i className={`fas ${icon} text-slate-400 w-4 text-center`} />}
         <span className="text-sm text-slate-600">{label}</span>
       </div>
-      <span className={`text-lg font-semibold ${toneColor}`}>{value}</span>
+      <div className="flex items-center gap-2">
+        <span className={`text-lg font-semibold ${toneColor}`}>{value}</span>
+        {to && <i className="fas fa-chevron-right text-slate-300 text-xs" />}
+      </div>
     </div>
   );
+  return to ? (
+    <Link to={to} className="block -mx-2 px-2 rounded hover:bg-slate-50 transition">
+      {body}
+    </Link>
+  ) : body;
 }
 
 // ── Main component ────────────────────────────────────────────────
@@ -97,40 +105,30 @@ export default function AdminDashboard() {
   const { user } = useAuth();
   const { counts } = useNotifications();
 
-  // Two extra counts pulled on mount — not hot-polling, these change
-  // rarely enough that a once-on-mount fetch is right. If the admin
-  // keeps the dashboard open for hours, a refresh re-pulls.
-  const [promoActive, setPromoActive] = useState(null);
-  const [subscribersTotal, setSubscribersTotal] = useState(null);
-
-  useEffect(() => {
-    let alive = true;
-    Promise.allSettled([
-      getPromoCodes().then((r) => r?.data?.data ?? r?.data ?? []),
-      getNewsletterSubscribers().then((r) => r?.data?.data ?? r?.data ?? []),
-    ]).then(([promoRes, subsRes]) => {
-      if (!alive) return;
-      if (promoRes.status === "fulfilled") {
-        const active = (promoRes.value || []).filter(
-          (p) => p.is_active !== false && p.active !== false
-        ).length;
-        setPromoActive(active);
-      } else {
-        setPromoActive(0);
-      }
-      if (subsRes.status === "fulfilled") {
-        setSubscribersTotal((subsRes.value || []).length);
-      } else {
-        setSubscribersTotal(0);
-      }
-    });
-    return () => { alive = false; };
-  }, []);
-
   const greeting = greetForHour();
 
   // ── Attention list — what specifically needs admin action right now
   const attention = [];
+  if (counts.overdueCheckouts > 0) {
+    attention.push({
+      id: "overdue",
+      icon: "fa-triangle-exclamation",
+      tone: "urgent",
+      text: `${counts.overdueCheckouts} checkout${counts.overdueCheckouts !== 1 ? "s" : ""} overdue`,
+      to: "/admin/bookings?status=Checked+In",
+      cta: "Review",
+    });
+  }
+  if (counts.todayArrivals > 0) {
+    attention.push({
+      id: "arrivals",
+      icon: "fa-plane-arrival",
+      tone: "info",
+      text: `${counts.todayArrivals} guest${counts.todayArrivals !== 1 ? "s" : ""} arriving today`,
+      to: "/admin/bookings?status=Confirmed",
+      cta: "Open Bookings",
+    });
+  }
   if (counts.unreadMessages > 0) {
     attention.push({
       id: "unread",
@@ -138,7 +136,7 @@ export default function AdminDashboard() {
       tone: "urgent",
       text: `${counts.unreadMessages} unread guest message${counts.unreadMessages !== 1 ? "s" : ""}`,
       to: "/admin/messages",
-      cta: "Open Messages",
+      cta: "Reply",
     });
   }
   if (counts.pendingReviews > 0) {
@@ -147,7 +145,7 @@ export default function AdminDashboard() {
       icon: "fa-star",
       tone: "warn",
       text: `${counts.pendingReviews} review${counts.pendingReviews !== 1 ? "s" : ""} pending moderation`,
-      to: "/admin/reviews",
+      to: "/admin/content?tab=reviews",
       cta: "Moderate",
     });
   }
@@ -157,18 +155,8 @@ export default function AdminDashboard() {
       icon: "fa-star",
       tone: "info",
       text: `${counts.newReviews} new review${counts.newReviews !== 1 ? "s" : ""} this week`,
-      to: "/admin/reviews",
+      to: "/admin/content?tab=reviews",
       cta: "Review",
-    });
-  }
-  if (counts.overdueCheckouts > 0) {
-    attention.push({
-      id: "overdue",
-      icon: "fa-triangle-exclamation",
-      tone: "urgent",
-      text: `${counts.overdueCheckouts} checkout${counts.overdueCheckouts !== 1 ? "s" : ""} overdue — front desk is handling, flagged here for awareness`,
-      to: null,
-      cta: null,
     });
   }
 
@@ -180,12 +168,28 @@ export default function AdminDashboard() {
           {greeting}, {user?.name || "Admin"}.
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Real-time operational overview. Updates every 20 seconds.
+          Operational overview. Live counts refresh every 20 seconds.
         </p>
       </div>
 
-      {/* Row 1 — headline KPIs */}
+      {/* Row 1 — headline KPIs, all operational + actionable */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <KpiCard
+          to="/admin/bookings?status=Confirmed"
+          icon="fa-plane-arrival"
+          label="Arrivals today"
+          value={counts.todayArrivals}
+          tone={counts.todayArrivals > 0 ? "info" : "neutral"}
+          sublabel={counts.todayArrivals > 0 ? "Ready to check in" : "Nothing booked yet"}
+        />
+        <KpiCard
+          to="/admin/bookings?status=Checked+In"
+          icon="fa-triangle-exclamation"
+          label="Overdue checkouts"
+          value={counts.overdueCheckouts}
+          tone={counts.overdueCheckouts > 0 ? "urgent" : "good"}
+          sublabel={counts.overdueCheckouts > 0 ? "Past checkout time" : "Nothing overdue"}
+        />
         <KpiCard
           to="/admin/messages"
           icon="fa-envelope"
@@ -195,7 +199,7 @@ export default function AdminDashboard() {
           sublabel={counts.unreadMessages > 0 ? "Reply to guests" : "Inbox clear"}
         />
         <KpiCard
-          to="/admin/reviews"
+          to="/admin/content?tab=reviews"
           icon="fa-star"
           label="Pending reviews"
           value={counts.pendingReviews}
@@ -208,59 +212,37 @@ export default function AdminDashboard() {
               : "Nothing queued"
           }
         />
-        <KpiCard
-          to="/admin/promo-codes"
-          icon="fa-tag"
-          label="Active promo codes"
-          value={promoActive == null ? "…" : promoActive}
-          tone="info"
-          sublabel="Currently usable by guests"
-        />
-        <KpiCard
-          to="/admin/newsletter"
-          icon="fa-paper-plane"
-          label="Newsletter subscribers"
-          value={subscribersTotal == null ? "…" : subscribersTotal.toLocaleString()}
-          tone="neutral"
-          sublabel="Total on the list"
-        />
       </div>
 
       {/* Row 2 — two panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Today at the resort — read-only operational context */}
-        <SectionCard
-          title="Today at the resort"
-          icon="fa-calendar-day"
-        >
-          <OpsStat
+        {/* Today at the resort — actionable rows (admin can act on all of these now) */}
+        <SectionCard title="Today at the resort" icon="fa-calendar-day">
+          <OpsRow
             icon="fa-plane-arrival"
-            label="Arrivals today"
+            label="Arrivals"
             value={counts.todayArrivals}
             tone={counts.todayArrivals > 0 ? "good" : "neutral"}
+            to="/admin/bookings?status=Confirmed"
           />
-          <OpsStat
+          <OpsRow
             icon="fa-clock"
-            label={`Checkouts in <30 min`}
+            label="Checkouts in <30 min"
             value={counts.soonCheckouts}
             tone={counts.soonCheckouts > 0 ? "warn" : "neutral"}
+            to={counts.soonCheckouts > 0 ? "/admin/bookings?status=Checked+In" : null}
           />
-          <OpsStat
+          <OpsRow
             icon="fa-triangle-exclamation"
             label="Overdue checkouts"
             value={counts.overdueCheckouts}
             tone={counts.overdueCheckouts > 0 ? "urgent" : "neutral"}
+            to={counts.overdueCheckouts > 0 ? "/admin/bookings?status=Checked+In" : null}
           />
-          <p className="mt-3 text-xs text-slate-400 italic">
-            Check-in and check-out are handled at the front desk — shown here for context.
-          </p>
         </SectionCard>
 
         {/* Needs your attention */}
-        <SectionCard
-          title="Needs your attention"
-          icon="fa-bell"
-        >
+        <SectionCard title="Needs your attention" icon="fa-bell">
           {attention.length === 0 ? (
             <div className="py-8 text-center">
               <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-emerald-50 text-emerald-500 mb-3">
@@ -268,7 +250,7 @@ export default function AdminDashboard() {
               </div>
               <p className="text-sm text-slate-600">All caught up.</p>
               <p className="text-xs text-slate-400 mt-1">
-                Nothing urgent on messages, reviews, or checkouts.
+                Nothing urgent across bookings, messages, or reviews.
               </p>
             </div>
           ) : (
@@ -304,13 +286,15 @@ export default function AdminDashboard() {
         </SectionCard>
       </div>
 
-      {/* Row 3 — quick actions */}
+      {/* Row 3 — quick actions. Operational-first: the things admin
+          reaches for when covering for front desk. Management actions
+          (promos, newsletter) still reachable via the sidebar. */}
       <SectionCard title="Quick actions" icon="fa-bolt">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction to="/admin/messages"    icon="fa-reply"       label="Reply to guests" />
-          <QuickAction to="/admin/content"     icon="fa-pen-to-square" label="Edit website" />
-          <QuickAction to="/admin/promo-codes" icon="fa-tag"         label="New promo code" />
-          <QuickAction to="/admin/newsletter"  icon="fa-paper-plane" label="Send campaign" />
+          <QuickAction to="/admin/walk-in"  icon="fa-person-walking-arrow-right" label="New walk-in" />
+          <QuickAction to="/admin/bookings" icon="fa-calendar-check" label="Manage bookings" />
+          <QuickAction to="/admin/billing"  icon="fa-file-invoice-dollar" label="Collect payment" />
+          <QuickAction to="/admin/content"  icon="fa-pen-to-square" label="Edit website" />
         </div>
       </SectionCard>
     </div>
