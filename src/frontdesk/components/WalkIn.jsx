@@ -195,19 +195,31 @@ export default function WalkIn() {
     return ids;
   }, [rooms]);
 
-  // The picker's working list. Walk-in shows SHARED-POOL addons only
-  // (pillows, towel, parking, common table). Room-scoped addons —
-  // whether relation=package (auto-attached server-side at booking
-  // creation) or relation=optional (per-room attachments) — are
-  // excluded from the walk-in picker per staff request: package
-  // items go on automatically, and optional room-fixture add-ons
-  // are handled post-booking in BookingDetailModal instead of during
-  // the walk-in form. Keeps the walk-in picker short and focused on
-  // items staff commonly charge at the counter.
-  const visibleAddons = useMemo(
-    () => addons.filter(a => !roomScopedAddonIds.has(a.id)),
-    [addons, roomScopedAddonIds]
-  );
+  // The picker's working list. Returns two kinds of rows, each
+  // tagged with a `relation` so the picker can render a "For this
+  // room" badge on room-attached ones:
+  //   - relation='shared'   → catalog addons not tied to any room
+  //                            (pillows, towel, parking, common table)
+  //   - relation='optional' → attached to THIS room as optional,
+  //                            priced via the per-room pivot override
+  // Package attachments anywhere + optional attachments for other
+  // rooms are hidden — packages auto-attach server-side, other-room
+  // optionals don't apply here.
+  const visibleAddons = useMemo(() => {
+    const selectedRoomOptionals = new Map(
+      (selectedRoom?.attached_addons ?? [])
+        .filter(a => a.relation === 'optional')
+        .map(a => [a.id, a])
+    );
+    return addons.flatMap(a => {
+      if (!roomScopedAddonIds.has(a.id)) {
+        return [{ ...a, relation: 'shared' }];
+      }
+      const opt = selectedRoomOptionals.get(a.id);
+      if (!opt) return [];
+      return [{ ...a, relation: 'optional', price: Number(opt.price) }];
+    });
+  }, [addons, roomScopedAddonIds, selectedRoom]);
 
   // Clear qtys for any addon that disappeared from the visible list
   // after switching rooms (e.g. staged Patrice videoke qty=1 then
@@ -1002,6 +1014,17 @@ export default function WalkIn() {
                         const cap       = remaining != null ? Math.min(remaining, a.max_qty) : a.max_qty;
                         const soldOut   = remaining === 0 && !active;
                         const atCap     = qty >= cap;
+                        // "For this room" tag — small amber pill next to
+                        // the name to distinguish optional room-fixture
+                        // add-ons (Patrice videoke, Red Pavilion videoke)
+                        // from shared-pool items. Prevents staff from
+                        // confusing "Videoke (Hourly)" with "Videoke
+                        // (Red Pavillion)" when both appear.
+                        const roomTag = a.relation === 'optional' ? (
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase tracking-wide">
+                            <i className="fas fa-link text-[9px]"></i>For {selectedRoom?.name}
+                          </span>
+                        ) : null;
                         if (isFixed) {
                           return (
                             <button key={a.id} type="button"
@@ -1016,9 +1039,10 @@ export default function WalkIn() {
                                     : 'border-slate-200 hover:border-slate-300'
                               }`}
                             >
-                              <div className="flex items-center gap-2 mb-1">
+                              <div className="flex items-center gap-2 mb-1 flex-wrap">
                                 <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-slate-400'}`}></i>
                                 <p className={`text-sm font-medium ${active ? 'text-indigo-700' : soldOut ? 'text-slate-400' : 'text-slate-700'}`}>{a.name}</p>
+                                {roomTag}
                               </div>
                               <p className="text-xs text-slate-500">₱{Number(a.price).toLocaleString()} flat</p>
                               {soldOut ? (
@@ -1032,9 +1056,10 @@ export default function WalkIn() {
                         }
                         return (
                           <div key={a.id} className={`border rounded-lg p-3 ${soldOut ? 'bg-slate-50 border-slate-200' : ''}`}>
-                            <div className="flex items-center gap-2 mb-2">
+                            <div className="flex items-center gap-2 mb-2 flex-wrap">
                               <i className={`fas ${a.icon || 'fa-tag'} text-slate-500`}></i>
                               <p className={`text-sm font-medium ${soldOut ? 'text-slate-400' : 'text-slate-700'}`}>{a.name}</p>
+                              {roomTag}
                               <span className="ml-auto text-xs text-slate-500">₱{Number(a.price).toLocaleString()} each</span>
                             </div>
                             {soldOut ? (
