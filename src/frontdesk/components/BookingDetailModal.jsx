@@ -966,14 +966,18 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               );
               // Tag each visible row with `relation` so the picker can
               // render a "For [room]" badge on optional room-fixture
-               // items — important when catalog has look-alike names
+              // items — important when catalog has look-alike names
               // like "Videoke (Hourly)" (shared) vs "Videoke (Red
-              // Pavilion)" (room-fixture).
+              // Pavilion)" (room-fixture). Optionals sort first so
+              // staff see room-specific items before shared-pool.
               const visibleCatalog = addonCatalog.flatMap(c => {
                 if (!roomScopedIds.has(c.id)) return [{ ...c, relation: 'shared' }];
                 const opt = thisRoomOpt.get(c.id);
                 if (!opt) return [];                                                       // attached elsewhere or package here
                 return [{ ...c, relation: 'optional', price: Number(opt.price) }];         // per-room override
+              }).sort((a, b) => {
+                if (a.relation === b.relation) return 0;
+                return a.relation === 'optional' ? -1 : 1;
               });
 
               // Guard against duplicate add-on rows. The backend's addAmenity
@@ -1023,6 +1027,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         : soldOut
                           ? 'All units of this add-on are booked during this booking window.'
                           : undefined;
+                      const isOptional = cat.relation === 'optional';
                       return (
                         <button
                           key={cat.id}
@@ -1034,19 +1039,24 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors ${
                             selected  ? 'bg-sky-50'
                             : disabled ? 'bg-slate-50/60 cursor-not-allowed'
+                            : isOptional ? 'bg-amber-50/50 hover:bg-amber-50 border-l-4 border-l-amber-400'
                             : 'hover:bg-slate-50'
                           }`}
                         >
                           <i className={`fas ${cat.icon || 'fa-tag'} w-4 text-center text-[13px] ${
-                            selected ? 'text-sky-600' : disabled ? 'text-slate-300' : 'text-slate-400'
+                            selected ? 'text-sky-600'
+                            : disabled ? 'text-slate-300'
+                            : isOptional ? 'text-amber-600'
+                            : 'text-slate-400'
                           }`} aria-hidden="true"></i>
                           <span className={`text-sm font-medium min-w-0 flex-1 truncate ${
                             disabled ? 'text-slate-400' : selected ? 'text-sky-800' : 'text-slate-700'
                           }`}>{cat.name}</span>
-                          {/* Room-fixture marker — distinguishes look-alike
-                              catalog names from their per-room attachments. */}
-                          {cat.relation === 'optional' && (
-                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase tracking-wide shrink-0">
+                          {/* Room-fixture badge — bright amber pill so the
+                              row stands out. Paired with amber-tinted bg
+                              + left-border accent above. */}
+                          {isOptional && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-white text-[10px] font-bold uppercase tracking-wide shadow-sm shrink-0">
                               <i className="fas fa-link text-[9px]" aria-hidden="true"></i>For {bookingRoom?.name || 'this room'}
                             </span>
                           )}

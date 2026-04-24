@@ -205,19 +205,29 @@ export default function WalkIn() {
   // Package attachments anywhere + optional attachments for other
   // rooms are hidden — packages auto-attach server-side, other-room
   // optionals don't apply here.
+  //
+  // Optional rows sort FIRST so staff see the room-specific items
+  // before the generic shared-pool list — matches the "these apply
+  // only to this room, don't miss them" mental model.
   const visibleAddons = useMemo(() => {
     const selectedRoomOptionals = new Map(
       (selectedRoom?.attached_addons ?? [])
         .filter(a => a.relation === 'optional')
         .map(a => [a.id, a])
     );
-    return addons.flatMap(a => {
+    const rows = addons.flatMap(a => {
       if (!roomScopedAddonIds.has(a.id)) {
         return [{ ...a, relation: 'shared' }];
       }
       const opt = selectedRoomOptionals.get(a.id);
       if (!opt) return [];
       return [{ ...a, relation: 'optional', price: Number(opt.price) }];
+    });
+    // Stable sort: optionals first, shared after. Preserves original
+    // order within each group.
+    return rows.sort((a, b) => {
+      if (a.relation === b.relation) return 0;
+      return a.relation === 'optional' ? -1 : 1;
     });
   }, [addons, roomScopedAddonIds, selectedRoom]);
 
@@ -1014,17 +1024,22 @@ export default function WalkIn() {
                         const cap       = remaining != null ? Math.min(remaining, a.max_qty) : a.max_qty;
                         const soldOut   = remaining === 0 && !active;
                         const atCap     = qty >= cap;
-                        // "For this room" tag — small amber pill next to
-                        // the name to distinguish optional room-fixture
-                        // add-ons (Patrice videoke, Red Pavilion videoke)
-                        // from shared-pool items. Prevents staff from
-                        // confusing "Videoke (Hourly)" with "Videoke
-                        // (Red Pavillion)" when both appear.
-                        const roomTag = a.relation === 'optional' ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 text-[10px] font-semibold uppercase tracking-wide">
+                        // Room-fixture rows get amber ring + bg tint + a
+                        // bigger badge so they visually lead the picker.
+                        // Staff scan top-to-bottom and see "this is for
+                        // THIS room, don't miss it" before diving into the
+                        // shared-pool list below.
+                        const isOptional = a.relation === 'optional';
+                        const roomTag = isOptional ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-white text-[10px] font-bold uppercase tracking-wide shadow-sm">
                             <i className="fas fa-link text-[9px]"></i>For {selectedRoom?.name}
                           </span>
                         ) : null;
+                        // Baseline classes + amber accent layered on for
+                        // optionals. Active/soldOut states still override.
+                        const optionalAccent = isOptional
+                          ? 'ring-2 ring-amber-300 bg-amber-50/60'
+                          : '';
                         if (isFixed) {
                           return (
                             <button key={a.id} type="button"
@@ -1036,11 +1051,11 @@ export default function WalkIn() {
                                   ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
                                   : active
                                     ? 'border-indigo-400 bg-indigo-50'
-                                    : 'border-slate-200 hover:border-slate-300'
+                                    : `border-slate-200 hover:border-slate-300 ${optionalAccent}`
                               }`}
                             >
                               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                                <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : 'text-slate-400'}`}></i>
+                                <i className={`fas ${a.icon || 'fa-tag'} ${active ? 'text-indigo-600' : isOptional ? 'text-amber-600' : 'text-slate-400'}`}></i>
                                 <p className={`text-sm font-medium ${active ? 'text-indigo-700' : soldOut ? 'text-slate-400' : 'text-slate-700'}`}>{a.name}</p>
                                 {roomTag}
                               </div>
@@ -1055,9 +1070,11 @@ export default function WalkIn() {
                           );
                         }
                         return (
-                          <div key={a.id} className={`border rounded-lg p-3 ${soldOut ? 'bg-slate-50 border-slate-200' : ''}`}>
+                          <div key={a.id} className={`border rounded-lg p-3 ${
+                            soldOut ? 'bg-slate-50 border-slate-200' : optionalAccent || ''
+                          }`}>
                             <div className="flex items-center gap-2 mb-2 flex-wrap">
-                              <i className={`fas ${a.icon || 'fa-tag'} text-slate-500`}></i>
+                              <i className={`fas ${a.icon || 'fa-tag'} ${isOptional ? 'text-amber-600' : 'text-slate-500'}`}></i>
                               <p className={`text-sm font-medium ${soldOut ? 'text-slate-400' : 'text-slate-700'}`}>{a.name}</p>
                               {roomTag}
                               <span className="ml-auto text-xs text-slate-500">₱{Number(a.price).toLocaleString()} each</span>
