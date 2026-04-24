@@ -13,9 +13,9 @@ Aplaya Beach Resort booking system (Capstone).
 
 ## Repos & deployment
 
-- **Frontend:** `rawarcode/AplayAccess` → Vercel → `https://aplayabeachresort.com`
-- **Backend:** `michaelmj23/AplayAccess-Backend` → Railway → `https://api.aplayabeachresort.com`
-- **User's mirror target:** `michaelmj23/AplayAccess` (frontend) and `michaelmj23/AplayAccess-Backend` (backend). Use the `/mirror` skill to push to the user's copy.
+- **Frontend source-of-truth repo (where `git push origin main` lands from this workspace):** `rawarcode/AplayAccess`. Pushing here is **not** a deploy — Vercel does not watch this repo.
+- **Frontend deploy trigger:** `michaelmj23/AplayAccess` (the "mirror"). **Vercel's GitHub integration is wired to this repo**, so a push to it is what actually rebuilds prod. The `/mirror` skill is therefore the deploy step — not a bookkeeping nicety. **Every frontend ship sequence is: commit → push `rawarcode` → `/mirror` → verify Vercel picked up the new SHA.** Skip the mirror and nothing deploys.
+- **Backend:** `michaelmj23/AplayAccess-Backend` → Railway → `https://api.aplayabeachresort.com`. Railway's webhook works directly against this repo — pushes auto-deploy, no mirror step needed.
 - **Backend local path:** `E:\Capstone\AplayAccess-Backend`
 - **Backend scheduler on Railway:** separate cron service named `bubbly-freedom`, runs `php artisan schedule:run` every 5 min via `*/5 * * * *`.
 
@@ -102,6 +102,9 @@ Legacy `/admin/*` routes redirect to `/owner/*`. The `admin` role was consolidat
 - **Emoji can't render inside native `<option>` or `<optgroup>`** — Font Awesome won't work there either. Walk-In room picker keeps emoji deliberately; everywhere else uses FA.
 - **`bookingRooms` strip trap.** `Rooms.jsx`, `Resort.jsx`, and `GuestDashboard.jsx` each re-map the raw rooms array into a whitelisted `bookingRooms` prop before passing to `BookingModal`. Adding a new field to the rooms API response (e.g. `attached_addons`) does **not** automatically flow through — each mapping silently drops unlisted keys. Any field BookingModal needs must be added to all three whitelists. `MyBookings.jsx` + `ResumeGuestBooking.jsx` pass `rooms={[]}` (resume-only flow) so they're exempt.
 - **Shell overflow pattern — OwnerShell vs frontdesk Sidebar.** Both shells render a sticky header + a `<main>` holding the page. For a page to use `h-full flex flex-col` + inner `flex-1 min-h-0` (like Messages.jsx does), `<main>` itself must be the scroll container. The frontdesk Sidebar gets this right: `<main className="flex-1 overflow-auto">`. OwnerShell had `overflow-auto` on the outer wrapper and a plain `<main className="flex-1">` — main grew to content instead of constraining it, which broke `h-full`-based pages (they rendered "too tall" and the whole right column scrolled). Fixed by moving overflow-auto onto `<main>` and setting the wrapper to overflow-hidden. If a new shell is ever added, mirror this pattern.
+- **Axios 1.x drops XSRF on cross-origin requests.** Default axios only mirrors the `XSRF-TOKEN` cookie into an `X-XSRF-TOKEN` header for **same-origin** requests, even when `withCredentials: true`. `www → api` is cross-origin (same-site, different subdomain), so without the explicit `withXSRFToken: true` flag on the axios instance, Laravel's CSRF middleware 419s every mutating request once `SANCTUM_STATEFUL_DOMAINS` is active. Symptom: "CSRF token mismatch" on login even with fresh InPrivate cookies. Fix lives on the axios instance in `src/lib/api.js`. Don't remove this flag.
+- **Sanctum stateful is Origin-gated, so session code must be guarded.** `EnsureFrontendRequestsAreStateful` only prepends the web-guard middleware group (EncryptCookies, StartSession, ShareErrorsFromSession, ValidateCsrfToken) when the request's Origin matches `SANCTUM_STATEFUL_DOMAINS`. Token-only callers bypass it, meaning `$request->session()` and `$request->session()->regenerate()` throw `Session store not set on request` for those callers. Every session touch in controllers (`register`, `login`, `googleLogin`, `logout`, admin `login`/`logout`) must be wrapped in `if ($request->hasSession()) { ... }`. P1.2 shipped a crash when this was overlooked; fixed in `2839f6a`.
+- **Vercel deploy is wired to the mirror, not the source repo.** See "Repos & deployment" at top — `rawarcode/AplayAccess` is push target, `michaelmj23/AplayAccess` is the deploy trigger. Running `/mirror` is part of shipping, not housekeeping.
 
 ## Per-room add-on pricing — the 4 write paths that must stay aligned
 
@@ -118,6 +121,36 @@ On the frontend, each picker filters the catalog by the booking's room and overr
 - `src/components/modals/BookingModal.jsx` — guest new-booking (optionalAddons memo)
 - `src/frontdesk/components/WalkIn.jsx` — walk-in form (visibleAddons memo)
 - `src/frontdesk/components/BookingDetailModal.jsx` — post-booking staff picker (visibleCatalog memo)
+
+## Cookie auth topology (post-P1.2)
+
+Session-cookie auth is the primary path; Bearer is a decaying back-compat path.
+
+**Required Railway env (backend):**
+- `SANCTUM_STATEFUL_DOMAINS=www.aplayabeachresort.com,aplayabeachresort.com`
+- `SESSION_DOMAIN=.aplayabeachresort.com` (leading dot = parent domain, readable by both `www.` and `api.` subdomains)
+- `SESSION_SECURE_COOKIE=true`
+
+Missing any of these → `EnsureFrontendRequestsAreStateful` sees no match, web middleware never prepends, session+CSRF silently off, cookies never set → refresh logs user out.
+
+**Frontend axios (`src/lib/api.js`):**
+- `withCredentials: true` — sends cookies cross-origin
+- `withXSRFToken: true` — opts into cross-origin XSRF header mirroring (see hazards above)
+- Still injects `Authorization: Bearer` if `aplaya_token` exists in localStorage — back-compat for users who logged in pre-P1.2
+
+**CORS (`config/cors.php`):** must include `X-XSRF-TOKEN` in `allowed_headers` or preflight rejects the CSRF header.
+
+**Login flow:** `primeCsrf()` hits `/sanctum/csrf-cookie` first to get an `XSRF-TOKEN` cookie; axios auto-mirrors it as `X-XSRF-TOKEN` on the login POST; Laravel's CSRF middleware validates; login endpoint returns a session cookie (`aplayaccess-session`, HttpOnly, SameSite=Lax, Domain=.aplayabeachresort.com). From that point on, every request carries the session cookie; the bearer token in the response is ignored by new clients.
+
+**localStorage state:**
+- `aplaya_user_v1` (STORAGE_KEY) — cached user object for instant render on reload. NOT a source of truth — `/api/me` always runs on boot and overwrites. Safe to delete; causes a brief "logged out" flash while `/api/me` resolves.
+- `aplaya_token` (TOKEN_KEY) — legacy bearer token. New logins don't write it. Pre-P1.2 sessions still have it and still work via the Authorization header fallback. Logout clears it.
+
+**Diagnostic rule for "CSRF token mismatch":** always inspect the **Request** Headers of the failing POST (not Response). Checklist:
+1. Is `X-Xsrf-Token:` present? If not → axios isn't mirroring (check `withXSRFToken: true` is deployed, not just committed).
+2. Does its value match the `XSRF-TOKEN` cookie in Application → Cookies? If different → stale JS cached from a pre-fix deploy.
+3. Is `Cookie:` sending `aplayaccess-session=...`? If not → SameSite / Domain scoping issue on the session cookie.
+4. If all three pass and still 419 → clear all cookies for `.aplayabeachresort.com` (not just one subdomain) and retry fresh.
 
 ## Docs maintenance rule
 
