@@ -1189,6 +1189,19 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 }
                 const available = rooms.filter(r => {
                   if (String(r.id) === String(booking.roomId)) return false;
+                  // Pseudo-room guard — the 'admission' category is the
+                  // Entrance Only gate-walk-in row, not a real stayable
+                  // unit. Backend rejects this too, but filtering here
+                  // keeps it out of the dropdown entirely.
+                  if (r.category === 'admission') return false;
+                  // Booking-type compatibility — skip rooms that don't
+                  // accept this booking's type. Empty/null
+                  // allowed_booking_types means the room accepts all.
+                  const allowed = r.allowed_booking_types;
+                  if (Array.isArray(allowed) && allowed.length > 0
+                      && !allowed.includes(booking.bookingType)) {
+                    return false;
+                  }
                   const taken = overlapCounts.get(r.id) ?? 0;
                   const qty   = Number(r.quantity ?? 1);
                   return taken < qty;
