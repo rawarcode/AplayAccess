@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+// bookingsPath resolution lives inside the component so the back-button
+// and success redirect land in the portal the page was mounted from
+// (/admin/bookings when embedded, /frontdesk/bookings otherwise).
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
@@ -44,6 +47,7 @@ const EMPTY_FORM = {
 export default function WalkIn({ embedded = false }) {
   const Shell = embedded ? Fragment : Sidebar;
   const location = useLocation();
+  const bookingsPath = location.pathname.startsWith('/admin') ? '/admin/bookings' : '/frontdesk/bookings';
   const navigate = useNavigate();
   const preselectedRoom = location.state?.preselectedRoom ?? null;
 
@@ -129,7 +133,7 @@ export default function WalkIn({ embedded = false }) {
 
   // Close handlers return to the consolidated Bookings page, since this
   // route carries no content of its own beyond the wizard modal.
-  const closeWizard = () => navigate('/frontdesk/bookings');
+  const closeWizard = () => navigate(bookingsPath);
 
   // Room availability — same check as BookingModal
   const [availability,  setAvailability]  = useState(null);
@@ -404,7 +408,7 @@ export default function WalkIn({ embedded = false }) {
       // Success: return to the consolidated Bookings view. Skip loadAll —
       // the Bookings page fetches its own data on mount.
       showToast('Walk-in booking created.', 'success');
-      navigate('/frontdesk/bookings');
+      navigate(bookingsPath);
       return;
     } catch (err) {
       setFormError(
@@ -1252,7 +1256,7 @@ export default function WalkIn({ embedded = false }) {
           <i className="fas fa-spinner fa-spin text-2xl mb-3 block"></i>
           <p className="text-sm">Opening walk-in wizard…</p>
           <button
-            onClick={() => navigate('/frontdesk/bookings')}
+            onClick={() => navigate(bookingsPath)}
             className="mt-4 text-xs text-sky-600 hover:text-sky-800 font-medium"
           >
             ← Back to Bookings

@@ -36,7 +36,9 @@ const MENU = {
   ],
   operations: [
     { path: "/admin/bookings",       icon: "fa-calendar-check", label: "Bookings" },
-    { path: "/admin/walk-in",        icon: "fa-person-walking-arrow-right", label: "Walk-In" },
+    // Walk-In intentionally not here — Bookings already surfaces
+    // walk-in creation inline, and having a separate sidebar item
+    // duplicated the entry point.
     { path: "/admin/billing",        icon: "fa-file-invoice-dollar", label: "Billing" },
     { path: "/admin/guest-records",  icon: "fa-id-card",        label: "Guest Records" },
     { path: "/admin/rooms",          icon: "fa-bed",            label: "Rooms" },

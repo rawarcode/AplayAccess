@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import Toast, { useToast } from '../../components/ui/Toast';
@@ -103,6 +103,12 @@ function SourcePill({ source }) {
 export default function Bookings({ embedded = false }) {
   const Shell                             = embedded ? Fragment : Sidebar;
   const navigate                          = useNavigate();
+  const location                          = useLocation();
+  // Context-aware walk-in path — when this page is mounted under
+  // /admin/bookings (embedded mode), the "+ New Walk-in" button
+  // should stay inside AdminShell by going to /admin/walk-in, not
+  // jump to /frontdesk/walkin which would leave admin's portal.
+  const walkinPath = location.pathname.startsWith('/admin') ? '/admin/walk-in' : '/frontdesk/walkin';
   const [bookings, setBookings]           = useState([]);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState('');
@@ -517,7 +523,7 @@ export default function Bookings({ embedded = false }) {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/frontdesk/walkin')}
+              onClick={() => navigate(walkinPath)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm min-h-[40px] focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
             >
               <i className="fas fa-plus" aria-hidden="true"></i>New Walk-in
