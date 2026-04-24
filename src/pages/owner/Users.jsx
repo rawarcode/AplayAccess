@@ -44,13 +44,15 @@ export { TabBar };
 const BLANK = { name: "", email: "", phone: "", role: "front_desk", password: "", is_active: true, avatar: "" };
 const PAGE_SIZE = 10;
 
-const ROLE_LABELS = { front_desk: "Front Desk", owner: "Owner" };
+const ROLE_LABELS = { front_desk: "Front Desk", admin: "Admin", owner: "Owner" };
 const ROLE_COLORS = {
   front_desk: "bg-sky-100 text-sky-800",
+  admin:      "bg-violet-100 text-violet-800",
   owner:      "bg-amber-100 text-amber-800",
 };
 const ROLE_AVATAR = {
   owner:      "bg-amber-500",
+  admin:      "bg-violet-500",
   front_desk: "bg-sky-500",
 };
 
@@ -482,6 +484,7 @@ export default function OwnerUsers() {
           {[
             { key: "all", label: "All Roles" },
             { key: "owner", label: "Owner" },
+            { key: "admin", label: "Admin" },
             { key: "front_desk", label: "Front Desk" },
           ].map((f) => (
             <button key={f.key} onClick={() => setFilterRole(f.key)}
@@ -555,7 +558,7 @@ export default function OwnerUsers() {
             </div>
             <div className="h-8 w-px bg-slate-200"></div>
             <div className="flex items-center gap-4">
-              {["owner", "front_desk"].map((r) => (
+              {["owner", "admin", "front_desk"].map((r) => (
                 <div key={r} className="text-center">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">{ROLE_LABELS[r]}</p>
                   <p className="text-lg font-semibold text-slate-700">{roleCount(r)}</p>
@@ -1021,7 +1024,8 @@ export default function OwnerUsers() {
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Role <span className="text-red-400">*</span></label>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { key: "front_desk", label: "Front Desk", icon: "fa-headset", bg: "peer-checked:bg-sky-50 peer-checked:border-sky-300 peer-checked:ring-1 peer-checked:ring-sky-200" },
+                        { key: "front_desk", label: "Front Desk", icon: "fa-headset",      bg: "peer-checked:bg-sky-50 peer-checked:border-sky-300 peer-checked:ring-1 peer-checked:ring-sky-200" },
+                        { key: "admin",      label: "Admin",      icon: "fa-user-shield",  bg: "peer-checked:bg-violet-50 peer-checked:border-violet-300 peer-checked:ring-1 peer-checked:ring-violet-200" },
                       ].map(({ key, label, icon, bg }) => (
                         <label key={key} className="relative cursor-pointer select-none">
                           <input type="radio" name="role" value={key} checked={editing.role === key}
