@@ -120,14 +120,14 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
     }
   }
 
-  // Same implicit-flow pattern as LoginModal — see there for the why.
+  // Same auth-code + PKCE flow as LoginModal — see there for the why.
   const googleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (tokenResponse) => {
+    flow: "auth-code",
+    onSuccess: async (codeResponse) => {
       setError("");
       setSubmitting(true);
       try {
-        const u = await loginWithGoogle(tokenResponse.access_token);
+        const u = await loginWithGoogle(codeResponse.code);
         onSignedUp?.(u);
         showToast("Signed in with Google! Welcome.", "success");
         onClose?.();

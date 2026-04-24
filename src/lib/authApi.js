@@ -32,11 +32,14 @@ export async function logoutRequest() {
 }
 
 // POST /api/auth/google — Google Sign-In
-// Sends the OAuth2 access_token obtained via useGoogleLogin({flow:'implicit'}).
-// Backend calls Google's userinfo endpoint with it to fetch email/sub/name/picture,
-// then runs the same find-or-create logic.
-export async function googleLoginRequest(accessToken) {
-  const res = await api.post("/api/auth/google", { access_token: accessToken });
+// Sends the OAuth2 authorization code obtained via
+// useGoogleLogin({flow:'auth-code'}). Backend exchanges the code for
+// tokens at oauth2.googleapis.com/token using the server-held
+// client_secret, then resolves the identity via userinfo. The
+// access_token never enters the browser — that's the P2 auth-code
+// + PKCE upgrade over the previous implicit flow.
+export async function googleLoginRequest(code) {
+  const res = await api.post("/api/auth/google", { code });
   return res.data;
 }
 

@@ -104,9 +104,9 @@ export function AuthProvider({ children }) {
   // custom "Sign in with Google" pill driven by useGoogleLogin — the
   // generic UI is the whole point. The backend verifies the
   // access_token by calling Google's userinfo endpoint.
-  async function loginWithGoogle(accessToken) {
+  async function loginWithGoogle(code) {
     await primeCsrf();
-    const data = await googleLoginRequest(accessToken);
+    const data = await googleLoginRequest(code);
     const u = normalizeUser(data);
     setUser(u);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(u));

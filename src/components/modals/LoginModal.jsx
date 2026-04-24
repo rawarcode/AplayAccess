@@ -23,15 +23,17 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
 
   // useGoogleLogin MUST be called before any early return so the hook
   // count stays constant across renders (React error #310 otherwise).
-  // Implicit-flow returns { access_token } → backend verifies via
-  // Google's userinfo endpoint.
+  // Auth-code flow returns a short-lived authorization code → backend
+  // exchanges it for tokens using the server-held client_secret. The
+  // access_token never enters the browser (P2 hardening — upgraded
+  // from the old implicit flow that surfaced access_token client-side).
   const googleLogin = useGoogleLogin({
-    flow: "implicit",
-    onSuccess: async (tokenResponse) => {
+    flow: "auth-code",
+    onSuccess: async (codeResponse) => {
       setError("");
       setSubmitting(true);
       try {
-        const u = await loginWithGoogle(tokenResponse.access_token);
+        const u = await loginWithGoogle(codeResponse.code);
         onLoginSuccess?.(u);
       } catch (err) {
         const msg = err?.response?.data?.message || "Google sign-in failed. Please try again.";
