@@ -13,28 +13,33 @@ import { Helmet } from "react-helmet-async";
 
 const PAGE_TITLES = {
   "/admin":                "Dashboard",
-  "/admin/rooms":          "Manage Rooms",
-  "/admin/guests":         "Guests",
-  "/admin/history":        "History",
-  "/admin/reviews":        "Reviews",
-  "/admin/content":        "Manage Website",
   "/admin/messages":       "Messages",
-  "/admin/announcements":  "Announcements",
+  "/admin/content":        "Manage Website",
+  "/admin/reviews":        "Reviews",
+  "/admin/promo-codes":    "Promo Codes",
+  "/admin/newsletter":     "Newsletter",
 };
 
+// Admin menu — mirrors the admin_or_owner rows of docs/roles.xlsx.
+// Owner-only routes (Rooms CRUD, Users, Analytics, Settings, Activity
+// Log, Stats) deliberately aren't here — if the owner is logged in
+// and wants those, they use /owner/* instead.
 const MENU = {
   main: [
-    { path: "/admin",              icon: "fa-tachometer-alt",  label: "Dashboard",    ownerOnly: false },
+    { path: "/admin",            icon: "fa-tachometer-alt", label: "Dashboard" },
   ],
   manage: [
-    { path: "/admin/rooms",          icon: "fa-bed",        label: "Manage Rooms"   },
-    { path: "/admin/content",        icon: "fa-globe",      label: "Manage Website" },
-    { path: "/admin/announcements",  icon: "fa-bullhorn",   label: "Announcements"  },
-    { path: "/admin/reviews",        icon: "fa-star",       label: "Reviews"        },
-    { path: "/admin/guests",         icon: "fa-user-check", label: "Guests"         },
-    { path: "/admin/messages",       icon: "fa-envelope",   label: "Messages",       badgeKey: "unreadMessages" },
-    { path: "/admin/history",        icon: "fa-history",    label: "History"        },
+    { path: "/admin/messages",    icon: "fa-envelope",   label: "Messages",    badgeKey: "unreadMessages" },
+    { path: "/admin/content",     icon: "fa-globe",      label: "Manage Website" },
+    { path: "/admin/reviews",     icon: "fa-star",       label: "Reviews"      },
+    { path: "/admin/promo-codes", icon: "fa-tag",        label: "Promo Codes"  },
+    { path: "/admin/newsletter",  icon: "fa-paper-plane", label: "Newsletter"  },
   ],
+};
+
+const ROLE_LABELS = {
+  admin: "Admin",
+  owner: "Owner",
 };
 
 export default function AdminShell() {
@@ -61,7 +66,7 @@ export default function AdminShell() {
 
   const userName  = user?.name  || "Admin";
   const userEmail = user?.email || "admin@aplayaccess.com";
-  const userRole  = "Owner";
+  const userRole  = ROLE_LABELS[user?.role] || "Admin";
   const initials  = userName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
   const pageTitle = PAGE_TITLES[location.pathname] ?? "Admin";
 

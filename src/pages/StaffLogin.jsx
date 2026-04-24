@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const ROLE_REDIRECTS = {
   front_desk: '/frontdesk',
+  admin:      '/admin',
   owner:      '/owner',
 };
 

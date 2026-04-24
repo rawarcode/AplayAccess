@@ -44,6 +44,16 @@ const OwnerRooms = lazy(() => import("./pages/owner/Rooms.jsx"));
 const OwnerContent = lazy(() => import("./pages/owner/Content.jsx"));
 const OwnerReviews = lazy(() => import("./pages/owner/Reviews.jsx"));
 const OwnerMessages = lazy(() => import("./pages/owner/Messages.jsx"));
+
+// Admin portal — operational management subset. Reuses owner page
+// components for surfaces where admin has full access (messages,
+// content, reviews, promo codes, newsletter). Owner-only pages
+// (rooms, users, settings, analytics, activity log) are deliberately
+// not wired here — admin navigates to these is a deliberate 403 at
+// the backend level.
+import RequireAdmin from "./components/admin/RequireAdmin.jsx";
+const AdminShell = lazy(() => import("./components/admin/AdminShell.jsx"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard.jsx"));
 // NOTE: Guests, Announcements, Addons are no longer routed directly.
 // They're rendered as tabs inside Users.jsx, Content.jsx, and Rooms.jsx
 // respectively (merged 2026-04-21). The source files still exist —
@@ -160,9 +170,22 @@ export default function App() {
         <Route path="announcements" element={<Navigate to="/owner/content?tab=announcements" replace />} />
       </Route>
 
-      {/* ── Legacy admin redirects → owner portal ── */}
-      <Route path="/admin" element={<Navigate to="/owner" replace />} />
-      <Route path="/admin/*" element={<Navigate to="/owner" replace />} />
+      {/* ── Admin portal — operational management for admin + owner ── */}
+      <Route
+        path="/admin"
+        element={
+          <RequireAdmin>
+            <AdminShell />
+          </RequireAdmin>
+        }
+      >
+        <Route index element={<AdminDashboard />} />
+        <Route path="messages"    element={<OwnerMessages />} />
+        <Route path="content"     element={<OwnerContent />} />
+        <Route path="reviews"     element={<OwnerReviews />} />
+        <Route path="promo-codes" element={<OwnerPromoCodes />} />
+        <Route path="newsletter"  element={<OwnerNewsletter />} />
+      </Route>
 
       {/* ── Frontdesk portal (outside guest Layout) ── */}
       <Route
