@@ -24,6 +24,9 @@ const PAGE_TITLES = {
   "/admin/reviews":        "Reviews",
   "/admin/promo-codes":    "Promo Codes",
   "/admin/newsletter":     "Newsletter",
+  "/admin/catalog":        "Catalog",
+  "/admin/users":          "Staff",
+  "/admin/activity-log":   "Activity Log",
 };
 
 // Admin menu — the "deputy manager" role, covering front-desk duties
@@ -53,6 +56,18 @@ const MENU = {
     // Content page's Reviews tab in App.jsx) for legacy deep-links.
     { path: "/admin/promo-codes",    icon: "fa-tag",            label: "Promo Codes" },
     { path: "/admin/newsletter",     icon: "fa-paper-plane",    label: "Newsletter" },
+  ],
+  // Catalog group — admin can only enable/disable rooms and add-ons.
+  // Strategic CRUD (rates, names, create/delete) lives in the
+  // owner portal.
+  catalog: [
+    { path: "/admin/catalog",        icon: "fa-tags",           label: "Catalog" },
+  ],
+  // Oversight group — admin can read the activity log and toggle
+  // a front_desk staff member's active flag (no full user CRUD).
+  oversight: [
+    { path: "/admin/users",          icon: "fa-users",          label: "Staff" },
+    { path: "/admin/activity-log",   icon: "fa-clock-rotate-left", label: "Activity Log" },
   ],
 };
 
@@ -332,6 +347,50 @@ export default function AdminShell() {
                 </li>
               );
             })}
+          </ul>
+        </div>
+
+        <div className="mb-6">
+          {(!collapsed || mobile) && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Catalog</h3>}
+          <ul>
+            {MENU.catalog.map((item) => (
+              <li key={item.path} className="mb-2 relative">
+                <Link
+                  to={item.path}
+                  onClick={mobile ? () => setMobileOpen(false) : undefined}
+                  className={`flex items-center p-2 rounded transition ${
+                    isActive(item.path)
+                      ? "bg-brand-hover text-white"
+                      : "text-blue-100 hover:bg-brand-hover hover:text-white"
+                  }`}
+                >
+                  <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
+                  {(!collapsed || mobile) && <span className="text-sm flex-1">{item.label}</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="mb-6">
+          {(!collapsed || mobile) && <h3 className="uppercase text-xs font-semibold text-blue-200 mb-3 px-2">Oversight</h3>}
+          <ul>
+            {MENU.oversight.map((item) => (
+              <li key={item.path} className="mb-2 relative">
+                <Link
+                  to={item.path}
+                  onClick={mobile ? () => setMobileOpen(false) : undefined}
+                  className={`flex items-center p-2 rounded transition ${
+                    isActive(item.path)
+                      ? "bg-brand-hover text-white"
+                      : "text-blue-100 hover:bg-brand-hover hover:text-white"
+                  }`}
+                >
+                  <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
+                  {(!collapsed || mobile) && <span className="text-sm flex-1">{item.label}</span>}
+                </Link>
+              </li>
+            ))}
           </ul>
         </div>
       </nav>

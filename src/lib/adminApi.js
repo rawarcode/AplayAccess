@@ -119,3 +119,11 @@ export const getAdminAnnouncements    = ()           => api.get('/api/admin/anno
 export const createAdminAnnouncement  = (data)       => api.post('/api/admin/announcements', data);
 export const updateAdminAnnouncement  = (id, data)   => api.patch(`/api/admin/announcements/${id}`, data);
 export const deleteAdminAnnouncement  = (id)         => api.delete(`/api/admin/announcements/${id}`);
+
+// ── Limited-CRUD endpoints exposed to admin (admin_or_owner) ────────────────
+// Each is a narrow toggle that sits alongside owner's full CRUD.
+// Owner can call these too — admin_or_owner admits both.
+export const toggleStaffActive   = (userId)  => api.patch(`/api/admin/users/${userId}/toggle-active`);
+export const toggleAddonActive   = (addonId) => api.patch(`/api/admin/addons/${addonId}/toggle-active`);
+export const updateRoomAvailability = (roomId, status) =>
+  api.patch(`/api/admin/rooms/${roomId}/availability`, { availability_status: status });

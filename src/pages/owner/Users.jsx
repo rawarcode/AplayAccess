@@ -5,7 +5,7 @@ import Modal from "../../components/modals/Modal.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { useAuth } from "../../context/AuthContext.jsx";
-import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser } from "../../lib/adminApi";
+import { getAdminUsers, createAdminUser, updateAdminUser, deleteAdminUser, toggleStaffActive } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
 import OwnerGuests from "./Guests.jsx";
 import PasswordRequirements, { checkPasswordStrength } from "../../components/ui/PasswordRequirements.jsx";
@@ -76,6 +76,11 @@ function getPageNumbers(current, total) {
 
 export default function OwnerUsers() {
   const { user: currentUser } = useAuth();
+  // Admin sees a stripped-down version of this same page: only the
+  // staff list with one action — toggle a front_desk user's active
+  // flag. All create/edit/delete buttons hidden, role tabs locked
+  // to front_desk. Owner gets the full UI as before.
+  const isAdminView = currentUser?.role === "admin";
   const [toast, showToast, clearToast, toastType, toastAction] = useToast();
   // Tab state synced to the URL so deep-links (/owner/users?tab=guests)
   // and the legacy /owner/guests redirect both land on the right tab.
@@ -107,7 +112,10 @@ export default function OwnerUsers() {
   /* ── table controls ── */
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
-  const [filterRole, setFilterRole] = useState("all");
+  // Admin only ever needs to see front_desk staff (the only role
+  // they're allowed to toggle). Initialize the filter accordingly so
+  // the chips don't even need to be visible to them.
+  const [filterRole, setFilterRole] = useState(isAdminView ? "front_desk" : "all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState(() => localStorage.getItem("users_sortBy") || "Name");
@@ -144,8 +152,9 @@ export default function OwnerUsers() {
     };
   }, []);
 
-  /* ── Ctrl+N keyboard shortcut ── */
+  /* ── Ctrl+N keyboard shortcut (owner only — admin can't create) ── */
   useEffect(() => {
+    if (isAdminView) return;
     function handleKeyDown(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === "n") {
         e.preventDefault();
@@ -155,7 +164,7 @@ export default function OwnerUsers() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isAdminView]);
 
   /* ── filter + sort + paginate ── */
   const filtered = users.filter((u) => {
@@ -270,7 +279,14 @@ export default function OwnerUsers() {
 
   async function handleToggleActive(u) {
     try {
-      await updateAdminUser(u.id, { is_active: !u.is_active });
+      // Admin uses the narrow toggle endpoint (admin_or_owner). Owner
+      // continues to use the full update endpoint (owner_role) since
+      // they may pair the toggle with other field changes elsewhere.
+      if (isAdminView) {
+        await toggleStaffActive(u.id);
+      } else {
+        await updateAdminUser(u.id, { is_active: !u.is_active });
+      }
       setUsers((list) => list.map((x) => (x.id === u.id ? { ...x, is_active: !x.is_active } : x)));
       if (viewUser?.id === u.id) setViewUser((v) => ({ ...v, is_active: !v.is_active }));
       showToast(`${u.name} ${u.is_active ? "deactivated" : "activated"}.`, "success");
@@ -320,8 +336,14 @@ export default function OwnerUsers() {
   // Backend refuses to modify/delete owner accounts, so the UI hides those
   // controls too. The current user is also excluded to prevent self-lockout.
   function isProtected(u) { return u.id === currentUser?.id || u.role === "owner"; }
-  function canToggleActive(u) { return !isProtected(u); }
-  function canDelete(u) { return !isProtected(u); }
+  // Admin can only toggle front_desk accounts (backend toggleStaffActive
+  // returns 403 for any other role). Owner can toggle anyone non-protected.
+  function canToggleActive(u) {
+    if (isProtected(u)) return false;
+    if (isAdminView && u.role !== "front_desk") return false;
+    return true;
+  }
+  function canDelete(u) { return !isAdminView && !isProtected(u); }
 
   /* ── bulk ── */
   function toggleSelect(id) {
@@ -440,16 +462,22 @@ export default function OwnerUsers() {
             </span>
             Staff Users
           </h1>
-          <p className="text-sm text-slate-500 mt-1 ml-[46px]">Manage staff accounts, roles, and access.</p>
+          <p className="text-sm text-slate-500 mt-1 ml-[46px]">
+            {isAdminView
+              ? "Enable or disable front-desk accounts. Editing rates and roles stays with the owner."
+              : "Manage staff accounts, roles, and access."}
+          </p>
         </div>
-        <button onClick={openNew}
-          className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition">
-          <i className="fas fa-user-plus text-xs"></i>
-          <span className="text-sm font-medium">Add User</span>
-          <kbd className="ml-1.5 hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono leading-none">
-            Ctrl+N
-          </kbd>
-        </button>
+        {!isAdminView && (
+          <button onClick={openNew}
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition">
+            <i className="fas fa-user-plus text-xs"></i>
+            <span className="text-sm font-medium">Add User</span>
+            <kbd className="ml-1.5 hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono leading-none">
+              Ctrl+N
+            </kbd>
+          </button>
+        )}
       </div>
 
       {/* Load error banner */}
@@ -480,22 +508,30 @@ export default function OwnerUsers() {
           )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Role filters */}
-          {[
-            { key: "all", label: "All Roles" },
-            { key: "owner", label: "Owner" },
-            { key: "admin", label: "Admin" },
-            { key: "front_desk", label: "Front Desk" },
-          ].map((f) => (
-            <button key={f.key} onClick={() => setFilterRole(f.key)}
-              className={`px-3.5 py-2 rounded-full text-xs font-semibold transition ${
-                filterRole === f.key
-                  ? "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
-              }`}>
-              {f.label}
-            </button>
-          ))}
+          {/* Role filters — admin only ever sees front_desk so the
+              chips are redundant for them; render a static label
+              instead so the layout doesn't shift. */}
+          {isAdminView ? (
+            <span className="px-3.5 py-2 rounded-full text-xs font-semibold bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+              Front Desk
+            </span>
+          ) : (
+            [
+              { key: "all", label: "All Roles" },
+              { key: "owner", label: "Owner" },
+              { key: "admin", label: "Admin" },
+              { key: "front_desk", label: "Front Desk" },
+            ].map((f) => (
+              <button key={f.key} onClick={() => setFilterRole(f.key)}
+                className={`px-3.5 py-2 rounded-full text-xs font-semibold transition ${
+                  filterRole === f.key
+                    ? "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
+                    : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                }`}>
+                {f.label}
+              </button>
+            ))
+          )}
           <div className="w-px h-6 bg-slate-200 hidden sm:block"></div>
           {/* Status filters */}
           {[
@@ -515,8 +551,8 @@ export default function OwnerUsers() {
         </div>
       </div>
 
-      {/* Bulk action bar */}
-      {selected.size > 0 && (
+      {/* Bulk action bar — owner only (admin has no bulk privileges) */}
+      {!isAdminView && selected.size > 0 && (
         <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-3 flex items-center justify-between animate-hero-fade-in opacity-0">
           <span className="text-sm font-medium text-sky-800">
             <i className="fas fa-check-circle mr-2"></i>{selected.size} selected
@@ -613,10 +649,12 @@ export default function OwnerUsers() {
                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-3 w-10">
-                      <input type="checkbox"
-                        checked={allPageSelected}
-                        onChange={toggleSelectAll}
-                        className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400" />
+                      {!isAdminView && (
+                        <input type="checkbox"
+                          checked={allPageSelected}
+                          onChange={toggleSelectAll}
+                          className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400" />
+                      )}
                     </th>
                     {[["User", "Name"], ["Role", "Role"], ["Status", "Status"]].map(([label, key]) => (
                       <th key={key} className="px-6 py-3 text-left">
@@ -643,7 +681,7 @@ export default function OwnerUsers() {
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewUser(u); } }}
                       className={`cursor-pointer transition-all hover:bg-sky-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!u.is_active ? "opacity-60" : ""}`}>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        {u.id !== currentUser?.id ? (
+                        {!isAdminView && u.id !== currentUser?.id ? (
                           <input type="checkbox" checked={selected.has(u.id)}
                             onChange={() => toggleSelect(u.id)}
                             className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400" />
@@ -691,10 +729,12 @@ export default function OwnerUsers() {
                             className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
                             <i className="fas fa-envelope text-xs"></i>
                           </button>
-                          <button onClick={() => openEdit(u)} title="Edit"
-                            className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs"></i>
-                          </button>
+                          {!isAdminView && (
+                            <button onClick={() => openEdit(u)} title="Edit"
+                              className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                              <i className="fas fa-pen text-xs"></i>
+                            </button>
+                          )}
                           {canToggleActive(u) && (
                             <button onClick={() => setConfirmToggle(u)} title={u.is_active ? "Deactivate" : "Activate"}
                               className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
@@ -852,10 +892,12 @@ export default function OwnerUsers() {
                 className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
                 <i className="fas fa-envelope mr-1.5 text-xs"></i>Copy Email
               </button>
-              <button onClick={() => openEdit(viewUser)}
-                className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-medium transition">
-                <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
-              </button>
+              {!isAdminView && (
+                <button onClick={() => openEdit(viewUser)}
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-medium transition">
+                  <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
+                </button>
+              )}
             </div>
           </div>
         )}

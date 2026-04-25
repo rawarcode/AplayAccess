@@ -54,6 +54,7 @@ const OwnerMessages = lazy(() => import("./pages/owner/Messages.jsx"));
 import RequireAdmin from "./components/admin/RequireAdmin.jsx";
 const AdminShell = lazy(() => import("./components/admin/AdminShell.jsx"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard.jsx"));
+const AdminCatalog = lazy(() => import("./pages/admin/Catalog.jsx"));
 // NOTE: Guests, Announcements, Addons are no longer routed directly.
 // They're rendered as tabs inside Users.jsx, Content.jsx, and Rooms.jsx
 // respectively (merged 2026-04-21). The source files still exist —
@@ -207,6 +208,16 @@ export default function App() {
         <Route path="reviews"     element={<Navigate to="/admin/content?tab=reviews" replace />} />
         <Route path="promo-codes" element={<OwnerPromoCodes />} />
         <Route path="newsletter"  element={<OwnerNewsletter />} />
+
+        {/* Catalog — admin's limited-CRUD surface for rooms (status
+            change only) and add-ons (enable/disable only). Owner
+            keeps full CRUD via /owner/rooms (with addons tab). */}
+        <Route path="catalog"     element={<AdminCatalog />} />
+
+        {/* Oversight — admin reuses owner pages with role-aware
+            controls hidden inside the components themselves. */}
+        <Route path="users"        element={<OwnerUsers />} />
+        <Route path="activity-log" element={<OwnerActivityLog />} />
       </Route>
 
       {/* ── Frontdesk portal (outside guest Layout) ── */}
