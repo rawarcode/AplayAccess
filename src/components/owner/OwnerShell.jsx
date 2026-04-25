@@ -5,6 +5,7 @@ import PortalTransition from "../PortalTransition.jsx";
 import { useStaffNotifications } from "../../hooks/useStaffNotifications.js";
 import NotificationContext from "../../context/NotificationContext.jsx";
 import NotificationBell from "../ui/NotificationBell.jsx";
+import Avatar from "../ui/Avatar.jsx";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { updateProfile, changePassword } from "../../lib/profileApi.js";
 import { uploadFile } from "../../lib/uploadApi.js";
@@ -404,17 +405,12 @@ export default function OwnerShell() {
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={userName}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
-                      {initials}
-                    </div>
-                  )}
+                  <Avatar
+                    src={user?.avatar}
+                    name={userName}
+                    className="h-8 w-8"
+                    fallbackClassName="bg-brand text-white text-sm font-semibold"
+                  />
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
                   <i className="fas fa-chevron-down text-xs text-gray-400"></i>
                 </button>
@@ -422,17 +418,12 @@ export default function OwnerShell() {
                 {profileOpen && (
                   <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="p-3 flex items-center border-b border-gray-100">
-                      {user?.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt={userName}
-                          className="h-10 w-10 rounded-full object-cover mr-3"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold mr-3">
-                          {initials}
-                        </div>
-                      )}
+                      <Avatar
+                        src={user?.avatar}
+                        name={userName}
+                        className="h-10 w-10 mr-3"
+                        fallbackClassName="bg-brand text-white text-sm font-semibold"
+                      />
                       <div>
                         <p className="font-medium text-gray-900">{userName}</p>
                         <p className="text-xs text-gray-500">Owner</p>
@@ -482,17 +473,12 @@ export default function OwnerShell() {
               {/* Profile Header */}
               <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
                 <div className="relative mr-4">
-                  {(isEditing ? editProfile.avatar : user?.avatar) ? (
-                    <img
-                      src={isEditing ? editProfile.avatar : user.avatar}
-                      alt={userName}
-                      className="h-14 w-14 rounded-full object-cover border-2 border-white shadow-sm"
-                    />
-                  ) : (
-                    <div className="h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center text-lg font-semibold">
-                      {initials}
-                    </div>
-                  )}
+                  <Avatar
+                    src={isEditing ? editProfile.avatar : user?.avatar}
+                    name={userName}
+                    className="h-14 w-14 border-2 border-white shadow-sm"
+                    fallbackClassName="bg-brand text-white text-lg font-semibold"
+                  />
                   {isEditing && (
                     <>
                       <button

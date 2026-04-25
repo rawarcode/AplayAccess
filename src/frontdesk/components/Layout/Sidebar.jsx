@@ -5,6 +5,7 @@ import PortalTransition from '../../../components/PortalTransition.jsx';
 import { useStaffNotifications } from '../../../hooks/useStaffNotifications.js';
 import NotificationContext from '../../../context/NotificationContext.jsx';
 import NotificationBell from '../../../components/ui/NotificationBell.jsx';
+import Avatar from '../../../components/ui/Avatar.jsx';
 import useLockBodyScroll from '../../../hooks/useLockBodyScroll.js';
 import StaffChatWidget from '../../../components/StaffChatWidget.jsx';
 
@@ -280,17 +281,12 @@ export default function Sidebar({ children, showTopBar = true }) {
                   onClick={() => setProfileOpen(o => !o)}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  {user?.avatar ? (
-                    <img
-                      src={user.avatar}
-                      alt={userName}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
-                      {initials}
-                    </div>
-                  )}
+                  <Avatar
+                    src={user?.avatar}
+                    name={userName}
+                    className="h-8 w-8"
+                    fallbackClassName="bg-brand text-white text-sm font-semibold"
+                  />
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
                   <i className="fas fa-chevron-down text-xs text-gray-400"></i>
                 </button>

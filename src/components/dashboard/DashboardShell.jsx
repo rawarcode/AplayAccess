@@ -7,6 +7,7 @@ import { getMessages } from "../../lib/messageApi.js";
 import { Helmet } from "react-helmet-async";
 import UnverifiedEmailBanner from "../UnverifiedEmailBanner.jsx";
 import PendingEmailChangeBanner from "../PendingEmailChangeBanner.jsx";
+import Avatar from "../ui/Avatar.jsx";
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -230,17 +231,12 @@ export default function DashboardShell() {
           {/* User info */}
           <div className="px-4 pb-4 mb-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              {user?.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt={user?.name || "Profile"}
-                  className="h-9 w-9 rounded-full object-cover shrink-0"
-                />
-              ) : (
-                <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
-                  {initials}
-                </div>
-              )}
+              <Avatar
+                src={user?.avatar}
+                name={user?.name}
+                className="h-9 w-9 shrink-0"
+                fallbackClassName="bg-blue-100 text-blue-600 text-xs font-bold"
+              />
               <NotificationBell />
             </div>
             <p className="text-sm font-semibold text-gray-900 break-words">{user?.name || "Guest"}</p>
