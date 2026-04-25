@@ -11,6 +11,7 @@ import { api } from '../../lib/api';
 import { applyPromoToBooking } from '../../lib/adminApi';
 import { fmtDateTime, fmtMoney, fmtGuestEmail } from '../../lib/format';
 import useFocusTrap from '../../hooks/useFocusTrap.js';
+import { useNotifications } from '../../context/NotificationContext.jsx';
 
 // Entrance fee rates per adult — matches Setting::pricing() defaults.
 // Fallback rates for pre-mount / offline render. Live rates come from
@@ -147,6 +148,7 @@ const COLOR = {
  * BookingDetailModal
  */
 export default function BookingDetailModal({ booking: initialBooking, onClose, onUpdated, showToast }) {
+  const { refresh: refreshNotifications } = useNotifications();
   const [booking,       setBooking]       = useState(initialBooking);
   const [addonCatalog,     setAddonCatalog]     = useState([]);
   // Map of addon_id → { remaining, allocated, max_qty } for THIS
@@ -284,6 +286,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
       if (type === 'confirm-booking') {
         await updateBookingStatus(booking.bookingId, 'Confirmed');
         applyUpdate({ status: 'Confirmed' });
+        refreshNotifications?.();
       } else if (type === 'checkin') {
         // Don't pass entrance_fee — the backend computes it from the
         // current Setting::pricing() rate so staff can't accidentally
@@ -294,12 +297,15 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
         // fullyPaid / entranceFee all stay in sync. Narrow-field spreads
         // here would leave those fields stale and mislead billing.
         applyUpdate(res.data ?? { status: 'Checked In', checkedInAt: res.checkedInAt, entranceFee: ef });
+        refreshNotifications?.();
       } else if (type === 'checkout') {
         const res = await checkOutBooking(booking.bookingId);
         applyUpdate(res.data ?? { status: 'Completed', checkedOutAt: res.checkedOutAt });
+        refreshNotifications?.();
       } else if (type === 'cancel') {
         await updateBookingStatus(booking.bookingId, 'Cancelled');
         applyUpdate({ status: 'Cancelled' });
+        refreshNotifications?.();
       } else if (type === 'remove-amenity') {
         const res = await removeAmenity(booking.bookingId, amenityId);
         const newTotal = Number(res.newTotal);

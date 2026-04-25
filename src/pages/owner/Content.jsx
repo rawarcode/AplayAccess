@@ -2751,6 +2751,7 @@ function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
       await updateAdminReview(id, data);
       setReviews(rs => rs.map(r => r.id === id ? { ...r, ...data } : r));
       showToast("Review updated!", "success");
+      refreshNotifications?.();
     } catch {
       showToast("Failed to update review.", "error");
     } finally {
@@ -2766,6 +2767,7 @@ function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
       setReviews(newReviews);
       setReviewCount(newReviews.length);
       showToast("Review deleted.", "success");
+      refreshNotifications?.();
     } catch {
       showToast("Failed to delete review.", "error");
     } finally {

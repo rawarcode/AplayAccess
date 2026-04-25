@@ -5,6 +5,7 @@ import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
 import { fmtDateTime } from "../../lib/format";
+import { useNotifications } from "../../context/NotificationContext.jsx";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 // Local alias: the original "fmtDate" here included time — it was really fmtDateTime
@@ -462,6 +463,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function AdminMessages() {
+  const { refresh: refreshNotifications } = useNotifications();
   const [toast, showToast, clearToast, toastType, toastAction] = useToast(6000);
 
   const [threads,     setThreads]     = useState([]);
@@ -617,7 +619,7 @@ export default function AdminMessages() {
     const thread = threads.find(t => t.id === id);
     if (thread?.is_read === false) {
       setThreads(prev => prev.map(t => t.id === id ? { ...t, is_read: true } : t));
-      markAdminMessageRead(id).catch(() => {});
+      markAdminMessageRead(id).then(() => refreshNotifications?.()).catch(() => {});
     }
   }
 

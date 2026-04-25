@@ -31,6 +31,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useNotifications } from '../context/NotificationContext.jsx';
 import {
   getAdminMessages,
   replyAdminMessage,
@@ -60,6 +61,7 @@ function initials(name) {
 
 export default function StaffChatWidget() {
   const { user } = useAuth();
+  const { refresh: refreshNotifications } = useNotifications();
 
   // Hooks run unconditionally even for guests — we just early-return
   // from render. React requires hook order to be stable, so we cannot
@@ -105,11 +107,13 @@ export default function StaffChatWidget() {
     if (!open || !selectedThreadId) return;
     const t = threads.find(x => x.id === selectedThreadId);
     if (!t || t.is_read) return;
-    markAdminMessageRead(selectedThreadId).catch(() => {});
+    markAdminMessageRead(selectedThreadId)
+      .then(() => refreshNotifications?.())
+      .catch(() => {});
     setThreads(prev => prev.map(x =>
       x.id === selectedThreadId ? { ...x, is_read: true } : x
     ));
-  }, [open, selectedThreadId, threads]);
+  }, [open, selectedThreadId, threads, refreshNotifications]);
 
   // Auto-scroll the detail view to the latest message when opening
   // a thread or after a reply is sent.

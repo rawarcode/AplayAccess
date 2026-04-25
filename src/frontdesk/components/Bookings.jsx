@@ -8,6 +8,7 @@ import BookingDetailModal from './BookingDetailModal';
 import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOutBooking, transferRoom, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import { fmtDateTime, fmtTime, fmtMoney, fmtGuestEmail } from '../../lib/format';
+import { useNotifications } from '../../context/NotificationContext.jsx';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -104,6 +105,7 @@ export default function Bookings({ embedded = false }) {
   const Shell                             = embedded ? Fragment : Sidebar;
   const navigate                          = useNavigate();
   const location                          = useLocation();
+  const { refresh: refreshNotifications } = useNotifications();
   // Context-aware walk-in path — when this page is mounted under
   // /admin/bookings (embedded mode), the "+ New Walk-in" button
   // should stay inside AdminShell by going to /admin/walk-in, not
@@ -334,6 +336,7 @@ export default function Bookings({ embedded = false }) {
         await updateBookingStatus(bookingId, 'Cancelled');
         syncBooking(bookingId, { status: 'Cancelled' });
       }
+      refreshNotifications?.();
     } catch { showToast('Failed to update booking.'); }
     finally { setActionLoading(null); }
   }
