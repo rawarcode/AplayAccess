@@ -11,6 +11,14 @@ import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
 import OwnerAnnouncements from "./Announcements.jsx";
 import { TabBar } from "./Users.jsx";
+import { useNotifications } from "../../context/NotificationContext.jsx";
+
+// Matches REVIEWS_SEEN_KEY in useStaffNotifications.js — viewing the
+// Reviews tab here timestamps "reviews seen up to now", which clears
+// the bell's "N new reviews this week" counter. Same constant lives in
+// pages/owner/Reviews.jsx (the standalone page that's now a redirect
+// target — kept in sync by hand since both surfaces still exist).
+const REVIEWS_SEEN_KEY = "aplaya_reviews_last_seen_at";
 
 // ─── Persistence key ──────────────────────────────────────────────────────────
 const CONTENT_KEY = "aplaya_page_content_v2";
@@ -2693,6 +2701,15 @@ const REVIEW_FILTERS = [
 ];
 
 function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
+  const { refresh: refreshNotifications } = useNotifications();
+  // Mark "reviews seen up to now" so the bell's "N new reviews this
+  // week" counter clears. Bell items deep-link straight to this tab,
+  // so this is the natural watermark surface.
+  useEffect(() => {
+    try { localStorage.setItem(REVIEWS_SEEN_KEY, String(Date.now())); } catch { /* quota / private-mode */ }
+    refreshNotifications?.();
+  }, [refreshNotifications]);
+
   const [reviews,  setReviews]  = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [toast, showToast, clearToast, toastType] = useToast();
