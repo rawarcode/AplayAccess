@@ -1448,43 +1448,49 @@ function ResortContactEditor({ content, onSave }) {
               </h3>
             </div>
             <div className="p-4 space-y-4">
-              {/* Map URL */}
+              {/* Map URL — OpenStreetMap embed. The public Resort
+                  page (Resort.jsx) reads osm_url only; the legacy
+                  map_url Google field is no longer rendered. */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Google Maps Embed URL
+                  OpenStreetMap Embed URL
                 </label>
                 <input
                   type="url"
-                  value={form.map_url || ""}
-                  onChange={e => f("map_url")(e.target.value)}
-                  placeholder="https://maps.google.com/maps?q=...&output=embed"
+                  value={form.osm_url || ""}
+                  onChange={e => f("osm_url")(e.target.value)}
+                  placeholder="https://www.openstreetmap.org/export/embed.html?bbox=...&marker=lat,lng"
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                 />
                 <div className="mt-2 p-3 bg-blue-50 rounded-lg text-xs text-blue-700 space-y-1">
                   <p className="font-semibold"><i className="fas fa-info-circle mr-1"></i>How to get your embed URL:</p>
                   <ol className="list-decimal ml-4 space-y-0.5">
-                    <li>Go to <span className="font-medium">Google Maps</span> and search your resort</li>
-                    <li>Click <span className="font-medium">Share</span> → <span className="font-medium">Embed a map</span></li>
-                    <li>Copy only the <span className="font-medium">src="..."</span> URL from the iframe code</li>
+                    <li>Go to <a href="https://www.openstreetmap.org" target="_blank" rel="noopener noreferrer" className="underline font-medium">openstreetmap.org</a> and search your resort</li>
+                    <li>Click <span className="font-medium">Share</span> on the right toolbar</li>
+                    <li>Tick <span className="font-medium">Include marker</span>, then copy the URL inside the <span className="font-medium">HTML</span> iframe's <span className="font-medium">src="..."</span></li>
                     <li>Paste it here</li>
                   </ol>
                 </div>
               </div>
 
-              {/* Directions URL */}
+              {/* Directions URL — kept as a free-form link. Owners
+                  typically paste a Google Maps short link
+                  (maps.app.goo.gl/...) since the "Get Directions"
+                  CTA is meant to launch turn-by-turn nav, which
+                  Google does better than OSM's interface. */}
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  "Get Directions" Link <span className="text-slate-400 font-normal">(plain Google Maps URL shown on the map)</span>
+                  "Get Directions" Link <span className="text-slate-400 font-normal">(opens in a new tab)</span>
                 </label>
                 <input
                   type="url"
                   value={form.directions_url || ""}
                   onChange={e => f("directions_url")(e.target.value)}
-                  placeholder="https://www.google.com/maps/place/Aplaya+Beach+Resort/@14.33237,120.76971,17z"
+                  placeholder="https://maps.app.goo.gl/..."
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
                 />
                 <p className="text-xs text-slate-400 mt-1">
-                  On Google Maps, search your resort → copy the URL from the browser address bar → paste here.
+                  Google Maps short link gives the best turn-by-turn experience. Search your resort on Google Maps → Share → Copy link.
                 </p>
               </div>
             </div>
@@ -1498,9 +1504,9 @@ function ResortContactEditor({ content, onSave }) {
               <p><i className="fas fa-phone w-4 text-brand mr-2"></i>{form.phone || <span className="text-slate-300 italic">Phone</span>}</p>
               <p><i className="fas fa-envelope w-4 text-brand mr-2"></i>{form.email || <span className="text-slate-300 italic">Email</span>}</p>
             </div>
-            {(form.osm_url || form.map_url) ? (
+            {form.osm_url ? (
               <div className="rounded-xl overflow-hidden border border-slate-200">
-                <iframe src={form.osm_url || form.map_url} width="100%" height="200" style={{ border: 0 }} loading="lazy" title="Map preview" />
+                <iframe src={form.osm_url} width="100%" height="200" style={{ border: 0 }} loading="lazy" title="Map preview" />
               </div>
             ) : (
               <div className="h-24 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-300 text-sm">
