@@ -239,6 +239,21 @@ export default function Sidebar({ children, showTopBar = true }) {
         </div>
       )}
 
+      {/* Floating mobile hamburger — only when the page suppresses
+          the standard top bar (e.g. Dashboard renders its own
+          header). Without this, mobile users on those pages have
+          no way to open the sidebar overlay. md:hidden so it
+          disappears as soon as the desktop sidebar is visible. */}
+      {!showTopBar && !mobileOpen && (
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="md:hidden fixed top-3 left-3 z-30 flex items-center justify-center w-10 h-10 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/50"
+          aria-label="Open menu"
+        >
+          <i className="fas fa-bars" aria-hidden="true"></i>
+        </button>
+      )}
+
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {showTopBar && (
