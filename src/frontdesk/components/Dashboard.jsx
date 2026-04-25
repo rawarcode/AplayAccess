@@ -140,9 +140,17 @@ export default function Dashboard() {
       {/* ── Account Settings Modal ── */}
       <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Account Settings" maxWidth="max-w-md">
         <div className="p-4 bg-slate-50 rounded-lg mb-4">
-          <div className="h-14 w-14 rounded-full bg-sky-600 text-white flex items-center justify-center text-lg font-bold mb-2">
-            {initials}
-          </div>
+          {session?.avatar ? (
+            <img
+              src={session.avatar}
+              alt={userName}
+              className="h-14 w-14 rounded-full object-cover mb-2"
+            />
+          ) : (
+            <div className="h-14 w-14 rounded-full bg-sky-600 text-white flex items-center justify-center text-lg font-bold mb-2">
+              {initials}
+            </div>
+          )}
           <p className="font-bold text-lg">{userName}</p>
           <p className="text-sm text-slate-500">{userEmail}</p>
           <p className="text-xs text-slate-400 mt-1 capitalize">{session?.role?.replace('_', ' ') || 'Staff'}</p>
@@ -174,18 +182,34 @@ export default function Dashboard() {
                 aria-expanded={profileOpen}
                 className="flex items-center gap-2 text-slate-600 hover:text-slate-800"
               >
-                <div className="h-8 w-8 rounded-full bg-sky-600 text-white flex items-center justify-center text-sm font-semibold">
-                  {initials}
-                </div>
+                {session?.avatar ? (
+                  <img
+                    src={session.avatar}
+                    alt={userName}
+                    className="h-8 w-8 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="h-8 w-8 rounded-full bg-sky-600 text-white flex items-center justify-center text-sm font-semibold">
+                    {initials}
+                  </div>
+                )}
                 <span className="hidden md:inline text-sm">{userName}</span>
                 <i className="fas fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
               </button>
               {profileOpen && (
                 <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border z-50">
                   <div className="p-3 flex items-center border-b">
-                    <div className="h-10 w-10 rounded-full bg-sky-600 text-white flex items-center justify-center font-semibold mr-3">
-                      {initials}
-                    </div>
+                    {session?.avatar ? (
+                      <img
+                        src={session.avatar}
+                        alt={userName}
+                        className="h-10 w-10 rounded-full object-cover mr-3"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded-full bg-sky-600 text-white flex items-center justify-center font-semibold mr-3">
+                        {initials}
+                      </div>
+                    )}
                     <div>
                       <p className="font-medium text-sm">{userName}</p>
                       <p className="text-xs text-slate-500 capitalize">{session?.role?.replace('_', ' ') || 'Staff'}</p>

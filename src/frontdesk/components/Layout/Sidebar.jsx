@@ -280,9 +280,17 @@ export default function Sidebar({ children, showTopBar = true }) {
                   onClick={() => setProfileOpen(o => !o)}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
-                    {initials}
-                  </div>
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={userName}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
+                      {initials}
+                    </div>
+                  )}
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
                   <i className="fas fa-chevron-down text-xs text-gray-400"></i>
                 </button>

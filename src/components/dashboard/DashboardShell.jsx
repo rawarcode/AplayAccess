@@ -230,9 +230,17 @@ export default function DashboardShell() {
           {/* User info */}
           <div className="px-4 pb-4 mb-3 border-b border-gray-100">
             <div className="flex items-center justify-between mb-2">
-              <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
-                {initials}
-              </div>
+              {user?.avatar ? (
+                <img
+                  src={user.avatar}
+                  alt={user?.name || "Profile"}
+                  className="h-9 w-9 rounded-full object-cover shrink-0"
+                />
+              ) : (
+                <div className="h-9 w-9 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-blue-600 shrink-0">
+                  {initials}
+                </div>
+              )}
               <NotificationBell />
             </div>
             <p className="text-sm font-semibold text-gray-900 break-words">{user?.name || "Guest"}</p>

@@ -417,9 +417,17 @@ export default function AdminShell() {
                   onClick={() => setProfileOpen(!profileOpen)}
                   className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
                 >
-                  <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
-                    {initials}
-                  </div>
+                  {user?.avatar ? (
+                    <img
+                      src={user.avatar}
+                      alt={userName}
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold">
+                      {initials}
+                    </div>
+                  )}
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
                   <i className="fas fa-chevron-down text-xs text-gray-400"></i>
                 </button>
@@ -427,9 +435,17 @@ export default function AdminShell() {
                 {profileOpen && (
                   <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="p-3 flex items-center border-b border-gray-100">
-                      <div className="h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold mr-3">
-                        {initials}
-                      </div>
+                      {user?.avatar ? (
+                        <img
+                          src={user.avatar}
+                          alt={userName}
+                          className="h-10 w-10 rounded-full object-cover mr-3"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded-full bg-brand text-white flex items-center justify-center text-sm font-semibold mr-3">
+                          {initials}
+                        </div>
+                      )}
                       <div>
                         <p className="font-medium text-gray-900">{userName}</p>
                         <p className="text-xs text-gray-500">{userRole}</p>
@@ -484,9 +500,17 @@ export default function AdminShell() {
             <div className="p-6">
               {/* Profile Header */}
               <div className="flex items-center mb-6 p-4 bg-gray-50 rounded-lg">
-                <div className="h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center text-lg font-semibold mr-4">
-                  {initials}
-                </div>
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    alt={userName}
+                    className="h-14 w-14 rounded-full object-cover mr-4"
+                  />
+                ) : (
+                  <div className="h-14 w-14 rounded-full bg-brand text-white flex items-center justify-center text-lg font-semibold mr-4">
+                    {initials}
+                  </div>
+                )}
                 <div className="flex-1">
                   <p className="font-bold text-gray-900">{userName}</p>
                   <p className="text-sm text-gray-500">{userRole}</p>
