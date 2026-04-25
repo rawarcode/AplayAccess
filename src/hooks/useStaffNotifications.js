@@ -108,9 +108,16 @@ export function useStaffNotifications(paths = {}) {
     let soonCheckouts    = 0;
     let currentlyInHouse = 0;
     for (const b of bookings) {
-      if (b.status !== 'Checked In' || !b.checkOut) continue;
+      if (b.status !== 'Checked In' || !b.checkOut || !b.checkIn) continue;
+      const ci = new Date(String(b.checkIn).replace(' ', 'T'));
       const co = new Date(String(b.checkOut).replace(' ', 'T'));
-      if (isNaN(co.getTime())) continue;
+      if (isNaN(ci.getTime()) || isNaN(co.getTime())) continue;
+      // Manual /checkin has no time guard — staff can check a guest in
+      // before their scheduled check_in (e.g. early arrival accommodation).
+      // Without this, a Checked-In booking with check_in in the future
+      // would falsely appear in currentlyInHouse / soon / overdue, even
+      // though the guest's stay window hasn't opened yet.
+      if (ci.getTime() > now.getTime()) continue;
       const msUntil = co.getTime() - now.getTime();
       if (msUntil <= 0)                              overdueCheckouts++;
       else                                           currentlyInHouse++;
