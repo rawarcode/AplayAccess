@@ -845,7 +845,7 @@ export default function Billing({ embedded = false }) {
                           onClick={(e) => { e.stopPropagation(); openCollect(b); }}
                           onKeyDown={(e) => e.stopPropagation()}
                           aria-label={`Collect ${fmtMoney(toCollect)} for ${b.id}`}
-                          className="mt-2 inline-flex items-center gap-1 min-h-[36px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
+                          className="mt-2 inline-flex items-center gap-1 min-h-[40px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
                         >
                           <i className="fas fa-hand-holding-usd" aria-hidden="true"></i>Collect
                         </button>
@@ -967,8 +967,9 @@ export default function Billing({ embedded = false }) {
                         </td>
                         <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          {/* Pills use min-h-[36px] so tap targets clear
-                              WCAG 2.5.8 AA on touch. aria-labels name the
+                          {/* Pills use min-h-[40px] so tap targets clear
+                              the WCAG 2.5.8 AA floor (24px) with comfortable
+                              margin for tablet/phone use. aria-labels name the
                               booking so title tooltips aren't the only
                               affordance for assistive tech. */}
                           <div className="flex items-center gap-2 flex-wrap">
@@ -976,20 +977,20 @@ export default function Billing({ embedded = false }) {
                               <button
                                 onClick={() => openCollect(b)}
                                 aria-label={`Collect payment for ${b.id}`}
-                                className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
                               >
                                 <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
                               </button>
                             )}
                             {b.status === 'Confirmed' && b.fullyPaid && (
-                              <span className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 text-xs text-emerald-700 font-medium">
+                              <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-emerald-700 font-medium">
                                 <i className="fas fa-check-circle" aria-hidden="true"></i>Paid — awaiting check-in
                               </span>
                             )}
                             {b.status === 'Pending' && (
                               <span
                                 aria-label="Awaiting payment clearance"
-                                className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
+                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
                               >
                                 <i className="fas fa-hourglass-half text-[11px]" aria-hidden="true"></i>Awaiting payment
                               </span>
@@ -999,7 +1000,7 @@ export default function Billing({ embedded = false }) {
                                 onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
                                 disabled={downloading === b.bookingId}
                                 aria-label={`Download booking confirmation PDF for ${b.id}`}
-                                className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
                                 title="Download booking confirmation (PDF)"
                               >
                                 <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} text-[11px]`} aria-hidden="true"></i>
@@ -1007,7 +1008,7 @@ export default function Billing({ embedded = false }) {
                               </button>
                             )}
                             {b.status === 'Cancelled' && (
-                              <span className="inline-flex items-center gap-1 min-h-[36px] px-3 py-1.5 text-xs text-rose-600">
+                              <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-rose-600">
                                 <i className="fas fa-ban" aria-hidden="true"></i>Cancelled
                               </span>
                             )}

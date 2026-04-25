@@ -590,8 +590,8 @@ export default function FDRooms({ embedded = false }) {
             </button>
           </div>
 
-          {/* Summary bar */}
-          <div className="grid grid-cols-3 gap-3 mb-6">
+          {/* Summary bar — single column on phone, three cols at sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
             {[
               { label: 'Vacant',   count: counts.vacant,   bg: 'bg-emerald-500', icon: 'fa-check-circle'   },
               { label: 'Occupied', count: counts.occupied, bg: 'bg-rose-500',    icon: 'fa-door-closed'    },

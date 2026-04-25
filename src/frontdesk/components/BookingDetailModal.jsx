@@ -651,8 +651,8 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
             </button>
           </div>
 
-          {/* Booking details grid */}
-          <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded text-sm mb-4">
+          {/* Booking details grid — single column on phone, two cols at sm+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-50 rounded text-sm mb-4">
             <div>
               <p className="text-xs text-slate-500">Guest</p>
               <p className="font-medium">{guestName}</p>

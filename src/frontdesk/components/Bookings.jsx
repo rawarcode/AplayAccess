@@ -550,7 +550,7 @@ export default function Bookings({ embedded = false }) {
                     type="button"
                     aria-pressed={isActive}
                     onClick={() => changeSource(opt.key)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[36px] ${
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors min-h-[40px] ${
                       isActive ? opt.active : 'text-slate-600 hover:text-slate-900'
                     }`}
                   >

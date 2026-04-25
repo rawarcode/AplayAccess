@@ -731,7 +731,7 @@ export default function WalkIn({ embedded = false }) {
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Guest Information</span>
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                   <div className="col-span-2">
                     <label htmlFor="wi-fullname" className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
                     <input id="wi-fullname" type="text" value={form.fullName}
@@ -759,7 +759,7 @@ export default function WalkIn({ embedded = false }) {
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Booking Details</span>
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
 
                   {/* Date — must be chosen first */}
                   <div className="col-span-2">
@@ -1019,7 +1019,7 @@ export default function WalkIn({ embedded = false }) {
                       <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Add-on Amenities</span>
                       <div className="h-px flex-1 bg-slate-200"></div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                       {visibleAddons.map(a => {
                         const qty       = Number(addonQtys[a.id] || 0);
                         const isFixed   = a.per_booking;
