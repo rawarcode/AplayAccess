@@ -76,10 +76,12 @@ function getPageNumbers(current, total) {
 
 export default function OwnerUsers() {
   const { user: currentUser } = useAuth();
-  // Admin sees a stripped-down version of this same page: only the
-  // staff list with one action — toggle a front_desk user's active
-  // flag. All create/edit/delete buttons hidden, role tabs locked
-  // to front_desk. Owner gets the full UI as before.
+  // Admin sees a scoped-down version of this same page: front_desk
+  // staff only, with create + edit + toggle-active permitted on those
+  // rows. Delete and bulk actions remain owner-only. The role picker
+  // inside the create/edit modal is locked to "Front Desk" for admin
+  // — backend rejects any other role from an admin caller (UserController
+  // store/update guards).
   const isAdminView = currentUser?.role === "admin";
   const [toast, showToast, clearToast, toastType, toastAction] = useToast();
   // Tab state synced to the URL so deep-links (/owner/users?tab=guests)
@@ -152,9 +154,8 @@ export default function OwnerUsers() {
     };
   }, []);
 
-  /* ── Ctrl+N keyboard shortcut (owner only — admin can't create) ── */
+  /* ── Ctrl+N keyboard shortcut (admin + owner can both create) ── */
   useEffect(() => {
-    if (isAdminView) return;
     function handleKeyDown(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === "n") {
         e.preventDefault();
@@ -164,7 +165,7 @@ export default function OwnerUsers() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminView]);
+  }, []);
 
   /* ── filter + sort + paginate ── */
   const filtered = users.filter((u) => {
@@ -344,6 +345,14 @@ export default function OwnerUsers() {
     return true;
   }
   function canDelete(u) { return !isAdminView && !isProtected(u); }
+  // Admin can edit only front_desk staff; owner can edit any non-protected
+  // account. Backend UserController::update enforces the same scoping
+  // (admin caller + non-front_desk target → 403).
+  function canEdit(u) {
+    if (isProtected(u)) return false;
+    if (isAdminView && u.role !== "front_desk") return false;
+    return true;
+  }
 
   /* ── bulk ── */
   function toggleSelect(id) {
@@ -464,20 +473,18 @@ export default function OwnerUsers() {
           </h1>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">
             {isAdminView
-              ? "Enable or disable front-desk accounts. Editing rates and roles stays with the owner."
+              ? "Add, edit, and toggle front-desk accounts. Admin and owner accounts stay with the owner."
               : "Manage staff accounts, roles, and access."}
           </p>
         </div>
-        {!isAdminView && (
-          <button onClick={openNew}
-            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition">
-            <i className="fas fa-user-plus text-xs"></i>
-            <span className="text-sm font-medium">Add User</span>
-            <kbd className="ml-1.5 hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono leading-none">
-              Ctrl+N
-            </kbd>
-          </button>
-        )}
+        <button onClick={openNew}
+          className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition">
+          <i className="fas fa-user-plus text-xs"></i>
+          <span className="text-sm font-medium">{isAdminView ? "Add Front Desk" : "Add User"}</span>
+          <kbd className="ml-1.5 hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono leading-none">
+            Ctrl+N
+          </kbd>
+        </button>
       </div>
 
       {/* Load error banner */}
@@ -637,7 +644,7 @@ export default function OwnerUsers() {
                   : 'Click "Add User" to create your first staff account.'}
               </p>
               {(debouncedSearch || filterRole !== "all" || filterStatus !== "all") && (
-                <button onClick={() => { setSearchTerm(""); setFilterRole("all"); setFilterStatus("all"); }}
+                <button onClick={() => { setSearchTerm(""); setFilterRole(isAdminView ? "front_desk" : "all"); setFilterStatus("all"); }}
                   className="mt-4 text-sm text-sky-600 hover:text-sky-700 font-medium">
                   <i className="fas fa-times mr-1.5"></i>Clear filters
                 </button>
@@ -729,7 +736,7 @@ export default function OwnerUsers() {
                             className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
                             <i className="fas fa-envelope text-xs"></i>
                           </button>
-                          {!isAdminView && (
+                          {canEdit(u) && (
                             <button onClick={() => openEdit(u)} title="Edit"
                               className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                               <i className="fas fa-pen text-xs"></i>
@@ -892,7 +899,7 @@ export default function OwnerUsers() {
                 className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
                 <i className="fas fa-envelope mr-1.5 text-xs"></i>Copy Email
               </button>
-              {!isAdminView && (
+              {canEdit(viewUser) && (
                 <button onClick={() => openEdit(viewUser)}
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-medium transition">
                   <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
@@ -1064,15 +1071,22 @@ export default function OwnerUsers() {
                 <div className="p-4 space-y-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Role <span className="text-red-400">*</span></label>
-                    <div className="grid grid-cols-2 gap-3">
+                    {/* Admin can only create/edit front_desk staff —
+                        backend rejects any other role from an admin
+                        caller, so render a single locked tile rather
+                        than a two-option picker the user can't use. */}
+                    <div className={`grid gap-3 ${isAdminView ? "grid-cols-1" : "grid-cols-2"}`}>
                       {[
                         { key: "front_desk", label: "Front Desk", icon: "fa-headset",      bg: "peer-checked:bg-sky-50 peer-checked:border-sky-300 peer-checked:ring-1 peer-checked:ring-sky-200" },
                         { key: "admin",      label: "Admin",      icon: "fa-user-shield",  bg: "peer-checked:bg-violet-50 peer-checked:border-violet-300 peer-checked:ring-1 peer-checked:ring-violet-200" },
-                      ].map(({ key, label, icon, bg }) => (
+                      ]
+                        .filter(({ key }) => !isAdminView || key === "front_desk")
+                        .map(({ key, label, icon, bg }) => (
                         <label key={key} className="relative cursor-pointer select-none">
                           <input type="radio" name="role" value={key} checked={editing.role === key}
-                            onChange={() => setField("role", key)} className="peer sr-only" />
-                          <div className={`flex flex-col items-center gap-1.5 p-3 bg-white border border-slate-200 rounded-lg transition-all hover:border-slate-300 ${bg}`}>
+                            onChange={() => setField("role", key)} className="peer sr-only"
+                            disabled={isAdminView} />
+                          <div className={`flex flex-col items-center gap-1.5 p-3 bg-white border border-slate-200 rounded-lg transition-all hover:border-slate-300 ${bg} ${isAdminView ? "bg-sky-50 border-sky-300 ring-1 ring-sky-200" : ""}`}>
                             <i className={`fas ${icon} text-slate-400`}></i>
                             <span className="text-xs font-semibold text-slate-700">{label}</span>
                           </div>
