@@ -3078,19 +3078,35 @@ function SitePreviewModal({ open, onClose }) {
 // ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function AdminContent() {
-  // Outer tab state (Pages | Announcements) — lives in the URL so
-  // /owner/content?tab=announcements lands on the right section and the
-  // legacy /owner/announcements redirect has a landing pad.
-  // NOTE: the INNER activeTab below is unrelated — that's the Content
-  // page's own tab state (Page Editor, Gallery, etc.) as an integer.
+  // Tab state — both outer (Pages | Announcements) and inner Pages
+  // sub-tabs (Page Editor | Gallery | Contact | Reviews) live in the
+  // same `?tab=` query param so dashboard / bell deep-links land on
+  // the right surface and shared URLs survive a page refresh.
+  //   ?tab=announcements   → outer = Announcements
+  //   ?tab=gallery|contact|reviews → outer = Pages, inner = matching
+  //   no param / ?tab=pages → outer = Pages, inner = Page Editor (0)
+  const INNER_TAB_KEYS = ['pages', 'gallery', 'contact', 'reviews'];
   const [searchParams, setSearchParams] = useSearchParams();
-  const outerTab = searchParams.get('tab') === 'announcements' ? 'announcements' : 'pages';
+  const tabParam = searchParams.get('tab');
+  const outerTab = tabParam === 'announcements' ? 'announcements' : 'pages';
   const setOuterTab = (key) => {
     if (key === 'pages') setSearchParams({});
     else setSearchParams({ tab: key });
   };
 
-  const [activeTab,   setActiveTab]   = useState(0);
+  // Derive inner tab index from the URL so direct links work, then
+  // mirror it into local state for click-driven updates. The effect
+  // below keeps state in sync if the URL changes (back/forward nav,
+  // outer-tab click resetting params).
+  const innerIdxFromUrl = Math.max(0, INNER_TAB_KEYS.indexOf(tabParam));
+  const [activeTab,   setActiveTab]   = useState(innerIdxFromUrl);
+  useEffect(() => { setActiveTab(innerIdxFromUrl); }, [innerIdxFromUrl]);
+  const setInnerTab = (i) => {
+    setActiveTab(i);
+    const key = INNER_TAB_KEYS[i];
+    if (key === 'pages') setSearchParams({});
+    else setSearchParams({ tab: key });
+  };
   const [content,     setContent]     = useState(loadContent);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [toast, showToast, clearToast, toastType] = useToast();
@@ -3175,7 +3191,7 @@ export default function AdminContent() {
       {/* Tab bar */}
       <div className="bg-white rounded-xl shadow-sm p-2 flex items-center gap-1 overflow-x-auto">
         {TABS.map((tab, i) => (
-          <button key={tab.label} onClick={() => setActiveTab(i)}
+          <button key={tab.label} onClick={() => setInnerTab(i)}
             className={`px-4 py-2.5 rounded-lg text-sm font-semibold transition whitespace-nowrap flex items-center gap-2 ${
               activeTab === i
                 ? "bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200"
