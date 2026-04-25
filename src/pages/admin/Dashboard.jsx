@@ -172,15 +172,36 @@ export default function AdminDashboard() {
         </p>
       </div>
 
-      {/* Row 1 — headline KPIs, all operational + actionable */}
+      {/* Row 1 — headline KPIs. Each one is a live operational count
+          that drops to zero when there is nothing to act on. Sublabels
+          stay honest when the number is 0 (no false "nothing booked
+          yet" when guests already arrived earlier). */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard
           to="/admin/bookings?status=Confirmed"
           icon="fa-plane-arrival"
-          label="Arrivals today"
+          label="Awaiting check-in"
           value={counts.todayArrivals}
           tone={counts.todayArrivals > 0 ? "info" : "neutral"}
-          sublabel={counts.todayArrivals > 0 ? "Ready to check in" : "Nothing booked yet"}
+          sublabel={
+            counts.todayArrivals > 0
+              ? `${counts.todayArrivals} guest${counts.todayArrivals !== 1 ? "s" : ""} still to arrive today`
+              : counts.arrivedToday > 0
+                ? `All ${counts.arrivedToday} guest${counts.arrivedToday !== 1 ? "s" : ""} for today checked in`
+                : "No arrivals scheduled today"
+          }
+        />
+        <KpiCard
+          to="/admin/bookings?status=Checked+In"
+          icon="fa-bed"
+          label="Currently in-house"
+          value={counts.currentlyInHouse}
+          tone={counts.currentlyInHouse > 0 ? "info" : "neutral"}
+          sublabel={
+            counts.currentlyInHouse > 0
+              ? `${counts.currentlyInHouse} room${counts.currentlyInHouse !== 1 ? "s" : ""} occupied right now`
+              : "No active stays"
+          }
         />
         <KpiCard
           to="/admin/bookings?status=Checked+In"
@@ -198,36 +219,39 @@ export default function AdminDashboard() {
           tone={counts.unreadMessages > 0 ? "urgent" : "good"}
           sublabel={counts.unreadMessages > 0 ? "Reply to guests" : "Inbox clear"}
         />
-        <KpiCard
-          to="/admin/content?tab=reviews"
-          icon="fa-star"
-          label="Pending reviews"
-          value={counts.pendingReviews}
-          tone={counts.pendingReviews > 0 ? "warn" : "good"}
-          sublabel={
-            counts.pendingReviews > 0
-              ? "Needs moderation"
-              : counts.newReviews > 0
-              ? `${counts.newReviews} new this week`
-              : "Nothing queued"
-          }
-        />
       </div>
 
       {/* Row 2 — two panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        {/* Today at the resort — actionable rows (admin can act on all of these now) */}
+        {/* Today at the resort — operational rollup. "Awaiting check-in"
+            and "Already arrived" together account for every guest with a
+            checkIn date of today, so the two numbers always make sense
+            side by side. */}
         <SectionCard title="Today at the resort" icon="fa-calendar-day">
           <OpsRow
             icon="fa-plane-arrival"
-            label="Arrivals"
+            label="Awaiting check-in"
             value={counts.todayArrivals}
             tone={counts.todayArrivals > 0 ? "good" : "neutral"}
-            to="/admin/bookings?status=Confirmed"
+            to={counts.todayArrivals > 0 ? "/admin/bookings?status=Confirmed" : null}
+          />
+          <OpsRow
+            icon="fa-circle-check"
+            label="Already arrived"
+            value={counts.arrivedToday}
+            tone="neutral"
+            to={counts.arrivedToday > 0 ? "/admin/bookings?status=Checked+In" : null}
+          />
+          <OpsRow
+            icon="fa-bed"
+            label="Currently in-house"
+            value={counts.currentlyInHouse}
+            tone="neutral"
+            to={counts.currentlyInHouse > 0 ? "/admin/bookings?status=Checked+In" : null}
           />
           <OpsRow
             icon="fa-clock"
-            label="Checkouts in <30 min"
+            label={`Checkouts in <30 min`}
             value={counts.soonCheckouts}
             tone={counts.soonCheckouts > 0 ? "warn" : "neutral"}
             to={counts.soonCheckouts > 0 ? "/admin/bookings?status=Checked+In" : null}

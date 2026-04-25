@@ -106,13 +106,16 @@ export default function AdminShell() {
   const [editProfile,   setEditProfile]   = useState({ name: userName, email: userEmail, phone: user?.phone || "" });
   const [passwordData,  setPasswordData]  = useState({ current: "", new: "", confirm: "" });
 
-  // Notification polling
+  // Notification polling — paths must point INSIDE /admin/* so the bell
+  // and the chat widget keep admin in their own portal. Pointing at
+  // /owner/* or /frontdesk/* bounced admin out via RequireOwner /
+  // RequireFrontdesk guards.
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
-    messages:           '/owner/messages',
-    arrivals:           '/frontdesk/bookings?status=Confirmed',
-    soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
-    overdueCheckouts:   '/frontdesk',
-    reviews:            '/owner/reviews',
+    messages:           '/admin/messages',
+    arrivals:           '/admin/bookings?status=Confirmed',
+    soonCheckouts:      '/admin/bookings?status=Checked+In',
+    overdueCheckouts:   '/admin/bookings?status=Checked+In',
+    reviews:            '/admin/content?tab=reviews',
   });
 
   // Persist collapsed preference

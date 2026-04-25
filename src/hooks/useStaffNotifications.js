@@ -62,6 +62,8 @@ export function useStaffNotifications(paths = {}) {
   const [counts, setCounts] = useState({
     unreadMessages:   0,
     todayArrivals:    0,
+    arrivedToday:     0,
+    currentlyInHouse: 0,
     newReviews:       0,
     pendingReviews:   0,
     soonCheckouts:    0,
@@ -89,20 +91,30 @@ export function useStaffNotifications(paths = {}) {
     const reviews  = rvRes.status  === 'fulfilled' ? (rvRes.value?.data?.data ?? rvRes.value?.data ?? []) : [];
 
     const unreadMessages  = threads.filter(t => !t.is_read).length;
+    // todayArrivals = Confirmed bookings still pending check-in for today.
+    // Drops as guests get checked in (count goes to zero when work is
+    // done — the operational signal). arrivedToday is the companion
+    // backfill so the dashboard can show "X already arrived" instead
+    // of falsely claiming "nothing booked yet".
     const todayArrivals   = bookings.filter(
       b => b.checkIn?.slice(0, 10) === today && b.status === 'Confirmed'
+    ).length;
+    const arrivedToday    = bookings.filter(
+      b => b.checkIn?.slice(0, 10) === today && b.status === 'Checked In'
     ).length;
     const now = new Date();
     const soonWindowMs = CHECKOUT_SOON_WINDOW_MIN * 60 * 1000;
     let overdueCheckouts = 0;
     let soonCheckouts    = 0;
+    let currentlyInHouse = 0;
     for (const b of bookings) {
       if (b.status !== 'Checked In' || !b.checkOut) continue;
       const co = new Date(String(b.checkOut).replace(' ', 'T'));
       if (isNaN(co.getTime())) continue;
       const msUntil = co.getTime() - now.getTime();
       if (msUntil <= 0)                              overdueCheckouts++;
-      else if (msUntil <= soonWindowMs)              soonCheckouts++;
+      else                                           currentlyInHouse++;
+      if (msUntil > 0 && msUntil <= soonWindowMs)    soonCheckouts++;
     }
     // Reviews carry awareness (new this week) AND moderation-queue
     // (status=Pending) semantics separately. Most submissions default to
@@ -145,7 +157,7 @@ export function useStaffNotifications(paths = {}) {
     }
     prevUnreadMessagesRef.current = unreadMessages;
 
-    setCounts({ unreadMessages, todayArrivals, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
+    setCounts({ unreadMessages, todayArrivals, arrivedToday, currentlyInHouse, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
 
     const next = [];
     if (unreadMessages > 0)
