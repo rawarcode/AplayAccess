@@ -221,9 +221,10 @@ export default function GuestRecords({ embedded = false }) {
           {/* Search */}
           <div className="flex flex-col md:flex-row md:items-center gap-3 mb-6">
             <div className="relative flex-1">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
               <input
                 type="text"
+                aria-label="Search guests by name, email, or phone"
                 placeholder="Search by name, email, or phone..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
@@ -244,19 +245,33 @@ export default function GuestRecords({ embedded = false }) {
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
-                    {[['Guest','Guest'],['Total Visits','Total Visits'],['Completed','Completed'],['Last Visit','Last Visit'],['Total Spend','Total Spend']].map(([label,key]) => (
-                      <th key={key} className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
-                        <button onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
-                          className="flex items-center gap-1 hover:text-sky-600 transition-colors group">
-                          {label}
-                          <span className="text-slate-400 group-hover:text-sky-400">
-                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
-                          </span>
-                        </button>
-                      </th>
-                    ))}
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contact</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
+                    {[['Guest','Guest'],['Total Visits','Total Visits'],['Completed','Completed'],['Last Visit','Last Visit'],['Total Spend','Total Spend']].map(([label,key]) => {
+                      const isSorted = sortBy === key;
+                      const ariaSort = isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
+                      return (
+                        <th
+                          key={key}
+                          scope="col"
+                          aria-sort={ariaSort}
+                          className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase"
+                        >
+                          <button
+                            onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
+                            aria-label={`Sort by ${label}, currently ${ariaSort}`}
+                            className="flex items-center gap-1 hover:text-sky-600 transition-colors group"
+                          >
+                            {label}
+                            <span className="text-slate-400 group-hover:text-sky-400" aria-hidden="true">
+                              {isSorted
+                                ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i>
+                                : <i className="fas fa-sort opacity-40"></i>}
+                            </span>
+                          </button>
+                        </th>
+                      );
+                    })}
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contact</th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
@@ -264,10 +279,20 @@ export default function GuestRecords({ embedded = false }) {
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-slate-400">No guests found.</td>
                     </tr>
-                  ) : filtered.map((g, i) => (
-                    <tr key={i}
-                      className="hover:bg-slate-50 cursor-pointer"
+                  ) : filtered.map((g) => (
+                    <tr
+                      key={g.email || g.userId || g.name}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`View history for ${g.name}`}
+                      className="hover:bg-slate-50 cursor-pointer focus:outline-none focus:bg-sky-50 focus:ring-2 focus:ring-inset focus:ring-sky-400"
                       onClick={() => setViewGuest(g)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setViewGuest(g);
+                        }
+                      }}
                     >
                       <td className="px-4 py-4">
                         <div className="flex items-center">
@@ -288,7 +313,7 @@ export default function GuestRecords({ embedded = false }) {
                       <td className="px-4 py-4" onClick={e => e.stopPropagation()}>
                         <button onClick={() => setViewGuest(g)}
                           className="text-sky-600 hover:text-sky-800 text-sm">
-                          <i className="fas fa-eye mr-1"></i>View
+                          <i className="fas fa-eye mr-1" aria-hidden="true"></i>View
                         </button>
                       </td>
                     </tr>

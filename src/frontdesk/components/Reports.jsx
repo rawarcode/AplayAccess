@@ -241,7 +241,7 @@ export default function Reports() {
           ].map(card => (
             <div key={card.label} className="bg-white rounded-lg shadow p-5 flex items-center">
               <div className={`p-3 rounded-full ${card.bg} ${card.text} mr-4`}>
-                <i className={`fas ${card.icon} text-lg`}></i>
+                <i className={`fas ${card.icon} text-lg`} aria-hidden="true"></i>
               </div>
               <div>
                 <p className="text-slate-500 text-xs">{card.label}</p>
@@ -276,9 +276,14 @@ export default function Reports() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Daily Report</h2>
             <div className="mb-4">
-              <label className="block text-sm font-medium text-slate-700 mb-1">Select Date</label>
-              <input type="date" value={reportDate} onChange={e => setReportDate(e.target.value)}
-                className="border rounded px-3 py-2 w-full text-sm" />
+              <label htmlFor="reports-date" className="block text-sm font-medium text-slate-700 mb-1">Select Date</label>
+              <input
+                id="reports-date"
+                type="date"
+                value={reportDate}
+                onChange={e => setReportDate(e.target.value)}
+                className="border rounded px-3 py-2 w-full text-sm"
+              />
             </div>
             <div className="space-y-2 text-sm">
               {[

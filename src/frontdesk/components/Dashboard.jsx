@@ -168,13 +168,17 @@ export default function Dashboard() {
 
             {/* Profile */}
             <div className="relative" ref={profileRef}>
-              <button onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-800">
+              <button
+                onClick={() => setProfileOpen(!profileOpen)}
+                aria-haspopup="menu"
+                aria-expanded={profileOpen}
+                className="flex items-center gap-2 text-slate-600 hover:text-slate-800"
+              >
                 <div className="h-8 w-8 rounded-full bg-sky-600 text-white flex items-center justify-center text-sm font-semibold">
                   {initials}
                 </div>
                 <span className="hidden md:inline text-sm">{userName}</span>
-                <i className="fas fa-chevron-down text-xs text-slate-400"></i>
+                <i className="fas fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
               </button>
               {profileOpen && (
                 <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border z-50">
