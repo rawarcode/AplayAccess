@@ -196,7 +196,7 @@ function RoomsTab() {
         </div>
         <button onClick={() => load(true)} disabled={refreshing} type="button"
           aria-label="Refresh rooms list"
-          className="inline-flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
+          className="inline-flex items-center gap-2 h-10 px-4 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
           <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
@@ -214,8 +214,10 @@ function RoomsTab() {
         </div>
       )}
 
-      {/* Category tabs */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter rooms by category">
+      {/* Category filters — these toggle a single table view, not
+          separate panels, so role="group" + aria-pressed is the
+          correct pattern (was: role="tablist" which promises tabpanels). */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter rooms by category">
         {CATEGORY_TABS.map((tab) => {
           const count = tab.key === ""
             ? rooms.length
@@ -223,9 +225,8 @@ function RoomsTab() {
           const active = filterCategory === tab.key;
           return (
             <button key={tab.key} type="button" onClick={() => setFilterCategory(tab.key)}
-              role="tab"
-              aria-selected={active}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
+              aria-pressed={active}
+              className={`inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold border transition-all ${
                 active
                   ? "bg-brand text-white border-brand shadow"
                   : "bg-white text-slate-600 border-slate-200 hover:border-brand hover:text-brand"
@@ -574,7 +575,7 @@ function AddonsTab() {
         </div>
         <button onClick={() => load(true)} disabled={refreshing} type="button"
           aria-label="Refresh add-ons list"
-          className="inline-flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
+          className="inline-flex items-center gap-2 h-10 px-4 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
           <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
@@ -595,12 +596,11 @@ function AddonsTab() {
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2" role="tablist" aria-label="Filter add-ons by status">
+        <div className="flex items-center gap-2" role="group" aria-label="Filter add-ons by status">
           {["all", "active", "inactive"].map((f) => (
             <button key={f} onClick={() => setFilterStatus(f)} type="button"
-              role="tab"
-              aria-selected={filterStatus === f}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold capitalize transition ${
+              aria-pressed={filterStatus === f}
+              className={`h-10 px-4 rounded-lg text-xs font-semibold capitalize transition ${
                 filterStatus === f
                   ? "bg-brand text-white"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"

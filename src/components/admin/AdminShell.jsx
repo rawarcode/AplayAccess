@@ -567,14 +567,14 @@ export default function AdminShell() {
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-800">
-                <i className="fas fa-user-cog mr-2 text-brand"></i>Account Settings
+                <i className="fas fa-user-cog mr-2 text-brand" aria-hidden="true"></i>Account Settings
               </h3>
               <button
                 onClick={closeSettings}
-                className="text-gray-400 hover:text-gray-600 transition"
+                className="text-gray-400 hover:text-gray-600 transition h-11 w-11 flex items-center justify-center rounded-lg"
                 aria-label="Close"
               >
-                <i className="fas fa-times text-lg"></i>
+                <i className="fas fa-times text-lg" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -597,7 +597,7 @@ export default function AdminShell() {
                     onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "" }); setIsEditing(true); }}
                     className="px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark transition"
                   >
-                    <i className="fas fa-edit mr-2"></i>Edit
+                    <i className="fas fa-edit mr-2" aria-hidden="true"></i>Edit
                   </button>
                 )}
               </div>
@@ -610,7 +610,7 @@ export default function AdminShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
                       <div className="relative">
-                        <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type="text"
                           value={editProfile.name}
@@ -623,7 +623,7 @@ export default function AdminShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                       <div className="relative">
-                        <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-envelope absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type="email"
                           value={editProfile.email}
@@ -636,7 +636,7 @@ export default function AdminShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                       <div className="relative">
-                        <i className="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-phone absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type="tel"
                           value={editProfile.phone}
@@ -649,7 +649,7 @@ export default function AdminShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                       <div className="relative">
-                        <i className="fas fa-shield-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-shield-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type="text"
                           value={userRole}
@@ -666,7 +666,7 @@ export default function AdminShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
                       <div className="relative">
-                        <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type={showCurrent ? "text" : "password"}
                           value={passwordData.current}
@@ -679,15 +679,16 @@ export default function AdminShell() {
                           onClick={() => setShowCurrent(!showCurrent)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           tabIndex={-1}
+                          aria-label={showCurrent ? "Hide current password" : "Show current password"}
                         >
-                          <i className={`fas ${showCurrent ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                          <i className={`fas ${showCurrent ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
                         </button>
                       </div>
                     </div>
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
                       <div className="relative">
-                        <i className="fas fa-key absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-key absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type={showNew ? "text" : "password"}
                           value={passwordData.new}
@@ -700,13 +701,14 @@ export default function AdminShell() {
                           onClick={() => setShowNew(!showNew)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           tabIndex={-1}
+                          aria-label={showNew ? "Hide new password" : "Show new password"}
                         >
-                          <i className={`fas ${showNew ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                          <i className={`fas ${showNew ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
                         </button>
                       </div>
                       {pwStrength && (
-                        <p className={`text-xs mt-1 ${pwStrength === "strong" ? "text-emerald-600" : "text-amber-600"}`}>
-                          <i className={`fas ${pwStrength === "strong" ? "fa-check-circle" : "fa-info-circle"} mr-1`}></i>
+                        <p className={`text-xs mt-1 ${pwStrength === "strong" ? "text-success-fg" : "text-warning-fg"}`}>
+                          <i className={`fas ${pwStrength === "strong" ? "fa-check-circle" : "fa-info-circle"} mr-1`} aria-hidden="true"></i>
                           {pwStrength === "strong" ? "Strong password" : "At least 8 characters recommended"}
                         </p>
                       )}
@@ -714,7 +716,7 @@ export default function AdminShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
                       <div className="relative">
-                        <i className="fas fa-key absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-key absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input
                           type={showConfirm ? "text" : "password"}
                           value={passwordData.confirm}
@@ -729,13 +731,14 @@ export default function AdminShell() {
                           onClick={() => setShowConfirm(!showConfirm)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                           tabIndex={-1}
+                          aria-label={showConfirm ? "Hide password confirmation" : "Show password confirmation"}
                         >
-                          <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                          <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
                         </button>
                       </div>
                       {pwMismatch && (
-                        <p className="text-xs text-red-500 mt-1">
-                          <i className="fas fa-exclamation-circle mr-1"></i>Passwords do not match
+                        <p className="text-xs text-danger-fg mt-1" role="alert">
+                          <i className="fas fa-exclamation-circle mr-1" aria-hidden="true"></i>Passwords do not match
                         </p>
                       )}
                     </div>
@@ -746,28 +749,28 @@ export default function AdminShell() {
                   <h4 className="font-medium mb-3 text-gray-700">Profile Information</h4>
                   <div className="grid grid-cols-1 gap-4 p-4 bg-gray-50 rounded">
                     <div className="flex items-start gap-3">
-                      <i className="fas fa-user text-gray-400 mt-0.5 w-4 text-center"></i>
+                      <i className="fas fa-user text-gray-400 mt-0.5 w-4 text-center" aria-hidden="true"></i>
                       <div>
                         <p className="text-xs text-gray-500">Full Name</p>
                         <p className="font-medium">{userName}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <i className="fas fa-envelope text-gray-400 mt-0.5 w-4 text-center"></i>
+                      <i className="fas fa-envelope text-gray-400 mt-0.5 w-4 text-center" aria-hidden="true"></i>
                       <div>
                         <p className="text-xs text-gray-500">Email</p>
                         <p className="font-medium">{userEmail}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <i className="fas fa-phone text-gray-400 mt-0.5 w-4 text-center"></i>
+                      <i className="fas fa-phone text-gray-400 mt-0.5 w-4 text-center" aria-hidden="true"></i>
                       <div>
                         <p className="text-xs text-gray-500">Phone</p>
                         <p className="font-medium">{user?.phone || "\u2014"}</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
-                      <i className="fas fa-shield-alt text-gray-400 mt-0.5 w-4 text-center"></i>
+                      <i className="fas fa-shield-alt text-gray-400 mt-0.5 w-4 text-center" aria-hidden="true"></i>
                       <div>
                         <p className="text-xs text-gray-500">Role</p>
                         <p className="font-medium">{userRole}</p>
@@ -793,7 +796,7 @@ export default function AdminShell() {
                       disabled={saving}
                       className="px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 flex items-center gap-2"
                     >
-                      {saving ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-save"></i>}
+                      {saving ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : <i className="fas fa-save" aria-hidden="true"></i>}
                       {saving ? "Saving..." : "Save Changes"}
                     </button>
                   </>

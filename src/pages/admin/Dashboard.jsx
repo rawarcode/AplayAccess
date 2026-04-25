@@ -25,7 +25,7 @@ function KpiCard({ to, icon, label, value, tone = "neutral", sublabel }) {
     good:    "bg-success-bg border-success-bg",
   }[tone];
   const toneIcon = {
-    neutral: "bg-slate-100 text-slate-600",
+    neutral: "bg-slate-100 text-slate-700",
     urgent:  "bg-danger-bg text-danger-fg",
     warn:    "bg-warning-bg text-warning-fg",
     info:    "bg-info-bg text-info-fg",
@@ -181,9 +181,6 @@ export default function AdminDashboard() {
         <h1 className="text-2xl md:text-3xl font-semibold text-slate-900">
           {greeting}, {user?.name || "Admin"}.
         </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Operational overview. Live counts refresh every 20 seconds.
-        </p>
       </div>
 
       {/* Row 1 — headline KPIs. Each one is a live operational count
@@ -325,15 +322,15 @@ export default function AdminDashboard() {
         </SectionCard>
       </div>
 
-      {/* Row 3 — quick actions. Operational-first: the things admin
-          reaches for when covering for front desk. Management actions
-          (promos, newsletter) still reachable via the sidebar. */}
+      {/* Row 3 — only Walk-In stays. The other "quick actions"
+          (Manage bookings, Collect payment, Edit website) duplicated
+          sidebar nav items one click away. Walk-In earns its place
+          because it's reached via the '+ New Walk-in' button INSIDE
+          Bookings, not the sidebar — surfacing it on the dashboard
+          saves an extra hop when admin is covering the counter. */}
       <SectionCard title="Quick actions" icon="fa-bolt">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <QuickAction to="/admin/walk-in"  icon="fa-person-walking-arrow-right" label="New walk-in" />
-          <QuickAction to="/admin/bookings" icon="fa-calendar-check" label="Manage bookings" />
-          <QuickAction to="/admin/billing"  icon="fa-file-invoice-dollar" label="Collect payment" />
-          <QuickAction to="/admin/content"  icon="fa-pen-to-square" label="Edit website" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <QuickAction to="/admin/walk-in" icon="fa-person-walking-arrow-right" label="New walk-in" />
         </div>
       </SectionCard>
     </div>
