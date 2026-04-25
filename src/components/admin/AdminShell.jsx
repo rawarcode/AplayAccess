@@ -455,8 +455,11 @@ export default function AdminShell() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 overflow-auto flex flex-col bg-slate-100">
+      {/* Main content. overflow-hidden on the wrapper + overflow-auto on
+          <main> below is the pattern h-full pages (Messages, future
+          full-height surfaces) need. See "Shell overflow pattern" hazard
+          in CLAUDE.md — same fix OwnerShell shipped in b5357ba. */}
+      <div className="flex-1 overflow-hidden flex flex-col bg-slate-100">
 
         {/* Header */}
         <header className="bg-white shadow-sm sticky top-0 z-20">
@@ -529,7 +532,7 @@ export default function AdminShell() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1">
+        <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
       </div>
