@@ -25,7 +25,7 @@ const PAGE_TITLES = {
   "/admin/promo-codes":    "Promo Codes",
   "/admin/newsletter":     "Newsletter",
   "/admin/catalog":        "Catalog",
-  "/admin/users":          "Staff",
+  "/admin/users":          "Users",
   "/admin/activity-log":   "Activity Log",
 };
 
@@ -45,7 +45,9 @@ const MENU = {
     // walk-in creation inline, and having a separate sidebar item
     // duplicated the entry point.
     { path: "/admin/billing",        icon: "fa-file-invoice-dollar", label: "Billing" },
-    { path: "/admin/guest-records",  icon: "fa-id-card",        label: "Guest Records" },
+    // Guest Records dropped from the sidebar — same data lives as the
+    // Guests tab inside /admin/users. /admin/guest-records still
+    // resolves so deep-links / muscle-memory bookmarks keep working.
     { path: "/admin/rooms",          icon: "fa-bed",            label: "Rooms" },
   ],
   manage: [
@@ -66,7 +68,7 @@ const MENU = {
   // Oversight group — admin can read the activity log and toggle
   // a front_desk staff member's active flag (no full user CRUD).
   oversight: [
-    { path: "/admin/users",          icon: "fa-users",          label: "Staff" },
+    { path: "/admin/users",          icon: "fa-users",          label: "Users" },
     { path: "/admin/activity-log",   icon: "fa-clock-rotate-left", label: "Activity Log" },
   ],
 };
