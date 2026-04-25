@@ -119,7 +119,7 @@ export default function OwnerShell() {
     messages:           '/owner/messages',
     arrivals:           '/frontdesk/bookings?status=Confirmed',
     soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
-    overdueCheckouts:   '/frontdesk',
+    overdueCheckouts:   '/frontdesk/bookings?status=Checked+In',
     reviews:            '/owner/reviews',
   });
 

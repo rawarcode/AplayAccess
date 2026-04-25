@@ -59,7 +59,7 @@ export default function Sidebar({ children, showTopBar = true }) {
     messages:           '/frontdesk/messages',
     arrivals:           '/frontdesk/bookings?status=Confirmed',
     soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
-    overdueCheckouts:   '/frontdesk',
+    overdueCheckouts:   '/frontdesk/bookings?status=Checked+In',
   });
 
   const menuItems = {
