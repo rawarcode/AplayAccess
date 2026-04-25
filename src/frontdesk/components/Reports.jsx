@@ -256,7 +256,11 @@ export default function Reports() {
           <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
             <h2 className="text-lg font-semibold mb-4">Bookings — Last 7 Days</h2>
             {loading ? (
-              <div className="h-52 flex items-center justify-center text-slate-400">Loading...</div>
+              <div className="h-52 animate-pulse flex items-end gap-3 px-2 pb-4" aria-busy="true" aria-label="Loading weekly chart">
+                {Array.from({ length: 7 }).map((_, i) => (
+                  <div key={i} className="flex-1 bg-slate-200 rounded-t" style={{ height: `${30 + ((i * 13) % 50)}%` }} />
+                ))}
+              </div>
             ) : (
               <div className="h-52">
                 <Bar

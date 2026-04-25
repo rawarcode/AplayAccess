@@ -98,7 +98,10 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
   const balanceDue  = outstanding; // legacy alias, kept so downstream JSX reads naturally
 
   return (
-    <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto z-40 border-l border-slate-200">
+    // Slide-in from the right edge — was instant pop-in before, which
+    // felt janky. Keyframe defined in src/index.css under
+    // .animate-slide-in-right (transform + opacity only, no layout).
+    <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col overflow-y-auto z-40 border-l border-slate-200 animate-slide-in-right">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b">

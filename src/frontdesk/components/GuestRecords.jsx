@@ -237,8 +237,34 @@ export default function GuestRecords({ embedded = false }) {
           </div>
 
           {loading ? (
-            <div className="py-12 text-center text-slate-400">
-              <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading records...
+            // Skeleton table — see Bookings.jsx for the rationale.
+            <div className="overflow-x-auto" aria-busy="true" aria-label="Loading guest records">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    {['Guest', 'Contact', 'Total Visits', 'Completed', 'Last Visit', 'Total Spend', 'Actions'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 animate-pulse">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-full bg-slate-200 mr-3 flex-shrink-0" />
+                          <div className="h-3 w-28 bg-slate-200 rounded" />
+                        </div>
+                      </td>
+                      {Array.from({ length: 6 }).map((__, j) => (
+                        <td key={j} className="px-4 py-4">
+                          <div className="h-3 bg-slate-200 rounded" style={{ width: `${50 + ((i + j) * 7) % 40}%` }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="overflow-x-auto">

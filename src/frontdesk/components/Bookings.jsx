@@ -593,8 +593,30 @@ export default function Bookings({ embedded = false }) {
           )}
 
           {loading ? (
-            <div className="py-16 text-center text-slate-400">
-              <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading bookings...
+            // Skeleton table — pulses 6 rows at the same shape the
+            // real table renders. Less jarring than a spinner because
+            // the layout doesn't shift when data arrives.
+            <div className="overflow-x-auto" aria-busy="true" aria-label="Loading bookings">
+              <table className="min-w-full divide-y divide-slate-200">
+                <thead className="bg-slate-50">
+                  <tr>
+                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Payment', 'Status'].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 animate-pulse">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <tr key={i}>
+                      {Array.from({ length: 7 }).map((__, j) => (
+                        <td key={j} className="px-4 py-4">
+                          <div className="h-3 bg-slate-200 rounded" style={{ width: `${50 + ((i + j) * 7) % 40}%` }} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="overflow-x-auto">
