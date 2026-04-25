@@ -23,11 +23,11 @@ import { TabBar } from "../owner/Users.jsx";
 const PAGE_SIZE = 10;
 
 const AVAIL = {
-  available:   { label: "Available",          color: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-500", icon: "fa-check-circle" },
-  renovation:  { label: "Under Renovation",   color: "bg-rose-100 text-rose-800",       dot: "bg-rose-500",    icon: "fa-hard-hat"     },
-  maintenance: { label: "Under Maintenance",  color: "bg-amber-100 text-amber-800",     dot: "bg-amber-500",   icon: "fa-wrench"       },
-  reserved:    { label: "Reserved / Blocked", color: "bg-purple-100 text-purple-800",   dot: "bg-purple-500",  icon: "fa-lock"         },
-  closed:      { label: "Temporarily Closed", color: "bg-slate-100 text-slate-600",     dot: "bg-slate-400",   icon: "fa-ban"          },
+  available:   { label: "Available",          color: "bg-success-bg text-success-fg",   dot: "bg-success-ring",  icon: "fa-check-circle" },
+  renovation:  { label: "Under Renovation",   color: "bg-danger-bg text-danger-fg",     dot: "bg-danger-ring",   icon: "fa-hard-hat"     },
+  maintenance: { label: "Under Maintenance",  color: "bg-warning-bg text-warning-fg",   dot: "bg-warning-ring",  icon: "fa-wrench"       },
+  reserved:    { label: "Reserved / Blocked", color: "bg-info-bg text-info-fg",         dot: "bg-info-ring",     icon: "fa-lock"         },
+  closed:      { label: "Temporarily Closed", color: "bg-slate-100 text-slate-600",     dot: "bg-slate-400",     icon: "fa-ban"          },
 };
 
 const CATEGORY_TABS = [
@@ -169,21 +169,25 @@ function RoomsTab() {
       {/* Header card */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
-            <i className="fas fa-bed text-sky-600 text-lg"></i>
+          <div className="h-10 w-10 rounded-xl bg-info-bg flex items-center justify-center shrink-0">
+            <i className="fas fa-bed text-info-fg text-lg" aria-hidden="true"></i>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Rooms Catalog</h1>
+            <h2 className="text-lg font-bold text-slate-900">Rooms Catalog</h2>
             <p className="text-sm text-slate-500">Toggle which rooms are currently bookable. Owner controls rates and inventory.</p>
+            {/* Category counts use a single neutral pill style — color
+                is reserved for status (AvailBadge). Earlier rotation
+                of sky/amber/emerald per category was decorative noise
+                that didn't help admin distinguish action targets. */}
             {rooms.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1.5">
                 {[
-                  { count: countRoom,     label: "Rooms",     icon: "fa-bed",            bg: "bg-sky-50 text-sky-700 border-sky-200" },
-                  { count: countCottage,  label: "Cottages",  icon: "fa-umbrella-beach", bg: "bg-amber-50 text-amber-700 border-amber-200" },
-                  { count: countPavilion, label: "Pavilions", icon: "fa-archway",        bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-                ].map(({ count, label, icon, bg }) => (
-                  <span key={label} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${bg}`}>
-                    <i className={`fas ${icon} text-[10px]`}></i>{count} {label}
+                  { count: countRoom,     label: "Rooms",     icon: "fa-bed"            },
+                  { count: countCottage,  label: "Cottages",  icon: "fa-umbrella-beach" },
+                  { count: countPavilion, label: "Pavilions", icon: "fa-archway"        },
+                ].map(({ count, label, icon }) => (
+                  <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border bg-slate-50 text-slate-600 border-slate-200">
+                    <i className={`fas ${icon} text-[10px]`} aria-hidden="true"></i>{count} {label}
                   </span>
                 ))}
               </div>
@@ -191,27 +195,27 @@ function RoomsTab() {
           </div>
         </div>
         <button onClick={() => load(true)} disabled={refreshing} type="button"
-          className="inline-flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50"
-          title="Refresh">
-          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`}></i>
+          aria-label="Refresh rooms list"
+          className="inline-flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
+          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
       </div>
 
       {/* Error with retry */}
       {error && (
-        <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-6 text-center">
-          <i className="fas fa-exclamation-triangle text-3xl mb-3 block"></i>
+        <div className="bg-danger-bg border border-danger-bg text-danger-fg rounded-xl p-6 text-center" role="alert">
+          <i className="fas fa-exclamation-triangle text-3xl mb-3 block" aria-hidden="true"></i>
           <p className="font-medium mb-3">{error}</p>
           <button onClick={() => load()} type="button"
-            className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm hover:bg-rose-700 transition">
-            <i className="fas fa-redo mr-2"></i>Retry
+            className="px-4 py-2 bg-danger-fg text-white rounded-lg text-sm hover:opacity-90 transition">
+            <i className="fas fa-redo mr-2" aria-hidden="true"></i>Retry
           </button>
         </div>
       )}
 
       {/* Category tabs */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter rooms by category">
         {CATEGORY_TABS.map((tab) => {
           const count = tab.key === ""
             ? rooms.length
@@ -219,12 +223,14 @@ function RoomsTab() {
           const active = filterCategory === tab.key;
           return (
             <button key={tab.key} type="button" onClick={() => setFilterCategory(tab.key)}
+              role="tab"
+              aria-selected={active}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border transition-all ${
                 active
-                  ? "bg-sky-600 text-white border-sky-600 shadow"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-sky-300 hover:text-sky-600"
+                  ? "bg-brand text-white border-brand shadow"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-brand hover:text-brand"
               }`}>
-              <i className={`fas ${tab.icon} text-xs`}></i>
+              <i className={`fas ${tab.icon} text-xs`} aria-hidden="true"></i>
               {tab.label}
               <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                 active ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
@@ -243,13 +249,13 @@ function RoomsTab() {
           </div>
           <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
             <div className="relative w-full md:w-64">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
               <input ref={searchRef} type="text" aria-label="Search rooms" placeholder="Search rooms..."
                 value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm" />
+                className="w-full pl-10 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand text-sm" />
             </div>
             <select value={filterAvail} onChange={(e) => setFilterAvail(e.target.value)} aria-label="Filter by availability"
-              className="min-w-44 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm bg-white">
+              className="min-w-44 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand text-sm bg-white">
               <option value="">All Availability</option>
               {Object.entries(AVAIL).map(([val, { label }]) => (
                 <option key={val} value={val}>{label}</option>
@@ -264,7 +270,7 @@ function RoomsTab() {
           ) : filtered.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-bed text-slate-300 text-2xl"></i>
+                <i className="fas fa-bed text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterAvail || filterCategory
@@ -273,8 +279,8 @@ function RoomsTab() {
               </p>
               {(debouncedSearch || filterAvail || filterCategory) && (
                 <button onClick={() => { setSearchTerm(""); setFilterAvail(""); setFilterCategory(""); }} type="button"
-                  className="mt-4 text-sm text-sky-600 hover:text-sky-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  className="mt-4 text-sm text-brand hover:text-brand-dark font-medium">
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -288,50 +294,41 @@ function RoomsTab() {
                   <th className="px-4 py-3 text-left">Capacity</th>
                   <th className="px-4 py-3 text-left">Day Rate</th>
                   <th className="px-4 py-3 text-left">Status</th>
-                  <th className="px-4 py-3 text-right">Change to</th>
+                  <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-slate-200">
+                {/* Restructured rows: dropped role="button" + nested <select>.
+                    The status change now lives only in the View modal —
+                    keeps the row free of nested interactive controls
+                    (a11y), and the modal is where admin makes other
+                    detailed decisions about a room anyway. */}
                 {paginated.map((room, idx) => {
                   const avail = room.availability_status || "available";
                   const isUnavailable = avail !== "available";
-                  const cat = getRoomCategory(room);
-                  const catStyle = { cottage: "bg-amber-100 text-amber-700", pavilion: "bg-emerald-100 text-emerald-700" }[cat];
-                  const busy = busyId === room.id;
                   return (
-                    <tr key={room.id} role="button" tabIndex={0}
-                      onClick={() => setViewRoom(room)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewRoom(room); } }}
-                      className={`cursor-pointer transition-all hover:bg-sky-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${isUnavailable ? "opacity-60" : ""}`}>
+                    <tr key={room.id}
+                      className={`transition-all ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${isUnavailable ? "opacity-60" : ""}`}>
                       <td className="px-4 py-4">
                         {room.image
-                          ? <img src={room.image} alt={room.name} className="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
-                          : <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i className="fas fa-bed"></i></div>}
+                          ? <img src={room.image} alt="" className="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
+                          : <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400" aria-hidden="true"><i className="fas fa-bed"></i></div>}
                       </td>
                       <td className="px-4 py-4 font-medium text-slate-900">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {room.name}
-                          {catStyle && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${catStyle}`}>{cat}</span>
-                          )}
-                        </div>
-                        {room.capacity_label && <span className="text-xs text-slate-400">{room.capacity_label}</span>}
+                        {room.name}
+                        {room.capacity_label && <span className="block text-xs text-slate-400">{room.capacity_label}</span>}
                       </td>
                       <td className="px-4 py-4 text-slate-600">{room.quantity ?? 1}</td>
                       <td className="px-4 py-4 text-slate-600">{room.capacity ?? "—"} pax</td>
                       <td className="px-4 py-4 text-slate-600">{"₱"}{Number(room.day_rate || 0).toLocaleString()}</td>
                       <td className="px-4 py-4"><AvailBadge status={avail} /></td>
-                      <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-4 py-4">
                         <div className="flex justify-end">
-                          <select value={avail}
-                            onChange={(e) => changeStatus(room, e.target.value)}
-                            disabled={busy}
-                            aria-label={`Change status for ${room.name}`}
-                            className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:opacity-50">
-                            {Object.entries(AVAIL).map(([val, { label }]) => (
-                              <option key={val} value={val}>{label}</option>
-                            ))}
-                          </select>
+                          <button type="button" onClick={() => setViewRoom(room)}
+                            aria-label={`View ${room.name}`}
+                            className="inline-flex items-center justify-center h-11 min-w-[44px] px-3 rounded-lg text-sm font-medium text-brand hover:bg-info-bg transition">
+                            <i className="fas fa-eye mr-1.5 text-xs" aria-hidden="true"></i>View
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -344,34 +341,39 @@ function RoomsTab() {
 
         {/* Pagination */}
         {!loading && filtered.length > 0 && totalPages > 1 && (
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
+          <nav aria-label="Rooms pagination" className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-6 py-4 bg-slate-50 border-t border-slate-200">
             <p className="text-xs text-slate-500">
               Showing <span className="font-semibold text-slate-700">{showFrom}</span>{"–"}<span className="font-semibold text-slate-700">{showTo}</span> of{" "}
               <span className="font-semibold text-slate-700">{filtered.length}</span> rooms
             </p>
+            {/* WCAG 2.5.5 — 44×44 touch targets */}
             <div className="flex items-center gap-1">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} type="button"
-                className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-left text-xs"></i>
+                aria-label="Previous page"
+                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
+                <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
               </button>
               {getPageNumbers(safePage, totalPages).map((n, i) =>
                 n === "..." ? (
-                  <span key={`d-${i}`} className="h-8 min-w-[2rem] flex items-center justify-center text-xs text-slate-400">…</span>
+                  <span key={`d-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-xs text-slate-400" aria-hidden="true">…</span>
                 ) : (
                   <button key={n} onClick={() => setPage(n)} type="button"
-                    className={`h-8 min-w-[2rem] rounded-lg text-xs font-semibold transition ${
-                      n === safePage ? "bg-sky-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    aria-label={`Page ${n}`}
+                    aria-current={n === safePage ? "page" : undefined}
+                    className={`h-11 min-w-[2.75rem] rounded-lg text-xs font-semibold transition ${
+                      n === safePage ? "bg-brand text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}>
                     {n}
                   </button>
                 )
               )}
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages} type="button"
-                className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-right text-xs"></i>
+                aria-label="Next page"
+                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
+                <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
               </button>
             </div>
-          </div>
+          </nav>
         )}
       </div>
 
@@ -383,8 +385,8 @@ function RoomsTab() {
             <>
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center">
-                    <i className="fas fa-bed"></i>
+                  <div className="h-9 w-9 rounded-xl bg-info-bg text-info-fg flex items-center justify-center">
+                    <i className="fas fa-bed" aria-hidden="true"></i>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">{viewRoom.name}</h3>
@@ -393,7 +395,7 @@ function RoomsTab() {
                 </div>
                 <button onClick={() => setViewRoom(null)} aria-label="Close" type="button"
                   className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 
@@ -403,22 +405,25 @@ function RoomsTab() {
                 )}
 
                 {avail !== "available" && (
-                  <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${AVAIL[avail].color}`}>
-                    <i className={`fas ${AVAIL[avail].icon}`}></i>{AVAIL[avail].label}
+                  <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${AVAIL[avail].color}`} role="status">
+                    <i className={`fas ${AVAIL[avail].icon}`} aria-hidden="true"></i>{AVAIL[avail].label}
                   </div>
                 )}
 
+                {/* Rate cards — neutral surface, single hue. The earlier
+                    amber/indigo/emerald rotation was decorative, not
+                    semantic; consistent neutral scans faster. */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: "Day Rate",   value: `₱${Number(viewRoom.day_rate || 0).toLocaleString()}`,       icon: "fa-sun",   bg: "bg-amber-50",   text: "text-amber-700",   iconBg: "bg-amber-100 text-amber-500" },
-                    { label: "Overnight",  value: `₱${Number(viewRoom.overnight_rate || 0).toLocaleString()}`, icon: "fa-moon",  bg: "bg-indigo-50",  text: "text-indigo-700",  iconBg: "bg-indigo-100 text-indigo-500" },
-                    { label: "24 Hours",   value: `₱${Number(viewRoom.rate_24hr || 0).toLocaleString()}`,      icon: "fa-clock", bg: "bg-emerald-50", text: "text-emerald-700", iconBg: "bg-emerald-100 text-emerald-500" },
-                  ].map(({ label, value, icon, bg, text, iconBg }) => (
-                    <div key={label} className={`rounded-xl ${bg} border border-slate-100 p-3 text-center`}>
-                      <div className={`h-8 w-8 rounded-lg ${iconBg} flex items-center justify-center mx-auto mb-1.5`}>
-                        <i className={`fas ${icon} text-xs`}></i>
+                    { label: "Day Rate",  value: `₱${Number(viewRoom.day_rate || 0).toLocaleString()}`,       icon: "fa-sun"   },
+                    { label: "Overnight", value: `₱${Number(viewRoom.overnight_rate || 0).toLocaleString()}`, icon: "fa-moon"  },
+                    { label: "24 Hours",  value: `₱${Number(viewRoom.rate_24hr || 0).toLocaleString()}`,      icon: "fa-clock" },
+                  ].map(({ label, value, icon }) => (
+                    <div key={label} className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
+                      <div className="h-8 w-8 rounded-lg bg-white text-slate-500 flex items-center justify-center mx-auto mb-1.5">
+                        <i className={`fas ${icon} text-xs`} aria-hidden="true"></i>
                       </div>
-                      <p className={`text-sm font-bold ${text}`}>{value}</p>
+                      <p className="text-sm font-bold text-slate-800">{value}</p>
                       <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
                     </div>
                   ))}
@@ -450,11 +455,13 @@ function RoomsTab() {
 
               <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-slate-500 uppercase tracking-wide">Status</span>
-                  <select value={avail}
+                  <label htmlFor={`room-status-${viewRoom.id}`} className="text-xs text-slate-500 uppercase tracking-wide">
+                    Status
+                  </label>
+                  <select id={`room-status-${viewRoom.id}`} value={avail}
                     onChange={(e) => changeStatus(viewRoom, e.target.value)}
                     disabled={busyId === viewRoom.id}
-                    className="border border-slate-200 rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-sky-400 disabled:opacity-50">
+                    className="border border-slate-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand disabled:opacity-50">
                     {Object.entries(AVAIL).map(([val, { label }]) => (
                       <option key={val} value={val}>{label}</option>
                     ))}
@@ -475,7 +482,8 @@ function RoomsTab() {
 
 function RoomsSkeleton() {
   return (
-    <div className="divide-y divide-slate-100" aria-busy="true">
+    <div className="divide-y divide-slate-100" aria-busy="true" role="status">
+      <span className="sr-only">Loading rooms…</span>
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="px-6 py-4 flex items-center gap-6 animate-pulse">
           <div className="h-10 w-10 rounded-full bg-slate-200 shrink-0"></div>
@@ -556,18 +564,18 @@ function AddonsTab() {
       {/* Header card */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
-            <span className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <i className="fas fa-puzzle-piece text-emerald-600"></i>
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+            <span className="h-9 w-9 rounded-lg bg-success-bg flex items-center justify-center">
+              <i className="fas fa-puzzle-piece text-success-fg" aria-hidden="true"></i>
             </span>
             Add-ons Catalog
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Toggle which add-ons are bookable. Owner controls pricing and inventory.</p>
         </div>
         <button onClick={() => load(true)} disabled={refreshing} type="button"
-          className="inline-flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50"
-          title="Refresh">
-          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`}></i>
+          aria-label="Refresh add-ons list"
+          className="inline-flex items-center gap-2 px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
+          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
       </div>
@@ -575,23 +583,26 @@ function AddonsTab() {
       {/* Search + Filter bar */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
-          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
-          <input ref={searchRef} type="text" placeholder="Search add-ons by name or description..."
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
+          <input ref={searchRef} type="text" aria-label="Search add-ons" placeholder="Search add-ons by name or description..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 text-sm placeholder:text-slate-400 transition" />
+            className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand focus:border-brand text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }} type="button"
+              aria-label="Clear search"
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times-circle text-sm"></i>
+              <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" role="tablist" aria-label="Filter add-ons by status">
           {["all", "active", "inactive"].map((f) => (
             <button key={f} onClick={() => setFilterStatus(f)} type="button"
+              role="tab"
+              aria-selected={filterStatus === f}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold capitalize transition ${
                 filterStatus === f
-                  ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+                  ? "bg-brand text-white"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}>
               {f === "all" ? "All" : f === "active" ? "Active" : "Inactive"}
@@ -618,21 +629,21 @@ function AddonsTab() {
           {loading ? (
             <AddonsSkeleton />
           ) : loadError && addons.length === 0 ? (
-            <div className="px-6 py-16 text-center">
-              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-rose-100 mb-4">
-                <i className="fas fa-exclamation-triangle text-rose-400 text-2xl"></i>
+            <div className="px-6 py-16 text-center" role="alert">
+              <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-danger-bg mb-4">
+                <i className="fas fa-exclamation-triangle text-danger-fg text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-700 font-semibold">Failed to load add-ons</p>
               <p className="text-sm text-slate-400 mt-1 mb-5">Check your connection and try again.</p>
               <button onClick={() => load()} type="button"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
-                <i className="fas fa-redo text-xs"></i>Retry
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl shadow-sm transition">
+                <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry
               </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-puzzle-piece text-slate-300 text-2xl"></i>
+                <i className="fas fa-puzzle-piece text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterStatus !== "all"
@@ -641,8 +652,8 @@ function AddonsTab() {
               </p>
               {(debouncedSearch || filterStatus !== "all") && (
                 <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); }} type="button"
-                  className="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  className="mt-4 text-sm text-brand hover:text-brand-dark font-medium">
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -655,94 +666,91 @@ function AddonsTab() {
                   <th className="px-6 py-3 text-left">Max Qty</th>
                   <th className="px-6 py-3 text-left">Type</th>
                   <th className="px-6 py-3 text-left">Status</th>
-                  <th className="px-6 py-3 text-right">Toggle</th>
+                  <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
-                {paginated.map((item, idx) => {
-                  const busy = busyId === item.id;
-                  return (
-                    <tr key={item.id} role="button" tabIndex={0}
-                      onClick={() => setViewItem(item)}
-                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewItem(item); } }}
-                      className={`cursor-pointer transition-all hover:bg-emerald-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!item.is_active ? "opacity-60" : ""}`}>
-                      <td className="px-6 py-4 font-medium text-slate-900">
-                        <span className="flex items-center gap-2.5">
-                          <span className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                            <i className={`fas ${item.icon || "fa-tag"} text-slate-500 text-sm`}></i>
-                          </span>
-                          {item.name || <span className="italic text-slate-400">Unnamed</span>}
+                {/* Same restructure as RoomsTab — drop role="button" +
+                    nested toggle button. Open the modal via a clearly
+                    labeled View button; the toggle lives in the modal
+                    where admin already takes deliberate action. */}
+                {paginated.map((item, idx) => (
+                  <tr key={item.id}
+                    className={`transition-all ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!item.is_active ? "opacity-60" : ""}`}>
+                    <td className="px-6 py-4 font-medium text-slate-900">
+                      <span className="flex items-center gap-2.5">
+                        <span className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                          <i className={`fas ${item.icon || "fa-tag"} text-slate-500 text-sm`} aria-hidden="true"></i>
                         </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="font-semibold text-slate-800">{"₱"}{Number(item.price).toLocaleString()}</span>
-                      </td>
-                      <td className="px-6 py-4">{item.max_qty}</td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          item.per_booking ? "bg-purple-100 text-purple-800" : "bg-sky-100 text-sky-800"
-                        }`}>
-                          {item.per_booking ? "Per Booking" : "Per Item"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.is_active ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
-                        }`}>
-                          <span className={`h-2 w-2 rounded-full ${item.is_active ? "bg-emerald-500" : "bg-rose-500"}`} />
-                          {item.is_active ? "Active" : "Inactive"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex justify-end">
-                          <button type="button" onClick={() => toggle(item)} disabled={busy}
-                            aria-label={item.is_active ? `Disable ${item.name}` : `Enable ${item.name}`}
-                            className={`relative inline-flex items-center h-7 w-12 rounded-full transition disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-400 ${
-                              item.is_active ? "bg-emerald-500" : "bg-slate-300"
-                            }`}>
-                            <span className={`inline-block h-5 w-5 bg-white rounded-full shadow transform transition ${
-                              item.is_active ? "translate-x-6" : "translate-x-1"
-                            }`} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        {item.name || <span className="italic text-slate-400">Unnamed</span>}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="font-semibold text-slate-800">{"₱"}{Number(item.price).toLocaleString()}</span>
+                    </td>
+                    <td className="px-6 py-4">{item.max_qty}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-700">
+                        {item.per_booking ? "Per Booking" : "Per Item"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                        item.is_active ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg"
+                      }`}>
+                        <span className={`h-2 w-2 rounded-full ${item.is_active ? "bg-success-ring" : "bg-danger-ring"}`} aria-hidden="true" />
+                        {item.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-end">
+                        <button type="button" onClick={() => setViewItem(item)}
+                          aria-label={`View ${item.name}`}
+                          className="inline-flex items-center justify-center h-11 min-w-[44px] px-3 rounded-lg text-sm font-medium text-brand hover:bg-info-bg transition">
+                          <i className="fas fa-eye mr-1.5 text-xs" aria-hidden="true"></i>View
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           )}
         </div>
 
-        {/* Pagination */}
+        {/* Pagination — 44×44 touch targets per WCAG 2.5.5 */}
         {!loading && filtered.length > 0 && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
+          <nav aria-label="Add-ons pagination" className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
             <p className="text-sm text-slate-500">
               Showing {(safePage - 1) * PAGE_SIZE + 1}{"–"}{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
             </p>
             <div className="flex items-center gap-1">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} type="button"
-                className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-left text-xs"></i>
+                aria-label="Previous page"
+                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
+                <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
               </button>
               {getPageNumbers(safePage, totalPages).map((n, i) =>
                 n === "..." ? (
-                  <span key={`d-${i}`} className="h-8 min-w-[2rem] flex items-center justify-center text-xs text-slate-400">…</span>
+                  <span key={`d-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-xs text-slate-400" aria-hidden="true">…</span>
                 ) : (
                   <button key={n} onClick={() => setPage(n)} type="button"
-                    className={`h-8 min-w-[2rem] rounded-lg text-xs font-semibold transition ${
-                      n === safePage ? "bg-emerald-600 text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    aria-label={`Page ${n}`}
+                    aria-current={n === safePage ? "page" : undefined}
+                    className={`h-11 min-w-[2.75rem] rounded-lg text-xs font-semibold transition ${
+                      n === safePage ? "bg-brand text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}>
                     {n}
                   </button>
                 )
               )}
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages} type="button"
-                className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-right text-xs"></i>
+                aria-label="Next page"
+                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
+                <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
               </button>
             </div>
-          </div>
+          </nav>
         )}
       </div>
 
@@ -752,35 +760,35 @@ function AddonsTab() {
           <>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2.5">
-                <span className="h-9 w-9 rounded-xl bg-emerald-100 flex items-center justify-center">
-                  <i className={`fas ${viewItem.icon || "fa-tag"} text-emerald-600`}></i>
+                <span className="h-9 w-9 rounded-xl bg-success-bg flex items-center justify-center">
+                  <i className={`fas ${viewItem.icon || "fa-tag"} text-success-fg`} aria-hidden="true"></i>
                 </span>
                 {viewItem.name || <span className="italic text-slate-400">Unnamed</span>}
               </h3>
               <button onClick={() => setViewItem(null)} aria-label="Close" type="button"
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="h-6 w-6 rounded-md bg-emerald-100 flex items-center justify-center">
-                      <i className="fas fa-peso-sign text-emerald-600 text-[10px]"></i>
+                    <span className="h-6 w-6 rounded-md bg-white flex items-center justify-center">
+                      <i className="fas fa-peso-sign text-slate-500 text-[10px]" aria-hidden="true"></i>
                     </span>
-                    <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Price</span>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Price</span>
                   </div>
-                  <p className="text-lg font-bold text-emerald-800">{"₱"}{Number(viewItem.price).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-slate-800">{"₱"}{Number(viewItem.price).toLocaleString()}</p>
                 </div>
-                <div className="rounded-xl bg-sky-50 border border-sky-100 p-3.5">
+                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="h-6 w-6 rounded-md bg-sky-100 flex items-center justify-center">
-                      <i className="fas fa-boxes-stacked text-sky-600 text-[10px]"></i>
+                    <span className="h-6 w-6 rounded-md bg-white flex items-center justify-center">
+                      <i className="fas fa-boxes-stacked text-slate-500 text-[10px]" aria-hidden="true"></i>
                     </span>
-                    <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wide">Max Qty</span>
+                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Max Qty</span>
                   </div>
-                  <p className="text-lg font-bold text-sky-800">{viewItem.max_qty}</p>
+                  <p className="text-lg font-bold text-slate-800">{viewItem.max_qty}</p>
                 </div>
               </div>
 
@@ -798,7 +806,7 @@ function AddonsTab() {
                 </div>
                 <div>
                   <p className="text-xs text-slate-500 uppercase tracking-wide">Status</p>
-                  <p className={`font-semibold mt-0.5 ${viewItem.is_active ? "text-emerald-700" : "text-rose-700"}`}>
+                  <p className={`font-semibold mt-0.5 ${viewItem.is_active ? "text-success-fg" : "text-danger-fg"}`}>
                     {viewItem.is_active ? "Active" : "Inactive"}
                   </p>
                 </div>
@@ -806,16 +814,17 @@ function AddonsTab() {
             </div>
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
               <button type="button" onClick={() => toggle(viewItem)} disabled={busyId === viewItem.id}
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50 ${
+                aria-label={viewItem.is_active ? `Disable ${viewItem.name}` : `Enable ${viewItem.name}`}
+                className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-semibold transition disabled:opacity-50 ${
                   viewItem.is_active
-                    ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                    ? "bg-warning-bg text-warning-fg hover:opacity-90"
+                    : "bg-success-bg text-success-fg hover:opacity-90"
                 }`}>
-                <i className={`fas ${viewItem.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`}></i>
+                <i className={`fas ${viewItem.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                 {viewItem.is_active ? "Disable" : "Enable"}
               </button>
               <button onClick={() => setViewItem(null)} type="button"
-                className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">
+                className="h-11 px-4 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">
                 Close
               </button>
             </div>
@@ -828,29 +837,32 @@ function AddonsTab() {
 
 function AddonsSkeleton() {
   return (
-    <table className="min-w-full text-sm" aria-busy="true">
-      <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
-        <tr>
-          <th className="px-6 py-3 text-left">Name</th>
-          <th className="px-6 py-3 text-left">Price</th>
-          <th className="px-6 py-3 text-left">Max Qty</th>
-          <th className="px-6 py-3 text-left">Type</th>
-          <th className="px-6 py-3 text-left">Status</th>
-          <th className="px-6 py-3 text-right">Toggle</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-slate-100">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <tr key={i} className="animate-pulse">
-            <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-3/4"></div></td>
-            <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
-            <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-10"></div></td>
-            <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
-            <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
-            <td className="px-6 py-4 text-right"><div className="h-7 w-12 bg-slate-200 rounded-full inline-block"></div></td>
+    <div role="status" aria-busy="true">
+      <span className="sr-only">Loading add-ons…</span>
+      <table className="min-w-full text-sm">
+        <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
+          <tr>
+            <th className="px-6 py-3 text-left">Name</th>
+            <th className="px-6 py-3 text-left">Price</th>
+            <th className="px-6 py-3 text-left">Max Qty</th>
+            <th className="px-6 py-3 text-left">Type</th>
+            <th className="px-6 py-3 text-left">Status</th>
+            <th className="px-6 py-3 text-right">Actions</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <tr key={i} className="animate-pulse">
+              <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-3/4"></div></td>
+              <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
+              <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-10"></div></td>
+              <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-20"></div></td>
+              <td className="px-6 py-4"><div className="h-4 bg-slate-200 rounded w-16"></div></td>
+              <td className="px-6 py-4 text-right"><div className="h-8 w-16 bg-slate-200 rounded-lg inline-block"></div></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

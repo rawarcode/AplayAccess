@@ -14,42 +14,56 @@ import { useNotifications } from "../../context/NotificationContext.jsx";
 
 // ── Small presentational building blocks ──────────────────────────
 function KpiCard({ to, icon, label, value, tone = "neutral", sublabel }) {
+  // Tone tokens — use semantic background tokens so a future palette
+  // shift is one CSS edit. Soft surface comes from --color-{success,
+  // warning, danger, info}-bg (defined in src/index.css @theme).
   const toneBg = {
     neutral: "bg-white",
-    urgent:  "bg-rose-50 border-rose-200",
-    warn:    "bg-amber-50 border-amber-200",
-    info:    "bg-sky-50 border-sky-200",
-    good:    "bg-emerald-50 border-emerald-200",
+    urgent:  "bg-danger-bg border-danger-bg",
+    warn:    "bg-warning-bg border-warning-bg",
+    info:    "bg-info-bg border-info-bg",
+    good:    "bg-success-bg border-success-bg",
   }[tone];
   const toneIcon = {
     neutral: "bg-slate-100 text-slate-600",
-    urgent:  "bg-rose-100 text-rose-600",
-    warn:    "bg-amber-100 text-amber-700",
-    info:    "bg-sky-100 text-sky-700",
-    good:    "bg-emerald-100 text-emerald-700",
+    urgent:  "bg-danger-bg text-danger-fg",
+    warn:    "bg-warning-bg text-warning-fg",
+    info:    "bg-info-bg text-info-fg",
+    good:    "bg-success-bg text-success-fg",
   }[tone];
   const toneValue = {
     neutral: "text-slate-900",
-    urgent:  "text-rose-700",
-    warn:    "text-amber-800",
-    info:    "text-sky-800",
-    good:    "text-emerald-800",
+    urgent:  "text-danger-fg",
+    warn:    "text-warning-fg",
+    info:    "text-info-fg",
+    good:    "text-success-fg",
   }[tone];
 
+  // Stable id chains the value, label, and sublabel together so screen
+  // readers announce the full unit ("3 unread messages — Reply to
+  // guests") instead of just "3".
+  const id = `kpi-${label.replace(/\s+/g, '-').toLowerCase()}`;
+
   const inner = (
-    <div className={`p-5 rounded-xl border shadow-sm transition hover:shadow-md ${toneBg}`}>
+    <article
+      aria-labelledby={`${id}-label`}
+      aria-describedby={sublabel ? `${id}-sub` : undefined}
+      className={`p-5 rounded-xl border shadow-sm transition hover:shadow-md ${toneBg}`}
+    >
       <div className="flex items-center justify-between mb-3">
         <div className={`h-10 w-10 rounded-full flex items-center justify-center ${toneIcon}`}>
-          <i className={`fas ${icon}`} />
+          <i className={`fas ${icon}`} aria-hidden="true" />
         </div>
         {to && (
-          <i className="fas fa-arrow-right text-slate-300 group-hover:text-slate-500 transition" />
+          <i className="fas fa-arrow-right text-slate-300 group-hover:text-slate-500 transition" aria-hidden="true" />
         )}
       </div>
-      <div className={`text-3xl font-semibold ${toneValue}`}>{value}</div>
-      <div className="mt-1 text-sm text-slate-600">{label}</div>
-      {sublabel && <div className="mt-1 text-xs text-slate-400">{sublabel}</div>}
-    </div>
+      <div className={`text-3xl font-semibold ${toneValue}`} aria-hidden="true">{value}</div>
+      <div id={`${id}-label`} className="mt-1 text-sm text-slate-600">
+        <span className="sr-only">{value} </span>{label}
+      </div>
+      {sublabel && <div id={`${id}-sub`} className="mt-1 text-xs text-slate-400">{sublabel}</div>}
+    </article>
   );
 
   return to ? (
@@ -64,7 +78,7 @@ function SectionCard({ title, icon, children, action }) {
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm">
       <div className="px-5 py-3 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {icon && <i className={`fas ${icon} text-slate-400 text-sm`} />}
+          {icon && <i className={`fas ${icon} text-slate-400 text-sm`} aria-hidden="true" />}
           <h2 className="font-semibold text-slate-800">{title}</h2>
         </div>
         {action}
@@ -77,24 +91,24 @@ function SectionCard({ title, icon, children, action }) {
 function OpsRow({ label, value, tone = "neutral", icon, to }) {
   const toneColor = {
     neutral: "text-slate-700",
-    urgent:  "text-rose-600",
-    warn:    "text-amber-600",
-    good:    "text-emerald-600",
+    urgent:  "text-danger-fg",
+    warn:    "text-warning-fg",
+    good:    "text-success-fg",
   }[tone];
   const body = (
     <div className="flex items-center justify-between py-2.5 border-b border-slate-100 last:border-b-0">
       <div className="flex items-center gap-3">
-        {icon && <i className={`fas ${icon} text-slate-400 w-4 text-center`} />}
+        {icon && <i className={`fas ${icon} text-slate-400 w-4 text-center`} aria-hidden="true" />}
         <span className="text-sm text-slate-600">{label}</span>
       </div>
       <div className="flex items-center gap-2">
         <span className={`text-lg font-semibold ${toneColor}`}>{value}</span>
-        {to && <i className="fas fa-chevron-right text-slate-300 text-xs" />}
+        {to && <i className="fas fa-chevron-right text-slate-300 text-xs" aria-hidden="true" />}
       </div>
     </div>
   );
   return to ? (
-    <Link to={to} className="block -mx-2 px-2 rounded hover:bg-slate-50 transition">
+    <Link to={to} className="block -mx-2 px-2 rounded hover:bg-slate-50 transition" aria-label={`${label}: ${value}`}>
       {body}
     </Link>
   ) : body;
@@ -269,8 +283,8 @@ export default function AdminDashboard() {
         <SectionCard title="Needs your attention" icon="fa-bell">
           {attention.length === 0 ? (
             <div className="py-8 text-center">
-              <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-emerald-50 text-emerald-500 mb-3">
-                <i className="fas fa-check text-xl" />
+              <div className="inline-flex items-center justify-center h-12 w-12 rounded-full bg-success-bg text-success-fg mb-3">
+                <i className="fas fa-check text-xl" aria-hidden="true" />
               </div>
               <p className="text-sm text-slate-600">All caught up.</p>
               <p className="text-xs text-slate-400 mt-1">
@@ -284,13 +298,13 @@ export default function AdminDashboard() {
                   <div
                     className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 ${
                       a.tone === "urgent"
-                        ? "bg-rose-100 text-rose-600"
+                        ? "bg-danger-bg text-danger-fg"
                         : a.tone === "warn"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-sky-100 text-sky-700"
+                        ? "bg-warning-bg text-warning-fg"
+                        : "bg-info-bg text-info-fg"
                     }`}
                   >
-                    <i className={`fas ${a.icon} text-sm`} />
+                    <i className={`fas ${a.icon} text-sm`} aria-hidden="true" />
                   </div>
                   <div className="flex-1">
                     <p className="text-sm text-slate-700">{a.text}</p>
@@ -299,6 +313,7 @@ export default function AdminDashboard() {
                     <Link
                       to={a.to}
                       className="shrink-0 text-xs font-semibold text-brand hover:text-brand-dark underline underline-offset-2"
+                      aria-label={`${a.cta} — ${a.text}`}
                     >
                       {a.cta}
                     </Link>
@@ -332,7 +347,7 @@ function QuickAction({ to, icon, label }) {
       className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
     >
       <div className="h-8 w-8 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
-        <i className={`fas ${icon} text-sm`} />
+        <i className={`fas ${icon} text-sm`} aria-hidden="true" />
       </div>
       <span className="text-sm font-medium text-slate-700">{label}</span>
     </Link>

@@ -9,6 +9,7 @@ import Avatar from "../ui/Avatar.jsx";
 import Toast, { useToast } from "../ui/Toast.jsx";
 import { updateProfile, changePassword } from "../../lib/profileApi.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
 import Modal from "../modals/Modal.jsx";
 import { Helmet } from "react-helmet-async";
 
@@ -98,6 +99,10 @@ export default function AdminShell() {
   const navigate   = useNavigate();
   const { user, logout, setUser } = useAuth();
   const profileRef = useRef(null);
+  // Mobile drawer focus trap — moves focus into the drawer on open
+  // and restores it to the hamburger button on close so screen reader
+  // users can't tab into the hidden main content behind the overlay.
+  const mobileDrawerRef = useFocusTrap(mobileOpen);
 
   const userName  = user?.name  || "Admin";
   const userEmail = user?.email || "admin@aplayaccess.com";
@@ -224,15 +229,17 @@ export default function AdminShell() {
       {/* Logo */}
       <div className="p-4 flex items-center justify-between border-b border-brand-hover">
         <div className="flex items-center">
-          <i className="fas fa-umbrella-beach text-2xl mr-3 text-white"></i>
+          <i className="fas fa-umbrella-beach text-2xl mr-3 text-white" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-xl font-bold text-white">AplayAccess</span>}
         </div>
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
             className="text-white hover:bg-brand-hover p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand/50"
           >
-            <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`}></i>
+            <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`} aria-hidden="true"></i>
           </button>
         )}
       </div>
@@ -257,7 +264,7 @@ export default function AdminShell() {
                           : "text-blue-100 hover:bg-brand-hover hover:text-white"
                       }`}
                     >
-                      <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`}></i>
+                      <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0`} aria-hidden="true"></i>
                       {(!collapsed || mobile) && (
                         <>
                           <span className="text-sm flex-1">{item.label}</span>
@@ -416,9 +423,10 @@ export default function AdminShell() {
         )}
         <button
           onClick={handleLogout}
+          aria-label={collapsed && !mobile ? "Logout" : undefined}
           className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
         >
-          <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+          <i className="fas fa-sign-out-alt mr-3 w-5 text-center" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
         </button>
       </div>
@@ -438,17 +446,21 @@ export default function AdminShell() {
       {/* ── Mobile Sidebar Overlay ────────────────────────────────── */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
           <div
+            ref={mobileDrawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Admin navigation"
             className="absolute inset-y-0 left-0 w-72 bg-brand text-white flex flex-col shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10"
+              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10 h-11 w-11 flex items-center justify-center rounded-lg"
               aria-label="Close sidebar"
             >
-              <i className="fas fa-times text-lg"></i>
+              <i className="fas fa-times text-lg" aria-hidden="true"></i>
             </button>
             {sidebarContent(true)}
           </div>
@@ -468,10 +480,10 @@ export default function AdminShell() {
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50 h-11 w-11 flex items-center justify-center rounded-lg"
                 aria-label="Open menu"
               >
-                <i className="fas fa-bars text-xl"></i>
+                <i className="fas fa-bars text-xl" aria-hidden="true"></i>
               </button>
               <h1 className="text-2xl font-bold text-gray-800">{pageTitle}</h1>
             </div>
@@ -483,7 +495,11 @@ export default function AdminShell() {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                  aria-controls="admin-profile-menu"
+                  aria-label={`Account menu for ${userName}`}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50 p-2 rounded-lg"
                 >
                   <Avatar
                     src={user?.avatar}
@@ -492,11 +508,16 @@ export default function AdminShell() {
                     fallbackClassName="bg-brand text-white text-sm font-semibold"
                   />
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
-                  <i className="fas fa-chevron-down text-xs text-gray-400"></i>
+                  <i className="fas fa-chevron-down text-xs text-gray-400" aria-hidden="true"></i>
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div
+                    id="admin-profile-menu"
+                    role="menu"
+                    aria-label="Account"
+                    className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                  >
                     <div className="p-3 flex items-center border-b border-gray-100">
                       <Avatar
                         src={user?.avatar}
@@ -510,17 +531,19 @@ export default function AdminShell() {
                       </div>
                     </div>
                     <button
+                      role="menuitem"
                       onClick={openSettings}
                       className="p-3 flex items-center w-full text-left hover:bg-gray-50 border-b border-gray-100"
                     >
-                      <i className="fas fa-user-cog mr-3 text-gray-500"></i>
+                      <i className="fas fa-user-cog mr-3 text-gray-500" aria-hidden="true"></i>
                       <span className="text-sm text-gray-700">Account Settings</span>
                     </button>
                     <button
+                      role="menuitem"
                       onClick={handleLogout}
                       className="p-3 flex items-center w-full text-left hover:bg-gray-50 text-red-500"
                     >
-                      <i className="fas fa-sign-out-alt mr-3"></i>
+                      <i className="fas fa-sign-out-alt mr-3" aria-hidden="true"></i>
                       <span className="text-sm">Logout</span>
                     </button>
                   </div>

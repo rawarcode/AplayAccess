@@ -5,6 +5,29 @@
   --color-brand-hover: #2e4a9a;
   --color-brand-dark: #152c6e;
 
+  /* Semantic status tokens — paired light/strong shades for badge
+     and surface use. Use these in pages instead of raw Tailwind
+     hues (bg-emerald-100, text-rose-700, etc.) so a future palette
+     swap is one edit. The "bg" variant is the soft tint for badges
+     and alert surfaces; "fg" is the readable dark for text and
+     icons; "ring" sits between for borders/dots. Mirrors the
+     Tailwind 100/600/500 triad we were already using. */
+  --color-success-bg:  #dcfce7;  /* emerald-100 */
+  --color-success-fg:  #047857;  /* emerald-700 */
+  --color-success-ring: #10b981; /* emerald-500 */
+
+  --color-warning-bg:  #fef3c7;  /* amber-100 */
+  --color-warning-fg:  #b45309;  /* amber-700 */
+  --color-warning-ring: #f59e0b; /* amber-500 */
+
+  --color-danger-bg:   #ffe4e6;  /* rose-100 */
+  --color-danger-fg:   #be123c;  /* rose-700 */
+  --color-danger-ring: #f43f5e;  /* rose-500 */
+
+  --color-info-bg:     #e0f2fe;  /* sky-100 */
+  --color-info-fg:     #075985;  /* sky-800 */
+  --color-info-ring:   #0ea5e9;  /* sky-500 */
+
   /* Coastal palette — auth & public pages */
   --color-coastal-bg: #f9fcfe;
   --color-coastal-bg-alt: #f3fafd;
