@@ -92,10 +92,19 @@ export default function Dashboard() {
     return { todayBookings, arriving, checkedIn, completed, walkIns, todayRevenue, overdueCheckouts };
   }, [bookings, today]);
 
-  // Occupancy
+  // Occupancy. Exclude pseudo-room categories from both numerator and
+  // denominator: 'admission' (qty=999, gate-only walk-in shell — not a
+  // real bookable unit) and 'tent' (high seeded inventory that's
+  // bring-your-own-pitch, not real room capacity). Without this filter
+  // Available Rooms reads "1000+" because admission's qty=999 lands in
+  // totalRooms unfiltered. Same exclusion contract as the FDRooms
+  // board's isExcludedFromVacancy().
   const { totalRooms, occupiedRooms, availableRooms, occupancyPct } = useMemo(() => {
-    const totalRooms     = rooms.reduce((sum, r) => sum + Number(r.quantity ?? 1), 0);
-    const occupiedRooms  = bookings.filter(b => b.status === 'Checked In').length;
+    const isPseudoRoom = (r) => r.category === 'admission' || r.category === 'tent';
+    const realRoomIds  = new Set(rooms.filter(r => !isPseudoRoom(r)).map(r => r.id));
+    const totalRooms     = rooms.filter(r => !isPseudoRoom(r))
+                                .reduce((sum, r) => sum + Number(r.quantity ?? 1), 0);
+    const occupiedRooms  = bookings.filter(b => b.status === 'Checked In' && realRoomIds.has(b.roomId)).length;
     const availableRooms = Math.max(0, totalRooms - occupiedRooms);
     const occupancyPct   = totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0;
     return { totalRooms, occupiedRooms, availableRooms, occupancyPct };
@@ -283,10 +292,14 @@ export default function Dashboard() {
             )}
           </div>
         </div>
-        {/* Overdue Checkouts */}
+        {/* Overdue Checkouts — rose for severity consistency with the
+            Overdue Checkout KPI card above (which is already rose) and
+            the Rooms board's red OVERDUE chip. Amber would imply
+            "warning, can wait" — overdue stays mean staff need to
+            act now (call the room, free for the next arrival). */}
         {!loading && overdueCheckouts.length > 0 && (
-          <div className="mt-6 bg-white rounded-xl shadow p-6 border-l-4 border-amber-500">
-            <h2 className="text-lg font-semibold text-amber-700 mb-3 flex items-center gap-2">
+          <div className="mt-6 bg-white rounded-xl shadow p-6 border-l-4 border-rose-500">
+            <h2 className="text-lg font-semibold text-rose-700 mb-3 flex items-center gap-2">
               <i className="fas fa-exclamation-triangle"></i>
               Overdue Checkouts ({overdueCheckouts.length})
             </h2>
@@ -296,10 +309,10 @@ export default function Dashboard() {
                   key={b.bookingId}
                   type="button"
                   onClick={() => navigate(`/frontdesk/bookings?booking=${b.bookingId}`)}
-                  className="w-full flex items-center justify-between bg-amber-50 hover:bg-amber-100 rounded-lg px-4 py-2 text-left transition group"
+                  className="w-full flex items-center justify-between bg-rose-50 hover:bg-rose-100 rounded-lg px-4 py-2 text-left transition group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="bg-amber-100 text-amber-700 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-200">
+                    <div className="bg-rose-100 text-rose-700 rounded-full h-8 w-8 flex items-center justify-center flex-shrink-0 group-hover:bg-rose-200">
                       <i className="fas fa-user text-sm"></i>
                     </div>
                     <div>
@@ -308,8 +321,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className="flex items-center gap-2">
-                    <span className="text-xs font-semibold text-amber-800 bg-amber-100 px-2 py-1 rounded-full">Overdue</span>
-                    <i className="fas fa-chevron-right text-xs text-amber-500 group-hover:text-amber-700"></i>
+                    <span className="text-xs font-semibold text-rose-800 bg-rose-100 px-2 py-1 rounded-full">Overdue</span>
+                    <i className="fas fa-chevron-right text-xs text-rose-500 group-hover:text-rose-700"></i>
                   </span>
                 </button>
               ))}
