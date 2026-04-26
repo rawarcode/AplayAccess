@@ -97,22 +97,33 @@ function getSlotStatus(roomName, bookings, slot) {
 
   // Pending bookings are excluded from the room board entirely — they
   // haven't paid yet, auto-cancel after 5 min of inactivity, and don't
-  // represent a committed room hold. Showing them as amber "PENDING"
-  // tiles created noise that staff learned to ignore. Once a pending
-  // booking is paid (status → Confirmed), it shows up as 'incoming'.
-  const matching = bookings.filter(b =>
-    b.roomType === roomName &&
-    b.status !== 'Cancelled' &&
-    b.status !== 'Completed' &&
-    b.status !== 'Pending' &&
-    overlapsWindow(b, ws, we)
-  );
+  // represent a committed room hold. Once a pending booking is paid
+  // (status → Confirmed), it shows up as 'incoming'.
+  //
+  // Checked-In bookings are FORCE-INCLUDED even when their scheduled
+  // window doesn't overlap the current slot (e.g. checkout passed
+  // before the slot started, or a 24hr booking that already started
+  // its second window). The guest is physically holding the room
+  // until manual checkout — without this, an overdue stay shows the
+  // room as VACANT and staff would walk in another guest on top.
+  const matching = bookings.filter(b => {
+    if (b.roomType !== roomName) return false;
+    if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'Pending') return false;
+    if (b.status === 'Checked In') return true;
+    return overlapsWindow(b, ws, we);
+  });
 
-  // Priority: currently in progress > confirmed future
+  // Priority: currently in progress > confirmed future.
+  // Checked-In always counts as in-progress regardless of clock —
+  // they're physically in the room until staff hits checkout.
   let inProgress = null, incoming = null;
   for (const b of matching) {
     const r = bookingRange(b);
     if (!r) continue;
+    if (b.status === 'Checked In') {
+      if (!inProgress) inProgress = { b, ...r };
+      continue;
+    }
     if (now >= r.ci && now < r.co) {
       if (!inProgress) inProgress = { b, ...r };
     } else if (now < r.ci) {
@@ -123,12 +134,13 @@ function getSlotStatus(roomName, bookings, slot) {
   if (inProgress) {
     const { b, co } = inProgress;
     const ms = co - now;
+    const overdue = ms < 0;
     return {
       status:    'occupied',
       booking:   b,
       vacatesAt: b.checkOut,
-      remaining: countdown(ms),
-      urgency:   ms < 30 * 60000 ? 'soon' : 'normal',
+      remaining: overdue ? 'OVERDUE' : countdown(ms),
+      urgency:   overdue ? 'overdue' : (ms < 30 * 60000 ? 'soon' : 'normal'),
     };
   }
   if (incoming) {
@@ -144,19 +156,19 @@ function getMultiSlotStatus(roomName, quantity, bookings, slot) {
   const [ws, we] = slot === 'day' ? dayWindow(now) : overnightWindow(now);
   let occupied = 0, incoming = 0;
 
-  // Same Pending exclusion as single-unit — pending bookings don't count
-  // toward room occupancy until they become Confirmed. Staff don't want
-  // a "Pend" badge on a multi-unit card when a booking might auto-cancel
-  // in 5 minutes.
-  bookings.filter(b =>
-    b.roomType === roomName &&
-    b.status !== 'Cancelled' &&
-    b.status !== 'Completed' &&
-    b.status !== 'Pending' &&
-    overlapsWindow(b, ws, we)
-  ).forEach(b => {
+  // Same Pending exclusion as single-unit. Same Checked-In force-include
+  // (an overdue Checked-In on one cottage of a multi-unit room must
+  // still count toward occupied — otherwise the available count
+  // overstates capacity and staff hand out an already-occupied unit).
+  bookings.filter(b => {
+    if (b.roomType !== roomName) return false;
+    if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'Pending') return false;
+    if (b.status === 'Checked In') return true;
+    return overlapsWindow(b, ws, we);
+  }).forEach(b => {
     const r = bookingRange(b);
     if (!r) return;
+    if (b.status === 'Checked In') { occupied++; return; }
     if (now >= r.ci && now < r.co) occupied++;
     else if (now < r.ci)           incoming++;
   });
@@ -401,14 +413,17 @@ function RoomCard({ room, info, onClick }) {
         border-2 rounded-lg p-3 flex flex-col gap-1.5
         shadow-sm cursor-pointer transition-all duration-200
         hover:opacity-90 hover:scale-[1.015]
-        ${info.status === 'occupied' && info.urgency === 'soon' ? 'animate-pulse' : ''}
+        ${info.status === 'occupied' && (info.urgency === 'soon' || info.urgency === 'overdue') ? 'animate-pulse' : ''}
       `}
     >
-      {/* Top row: status badge + ⚡ */}
+      {/* Top row: status badge + soon/overdue chip */}
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full bg-black/20 text-white">
           <i className={`fas ${config.icon} text-[9px]`}></i>{config.label}
         </span>
+        {info.status === 'occupied' && info.urgency === 'overdue' && (
+          <span className="text-[10px] font-bold bg-yellow-300 text-rose-900 px-1.5 py-0.5 rounded-full">! OVERDUE</span>
+        )}
         {info.status === 'occupied' && info.urgency === 'soon' && (
           <span className="text-[10px] font-bold bg-white/30 px-1.5 py-0.5 rounded-full">⚡ Soon</span>
         )}
@@ -498,14 +513,31 @@ export default function FDRooms({ embedded = false }) {
     };
   }), [rooms, bookings]);
 
-  // Summary counts (day + overnight combined). Pending bucket dropped
-  // along with the Pending filter tab — room slots never resolve to
-  // 'pending' status anymore since getSlotStatus excludes them.
+  // Summary counts. Previously each room contributed both its day and
+  // night status to the totals, which double-counted 24hr bookings (one
+  // booking → +1 occupied for day + +1 occupied for night = misleading
+  // "2 occupied" in the header strip).
+  //
+  // Now: count UNITS, not slot-cards. Single-unit rooms classify by
+  // max-severity status across both slots (occupied > incoming > vacant).
+  // Multi-unit rooms take the max occupied/incoming counts across their
+  // two slots, since a single physical unit booked 24hr appears in both.
   const counts = useMemo(() => {
     const c = { vacant: 0, occupied: 0, incoming: 0 };
     roomInfos.forEach(({ dayInfo, nightInfo }) => {
-      c[dayInfo.status]   = (c[dayInfo.status]   || 0) + 1;
-      c[nightInfo.status] = (c[nightInfo.status] || 0) + 1;
+      if (dayInfo.multi) {
+        const occ = Math.max(dayInfo.occupied, nightInfo.occupied);
+        const inc = Math.max(dayInfo.incoming, nightInfo.incoming);
+        c.occupied += occ;
+        c.incoming += inc;
+        c.vacant   += Math.max(0, dayInfo.quantity - occ - inc);
+      } else {
+        const status =
+          (dayInfo.status === 'occupied' || nightInfo.status === 'occupied') ? 'occupied'
+        : (dayInfo.status === 'incoming' || nightInfo.status === 'incoming') ? 'incoming'
+        : 'vacant';
+        c[status] += 1;
+      }
     });
     return c;
   }, [roomInfos]);
