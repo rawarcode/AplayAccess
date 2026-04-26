@@ -408,7 +408,7 @@ export default function OwnerDashboard() {
                 {revMoM >= 0 ? "+" : ""}{revMoM}% from last month
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand"><i className="fas fa-chart-line text-xl" aria-hidden="true"></i></div>
+            <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600"><i className="fas fa-chart-line text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
 
@@ -422,7 +422,7 @@ export default function OwnerDashboard() {
                 {txMoM >= 0 ? "+" : ""}{txMoM} from last month
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand"><i className="fas fa-calendar-check text-xl" aria-hidden="true"></i></div>
+            <div className="p-3 rounded-xl bg-sky-100 text-sky-600"><i className="fas fa-calendar-check text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
 
@@ -433,7 +433,7 @@ export default function OwnerDashboard() {
               <h3 className="text-2xl font-bold mt-1">{fmt(avgBookingValue)}</h3>
               <p className="text-xs text-slate-400 mt-1">per completed booking</p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand"><i className="fas fa-peso-sign text-xl" aria-hidden="true"></i></div>
+            <div className="p-3 rounded-xl bg-violet-100 text-violet-600"><i className="fas fa-peso-sign text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
       </div>
@@ -458,7 +458,7 @@ export default function OwnerDashboard() {
                   : 'No bookings yet this month'}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand shrink-0">
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0">
               <i className="fas fa-bed text-xl" aria-hidden="true"></i>
             </div>
           </div>
@@ -471,7 +471,7 @@ export default function OwnerDashboard() {
               <h3 className="text-2xl font-bold mt-1">{onlinePct}% online</h3>
               <p className="text-xs text-slate-400 mt-1">{onlineBookings} online · {walkinBookings} walk-in</p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand"><i className="fas fa-globe text-xl" aria-hidden="true"></i></div>
+            <div className="p-3 rounded-xl bg-indigo-100 text-indigo-600"><i className="fas fa-globe text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
 
@@ -494,7 +494,7 @@ export default function OwnerDashboard() {
                   : `${newCustomersThisMonth === 1 ? 'new guest' : 'new guests'} this month (identifiable)`}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand">
+            <div className="p-3 rounded-xl bg-teal-100 text-teal-600">
               <i className="fas fa-user-plus text-xl" aria-hidden="true"></i>
             </div>
           </div>
@@ -515,7 +515,7 @@ export default function OwnerDashboard() {
                   : `${dayOfWeekCounts[peakDayIdx]} booking${dayOfWeekCounts[peakDayIdx] === 1 ? '' : 's'} on ${peakDay}s (last 30 days)`}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-brand/10 text-brand"><i className="fas fa-fire text-xl" aria-hidden="true"></i></div>
+            <div className="p-3 rounded-xl bg-amber-100 text-amber-600"><i className="fas fa-fire text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
       </div>
