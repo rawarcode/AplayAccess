@@ -629,7 +629,10 @@ export default function FDRooms({ embedded = false }) {
           }}
         />
       )}
-      <main className="p-6 flex gap-6 min-h-0">
+      {/* Mobile + tablet stack the room grid above the Upcoming Bookings
+          panel; lg+ side-by-side. Previous fixed flex with a w-80 right
+          panel crushed the room grid down to ~40px on phone widths. */}
+      <main className="p-4 md:p-6 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0">
 
         {/* ── LEFT: Room grid ─────────────────────────────────────────────────── */}
         <div className="flex-1 min-w-0">
@@ -798,7 +801,7 @@ export default function FDRooms({ embedded = false }) {
         </div>
 
         {/* ── RIGHT: Upcoming Bookings panel ──────────────────────────────────── */}
-        <div className="w-80 xl:w-96 shrink-0 flex flex-col">
+        <div className="w-full lg:w-80 xl:w-96 shrink-0 flex flex-col">
           {/* Panel header */}
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -814,8 +817,12 @@ export default function FDRooms({ embedded = false }) {
             )}
           </div>
 
-          {/* Scrollable list */}
-          <div className="flex-1 overflow-y-auto space-y-2 pr-1" style={{ maxHeight: 'calc(100vh - 180px)' }}>
+          {/* Scrollable list. On mobile/tablet the panel stacks below
+              the room grid in normal document flow, so the maxHeight
+              cap (which creates nested scrolling) only applies at lg+
+              where the panel sits beside the grid and needs to fit
+              within the viewport. */}
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1 lg:max-h-[calc(100vh-180px)]">
             {loading ? (
               <div className="py-12 text-center text-slate-400 text-sm">
                 <i className="fas fa-spinner fa-spin block text-2xl mb-2"></i>Loading…

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Bar } from 'react-chartjs-2';
@@ -6,11 +6,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend,
 } from 'chart.js';
 import Sidebar from './Layout/Sidebar';
-import Modal from '../../components/modals/Modal';
-import { useAuth } from '../../context/AuthContext';
 import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
-import NotificationBell from '../../components/ui/NotificationBell';
-import Avatar from '../../components/ui/Avatar.jsx';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtTime, localDateStr } from '../../lib/format';
 
@@ -34,21 +30,11 @@ function buildWeekChart(bookings) {
 // ─── component ────────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user: session, logout } = useAuth();
 
   const [bookings, setBookings]   = useState([]);
   const [rooms, setRooms]         = useState([]);
   const [loading, setLoading]     = useState(true);
   const [toast, showToast, clearToast, toastType] = useToast();
-
-  const [profileOpen, setProfileOpen]   = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-
-  const profileRef = useRef(null);
-
-  const userName  = session?.name  || 'Front Desk';
-  const userEmail = session?.email || '';
-  const initials  = userName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
   // ── load data ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -61,15 +47,6 @@ export default function Dashboard() {
     load();
     const id = setInterval(load, 20_000);
     return () => clearInterval(id);
-  }, []);
-
-  // ── click-outside ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    const handler = (e) => {
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
   }, []);
 
   // ── derived metrics ─────────────────────────────────────────────────────────
@@ -130,93 +107,22 @@ export default function Dashboard() {
     datasets: [{ label: 'Bookings', data: counts, backgroundColor: 'rgba(14,165,233,0.7)', borderRadius: 4 }],
   }), [labels, counts]);
 
-  // ── handlers ────────────────────────────────────────────────────────────────
-  const handleLogout = async () => { await logout(); navigate('/staff-login'); };
-
   // ─── render ──────────────────────────────────────────────────────────────────
+  // Use the standard Sidebar top bar (showTopBar default true) — drops
+  // the duplicate custom header that previously rendered a second
+  // "Dashboard" h1 + a copy of NotificationBell + a profile dropdown
+  // identical to the one Sidebar already renders. The only unique bit
+  // was a read-only "Account Settings" modal that just said "contact
+  // admin to change your details" — minimal value for the maintenance
+  // cost. Removed.
+  //
+  // Side benefit: hamburger now lives inline with the page title via
+  // the standard top bar instead of floating absolute over the page
+  // (the floating fallback was the only visual home it had when the
+  // dashboard suppressed the top bar).
   return (
-    <Sidebar showTopBar={false}>
+    <Sidebar>
       <Helmet><title>Dashboard — Frontdesk</title></Helmet>
-
-      {/* ── Account Settings Modal ── */}
-      <Modal open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Account Settings" maxWidth="max-w-md">
-        <div className="p-4 bg-slate-50 rounded-lg mb-4">
-          <Avatar
-            src={session?.avatar}
-            name={userName}
-            className="h-14 w-14 mb-2"
-            fallbackClassName="bg-sky-600 text-white text-lg font-bold"
-          />
-          <p className="font-bold text-lg">{userName}</p>
-          <p className="text-sm text-slate-500">{userEmail}</p>
-          <p className="text-xs text-slate-400 mt-1 capitalize">{session?.role?.replace('_', ' ') || 'Staff'}</p>
-        </div>
-        <p className="text-sm text-slate-600 mb-4">
-          To change your name, email, or password, contact your system administrator.
-        </p>
-        <div className="flex justify-end">
-          <button onClick={() => setSettingsOpen(false)} className="px-4 py-2 border rounded text-sm text-slate-700">
-            Close
-          </button>
-        </div>
-      </Modal>
-
-      {/* ── Header ── */}
-      <header className="bg-white shadow-sm">
-        <div className="flex items-center justify-between p-4">
-          <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
-          <div className="flex items-center space-x-4">
-
-            {/* Notifications */}
-            <NotificationBell />
-
-            {/* Profile */}
-            <div className="relative" ref={profileRef}>
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                aria-haspopup="menu"
-                aria-expanded={profileOpen}
-                className="flex items-center gap-2 text-slate-600 hover:text-slate-800"
-              >
-                <Avatar
-                  src={session?.avatar}
-                  name={userName}
-                  className="h-8 w-8"
-                  fallbackClassName="bg-sky-600 text-white text-sm font-semibold"
-                />
-                <span className="hidden md:inline text-sm">{userName}</span>
-                <i className="fas fa-chevron-down text-xs text-slate-400" aria-hidden="true"></i>
-              </button>
-              {profileOpen && (
-                <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border z-50">
-                  <div className="p-3 flex items-center border-b">
-                    <Avatar
-                      src={session?.avatar}
-                      name={userName}
-                      className="h-10 w-10 mr-3"
-                      fallbackClassName="bg-sky-600 text-white font-semibold"
-                    />
-                    <div>
-                      <p className="font-medium text-sm">{userName}</p>
-                      <p className="text-xs text-slate-500 capitalize">{session?.role?.replace('_', ' ') || 'Staff'}</p>
-                    </div>
-                  </div>
-                  <button onClick={() => { setProfileOpen(false); setSettingsOpen(true); }}
-                    className="w-full text-left p-3 flex items-center hover:bg-slate-50 border-b">
-                    <i className="fas fa-user-cog mr-3 text-slate-500"></i>
-                    <span className="text-sm">Account Settings</span>
-                  </button>
-                  <button onClick={handleLogout}
-                    className="w-full text-left p-3 flex items-center hover:bg-slate-50 text-rose-500">
-                    <i className="fas fa-sign-out-alt mr-3"></i>
-                    <span className="text-sm">Logout</span>
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
 
       {/* ── Main Content ── */}
       <main className="p-6">
