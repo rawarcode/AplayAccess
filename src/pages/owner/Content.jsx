@@ -45,20 +45,24 @@ const DEFAULT_CONTENT = {
     copyright: "© 2026 Aplaya Cottages & Rentals. All rights reserved.",
   },
   // ── Home page (/home) ──────────────────────────────────────────────────────
+  // Defaults sync with src/pages/Home.jsx HOME_DEFAULTS so the website
+  // builder pre-fills with the same copy visitors see on the live site
+  // when no override has been saved. Specifics over hyperbole; PayMaya
+  // intentionally omitted (no longer accepted — only GCash + cash).
   home_hero: {
-    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
-    title:      "Welcome to Paradise",
-    subtitle:   "Choose your perfect getaway from our collection of stunning beach resorts.",
-    ctaText:    "Book Now",
+    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    title:      "Aplaya Beach Resort",
+    subtitle:   "Day visits, night stays, and 24-hour packages on the Cavite coast.",
+    ctaText:    "See rooms & rates",
   },
   home_why: {
-    sectionTitle: "Why Choose Aplaya?",
-    sectionSubtitle: "Everything you need for the perfect beach getaway, all in one place.",
+    sectionTitle:    "What you get",
+    sectionSubtitle: "The basics, done right. No add-on fees for what should be included.",
     features: [
-      { icon: "fa-umbrella-beach", title: "Beachfront Location", desc: "Direct access to pristine sandy beaches with crystal-clear waters." },
-      { icon: "fa-bed", title: "Luxury Rooms", desc: "Spacious, modern accommodations with stunning ocean views." },
-      { icon: "fa-utensils", title: "Fine Dining", desc: "Savor exquisite cuisine at our beachside restaurants." },
-      { icon: "fa-spa", title: "Relaxation", desc: "Unwind with our world-class spa and wellness facilities." },
+      { icon: "fa-umbrella-beach", title: "Beachfront cottages",   desc: "Private cottages and pavilions a few steps from the water — book the one that fits your group size." },
+      { icon: "fa-clock",          title: "Three booking windows", desc: "Day visit (6 AM–6 PM), overnight (6 PM–7 AM), or full 24-hour. Pick the one that matches the trip." },
+      { icon: "fa-mobile-screen",  title: "Online or at the gate", desc: "Reserve online with GCash, or pay cash on arrival. Same rates either way." },
+      { icon: "fa-id-card",        title: "Entrance covered too",  desc: "Per-head entrance fee is built into the booking total. No surprises at the gate." },
     ],
   },
   home_resorts: {
@@ -86,9 +90,9 @@ const DEFAULT_CONTENT = {
     ],
   },
   home_cta: {
-    title: "Ready for Paradise?",
-    subtitle: "Book your dream beach vacation today and create memories that last a lifetime.",
-    buttonText: "Book Your Stay",
+    title:      "Ready to book?",
+    subtitle:   "Pick a date and a room — most slots can be reserved in under a minute.",
+    buttonText: "Book a stay",
   },
   // ── Resort page (/resort) ──────────────────────────────────────────────────
   resort_hero: {

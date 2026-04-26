@@ -70,7 +70,7 @@ export default function Terms() {
           <section>
             <h2 className="text-xl font-bold text-slate-900 mt-4 mb-2">3. Payment</h2>
             <ul className="list-disc pl-6 space-y-1">
-              <li>We accept GCash, Maya, credit/debit cards (via PayMongo), and cash at the resort counter for walk-ins.</li>
+              <li>We accept GCash (via PayMongo) for online bookings, and cash at the resort counter for walk-ins or balance settlement.</li>
               <li>You may pay in full online or pay a <strong>20% reservation fee</strong> to secure the booking; the balance is due at the resort counter on arrival.</li>
               <li>Pending bookings not paid within <strong>30 minutes</strong> are automatically cancelled to free up the room for other guests.</li>
               <li>Applicable promo codes are validated at checkout. Expired or invalid codes are silently ignored — the regular rate applies.</li>
