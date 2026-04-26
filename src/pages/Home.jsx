@@ -4,34 +4,41 @@ import { Helmet } from "react-helmet-async";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { useContent } from "../context/ContentContext.jsx";
 
+// Defaults are deliberately specific, not aspirational. They describe
+// what Aplaya actually offers (rates, location, booking model) so the
+// site doesn't read as auto-generated marketing copy on first paint.
+// The owner can rewrite any of this through Manage Website → Home;
+// these are just the fallbacks visitors see if no override exists.
 const HOME_DEFAULTS = {
   hero: {
-    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
-    title:    "Welcome to Paradise",
-    subtitle: "Experience luxury and breathtaking ocean views at Aplaya Beach Resort.",
-    ctaText:  "Book Now",
+    // 1600px is enough for full-bleed desktop given the 50% dark
+    // overlay; previous 2073px was wasteful on every viewport.
+    background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    title:    "Aplaya Beach Resort",
+    subtitle: "Day visits, night stays, and 24-hour packages on the Cavite coast.",
+    ctaText:  "See rooms & rates",
   },
   resort: {
-    sectionTitle:    "Our Beach Resort",
-    sectionSubtitle: "Your perfect beach getaway awaits — day visits, overnight stays, and 24-hour packages.",
+    sectionTitle:    "About the resort",
+    sectionSubtitle: "A small beachfront resort on the Cavite coast — built for day trips, family getaways, and overnight stays without the metro hotel markup.",
     name:  "Aplaya Beach Resort Cavite",
-    desc:  "Experience luxury and breathtaking ocean views at our flagship resort. Enjoy pristine white sand beaches, world-class amenities, and unforgettable sunsets.",
-    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2070&q=80",
+    desc:  "Private cottages, pavilions, and rooms a few steps from the water. Each booking includes pool access and a parking slot. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
+    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
   },
   why: {
-    sectionTitle:    "Why Choose Aplaya?",
-    sectionSubtitle: "Everything you need for the perfect beach getaway — all in one place.",
+    sectionTitle:    "What you get",
+    sectionSubtitle: "The basics, done right. No add-on fees for what should be included.",
     features: [
-      { icon: "fa-umbrella-beach", title: "Beachfront Location",  desc: "Steps away from pristine white sand and crystal-clear waters." },
-      { icon: "fa-tags",           title: "Affordable Rates",     desc: "Premium resort experience without the premium price tag." },
-      { icon: "fa-moon",           title: "Day & Night Packages", desc: "Flexible booking — day use, overnight, or full 24-hour stays." },
-      { icon: "fa-laptop",         title: "Easy Online Booking",  desc: "Reserve in minutes with our hassle-free online system." },
+      { icon: "fa-umbrella-beach", title: "Beachfront cottages",   desc: "Private cottages and pavilions a few steps from the water — book the one that fits your group size." },
+      { icon: "fa-clock",          title: "Three booking windows", desc: "Day visit (6 AM–6 PM), overnight (6 PM–7 AM), or full 24-hour. Pick the one that matches the trip." },
+      { icon: "fa-mobile-screen",  title: "Online or at the gate", desc: "Reserve online with GCash or PayMaya, or pay cash on arrival. Same rates either way." },
+      { icon: "fa-id-card",        title: "Entrance covered too",  desc: "Per-head entrance fee is built into the booking total. No surprises at the gate." },
     ],
   },
   cta: {
-    title:      "Ready for Paradise?",
-    subtitle:   "Book your beach getaway today and create memories that last a lifetime.",
-    buttonText: "Book Your Stay",
+    title:      "Ready to book?",
+    subtitle:   "Pick a date and a room — most slots can be reserved in under a minute.",
+    buttonText: "Book a stay",
   },
 };
 
@@ -121,7 +128,21 @@ export default function Home() {
         <title>Aplaya Beach Resort — Book Your Stay</title>
         <meta name="description" content="Book rooms at Aplaya Beach Resort Cavite. Day visits, night stays, and 24-hour beach getaway packages." />
         {!isVideoUrl(hero.background) && (
-          <link rel="preload" as="image" href={hero.background} />
+          // Responsive preload. For Unsplash URLs (the default and most
+          // owner overrides), advertise an imagesrcset so modern browsers
+          // preload only the width that matches the viewport. Other URLs
+          // fall back to the plain href.
+          hero.background.includes('images.unsplash.com')
+            ? <link
+                rel="preload"
+                as="image"
+                href={hero.background}
+                imageSrcSet={[640, 1024, 1600].map(w =>
+                  `${hero.background.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                ).join(', ')}
+                imageSizes="100vw"
+              />
+            : <link rel="preload" as="image" href={hero.background} />
         )}
       </Helmet>
 
@@ -167,10 +188,10 @@ export default function Home() {
         {/* Scroll indicator */}
         <button
           onClick={() => document.getElementById("resorts-section")?.scrollIntoView({ behavior: "smooth" })}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-pulse"
-          aria-label="Scroll down"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 h-11 w-11 flex items-center justify-center text-white/70 hover:text-white transition animate-pulse"
+          aria-label="Scroll to next section"
         >
-          <i className="fas fa-chevron-down text-2xl"></i>
+          <i className="fas fa-chevron-down text-2xl" aria-hidden="true"></i>
         </button>
       </section>
 
@@ -225,7 +246,7 @@ export default function Home() {
         >
           <div className="text-center mb-14">
             <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
-              <i className="fas fa-umbrella-beach text-xl"></i>
+              <i className="fas fa-umbrella-beach text-xl" aria-hidden="true"></i>
             </span>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{why.sectionTitle}</h2>
             <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
@@ -241,8 +262,8 @@ export default function Home() {
                 className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center border border-slate-100"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
-                <div className="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:bg-sky-600 group-hover:text-white transition-all duration-300">
-                  <i className={`fas ${f.icon.startsWith("fa-") ? f.icon : `fa-${f.icon}`} text-xl`}></i>
+                <div className="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors duration-300">
+                  <i className={`fas ${f.icon.startsWith("fa-") ? f.icon : `fa-${f.icon}`} text-xl`} aria-hidden="true"></i>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 mb-2">{f.title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
@@ -255,12 +276,7 @@ export default function Home() {
       {/* ============================================================ */}
       {/*  #7 — READY FOR PARADISE CTA  (#8 scroll reveal)            */}
       {/* ============================================================ */}
-      <section className="relative overflow-hidden">
-        {/* Solid brand background */}
-        <div className="absolute inset-0 bg-sky-700" />
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
-
+      <section className="relative overflow-hidden bg-sky-700">
         <div
           ref={ctaRef}
           className="reveal-section relative py-20 px-4 sm:px-6 lg:px-8 text-center"

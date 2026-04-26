@@ -63,28 +63,28 @@ export default function Navbar() {
             ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" loading="eager" decoding="async" />
             : <span className="text-2xl">🏖️</span>
           }
-          <span className="text-xl font-bold text-blue-600">{brand.siteName}</span>
+          <span className="text-xl font-bold text-sky-600">{brand.siteName}</span>
         </Link>
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
-          <Link to="/" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Home</Link>
-          <Link to="/resort" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Resort</Link>
-          <Link to="/rooms" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Rooms</Link>
-          <Link to="/gallery" className="text-gray-700 hover:text-blue-600 text-sm font-medium">Gallery</Link>
+          <Link to="/" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Home</Link>
+          <Link to="/resort" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Resort</Link>
+          <Link to="/rooms" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Rooms</Link>
+          <Link to="/gallery" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Gallery</Link>
 
           {user ? (
             <>
-              <Link to="/dashboard" className="text-gray-700 hover:text-blue-600 text-sm font-medium">My Account</Link>
+              <Link to="/dashboard" className="text-gray-700 hover:text-sky-600 text-sm font-medium">My Account</Link>
               <button onClick={logout} className="text-sm font-medium text-red-600 hover:text-red-800" type="button">Logout</button>
             </>
           ) : (
-            <button onClick={() => setLoginOpen(true)} className="text-gray-700 hover:text-blue-600 text-sm font-medium" type="button">Login</button>
+            <button onClick={() => setLoginOpen(true)} className="text-gray-700 hover:text-sky-600 text-sm font-medium" type="button">Login</button>
           )}
 
           <Link
             to={user ? "/dashboard?book=1" : "/resort?book=1"}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium"
           >
             Book Now
           </Link>
@@ -94,59 +94,61 @@ export default function Navbar() {
         <div className="flex items-center gap-3 md:hidden">
           <Link
             to={user ? "/dashboard?book=1" : "/resort?book=1"}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium"
+            className="bg-sky-600 hover:bg-sky-700 text-white px-4 h-11 inline-flex items-center rounded-md text-sm font-medium"
           >
             Book Now
           </Link>
           <button
             onClick={() => setMenuOpen((s) => !s)}
-            className="p-2 text-gray-600 hover:text-blue-600"
-            aria-label="Toggle menu"
+            className="h-11 w-11 flex items-center justify-center text-gray-600 hover:text-sky-600 rounded-lg"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={menuOpen}
+            aria-controls="navbar-mobile-menu"
           >
-            <i className={`fas ${menuOpen ? "fa-times" : "fa-bars"} text-xl`}></i>
+            <i className={`fas ${menuOpen ? "fa-times" : "fa-bars"} text-xl`} aria-hidden="true"></i>
           </button>
         </div>
       </div>
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div className="md:hidden bg-white border-t shadow-lg">
+        <div id="navbar-mobile-menu" className="md:hidden bg-white border-t shadow-lg">
           <div className="px-4 py-3 space-y-1" onClick={() => setMenuOpen(false)}>
-            <Link to="/" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
-              <i className="fas fa-home w-5 text-center mr-2 text-gray-400"></i>Home
+            <Link to="/" className="block px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
+              <i className="fas fa-home w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>Home
             </Link>
-            <Link to="/resort" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
-              <i className="fas fa-umbrella-beach w-5 text-center mr-2 text-gray-400"></i>Resort
+            <Link to="/resort" className="block px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
+              <i className="fas fa-umbrella-beach w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>Resort
             </Link>
-            <Link to="/rooms" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
-              <i className="fas fa-bed w-5 text-center mr-2 text-gray-400"></i>Rooms
+            <Link to="/rooms" className="block px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
+              <i className="fas fa-bed w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>Rooms
             </Link>
-            <Link to="/gallery" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
-              <i className="fas fa-images w-5 text-center mr-2 text-gray-400"></i>Gallery
+            <Link to="/gallery" className="block px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
+              <i className="fas fa-images w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>Gallery
             </Link>
 
             <div className="border-t border-gray-100 my-2"></div>
 
             {user ? (
               <>
-                <Link to="/dashboard" className="block px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
-                  <i className="fas fa-user w-5 text-center mr-2 text-gray-400"></i>My Account
+                <Link to="/dashboard" className="block px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
+                  <i className="fas fa-user w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>My Account
                 </Link>
                 <button
                   onClick={logout}
-                  className="w-full text-left px-3 py-2.5 rounded-lg text-red-600 hover:bg-red-50 text-sm font-medium"
+                  className="w-full text-left px-3 py-3 rounded-lg text-red-600 hover:bg-red-50 text-sm font-medium"
                   type="button"
                 >
-                  <i className="fas fa-sign-out-alt w-5 text-center mr-2"></i>Logout
+                  <i className="fas fa-sign-out-alt w-5 text-center mr-2" aria-hidden="true"></i>Logout
                 </button>
               </>
             ) : (
               <button
                 onClick={() => { setMenuOpen(false); setLoginOpen(true); }}
-                className="w-full text-left px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium"
+                className="w-full text-left px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium"
                 type="button"
               >
-                <i className="fas fa-sign-in-alt w-5 text-center mr-2 text-gray-400"></i>Login
+                <i className="fas fa-sign-in-alt w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>Login
               </button>
             )}
           </div>

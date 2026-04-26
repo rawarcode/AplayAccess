@@ -84,7 +84,7 @@ export default function Announcements() {
           {/* Load error banner */}
           {loadError && !loading && (
             <div className="flex items-center gap-3 rounded-xl border border-amber-200/20 bg-amber-500/10 px-4 py-3 mb-8">
-              <i className="fas fa-exclamation-triangle text-amber-400" />
+              <i className="fas fa-exclamation-triangle text-amber-400" aria-hidden="true" />
               <span className="text-sm text-amber-300 flex-1">Could not load announcements — showing cached data if available.</span>
               <button onClick={load} className="text-sm font-medium text-amber-300 hover:text-amber-200 underline">Retry</button>
             </div>
@@ -108,7 +108,7 @@ export default function Announcements() {
           ) : announcements.length === 0 ? (
             <div className="text-center py-20 text-slate-400">
               <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-bullhorn text-3xl text-slate-600"></i>
+                <i className="fas fa-bullhorn text-3xl text-slate-600" aria-hidden="true"></i>
               </div>
               <p className="text-xl font-semibold text-slate-300">No announcements yet.</p>
               <p className="text-sm mt-2">Check back soon for updates from Aplaya Beach Resort.</p>

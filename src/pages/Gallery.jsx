@@ -169,7 +169,7 @@ export default function Gallery() {
           {/* Load error banner */}
           {loadError && !loading && (
             <div className="flex items-center gap-3 rounded-xl border border-amber-200/20 bg-amber-500/10 px-4 py-3 mb-8">
-              <i className="fas fa-exclamation-triangle text-amber-400" />
+              <i className="fas fa-exclamation-triangle text-amber-400" aria-hidden="true" />
               <span className="text-sm text-amber-300 flex-1">Showing cached gallery — live data unavailable.</span>
               <button onClick={load} className="text-sm font-medium text-amber-300 hover:text-amber-200 underline">Retry</button>
             </div>
@@ -202,7 +202,7 @@ export default function Gallery() {
                         : "bg-white/10 text-slate-300 hover:bg-white/20"
                       }`}
                   >
-                    <i className={`fas ${icon} text-xs`} />
+                    <i className={`fas ${icon} text-xs`} aria-hidden="true" />
                     {catLabel(cat)}
                     <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                       activeCat === cat ? "bg-white/20 text-white" : "bg-white/10 text-slate-400"
@@ -224,7 +224,7 @@ export default function Gallery() {
             /* Empty state */
             <div className="text-center py-20">
               <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center mx-auto mb-4">
-                <i className="fas fa-images text-3xl text-slate-600" />
+                <i className="fas fa-images text-3xl text-slate-600" aria-hidden="true" />
               </div>
               <h3 className="text-lg font-semibold text-slate-400 mb-2">
                 No {activeCat === "all" ? "photos" : catLabel(activeCat).toLowerCase() + " photos"} yet
@@ -260,7 +260,7 @@ export default function Gallery() {
                       />
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="bg-black/50 rounded-full w-14 h-14 flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                          <i className="fas fa-play text-xl ml-1" />
+                          <i className="fas fa-play text-xl ml-1" aria-hidden="true" />
                         </div>
                       </div>
                     </>

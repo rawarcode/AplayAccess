@@ -446,7 +446,7 @@ export default function Rooms() {
           {/* Load error banner */}
           {loadError && (
             <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-8">
-              <i className="fas fa-exclamation-triangle text-amber-500" />
+              <i className="fas fa-exclamation-triangle text-amber-500" aria-hidden="true" />
               <span className="text-sm text-amber-700 flex-1">Showing cached room data — live data unavailable.</span>
               <button onClick={load} className="text-sm font-medium text-amber-700 hover:text-amber-800 underline">Retry</button>
             </div>
@@ -515,7 +515,7 @@ export default function Rooms() {
               {roomCards.length === 0 ? (
                 <div className="text-center py-20">
                   <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                    <i className="fas fa-bed text-3xl text-slate-300" />
+                    <i className="fas fa-bed text-3xl text-slate-300" aria-hidden="true" />
                   </div>
                   <h3 className="text-lg font-semibold text-slate-500 mb-2">No {activeTab === "all" ? "rooms" : CATEGORY_TABS.find(t => t.key === activeTab)?.label.toLowerCase() || "rooms"} found</h3>
                   <p className="text-slate-400 text-sm mb-4">Try selecting a different category above.</p>

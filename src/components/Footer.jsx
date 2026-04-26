@@ -33,9 +33,9 @@ export default function Footer() {
               <div className="mt-5 flex gap-3">
                 {socials.map(s => (
                   <a key={s.key} href={ft[s.key]} target="_blank" rel="noopener noreferrer"
-                    className="w-9 h-9 rounded-full bg-white/10 hover:bg-blue-600 flex items-center justify-center transition-colors"
+                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-sky-600 flex items-center justify-center transition-colors"
                     aria-label={s.label}>
-                    <i className={`fab ${s.icon} text-sm`}></i>
+                    <i className={`fab ${s.icon} text-sm`} aria-hidden="true"></i>
                   </a>
                 ))}
               </div>
@@ -59,20 +59,22 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Contact — FA icons (consistent with rest of site) instead
+              of emoji, which renders inconsistently across OS/browser
+              and is announced unpredictably by screen readers. */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Contact</h3>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2 text-gray-400">
-                <span className="text-blue-400 mt-0.5 shrink-0">📍</span>
+                <i className="fas fa-map-marker-alt text-sky-400 mt-1 shrink-0 w-4 text-center" aria-hidden="true"></i>
                 <span>{ft.address}</span>
               </li>
               <li className="flex items-center gap-2 text-gray-400">
-                <span className="text-blue-400">📞</span>
+                <i className="fas fa-phone text-sky-400 shrink-0 w-4 text-center" aria-hidden="true"></i>
                 <span>{ft.phone}</span>
               </li>
               <li className="flex items-center gap-2 text-gray-400">
-                <span className="text-blue-400">✉️</span>
+                <i className="fas fa-envelope text-sky-400 shrink-0 w-4 text-center" aria-hidden="true"></i>
                 <span>{ft.email}</span>
               </li>
             </ul>

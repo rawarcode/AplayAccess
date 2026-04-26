@@ -694,7 +694,7 @@ export default function Resort() {
             className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-pulse"
             aria-label="Scroll down"
           >
-            <i className="fas fa-chevron-down text-2xl" />
+            <i className="fas fa-chevron-down text-2xl" aria-hidden="true" />
           </button>
         </section>
 
@@ -880,7 +880,7 @@ export default function Resort() {
                     className="text-slate-400 hover:text-slate-700 transition flex-shrink-0"
                     aria-label="Close"
                   >
-                    <i className="fas fa-times text-xl" />
+                    <i className="fas fa-times text-xl" aria-hidden="true" />
                   </button>
                 </div>
                 <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{announcementModal.body}</p>
@@ -950,7 +950,7 @@ export default function Resort() {
           <div ref={roomsRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
-                <i className="fas fa-bed text-xl"></i>
+                <i className="fas fa-bed text-xl" aria-hidden="true"></i>
               </span>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">{pc.rooms.sectionTitle}</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
@@ -985,7 +985,7 @@ export default function Resort() {
                     </div>
                     {r.capacity > 0 && (
                       <span className="absolute bottom-3 right-3 bg-black/50 text-white text-xs px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <i className="fas fa-users text-[10px]"></i> Up to {r.capacity} guests
+                        <i className="fas fa-users text-[10px]" aria-hidden="true"></i> Up to {r.capacity} guests
                       </span>
                     )}
                   </div>
@@ -1047,7 +1047,7 @@ export default function Resort() {
           <div ref={amenitiesRef} className="reveal-section relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
               <span className="inline-flex h-12 w-12 rounded-full bg-sky-100 text-sky-600 items-center justify-center mb-3" aria-hidden="true">
-                <i className="fas fa-umbrella-beach text-xl"></i>
+                <i className="fas fa-umbrella-beach text-xl" aria-hidden="true"></i>
               </span>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Resort Amenities</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
@@ -1192,14 +1192,14 @@ export default function Resort() {
                   className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/50"
                   aria-label="Previous review"
                 >
-                  <i className="fas fa-chevron-left text-sm"></i>
+                  <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
                 </button>
                 <button
                   onClick={() => scrollRef.current?.scrollBy({ left: 340, behavior: "smooth" })}
                   className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/50"
                   aria-label="Next review"
                 >
-                  <i className="fas fa-chevron-right text-sm"></i>
+                  <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
                 </button>
                 <div
                   ref={scrollRef}
@@ -1267,7 +1267,7 @@ export default function Resort() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                       <div className="flex items-center justify-between w-full">
                         {g.caption && <p className="text-white text-sm font-medium">{g.caption}</p>}
-                        <i className="fas fa-expand text-white/70 text-sm"></i>
+                        <i className="fas fa-expand text-white/70 text-sm" aria-hidden="true"></i>
                       </div>
                     </div>
                   </div>
@@ -1311,7 +1311,7 @@ export default function Resort() {
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="flex items-start gap-3 px-4 py-3">
                       <div className="w-8 h-8 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
-                        <i className={`fas ${icon} text-xs`} />
+                        <i className={`fas ${icon} text-xs`} aria-hidden="true" />
                       </div>
                       <div className="min-w-0">
                         <p className="text-[10px] font-semibold text-sky-600 uppercase tracking-wider">{label}</p>
@@ -1327,10 +1327,10 @@ export default function Resort() {
                   <div className="flex items-center gap-3 text-slate-500 text-sm">
                     <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Follow</span>
                     <div className="flex items-center gap-3 text-lg">
-                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="hover:text-sky-600 transition"  aria-label="Facebook"><i className="fab fa-facebook"></i></a>}
-                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram"></i></a>}
-                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="hover:text-sky-500 transition"  aria-label="Twitter"><i className="fab fa-twitter"></i></a>}
-                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition" aria-label="TikTok"><i className="fab fa-tiktok"></i></a>}
+                      {pc.contact.facebook  && <a href={pc.contact.facebook}  target="_blank" rel="noopener noreferrer" className="hover:text-sky-600 transition"  aria-label="Facebook"><i className="fab fa-facebook" aria-hidden="true"></i></a>}
+                      {pc.contact.instagram && <a href={pc.contact.instagram} target="_blank" rel="noopener noreferrer" className="hover:text-pink-500 transition" aria-label="Instagram"><i className="fab fa-instagram" aria-hidden="true"></i></a>}
+                      {pc.contact.twitter   && <a href={pc.contact.twitter}   target="_blank" rel="noopener noreferrer" className="hover:text-sky-500 transition"  aria-label="Twitter"><i className="fab fa-twitter" aria-hidden="true"></i></a>}
+                      {pc.contact.tiktok    && <a href={pc.contact.tiktok}    target="_blank" rel="noopener noreferrer" className="hover:text-slate-900 transition" aria-label="TikTok"><i className="fab fa-tiktok" aria-hidden="true"></i></a>}
                     </div>
                   </div>
                 )}
@@ -1400,7 +1400,7 @@ export default function Resort() {
                   disabled={contactSubmitting}
                   className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white text-sm font-medium py-2.5 px-4 rounded-md transition"
                 >
-                  {contactSubmitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Sending...</> : <><i className="fas fa-paper-plane mr-2"></i>Send message</>}
+                  {contactSubmitting ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Sending...</> : <><i className="fas fa-paper-plane mr-2" aria-hidden="true"></i>Send message</>}
                 </button>
               </form>
             </div>
@@ -1411,7 +1411,7 @@ export default function Resort() {
               <div className="mt-8">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
-                    <i className="fas fa-map-marker-alt text-sky-600 text-xs" />
+                    <i className="fas fa-map-marker-alt text-sky-600 text-xs" aria-hidden="true" />
                     Find us
                   </h3>
                   {(pc.contact.directions_url || pc.contact.map_url) && (
@@ -1421,7 +1421,7 @@ export default function Resort() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs text-sky-600 hover:text-sky-800 font-medium"
                     >
-                      <i className="fas fa-directions" />
+                      <i className="fas fa-directions" aria-hidden="true" />
                       Get directions
                     </a>
                   )}
@@ -1453,7 +1453,7 @@ export default function Resort() {
                 <form onSubmit={submitNewsletter} className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center flex-shrink-0">
-                      <i className="fas fa-bell text-sm" />
+                      <i className="fas fa-bell text-sm" aria-hidden="true" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 truncate">{pc.newsletter.title || 'Stay in the loop'}</p>
@@ -1478,7 +1478,7 @@ export default function Resort() {
                       className="bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white text-sm font-medium px-4 py-2 rounded-md transition"
                     >
                       {newsletter.submitting
-                        ? <><i className="fas fa-spinner fa-spin mr-1"></i>Subscribing…</>
+                        ? <><i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Subscribing…</>
                         : 'Subscribe'}
                     </button>
                   </div>
@@ -1615,7 +1615,7 @@ export default function Resort() {
             className="absolute top-4 right-4 text-white/70 hover:text-white transition z-10"
             aria-label="Close lightbox"
           >
-            <i className="fas fa-times text-2xl"></i>
+            <i className="fas fa-times text-2xl" aria-hidden="true"></i>
           </button>
 
           {galleryDisplay.length > 1 && (
@@ -1625,14 +1625,14 @@ export default function Resort() {
                 className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
                 aria-label="Previous image"
               >
-                <i className="fas fa-chevron-left"></i>
+                <i className="fas fa-chevron-left" aria-hidden="true"></i>
               </button>
               <button
                 onClick={() => setLightboxIdx((i) => (i + 1) % galleryDisplay.length)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition"
                 aria-label="Next image"
               >
-                <i className="fas fa-chevron-right"></i>
+                <i className="fas fa-chevron-right" aria-hidden="true"></i>
               </button>
             </>
           )}
