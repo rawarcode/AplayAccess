@@ -16,6 +16,13 @@ function getCat(room) {
   const n = (room.name || '').toLowerCase();
   if (n.includes('cottage'))  return 'cottage';
   if (n.includes('pavilion')) return 'pavilion';
+  // Name-fallback for tents — same pattern as the cottage/pavilion
+  // heuristics above. Without this, a tent row whose DB `category`
+  // column is unset gets classified as 'room', which made the
+  // existing tent-only-render-when-active filter (and the summary
+  // tent-exclusion in `counts`) silently miss it. Matches "tent",
+  // "camping", and "campsite" name variants.
+  if (n.includes('tent') || n.includes('camp')) return 'tent';
   return 'room';
 }
 
