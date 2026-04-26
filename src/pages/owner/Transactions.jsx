@@ -98,7 +98,7 @@ const ITEMS_PER_PAGE = 5;
 const STATUS_PRIORITY = { Pending: 0, "Checked In": 1, Confirmed: 2, Cancelled: 3, Completed: 4 };
 
 const STATUS_CLASSES = {
-  Confirmed:   "bg-emerald-100 text-emerald-800",
+  Confirmed:   "bg-success-bg text-success-fg",
   Completed:   "bg-blue-100 text-blue-800",
   Pending:     "bg-yellow-100 text-yellow-800",
   Cancelled:   "bg-red-100 text-red-800",
@@ -287,12 +287,12 @@ export default function OwnerTransactions() {
               <p className="text-gray-500 text-sm">Total Bookings</p>
               <h3 className="text-2xl font-bold mt-1">{loading ? "—" : allBookings.length}</h3>
               <p className="text-xs text-green-500 mt-1">
-                <i className="fas fa-arrow-up mr-1"></i>
+                <i className="fas fa-arrow-up mr-1" aria-hidden="true"></i>
                 {loading ? "" : `${overview?.bookings_this_month ?? 0} this month`}
               </p>
             </div>
             <div className="p-3 rounded-full bg-blue-100 text-blue-600">
-              <i className="fas fa-exchange-alt text-xl"></i>
+              <i className="fas fa-exchange-alt text-xl" aria-hidden="true"></i>
             </div>
           </div>
         </div>
@@ -303,12 +303,12 @@ export default function OwnerTransactions() {
               <p className="text-gray-500 text-sm">Revenue Collected</p>
               <h3 className="text-2xl font-bold mt-1">{loading ? "—" : fmt(totalRevenue)}</h3>
               <p className="text-xs text-green-500 mt-1">
-                <i className="fas fa-arrow-up mr-1"></i>
+                <i className="fas fa-arrow-up mr-1" aria-hidden="true"></i>
                 {loading ? "" : `${fmt(overview?.revenue_this_month ?? 0)} this month`}
               </p>
             </div>
             <div className="p-3 rounded-full bg-green-100 text-green-600">
-              <i className="fas fa-money-bill-wave text-xl"></i>
+              <i className="fas fa-money-bill-wave text-xl" aria-hidden="true"></i>
             </div>
           </div>
         </div>
@@ -320,7 +320,7 @@ export default function OwnerTransactions() {
               <h3 className="text-2xl font-bold mt-1">{loading ? "—" : fmt(Math.round(avgTx))}</h3>
             </div>
             <div className="p-3 rounded-full bg-purple-100 text-purple-600">
-              <i className="fas fa-calculator text-xl"></i>
+              <i className="fas fa-calculator text-xl" aria-hidden="true"></i>
             </div>
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function OwnerTransactions() {
                   value={search} onChange={(e) => handleSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
                 />
-                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden="true"></i>
               </div>
             </div>
           </div>
@@ -382,7 +382,7 @@ export default function OwnerTransactions() {
               onClick={clearFilters}
               className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 border border-slate-200 rounded-xl hover:bg-slate-50 transition whitespace-nowrap"
             >
-              <i className="fas fa-times text-xs"></i>
+              <i className="fas fa-times text-xs" aria-hidden="true"></i>
               Clear filters
             </button>
           )}
@@ -409,7 +409,7 @@ export default function OwnerTransactions() {
             onClick={() => printTransactions(filtered)}
             className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-blue-50 transition"
           >
-            <i className="fas fa-print text-xs"></i>
+            <i className="fas fa-print text-xs" aria-hidden="true"></i>
             Print Report
           </button>
         </div>
@@ -424,7 +424,7 @@ export default function OwnerTransactions() {
                       className="flex items-center gap-1 hover:text-blue-600 transition-colors group">
                       {label}
                       <span className="text-slate-400 group-hover:text-blue-400">
-                        {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                        {sortBy===key ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-blue-500`} aria-hidden="true"></i> : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                       </span>
                     </button>
                   </th>
@@ -450,7 +450,7 @@ export default function OwnerTransactions() {
                   <td className="px-6 py-4">
                     {Number(b.discount) > 0 ? (
                       <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
-                        <i className="fas fa-tag text-xs"></i>
+                        <i className="fas fa-tag text-xs" aria-hidden="true"></i>
                         {fmt(b.discount)}
                       </span>
                     ) : (
@@ -536,14 +536,14 @@ export default function OwnerTransactions() {
           <div className="inline-flex rounded-md shadow-sm gap-px">
             <button onClick={() => setCurrentPage((p) => p - 1)} disabled={currentPage === 1}
               className="px-3 py-1.5 rounded-l-md border border-slate-200 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40">
-              <i className="fas fa-chevron-left"></i>
+              <i className="fas fa-chevron-left" aria-hidden="true"></i>
             </button>
             <span className="px-4 py-1.5 border-y border-slate-200 bg-brand text-white text-sm font-medium">
               {currentPage} / {totalPages || 1}
             </span>
             <button onClick={() => setCurrentPage((p) => p + 1)} disabled={currentPage >= totalPages}
               className="px-3 py-1.5 rounded-r-md border border-slate-200 bg-white text-sm text-slate-500 hover:bg-slate-50 disabled:opacity-40">
-              <i className="fas fa-chevron-right"></i>
+              <i className="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -591,7 +591,7 @@ export default function OwnerTransactions() {
               className="text-xs text-slate-400 cursor-help"
               title="Collected = money actually received (paid_amount). Outstanding = grand total − paid_amount on active bookings. Forfeited reservation fees are kept when a guest cancels."
             >
-              <i className="fas fa-circle-info"></i>
+              <i className="fas fa-circle-info" aria-hidden="true"></i>
             </span>
           </div>
 
@@ -620,7 +620,7 @@ export default function OwnerTransactions() {
                     <div className="relative h-3 rounded-full bg-slate-100 overflow-hidden flex">
                       {collected.total > 0 && (
                         <div
-                          className="h-full bg-emerald-500"
+                          className="h-full bg-success-ring"
                           style={{ width: `${collectedPct}%` }}
                           title={`Collected: ${fmt(collected.total)} (${collectedPct.toFixed(1)}%)`}
                         />
@@ -646,12 +646,12 @@ export default function OwnerTransactions() {
                 {/* Collected sources */}
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700 mb-2 flex items-center gap-1.5">
-                    <i className="fas fa-check-circle"></i> Where it came from
+                    <i className="fas fa-check-circle" aria-hidden="true"></i> Where it came from
                   </h3>
                   <ul className="space-y-2">
                     {[
                       { label: "Completed stays",     value: collected.completed,  color: "bg-emerald-600" },
-                      { label: "In-progress stays",   value: collected.inProgress, color: "bg-emerald-500" },
+                      { label: "In-progress stays",   value: collected.inProgress, color: "bg-success-ring" },
                       { label: "Upcoming (paid)",     value: collected.upcoming,   color: "bg-sky-500"     },
                       { label: "Forfeited fees",      value: collected.forfeited,  color: "bg-rose-400"    },
                     ].filter(r => r.value > 0).map(({ label, value, color }) => {
@@ -680,11 +680,11 @@ export default function OwnerTransactions() {
                 {/* Outstanding sources */}
                 <div>
                   <h3 className="text-[11px] font-semibold uppercase tracking-wide text-amber-700 mb-2 flex items-center gap-1.5">
-                    <i className="fas fa-clock"></i> What's still owed
+                    <i className="fas fa-clock" aria-hidden="true"></i> What's still owed
                   </h3>
                   <ul className="space-y-2">
                     {[
-                      { label: "Partially paid (balance at counter)", value: outstanding.partial, color: "bg-amber-500" },
+                      { label: "Partially paid (balance at counter)", value: outstanding.partial, color: "bg-warning-ring" },
                       { label: "Unpaid pending",                      value: outstanding.unpaid,  color: "bg-amber-300" },
                     ].filter(r => r.value > 0).map(({ label, value, color }) => {
                       const pct = outstanding.total > 0 ? (value / outstanding.total) * 100 : 0;

@@ -10,6 +10,7 @@ import Toast, { useToast } from "../ui/Toast.jsx";
 import { updateProfile, changePassword } from "../../lib/profileApi.js";
 import { uploadFile } from "../../lib/uploadApi.js";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll.js";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
 import Modal from "../modals/Modal.jsx";
 import StaffChatWidget from "../StaffChatWidget.jsx";
 import { Helmet } from "react-helmet-async";
@@ -105,6 +106,10 @@ export default function OwnerShell() {
   const { user, logout, setUser } = useAuth();
   const profileRef = useRef(null);
   const avatarFileRef = useRef(null);
+  // Mobile drawer focus trap — restores focus to the hamburger trigger
+  // on close so screen reader users don't get dumped into the document
+  // root. Mirrors the AdminShell pattern from 66915a9.
+  const mobileDrawerRef = useFocusTrap(mobileOpen);
 
   const userName  = user?.name  || "Owner";
   const userEmail = user?.email || "";
@@ -262,7 +267,7 @@ export default function OwnerShell() {
                     : "text-blue-100 hover:bg-brand-hover hover:text-white"
                 }`}
               >
-                <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0 text-sm`}></i>
+                <i className={`fas ${item.icon} mr-3 w-5 text-center shrink-0 text-sm`} aria-hidden="true"></i>
                 {(!collapsed || mobile) && (
                   <>
                     <span className="flex-1">{item.label}</span>
@@ -291,15 +296,17 @@ export default function OwnerShell() {
       {/* Logo */}
       <div className="p-4 flex items-center justify-between border-b border-brand-hover">
         <div className="flex items-center">
-          <i className="fas fa-umbrella-beach text-2xl mr-3 text-white"></i>
+          <i className="fas fa-umbrella-beach text-2xl mr-3 text-white" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-lg font-bold text-white">AplayAccess</span>}
         </div>
         {!mobile && (
           <button
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!collapsed}
             className="text-white hover:bg-brand-hover p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand/50"
           >
-            <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`}></i>
+            <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`} aria-hidden="true"></i>
           </button>
         )}
       </div>
@@ -319,7 +326,7 @@ export default function OwnerShell() {
           className="flex items-center w-full px-2 py-2 text-blue-100 hover:bg-brand-hover rounded transition"
           title="Switch to Front Desk"
         >
-          <i className="fas fa-bell-concierge mr-3 w-5 text-center"></i>
+          <i className="fas fa-bell-concierge mr-3 w-5 text-center" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-sm">Front Desk</span>}
         </button>
       </div>
@@ -336,7 +343,7 @@ export default function OwnerShell() {
           onClick={handleLogout}
           className="flex items-center w-full px-2 py-2 text-blue-100 hover:bg-brand-hover rounded transition"
         >
-          <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+          <i className="fas fa-sign-out-alt mr-3 w-5 text-center" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
         </button>
       </div>
@@ -356,17 +363,21 @@ export default function OwnerShell() {
       {/* ── Mobile Sidebar Overlay ────────────────────────────── */}
       {mobileOpen && (
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
-          <div className="absolute inset-0 bg-black/50" />
+          <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
           <div
+            ref={mobileDrawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Owner navigation"
             className="absolute inset-y-0 left-0 w-72 bg-brand text-white flex flex-col shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10"
+              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10 h-11 w-11 flex items-center justify-center rounded-lg"
               aria-label="Close sidebar"
             >
-              <i className="fas fa-times text-lg"></i>
+              <i className="fas fa-times text-lg" aria-hidden="true"></i>
             </button>
             {sidebarContent(true)}
           </div>
@@ -388,10 +399,10 @@ export default function OwnerShell() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50 h-11 w-11 flex items-center justify-center rounded-lg"
                 aria-label="Open menu"
               >
-                <i className="fas fa-bars text-xl"></i>
+                <i className="fas fa-bars text-xl" aria-hidden="true"></i>
               </button>
               <h1 className="text-xl font-bold text-gray-800">{pageTitle}</h1>
             </div>
@@ -403,7 +414,11 @@ export default function OwnerShell() {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(!profileOpen)}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                  aria-controls="owner-profile-menu"
+                  aria-label={`Account menu for ${userName}`}
+                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50 p-2 rounded-lg"
                 >
                   <Avatar
                     src={user?.avatar}
@@ -412,11 +427,16 @@ export default function OwnerShell() {
                     fallbackClassName="bg-brand text-white text-sm font-semibold"
                   />
                   <span className="hidden md:inline text-sm font-medium">{userName}</span>
-                  <i className="fas fa-chevron-down text-xs text-gray-400"></i>
+                  <i className="fas fa-chevron-down text-xs text-gray-400" aria-hidden="true"></i>
                 </button>
 
                 {profileOpen && (
-                  <div className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div
+                    id="owner-profile-menu"
+                    role="menu"
+                    aria-label="Account"
+                    className="absolute right-0 top-12 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                  >
                     <div className="p-3 flex items-center border-b border-gray-100">
                       <Avatar
                         src={user?.avatar}
@@ -430,17 +450,19 @@ export default function OwnerShell() {
                       </div>
                     </div>
                     <button
+                      role="menuitem"
                       onClick={openSettings}
                       className="p-3 flex items-center w-full text-left hover:bg-gray-50 border-b border-gray-100"
                     >
-                      <i className="fas fa-user-cog mr-3 text-gray-500"></i>
+                      <i className="fas fa-user-cog mr-3 text-gray-500" aria-hidden="true"></i>
                       <span className="text-sm text-gray-700">Account Settings</span>
                     </button>
                     <button
+                      role="menuitem"
                       onClick={handleLogout}
                       className="p-3 flex items-center w-full text-left hover:bg-gray-50 text-red-500"
                     >
-                      <i className="fas fa-sign-out-alt mr-3"></i>
+                      <i className="fas fa-sign-out-alt mr-3" aria-hidden="true"></i>
                       <span className="text-sm">Logout</span>
                     </button>
                   </div>
@@ -462,10 +484,10 @@ export default function OwnerShell() {
           <div className="max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center p-6 border-b border-gray-200">
               <h3 className="text-xl font-bold text-gray-800">
-                <i className="fas fa-user-cog mr-2 text-brand"></i>Account Settings
+                <i className="fas fa-user-cog mr-2 text-brand" aria-hidden="true"></i>Account Settings
               </h3>
               <button onClick={closeSettings} className="text-gray-400 hover:text-gray-600 transition" aria-label="Close">
-                <i className="fas fa-times text-lg"></i>
+                <i className="fas fa-times text-lg" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -489,8 +511,8 @@ export default function OwnerShell() {
                         title="Change photo"
                       >
                         {uploadingAvatar
-                          ? <i className="fas fa-spinner fa-spin text-[11px]"></i>
-                          : <i className="fas fa-camera text-[11px]"></i>}
+                          ? <i className="fas fa-spinner fa-spin text-[11px]" aria-hidden="true"></i>
+                          : <i className="fas fa-camera text-[11px]" aria-hidden="true"></i>}
                       </button>
                       <input
                         ref={avatarFileRef}
@@ -512,7 +534,7 @@ export default function OwnerShell() {
                     onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "", avatar: user?.avatar || "" }); setIsEditing(true); }}
                     className="px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark transition"
                   >
-                    <i className="fas fa-edit mr-2"></i>Edit
+                    <i className="fas fa-edit mr-2" aria-hidden="true"></i>Edit
                   </button>
                 )}
               </div>
@@ -543,7 +565,7 @@ export default function OwnerShell() {
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                       <div className="relative">
-                        <i className="fas fa-shield-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <i className="fas fa-shield-alt absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" aria-hidden="true"></i>
                         <input type="text" value="Owner" readOnly className="border rounded px-3 py-2 pl-9 w-full bg-gray-100 text-gray-500 focus:outline-none focus:ring-2 focus:ring-brand/50" />
                       </div>
                     </div>
@@ -559,7 +581,7 @@ export default function OwnerShell() {
                       <div key={f.key} className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-1">{f.label}</label>
                         <div className="relative">
-                          <i className={`fas ${f.icon} absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm`}></i>
+                          <i className={`fas ${f.icon} absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm`} aria-hidden="true"></i>
                           <input
                             type={f.show ? "text" : "password"}
                             value={passwordData[f.key]}
@@ -574,19 +596,20 @@ export default function OwnerShell() {
                             onClick={() => f.toggle(!f.show)}
                             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                             tabIndex={-1}
+                            aria-label={f.show ? `Hide ${f.label.toLowerCase()}` : `Show ${f.label.toLowerCase()}`}
                           >
-                            <i className={`fas ${f.show ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                            <i className={`fas ${f.show ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
                           </button>
                         </div>
                         {f.key === "new" && pwStrength && (
-                          <p className={`text-xs mt-1 ${pwStrength === "strong" ? "text-emerald-600" : "text-amber-600"}`}>
-                            <i className={`fas ${pwStrength === "strong" ? "fa-check-circle" : "fa-info-circle"} mr-1`}></i>
+                          <p className={`text-xs mt-1 ${pwStrength === "strong" ? "text-success-fg" : "text-warning-fg"}`}>
+                            <i className={`fas ${pwStrength === "strong" ? "fa-check-circle" : "fa-info-circle"} mr-1`} aria-hidden="true"></i>
                             {pwStrength === "strong" ? "Strong password" : "At least 8 characters recommended"}
                           </p>
                         )}
                         {f.key === "confirm" && pwMismatch && (
-                          <p className="text-xs text-red-500 mt-1">
-                            <i className="fas fa-exclamation-circle mr-1"></i>Passwords do not match
+                          <p className="text-xs text-danger-fg mt-1" role="alert">
+                            <i className="fas fa-exclamation-circle mr-1" aria-hidden="true"></i>Passwords do not match
                           </p>
                         )}
                       </div>
@@ -604,7 +627,7 @@ export default function OwnerShell() {
                       ["fa-shield-alt", "Role", "Owner"],
                     ].map(([icon, label, val]) => (
                       <div key={label} className="flex items-start gap-3">
-                        <i className={`fas ${icon} text-gray-400 mt-0.5 w-4 text-center`}></i>
+                        <i className={`fas ${icon} text-gray-400 mt-0.5 w-4 text-center`} aria-hidden="true"></i>
                         <div>
                           <p className="text-xs text-gray-500">{label}</p>
                           <p className="font-medium">{val}</p>
@@ -630,7 +653,7 @@ export default function OwnerShell() {
                       disabled={saving}
                       className="px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 flex items-center gap-2"
                     >
-                      {saving ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-save"></i>}
+                      {saving ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : <i className="fas fa-save" aria-hidden="true"></i>}
                       {saving ? "Saving..." : "Save Changes"}
                     </button>
                   </>

@@ -79,7 +79,7 @@ function printReport({ bookings, active, revenue, forfeited, forfeitedCount, avg
 }
 
 const STATUS_CLASSES = {
-  Confirmed:   "bg-emerald-100 text-emerald-800",
+  Confirmed:   "bg-success-bg text-success-fg",
   "Checked In":"bg-teal-100 text-teal-800",
   Completed:   "bg-blue-100 text-blue-800",
   Pending:     "bg-yellow-100 text-yellow-800",
@@ -293,7 +293,7 @@ export default function OwnerReports() {
         {[["monthly","fa-file-alt","Monthly Report"],["analytics","fa-chart-line","Analytics"]].map(([key,icon,label]) => (
           <button key={key} onClick={() => setTab(key)}
             className={`flex items-center gap-2 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab===key ? "border-brand text-brand" : "border-transparent text-slate-500 hover:text-slate-700"}`}>
-            <i className={`fas ${icon} text-xs`}></i>{label}
+            <i className={`fas ${icon} text-xs`} aria-hidden="true"></i>{label}
           </button>
         ))}
       </div>
@@ -357,7 +357,7 @@ export default function OwnerReports() {
             <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
               <button onClick={() => { /* print financials */ }} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-blue-50 transition">
-                <i className="fas fa-print text-xs"></i>Print
+                <i className="fas fa-print text-xs" aria-hidden="true"></i>Print
               </button>
             </div>
             <div className="overflow-x-auto">
@@ -408,7 +408,7 @@ export default function OwnerReports() {
           disabled={loading || bookings.length === 0}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-brand rounded-lg hover:bg-brand-dark disabled:opacity-40 transition"
         >
-          <i className="fas fa-print text-xs"></i>
+          <i className="fas fa-print text-xs" aria-hidden="true"></i>
           Print Report
         </button>
       </div>
@@ -446,7 +446,7 @@ export default function OwnerReports() {
                   {c.subtitle && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{c.subtitle}</p>}
                 </div>
                 <div className={`p-3 rounded-full shrink-0 ${c.color}`}>
-                  <i className={`fas ${c.icon} text-lg`}></i>
+                  <i className={`fas ${c.icon} text-lg`} aria-hidden="true"></i>
                 </div>
               </div>
             </div>

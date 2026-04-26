@@ -400,17 +400,17 @@ export default function PromoCodes() {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-lg bg-indigo-100 flex items-center justify-center">
-              <i className="fas fa-ticket-alt text-indigo-600"></i>
+              <i className="fas fa-ticket-alt text-indigo-600" aria-hidden="true"></i>
             </span>
             Promo Codes
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Create and manage discount codes for guests.</p>
         </div>
         <button onClick={openCreate}
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition">
-          <i className="fas fa-plus text-xs"></i>
+          <i className="fas fa-plus text-xs" aria-hidden="true"></i>
           <span className="text-sm font-medium">New Promo Code</span>
           <kbd className="hidden sm:inline-flex items-center gap-0.5 ml-1.5 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono leading-none">
             Ctrl+N
@@ -422,12 +422,12 @@ export default function PromoCodes() {
       {loadError && !loading && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl px-5 py-3 flex items-center justify-between">
           <span className="text-sm text-rose-700 font-medium flex items-center gap-2">
-            <i className="fas fa-exclamation-triangle"></i>
+            <i className="fas fa-exclamation-triangle" aria-hidden="true"></i>
             Failed to load promo codes.
           </span>
           <button onClick={load}
             className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition">
-            <i className="fas fa-redo mr-1.5"></i>Retry
+            <i className="fas fa-redo mr-1.5" aria-hidden="true"></i>Retry
           </button>
         </div>
       )}
@@ -435,14 +435,14 @@ export default function PromoCodes() {
       {/* Search + Filter */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
-          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
           <input ref={searchRef} type="text" aria-label="Search promo codes" placeholder="Search by code..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times-circle text-sm"></i>
+              <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
         </div>
@@ -469,20 +469,20 @@ export default function PromoCodes() {
       {selected.size > 0 && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-5 py-3 flex items-center justify-between animate-hero-fade-in opacity-0">
           <span className="text-sm font-medium text-indigo-800">
-            <i className="fas fa-check-circle mr-2"></i>{selected.size} selected
+            <i className="fas fa-check-circle mr-2" aria-hidden="true"></i>{selected.size} selected
           </span>
           <div className="flex items-center gap-2">
             <button onClick={() => bulkAction("activate")}
               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-check mr-1.5"></i>Activate
+              <i className="fas fa-check mr-1.5" aria-hidden="true"></i>Activate
             </button>
             <button onClick={() => bulkAction("deactivate")}
               className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-pause mr-1.5"></i>Deactivate
+              <i className="fas fa-pause mr-1.5" aria-hidden="true"></i>Deactivate
             </button>
             <button onClick={() => setBulkDeleteConfirm(true)}
               className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-trash mr-1.5"></i>Delete
+              <i className="fas fa-trash mr-1.5" aria-hidden="true"></i>Delete
             </button>
             <button onClick={() => setSelected(new Set())}
               className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
@@ -538,7 +538,7 @@ export default function PromoCodes() {
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-ticket-alt text-slate-300 text-2xl"></i>
+                <i className="fas fa-ticket-alt text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterStatus !== "all" ? "No promo codes match your search." : "No promo codes yet."}
@@ -551,7 +551,7 @@ export default function PromoCodes() {
               {(debouncedSearch || filterStatus !== "all") && (
                 <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); }}
                   className="mt-4 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -572,8 +572,8 @@ export default function PromoCodes() {
                           {label}
                           <span className="text-slate-400 group-hover:text-indigo-400">
                             {sortBy === key
-                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-indigo-500`}></i>
-                              : <i className="fas fa-sort opacity-40"></i>}
+                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-indigo-500`} aria-hidden="true"></i>
+                              : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                           </span>
                         </button>
                       </th>
@@ -615,12 +615,12 @@ export default function PromoCodes() {
                       </td>
                       <td className="px-5 py-3">
                         {code.is_active && !isExpired(code) ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                            <span className="h-2 w-2 rounded-full bg-emerald-500"></span>Active
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-success-bg text-success-fg">
+                            <span className="h-2 w-2 rounded-full bg-success-ring"></span>Active
                           </span>
                         ) : isExpired(code) ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-700">
-                            <span className="h-2 w-2 rounded-full bg-rose-500"></span>Expired
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-danger-bg text-danger-fg">
+                            <span className="h-2 w-2 rounded-full bg-danger-ring"></span>Expired
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">
@@ -632,25 +632,25 @@ export default function PromoCodes() {
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => copyCode(code.code)} title="Copy code"
                             className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                            <i className="fas fa-copy text-xs"></i>
+                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => openEdit(code)} title="Edit"
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs"></i>
+                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => openDuplicate(code)} title="Duplicate"
                             className="h-8 w-8 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-clone text-xs"></i>
+                            <i className="fas fa-clone text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => toggleActive(code)} title={code.is_active ? "Deactivate" : "Activate"}
                             className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${code.is_active
                               ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
                               : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}>
-                            <i className={`fas ${code.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`}></i>
+                            <i className={`fas ${code.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                           </button>
                           <button onClick={() => setDeleteTarget(code)} title="Delete"
                             className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs"></i>
+                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -668,7 +668,7 @@ export default function PromoCodes() {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs"></i>
+                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
                     </button>
                     {getPageNumbers(safePage, totalPages).map((n, idx) =>
                       n === "..." ? (
@@ -688,7 +688,7 @@ export default function PromoCodes() {
                     )}
                     <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs"></i>
+                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -702,7 +702,7 @@ export default function PromoCodes() {
           <div className="px-6 pb-6 flex justify-center">
             <button onClick={load}
               className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1.5">
-              <i className="fas fa-redo text-xs"></i>Retry loading
+              <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry loading
             </button>
           </div>
         )}
@@ -717,15 +717,15 @@ export default function PromoCodes() {
               <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <span className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                    <i className="fas fa-ticket-alt text-indigo-600 text-lg"></i>
+                    <i className="fas fa-ticket-alt text-indigo-600 text-lg" aria-hidden="true"></i>
                   </span>
                   <div>
                     <h3 className="font-mono font-bold text-slate-900 tracking-wide">{viewItem.code}</h3>
                     <div className="flex items-center gap-2 mt-0.5">
                       {viewItem.is_active && !isExpired(viewItem) ? (
-                        <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">Active</span>
+                        <span className="text-[10px] bg-success-bg text-success-fg px-2 py-0.5 rounded-full font-semibold">Active</span>
                       ) : isExpired(viewItem) ? (
-                        <span className="text-[10px] bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full font-semibold">Expired</span>
+                        <span className="text-[10px] bg-danger-bg text-danger-fg px-2 py-0.5 rounded-full font-semibold">Expired</span>
                       ) : (
                         <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-semibold">Inactive</span>
                       )}
@@ -734,7 +734,7 @@ export default function PromoCodes() {
                 </div>
                 <button onClick={() => setViewItem(null)}
                   className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
               <div className="p-6">
@@ -742,7 +742,7 @@ export default function PromoCodes() {
                   {/* Discount card */}
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                     <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center mx-auto mb-1.5">
-                      <i className="fas fa-percent text-indigo-600 text-xs"></i>
+                      <i className="fas fa-percent text-indigo-600 text-xs" aria-hidden="true"></i>
                     </div>
                     <p className="text-sm font-bold text-indigo-700">{formatDiscount(viewItem)}</p>
                     <p className="text-[10px] text-slate-400">Discount</p>
@@ -750,7 +750,7 @@ export default function PromoCodes() {
                   {/* Type card */}
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                     <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center mx-auto mb-1.5">
-                      <i className={`fas ${viewItem.type === "percentage" ? "fa-percent" : "fa-peso-sign"} text-sky-600 text-xs`}></i>
+                      <i className={`fas ${viewItem.type === "percentage" ? "fa-percent" : "fa-peso-sign"} text-sky-600 text-xs`} aria-hidden="true"></i>
                     </div>
                     <p className="text-sm font-bold text-sky-700 capitalize">{viewItem.type}</p>
                     <p className="text-[10px] text-slate-400">Type</p>
@@ -758,7 +758,7 @@ export default function PromoCodes() {
                   {/* Uses card */}
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                     <div className={`h-8 w-8 rounded-lg ${uc.bg} flex items-center justify-center mx-auto mb-1.5`}>
-                      <i className={`fas fa-chart-bar ${uc.icon} text-xs`}></i>
+                      <i className={`fas fa-chart-bar ${uc.icon} text-xs`} aria-hidden="true"></i>
                     </div>
                     <p className={`text-sm font-bold ${uc.text}`}>
                       {viewItem.uses_count || 0}{viewItem.max_uses ? ` / ${viewItem.max_uses}` : ""}
@@ -768,7 +768,7 @@ export default function PromoCodes() {
                   {/* Expiry card */}
                   <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                     <div className={`h-8 w-8 rounded-lg ${isExpired(viewItem) ? "bg-rose-100" : "bg-slate-200"} flex items-center justify-center mx-auto mb-1.5`}>
-                      <i className={`fas fa-calendar-alt ${isExpired(viewItem) ? "text-rose-600" : "text-slate-500"} text-xs`}></i>
+                      <i className={`fas fa-calendar-alt ${isExpired(viewItem) ? "text-rose-600" : "text-slate-500"} text-xs`} aria-hidden="true"></i>
                     </div>
                     <p className={`text-sm font-bold ${isExpired(viewItem) ? "text-rose-600" : "text-slate-700"}`}>{formatDate(viewItem.expires_at)}</p>
                     <p className="text-[10px] text-slate-400">Expires</p>
@@ -780,15 +780,15 @@ export default function PromoCodes() {
                   className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">Close</button>
                 <button onClick={() => copyCode(viewItem.code)}
                   className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
-                  <i className="fas fa-copy mr-1.5 text-xs"></i>Copy
+                  <i className="fas fa-copy mr-1.5 text-xs" aria-hidden="true"></i>Copy
                 </button>
                 <button onClick={() => openDuplicate(viewItem)}
                   className="px-4 py-2 border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-xl text-sm font-medium transition">
-                  <i className="fas fa-clone mr-1.5 text-xs"></i>Duplicate
+                  <i className="fas fa-clone mr-1.5 text-xs" aria-hidden="true"></i>Duplicate
                 </button>
                 <button onClick={() => openEdit(viewItem)}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition">
-                  <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
+                  <i className="fas fa-pen mr-1.5 text-xs" aria-hidden="true"></i>Edit
                 </button>
               </div>
             </div>
@@ -802,7 +802,7 @@ export default function PromoCodes() {
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                <i className="fas fa-ticket-alt text-indigo-600 text-lg"></i>
+                <i className="fas fa-ticket-alt text-indigo-600 text-lg" aria-hidden="true"></i>
               </div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">New Promo Code</h2>
@@ -811,14 +811,14 @@ export default function PromoCodes() {
             </div>
             <button type="button" onClick={guardedCloseCreate}
               className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
           <div className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
             {formError && (
               <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-                <i className="fas fa-exclamation-circle shrink-0"></i>{formError}
+                <i className="fas fa-exclamation-circle shrink-0" aria-hidden="true"></i>{formError}
               </div>
             )}
 
@@ -826,7 +826,7 @@ export default function PromoCodes() {
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-md bg-indigo-100 flex items-center justify-center"><i className="fas fa-tag text-indigo-500 text-[10px]"></i></span>
+                  <span className="h-5 w-5 rounded-md bg-indigo-100 flex items-center justify-center"><i className="fas fa-tag text-indigo-500 text-[10px]" aria-hidden="true"></i></span>
                   Promo Code
                 </h3>
               </div>
@@ -838,7 +838,7 @@ export default function PromoCodes() {
                     className="flex-1 px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg font-mono text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 placeholder:text-slate-300 transition" />
                   <button type="button" onClick={() => setForm((p) => ({ ...p, code: generateCode() }))}
                     className="px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition" title="Generate random code">
-                    <i className="fas fa-dice"></i>
+                    <i className="fas fa-dice" aria-hidden="true"></i>
                   </button>
                 </div>
               </div>
@@ -848,7 +848,7 @@ export default function PromoCodes() {
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center"><i className="fas fa-percent text-emerald-500 text-[10px]"></i></span>
+                  <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center"><i className="fas fa-percent text-emerald-500 text-[10px]" aria-hidden="true"></i></span>
                   Discount
                 </h3>
               </div>
@@ -864,7 +864,7 @@ export default function PromoCodes() {
                         <input type="radio" name="type" value={t} checked={form.type === t}
                           onChange={() => setForm((p) => ({ ...p, type: t }))} className="peer sr-only" />
                         <div className={`flex flex-col items-center gap-1.5 p-3.5 bg-white border border-slate-200 rounded-lg transition-all hover:border-slate-300 ${bg}`}>
-                          <i className={`fas ${icon} text-slate-400`}></i>
+                          <i className={`fas ${icon} text-slate-400`} aria-hidden="true"></i>
                           <span className="text-xs font-semibold text-slate-700">{label}</span>
                           <span className="text-[10px] text-slate-400">{sub}</span>
                         </div>
@@ -893,7 +893,7 @@ export default function PromoCodes() {
             <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                  <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center"><i className="fas fa-sliders text-amber-500 text-[10px]"></i></span>
+                  <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center"><i className="fas fa-sliders text-amber-500 text-[10px]" aria-hidden="true"></i></span>
                   Limits <span className="text-slate-400 text-xs font-normal ml-1">optional</span>
                 </h3>
               </div>
@@ -920,7 +920,7 @@ export default function PromoCodes() {
               className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
             <button type="submit"
               className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
-              <i className="fas fa-eye"></i> Review & Confirm
+              <i className="fas fa-eye" aria-hidden="true"></i> Review & Confirm
             </button>
           </div>
         </form>
@@ -931,7 +931,7 @@ export default function PromoCodes() {
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-              <i className="fas fa-clipboard-check text-emerald-600 text-lg"></i>
+              <i className="fas fa-clipboard-check text-emerald-600 text-lg" aria-hidden="true"></i>
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Confirm Promo Code</h2>
@@ -940,7 +940,7 @@ export default function PromoCodes() {
           </div>
           <button onClick={() => setConfirmOpen(false)}
             className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-            <i className="fas fa-times"></i>
+            <i className="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
         <div className="p-6 space-y-4">
@@ -952,7 +952,7 @@ export default function PromoCodes() {
                 ["Type", <span key="type" className="text-slate-700 capitalize">{form.type}</span>],
                 ["Max Uses", form.max_uses ? <span key="uses" className="text-slate-700">{form.max_uses}</span> : <span key="uses" className="text-slate-400 italic">Unlimited</span>],
                 ["Expiry", form.expires_at ? <span key="exp" className="text-slate-700">{new Date(form.expires_at).toLocaleDateString("en-PH", { year: "numeric", month: "long", day: "numeric" })}</span> : <span key="exp" className="text-slate-400 italic">No expiry</span>],
-                ["Status", <span key="status" className="inline-flex items-center gap-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">Active on creation</span>],
+                ["Status", <span key="status" className="inline-flex items-center gap-1 text-xs bg-success-bg text-success-fg px-2 py-0.5 rounded-full font-semibold">Active on creation</span>],
               ].map(([label, val]) => (
                 <div key={label} className="flex items-center justify-between px-4 py-3">
                   <span className="text-sm text-slate-500 font-medium">{label}</span>
@@ -968,7 +968,7 @@ export default function PromoCodes() {
             </button>
             <button onClick={handleConfirmCreate} disabled={saving}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-lg text-sm font-semibold shadow-sm transition flex items-center gap-2">
-              {saving ? <><i className="fas fa-spinner fa-spin"></i> Creating...</> : <><i className="fas fa-check"></i> Confirm & Create</>}
+              {saving ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Creating...</> : <><i className="fas fa-check" aria-hidden="true"></i> Confirm & Create</>}
             </button>
           </div>
         </div>
@@ -981,7 +981,7 @@ export default function PromoCodes() {
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                  <i className="fas fa-pen text-indigo-600 text-lg"></i>
+                  <i className="fas fa-pen text-indigo-600 text-lg" aria-hidden="true"></i>
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Edit {editTarget.code}</h2>
@@ -990,14 +990,14 @@ export default function PromoCodes() {
               </div>
               <button type="button" onClick={guardedCloseEdit}
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
 
             <div className="p-6 space-y-5">
               {formError && (
                 <div className="flex items-center gap-2 text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
-                  <i className="fas fa-exclamation-circle shrink-0"></i>{formError}
+                  <i className="fas fa-exclamation-circle shrink-0" aria-hidden="true"></i>{formError}
                 </div>
               )}
 
@@ -1005,7 +1005,7 @@ export default function PromoCodes() {
               <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                    <span className="h-5 w-5 rounded-md bg-slate-200 flex items-center justify-center"><i className="fas fa-lock text-slate-500 text-[10px]"></i></span>
+                    <span className="h-5 w-5 rounded-md bg-slate-200 flex items-center justify-center"><i className="fas fa-lock text-slate-500 text-[10px]" aria-hidden="true"></i></span>
                     Code Details <span className="text-slate-400 text-xs font-normal ml-1">read-only</span>
                   </h3>
                 </div>
@@ -1025,7 +1025,7 @@ export default function PromoCodes() {
               <div className="rounded-xl border border-slate-200 bg-slate-50/50 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
-                    <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center"><i className="fas fa-sliders text-amber-500 text-[10px]"></i></span>
+                    <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center"><i className="fas fa-sliders text-amber-500 text-[10px]" aria-hidden="true"></i></span>
                     Limits
                   </h3>
                 </div>
@@ -1051,7 +1051,7 @@ export default function PromoCodes() {
                 className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
               <button type="submit" disabled={saving}
                 className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg text-sm font-semibold shadow-sm transition">
-                {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>Save Changes</>}
+                {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>Save Changes</>}
               </button>
             </div>
           </form>

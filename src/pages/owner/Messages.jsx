@@ -91,16 +91,16 @@ function ThreadItem({ thread, active, onClick }) {
           )}
           {hasResortRep ? (
             <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full font-medium">
-              <i className="fas fa-check mr-0.5"></i>Replied
+              <i className="fas fa-check mr-0.5" aria-hidden="true"></i>Replied
             </span>
           ) : (
             <span className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full font-medium">
-              <i className="fas fa-clock mr-0.5"></i>Needs reply
+              <i className="fas fa-clock mr-0.5" aria-hidden="true"></i>Needs reply
             </span>
           )}
           {thread.sender_messaging_blocked && (
             <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-full font-medium">
-              <i className="fas fa-ban mr-0.5"></i>Restricted
+              <i className="fas fa-ban mr-0.5" aria-hidden="true"></i>Restricted
             </span>
           )}
         </div>
@@ -115,7 +115,7 @@ function Bubble({ msg, isStaff }) {
     <div className={`flex items-end gap-2 ${isStaff ? "justify-end" : "justify-start"}`}>
       {!isStaff && (
         <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-600 shrink-0">
-          <i className="fas fa-user text-xs"></i>
+          <i className="fas fa-user text-xs" aria-hidden="true"></i>
         </div>
       )}
       <div className={`max-w-[72%] ${isStaff ? "items-end" : "items-start"} flex flex-col gap-1`}>
@@ -131,7 +131,7 @@ function Bubble({ msg, isStaff }) {
       </div>
       {isStaff && (
         <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-          <i className="fas fa-headset text-sky-600 text-xs"></i>
+          <i className="fas fa-headset text-sky-600 text-xs" aria-hidden="true"></i>
         </div>
       )}
     </div>
@@ -226,7 +226,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center">
-                <i className="fas fa-robot text-violet-600 text-lg"></i>
+                <i className="fas fa-robot text-violet-600 text-lg" aria-hidden="true"></i>
               </div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">{editing.id ? "Edit Rule" : "New Auto-Reply Rule"}</h2>
@@ -235,7 +235,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
             </div>
             <button type="button" onClick={() => setEditing(null)}
               className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -245,7 +245,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-sky-100 flex items-center justify-center">
-                    <i className="fas fa-key text-sky-500 text-[10px]"></i>
+                    <i className="fas fa-key text-sky-500 text-[10px]" aria-hidden="true"></i>
                   </span>Trigger
                 </h3>
               </div>
@@ -290,7 +290,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center">
-                    <i className="fas fa-reply text-emerald-500 text-[10px]"></i>
+                    <i className="fas fa-reply text-emerald-500 text-[10px]" aria-hidden="true"></i>
                   </span>Auto-Reply Message
                 </h3>
               </div>
@@ -315,14 +315,14 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                   className="flex items-center justify-between cursor-pointer select-none p-3 bg-white rounded-lg border border-slate-200 hover:border-slate-300 transition">
                   <div className="flex items-center gap-3">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${editing.is_active ? "bg-emerald-100" : "bg-slate-100"}`}>
-                      <i className={`fas ${editing.is_active ? "fa-check-circle text-emerald-500" : "fa-pause-circle text-slate-400"}`}></i>
+                      <i className={`fas ${editing.is_active ? "fa-check-circle text-emerald-500" : "fa-pause-circle text-slate-400"}`} aria-hidden="true"></i>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-700">{editing.is_active ? "Active" : "Inactive"}</p>
                       <p className="text-xs text-slate-400">{editing.is_active ? "This rule will trigger on matching messages" : "This rule is disabled"}</p>
                     </div>
                   </div>
-                  <div className={`relative w-11 h-6 rounded-full transition-colors ${editing.is_active ? "bg-emerald-500" : "bg-slate-300"}`}>
+                  <div className={`relative w-11 h-6 rounded-full transition-colors ${editing.is_active ? "bg-success-ring" : "bg-slate-300"}`}>
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${editing.is_active ? "left-6" : "left-1"}`} />
                   </div>
                 </div>
@@ -335,7 +335,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
               className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
             <button type="submit" disabled={saving}
               className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
-              {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>{editing.id ? "Save Changes" : "Create Rule"}</>}
+              {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>{editing.id ? "Save Changes" : "Create Rule"}</>}
             </button>
           </div>
         </form>
@@ -350,7 +350,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center">
-              <i className="fas fa-robot text-violet-600 text-lg"></i>
+              <i className="fas fa-robot text-violet-600 text-lg" aria-hidden="true"></i>
             </div>
             <div>
               <h2 className="text-lg font-bold text-slate-900">Auto-Reply Rules</h2>
@@ -360,11 +360,11 @@ function AutoReplyPanel({ open, onClose, showToast }) {
           <div className="flex items-center gap-2">
             <button onClick={() => setEditing({ ...BLANK_RULE })}
               className="inline-flex items-center gap-1.5 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-lg transition">
-              <i className="fas fa-plus text-xs"></i>New Rule
+              <i className="fas fa-plus text-xs" aria-hidden="true"></i>New Rule
             </button>
             <button onClick={onClose}
               className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
         </div>
@@ -372,18 +372,18 @@ function AutoReplyPanel({ open, onClose, showToast }) {
         <div className="max-h-[65vh] overflow-y-auto">
           {loading ? (
             <div className="p-10 text-center text-slate-400">
-              <i className="fas fa-spinner fa-spin mr-2"></i>Loading rules…
+              <i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Loading rules…
             </div>
           ) : rules.length === 0 ? (
             <div className="px-6 py-14 text-center">
               <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-violet-100 mb-4">
-                <i className="fas fa-robot text-violet-400 text-2xl"></i>
+                <i className="fas fa-robot text-violet-400 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-600 font-semibold">No auto-reply rules yet</p>
               <p className="text-sm text-slate-400 mt-1 mb-5">Create rules to automatically respond to common guest questions.</p>
               <button onClick={() => setEditing({ ...BLANK_RULE })}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
-                <i className="fas fa-plus text-xs"></i>Create First Rule
+                <i className="fas fa-plus text-xs" aria-hidden="true"></i>Create First Rule
               </button>
             </div>
           ) : (
@@ -394,19 +394,19 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-violet-100 text-violet-700 text-xs font-bold">
-                          <i className="fas fa-key text-[9px]"></i>{rule.keyword}
+                          <i className="fas fa-key text-[9px]" aria-hidden="true"></i>{rule.keyword}
                         </span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          rule.match_type === "exact" ? "bg-sky-100 text-sky-700" :
-                          rule.match_type === "starts_with" ? "bg-amber-100 text-amber-700" :
+                          rule.match_type === "exact" ? "bg-info-bg text-info-fg" :
+                          rule.match_type === "starts_with" ? "bg-warning-bg text-warning-fg" :
                           "bg-slate-100 text-slate-600"
                         }`}>
                           {rule.match_type === "contains" ? "Contains" : rule.match_type === "exact" ? "Exact" : "Starts with"}
                         </span>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                          rule.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                          rule.is_active ? "bg-success-bg text-success-fg" : "bg-slate-100 text-slate-500"
                         }`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${rule.is_active ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                          <span className={`h-1.5 w-1.5 rounded-full ${rule.is_active ? "bg-success-ring" : "bg-slate-400"}`}></span>
                           {rule.is_active ? "Active" : "Inactive"}
                         </span>
                         {rule.priority > 0 && (
@@ -418,17 +418,17 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                     <div className="flex items-center gap-1 shrink-0">
                       <button onClick={() => setEditing({ ...rule })} title="Edit"
                         className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                        <i className="fas fa-pen text-xs"></i>
+                        <i className="fas fa-pen text-xs" aria-hidden="true"></i>
                       </button>
                       <button onClick={() => toggleActive(rule)} title={rule.is_active ? "Disable" : "Enable"}
                         className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${
                           rule.is_active ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700" : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"
                         }`}>
-                        <i className={`fas ${rule.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`}></i>
+                        <i className={`fas ${rule.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                       </button>
                       <button onClick={() => setDeleteTarget(rule)} title="Delete"
                         className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                        <i className="fas fa-trash text-xs"></i>
+                        <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                       </button>
                     </div>
                   </div>
@@ -441,7 +441,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
         {rules.length > 0 && (
           <div className="px-6 py-3 border-t border-slate-200 bg-slate-50">
             <p className="text-[11px] text-slate-400 flex items-center gap-1.5">
-              <i className="fas fa-info-circle"></i>
+              <i className="fas fa-info-circle" aria-hidden="true"></i>
               Rules are checked by priority (highest first). First matching rule triggers the auto-reply.
             </p>
           </div>
@@ -771,7 +771,7 @@ export default function AdminMessages() {
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3">
               <div className="h-10 w-10 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-                <i className="fas fa-paper-plane text-sky-600"></i>
+                <i className="fas fa-paper-plane text-sky-600" aria-hidden="true"></i>
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">New Message</h3>
@@ -780,7 +780,7 @@ export default function AdminMessages() {
             </div>
             <button onClick={closeCompose} disabled={composeSending}
               className="text-slate-400 hover:text-slate-600 disabled:opacity-60" aria-label="Close">
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -793,11 +793,11 @@ export default function AdminMessages() {
             </label>
             {guestsLoading ? (
               <p className="text-xs text-slate-400 py-2">
-                <i className="fas fa-spinner fa-spin mr-2"></i>Loading guests…
+                <i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Loading guests…
               </p>
             ) : activeGuests.length === 0 ? (
               <p className="text-xs text-slate-500 py-2 rounded-lg bg-slate-50 border border-slate-200 px-3">
-                <i className="fas fa-info-circle mr-1 text-slate-400"></i>
+                <i className="fas fa-info-circle mr-1 text-slate-400" aria-hidden="true"></i>
                 No guests currently have active bookings.
               </p>
             ) : (
@@ -840,12 +840,12 @@ export default function AdminMessages() {
                             <p className="text-[11px] text-slate-500 truncate">{g.email}</p>
                             {g.booking_summary && (
                               <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                                <i className="fas fa-bed mr-1 text-[9px]"></i>
+                                <i className="fas fa-bed mr-1 text-[9px]" aria-hidden="true"></i>
                                 {g.booking_summary.room_name} · {g.booking_summary.status} · {g.booking_summary.check_in}
                               </p>
                             )}
                           </div>
-                          {selected && <i className="fas fa-check text-sky-600 mt-2 text-xs"></i>}
+                          {selected && <i className="fas fa-check text-sky-600 mt-2 text-xs" aria-hidden="true"></i>}
                         </button>
                       );
                     })}
@@ -904,8 +904,8 @@ export default function AdminMessages() {
               className="px-4 py-2 text-sm font-semibold text-white bg-sky-600 hover:bg-sky-700 disabled:opacity-60 rounded-lg"
             >
               {composeSending
-                ? <><i className="fas fa-spinner fa-spin mr-1.5"></i>Sending…</>
-                : <><i className="fas fa-paper-plane mr-1.5"></i>Send Message</>}
+                ? <><i className="fas fa-spinner fa-spin mr-1.5" aria-hidden="true"></i>Sending…</>
+                : <><i className="fas fa-paper-plane mr-1.5" aria-hidden="true"></i>Send Message</>}
             </button>
           </div>
         </div>
@@ -919,7 +919,7 @@ export default function AdminMessages() {
           <div className="p-6">
             <div className="flex items-start gap-3 mb-4">
               <div className={`h-10 w-10 rounded-full ${blockTarget.currentlyBlocked ? 'bg-emerald-100' : 'bg-amber-100'} flex items-center justify-center shrink-0`}>
-                <i className={`fas ${blockTarget.currentlyBlocked ? 'fa-unlock text-emerald-600' : 'fa-ban text-amber-600'}`}></i>
+                <i className={`fas ${blockTarget.currentlyBlocked ? 'fa-unlock text-emerald-600' : 'fa-ban text-amber-600'}`} aria-hidden="true"></i>
               </div>
               <div>
                 <h3 className="text-lg font-bold text-slate-900">
@@ -968,7 +968,7 @@ export default function AdminMessages() {
                 }`}
               >
                 {blockSaving
-                  ? <><i className="fas fa-spinner fa-spin mr-1.5"></i>Saving…</>
+                  ? <><i className="fas fa-spinner fa-spin mr-1.5" aria-hidden="true"></i>Saving…</>
                   : blockTarget.currentlyBlocked ? 'Restore access' : 'Restrict messaging'}
               </button>
             </div>
@@ -996,12 +996,12 @@ export default function AdminMessages() {
         <div className="flex items-center gap-2 ml-auto">
           <button onClick={openCompose}
             className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-3.5 py-1.5 rounded-lg text-sm font-semibold transition">
-            <i className="fas fa-plus text-xs"></i>
+            <i className="fas fa-plus text-xs" aria-hidden="true"></i>
             Compose
           </button>
           <button onClick={() => setRulesOpen(true)}
             className="inline-flex items-center gap-2 bg-violet-50 border border-violet-200 text-violet-700 px-3.5 py-1.5 rounded-lg text-sm font-semibold hover:bg-violet-100 transition">
-            <i className="fas fa-robot text-xs"></i>
+            <i className="fas fa-robot text-xs" aria-hidden="true"></i>
             Auto-Replies
           </button>
         </div>
@@ -1019,7 +1019,7 @@ export default function AdminMessages() {
         <div className="w-80 shrink-0 flex flex-col border-r border-slate-200">
           <div className="p-3 border-b border-slate-100 space-y-2">
             <div className="relative">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden="true"></i>
               <input
                 ref={searchRef}
                 type="text"
@@ -1031,7 +1031,7 @@ export default function AdminMessages() {
               {searchTerm && (
                 <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-                  <i className="fas fa-times-circle text-xs"></i>
+                  <i className="fas fa-times-circle text-xs" aria-hidden="true"></i>
                 </button>
               )}
             </div>
@@ -1047,7 +1047,7 @@ export default function AdminMessages() {
                   onClick={() => setFilterRead(f.key)}
                   className={`flex-1 text-[11px] font-semibold py-1.5 rounded-lg transition ${
                     filterRead === f.key
-                      ? "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
+                      ? "bg-info-bg text-info-fg ring-1 ring-sky-200"
                       : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                   }`}
                 >
@@ -1063,18 +1063,18 @@ export default function AdminMessages() {
             ) : loadError && threads.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center px-4 gap-3">
                 <div className="h-12 w-12 rounded-2xl bg-rose-100 flex items-center justify-center">
-                  <i className="fas fa-exclamation-triangle text-rose-400"></i>
+                  <i className="fas fa-exclamation-triangle text-rose-400" aria-hidden="true"></i>
                 </div>
                 <p className="text-sm text-slate-600 font-medium">Failed to load</p>
                 <button onClick={load}
                   className="text-xs font-semibold text-sky-600 hover:text-sky-700 flex items-center gap-1.5">
-                  <i className="fas fa-redo text-[10px]"></i>Retry
+                  <i className="fas fa-redo text-[10px]" aria-hidden="true"></i>Retry
                 </button>
               </div>
             ) : filtered.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-48 text-center px-4 gap-3">
                 <div className="h-12 w-12 rounded-2xl bg-slate-100 flex items-center justify-center">
-                  <i className="fas fa-inbox text-slate-300 text-lg"></i>
+                  <i className="fas fa-inbox text-slate-300 text-lg" aria-hidden="true"></i>
                 </div>
                 <div>
                   <p className="text-sm text-slate-500 font-medium">
@@ -1087,7 +1087,7 @@ export default function AdminMessages() {
                 {(debouncedSearch || filterRead !== "all") && (
                   <button onClick={() => { setSearchTerm(""); setFilterRead("all"); }}
                     className="text-xs text-sky-600 hover:text-sky-700 font-medium">
-                    <i className="fas fa-times mr-1"></i>Clear filters
+                    <i className="fas fa-times mr-1" aria-hidden="true"></i>Clear filters
                   </button>
                 )}
               </div>
@@ -1109,7 +1109,7 @@ export default function AdminMessages() {
           {!active ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-4">
               <div className="h-20 w-20 rounded-2xl bg-slate-100 flex items-center justify-center">
-                <i className="fas fa-comments text-slate-300 text-3xl"></i>
+                <i className="fas fa-comments text-slate-300 text-3xl" aria-hidden="true"></i>
               </div>
               <div>
                 <p className="text-slate-600 font-semibold">No conversation selected</p>
@@ -1122,16 +1122,16 @@ export default function AdminMessages() {
                 <div className="min-w-0">
                   <h3 className="font-semibold text-slate-900 truncate">{active.subject}</h3>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                    <span><i className="fas fa-user mr-1 text-slate-400"></i>{active.sender}</span>
+                    <span><i className="fas fa-user mr-1 text-slate-400" aria-hidden="true"></i>{active.sender}</span>
                     <span className="text-slate-300">·</span>
-                    <span><i className="fas fa-envelope mr-1 text-slate-400"></i>{active.sender_email}</span>
+                    <span><i className="fas fa-envelope mr-1 text-slate-400" aria-hidden="true"></i>{active.sender_email}</span>
                     <span className="text-slate-300">·</span>
-                    <span><i className="fas fa-clock mr-1 text-slate-400"></i>{fmtDate(active.created_at)}</span>
+                    <span><i className="fas fa-clock mr-1 text-slate-400" aria-hidden="true"></i>{fmtDate(active.created_at)}</span>
                     {active.sender_messaging_blocked && (
                       <>
                         <span className="text-slate-300">·</span>
                         <span className="inline-flex items-center gap-1 text-rose-700 font-medium">
-                          <i className="fas fa-ban"></i>
+                          <i className="fas fa-ban" aria-hidden="true"></i>
                           Messaging restricted{active.sender_messaging_blocked_at ? ` · ${active.sender_messaging_blocked_at}` : ''}
                         </span>
                       </>
@@ -1141,11 +1141,11 @@ export default function AdminMessages() {
                 <div className="shrink-0 flex items-center gap-2">
                   {active.replies?.some(r => r.sender_type === "resort") ? (
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full">
-                      <i className="fas fa-check-circle"></i>Replied
+                      <i className="fas fa-check-circle" aria-hidden="true"></i>Replied
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
-                      <i className="fas fa-clock"></i>Awaiting reply
+                      <i className="fas fa-clock" aria-hidden="true"></i>Awaiting reply
                     </span>
                   )}
                   {/* Restrict-messaging toggle — label + color flip based
@@ -1171,13 +1171,13 @@ export default function AdminMessages() {
                           : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
                       }`}
                     >
-                      <i className={`fas ${active.sender_messaging_blocked ? 'fa-unlock' : 'fa-ban'} text-[11px]`}></i>
+                      <i className={`fas ${active.sender_messaging_blocked ? 'fa-unlock' : 'fa-ban'} text-[11px]`} aria-hidden="true"></i>
                       {active.sender_messaging_blocked ? 'Restore' : 'Restrict'}
                     </button>
                   )}
                   <button onClick={() => setDeleteTarget(active)} title="Delete thread"
                     className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                    <i className="fas fa-trash text-xs"></i>
+                    <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                   </button>
                 </div>
               </div>
@@ -1221,8 +1221,8 @@ export default function AdminMessages() {
                       text-sm font-medium transition-colors shadow-sm"
                   >
                     {sending
-                      ? <><i className="fas fa-spinner fa-spin"></i> Sending…</>
-                      : <><i className="fas fa-paper-plane"></i> Send</>}
+                      ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Sending…</>
+                      : <><i className="fas fa-paper-plane" aria-hidden="true"></i> Send</>}
                   </button>
                 </div>
               </div>

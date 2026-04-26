@@ -92,7 +92,7 @@ function CategoryBadge({ category }) {
   const s = CATEGORY_STYLES[category] ?? CATEGORY_STYLES.system;
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${s.bg} ${s.text}`}>
-      <i className={`fas ${s.icon} text-[10px]`}></i>
+      <i className={`fas ${s.icon} text-[10px]`} aria-hidden="true"></i>
       {category}
     </span>
   );
@@ -158,7 +158,7 @@ function exportPDF(logs, filters) {
       tr:nth-child(even) td{background:#f8fafc}
       @media print{body{margin:12px}h1{font-size:16px}}
     </style></head><body>
-    <h1>Activity Log — Aplaya Beach Resort</h1>
+    <h2>Activity Log — Aplaya Beach Resort</h2>
     <div class="meta">Exported: ${new Date().toLocaleString("en-PH")} · Filters: ${filterSummary} · ${logs.length} entries</div>
     <table>
       <thead><tr><th>Timestamp</th><th>User</th><th>Category</th><th>Action</th><th>Description</th></tr></thead>
@@ -194,7 +194,7 @@ function PageButtons({ current, total, onChange }) {
         className="px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium text-slate-600 transition"
         type="button"
       >
-        <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
+        <i className="fas fa-chevron-left text-[10px] mr-1" aria-hidden="true"></i>Prev
       </button>
       {pages.map((p, i) =>
         p === "..." ? (
@@ -220,7 +220,7 @@ function PageButtons({ current, total, onChange }) {
         className="px-4 py-2.5 border border-slate-200 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-medium text-slate-600 transition"
         type="button"
       >
-        Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
+        Next<i className="fas fa-chevron-right text-[10px] ml-1" aria-hidden="true"></i>
       </button>
     </div>
   );
@@ -353,10 +353,10 @@ export default function AdminHistory() {
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-            <i className="fas fa-history text-indigo-600 text-lg"></i>
+            <i className="fas fa-history text-indigo-600 text-lg" aria-hidden="true"></i>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Activity Log</h1>
+            <h2 className="text-lg font-bold text-slate-900">Activity Log</h2>
             <p className="text-sm text-slate-500">
               Real-time audit log of all staff and system actions.
             </p>
@@ -374,7 +374,7 @@ export default function AdminHistory() {
             title={autoRefresh ? "Auto-refresh ON (30s)" : "Enable auto-refresh"}
             type="button"
           >
-            <i className={`fas fa-sync-alt ${autoRefresh ? "fa-spin" : ""}`}></i>
+            <i className={`fas fa-sync-alt ${autoRefresh ? "fa-spin" : ""}`} aria-hidden="true"></i>
             {autoRefresh ? "Live" : "Auto"}
           </button>
 
@@ -389,7 +389,7 @@ export default function AdminHistory() {
             title="Export current page as PDF"
             type="button"
           >
-            <i className="fas fa-file-pdf"></i>
+            <i className="fas fa-file-pdf" aria-hidden="true"></i>
             Export PDF
           </button>
 
@@ -414,7 +414,7 @@ export default function AdminHistory() {
             }`}
             type="button"
           >
-            <i className={`fas ${qf.icon} text-[10px]`}></i>
+            <i className={`fas ${qf.icon} text-[10px]`} aria-hidden="true"></i>
             {qf.label}
           </button>
         ))}
@@ -427,7 +427,7 @@ export default function AdminHistory() {
           <div className="flex-1 min-w-[180px]">
             <label className="block text-xs font-medium text-slate-500 mb-1">Search</label>
             <div className="relative">
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
               <input
                 type="text"
                 placeholder="Action, description, user..."
@@ -505,7 +505,7 @@ export default function AdminHistory() {
               className="inline-flex items-center gap-1.5 px-3 py-2 text-sm text-rose-600 hover:text-rose-800 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 self-end transition"
               type="button"
             >
-              <i className="fas fa-times text-[10px]"></i>
+              <i className="fas fa-times text-[10px]" aria-hidden="true"></i>
               Clear
               <span className="bg-rose-200 text-rose-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full">{activeFilterCount}</span>
             </button>
@@ -517,38 +517,38 @@ export default function AdminHistory() {
           <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
             {search && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-xs font-medium">
-                <i className="fas fa-search text-[9px]"></i>"{search}"
-                <button onClick={() => setSearch("")} className="hover:text-indigo-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+                <i className="fas fa-search text-[9px]" aria-hidden="true"></i>"{search}"
+                <button onClick={() => setSearch("")} className="hover:text-indigo-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]" aria-hidden="true"></i></button>
               </span>
             )}
             {category && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs font-medium">
-                <i className="fas fa-filter text-[9px]"></i>{category}
-                <button onClick={() => setCategory("")} className="hover:text-purple-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+                <i className="fas fa-filter text-[9px]" aria-hidden="true"></i>{category}
+                <button onClick={() => setCategory("")} className="hover:text-purple-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]" aria-hidden="true"></i></button>
               </span>
             )}
             {role && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-medium">
-                <i className="fas fa-user-tag text-[9px]"></i>Role: {role === "front_desk" ? "Front Desk" : role}
-                <button onClick={() => setRole("")} className="hover:text-emerald-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+                <i className="fas fa-user-tag text-[9px]" aria-hidden="true"></i>Role: {role === "front_desk" ? "Front Desk" : role}
+                <button onClick={() => setRole("")} className="hover:text-emerald-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]" aria-hidden="true"></i></button>
               </span>
             )}
             {action && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-medium">
-                <i className="fas fa-bolt text-[9px]"></i>Action: {action}
-                <button onClick={() => setAction("")} className="hover:text-amber-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+                <i className="fas fa-bolt text-[9px]" aria-hidden="true"></i>Action: {action}
+                <button onClick={() => setAction("")} className="hover:text-amber-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]" aria-hidden="true"></i></button>
               </span>
             )}
             {from && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-xs font-medium">
-                <i className="fas fa-calendar text-[9px]"></i>From: {from}
-                <button onClick={() => setFrom("")} className="hover:text-sky-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+                <i className="fas fa-calendar text-[9px]" aria-hidden="true"></i>From: {from}
+                <button onClick={() => setFrom("")} className="hover:text-sky-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]" aria-hidden="true"></i></button>
               </span>
             )}
             {to && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-xs font-medium">
-                <i className="fas fa-calendar text-[9px]"></i>To: {to}
-                <button onClick={() => setTo("")} className="hover:text-sky-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]"></i></button>
+                <i className="fas fa-calendar text-[9px]" aria-hidden="true"></i>To: {to}
+                <button onClick={() => setTo("")} className="hover:text-sky-900 ml-0.5" type="button"><i className="fas fa-times text-[9px]" aria-hidden="true"></i></button>
               </span>
             )}
           </div>
@@ -561,19 +561,19 @@ export default function AdminHistory() {
           renderSkeleton()
         ) : error ? (
           <div className="p-12 text-center">
-            <i className="fas fa-exclamation-triangle text-rose-300 text-3xl mb-3 block"></i>
+            <i className="fas fa-exclamation-triangle text-rose-300 text-3xl mb-3 block" aria-hidden="true"></i>
             <p className="text-rose-600 font-medium mb-3">{error}</p>
             <button
               onClick={() => load({ page, per_page: perPage })}
               className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm hover:bg-rose-700 transition"
               type="button"
             >
-              <i className="fas fa-redo mr-2"></i>Retry
+              <i className="fas fa-redo mr-2" aria-hidden="true"></i>Retry
             </button>
           </div>
         ) : logs.length === 0 ? (
           <div className="p-12 text-center">
-            <i className="fas fa-history text-3xl mb-3 block text-slate-300"></i>
+            <i className="fas fa-history text-3xl mb-3 block text-slate-300" aria-hidden="true"></i>
             <p className="text-slate-400">
               {activeFilterCount > 0
                 ? "No entries match your filters."
@@ -658,7 +658,7 @@ export default function AdminHistory() {
               }`}>
                 <i className={`fas ${(CATEGORY_STYLES[selectedLog.category] ?? CATEGORY_STYLES.system).icon} ${
                   (CATEGORY_STYLES[selectedLog.category] ?? CATEGORY_STYLES.system).text
-                }`}></i>
+                }`} aria-hidden="true"></i>
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">{selectedLog.action}</h3>
@@ -666,7 +666,7 @@ export default function AdminHistory() {
               </div>
             </div>
             <button onClick={() => setSelectedLog(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close" type="button">
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -676,7 +676,7 @@ export default function AdminHistory() {
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h4 className="text-xs font-semibold text-slate-700 flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-indigo-100 flex items-center justify-center">
-                    <i className="fas fa-align-left text-indigo-500 text-[9px]"></i>
+                    <i className="fas fa-align-left text-indigo-500 text-[9px]" aria-hidden="true"></i>
                   </span>
                   Description
                 </h4>
@@ -693,7 +693,7 @@ export default function AdminHistory() {
               {/* Timestamp */}
               <div className="bg-sky-50 rounded-xl p-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 text-sky-500">
-                  <i className="fas fa-clock text-xs"></i>
+                  <i className="fas fa-clock text-xs" aria-hidden="true"></i>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Timestamp</p>
@@ -707,7 +707,7 @@ export default function AdminHistory() {
               {/* User */}
               <div className="bg-amber-50 rounded-xl p-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 text-amber-500">
-                  <i className="fas fa-user text-xs"></i>
+                  <i className="fas fa-user text-xs" aria-hidden="true"></i>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">User</p>
@@ -719,7 +719,7 @@ export default function AdminHistory() {
               {/* Category */}
               <div className="bg-purple-50 rounded-xl p-3 flex items-center gap-3">
                 <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 text-purple-500">
-                  <i className={`fas ${(CATEGORY_STYLES[selectedLog.category] ?? CATEGORY_STYLES.system).icon} text-xs`}></i>
+                  <i className={`fas ${(CATEGORY_STYLES[selectedLog.category] ?? CATEGORY_STYLES.system).icon} text-xs`} aria-hidden="true"></i>
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] text-slate-500 uppercase tracking-wide">Category</p>
@@ -731,7 +731,7 @@ export default function AdminHistory() {
               {selectedLog.ip_address && (
                 <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 text-slate-500">
-                    <i className="fas fa-globe text-xs"></i>
+                    <i className="fas fa-globe text-xs" aria-hidden="true"></i>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide">IP Address</p>
@@ -744,7 +744,7 @@ export default function AdminHistory() {
               {selectedLog.subject_type && (
                 <div className="bg-emerald-50 rounded-xl p-3 flex items-center gap-3">
                   <div className="h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 text-emerald-500">
-                    <i className="fas fa-link text-xs"></i>
+                    <i className="fas fa-link text-xs" aria-hidden="true"></i>
                   </div>
                   <div className="min-w-0">
                     <p className="text-[10px] text-slate-500 uppercase tracking-wide">Subject</p>

@@ -158,12 +158,12 @@ export default function OwnerSettings() {
 
       {/* #3 — Page heading with icon-badge */}
       <div>
-        <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+        <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
           <span className="h-9 w-9 rounded-lg bg-violet-100 flex items-center justify-center">
-            <i className="fas fa-sliders-h text-violet-600"></i>
+            <i className="fas fa-sliders-h text-violet-600" aria-hidden="true"></i>
           </span>
           Pricing
-        </h1>
+        </h2>
         <p className="text-sm text-slate-500 mt-1">
           Configure resort-wide pricing that applies to all guest bookings made through the website.
         </p>
@@ -173,11 +173,11 @@ export default function OwnerSettings() {
       {loadError && !loading && (
         <div className="rounded-xl bg-rose-50 border border-rose-200 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3 text-rose-700">
-            <i className="fas fa-exclamation-triangle"></i>
+            <i className="fas fa-exclamation-triangle" aria-hidden="true"></i>
             <span className="text-sm font-medium">Failed to load settings.</span>
           </div>
           <button onClick={load} className="text-sm font-semibold text-rose-600 hover:text-rose-700 flex items-center gap-1.5">
-            <i className="fas fa-redo text-xs"></i>Retry
+            <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry
           </button>
         </div>
       )}
@@ -209,7 +209,7 @@ export default function OwnerSettings() {
           {/* Pricing card — #8 violet accent */}
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center gap-2">
-              <i className="fas fa-tags text-violet-500"></i>
+              <i className="fas fa-tags text-violet-500" aria-hidden="true"></i>
               <h2 className="font-semibold text-slate-800">Pricing Configuration</h2>
             </div>
 
@@ -219,7 +219,7 @@ export default function OwnerSettings() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center text-violet-500 text-xs">
-                        <i className={`fas ${field.icon}`}></i>
+                        <i className={`fas ${field.icon}`} aria-hidden="true"></i>
                       </span>
                       <p className="font-medium text-slate-800 text-sm">{field.label}</p>
                     </div>
@@ -250,7 +250,7 @@ export default function OwnerSettings() {
 
           {/* Info banner */}
           <div className="rounded-2xl bg-amber-50 border border-amber-200 p-5 flex gap-3 text-sm text-amber-800">
-            <i className="fas fa-info-circle mt-0.5 text-amber-500 shrink-0"></i>
+            <i className="fas fa-info-circle mt-0.5 text-amber-500 shrink-0" aria-hidden="true"></i>
             <div>
               <p className="font-semibold mb-1">These values are live</p>
               <p>
@@ -301,9 +301,9 @@ export default function OwnerSettings() {
               className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white px-5 py-2 rounded-xl text-sm font-medium"
             >
               {saving ? (
-                <><i className="fas fa-spinner fa-spin"></i> Saving...</>
+                <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Saving...</>
               ) : (
-                <><i className="fas fa-save"></i> Save Changes</>
+                <><i className="fas fa-save" aria-hidden="true"></i> Save Changes</>
               )}
             </button>
           </div>

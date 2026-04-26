@@ -205,7 +205,7 @@ export default function AdminReviews() {
   const Stars = ({ rating, size = "text-xs" }) => (
     <div className="flex items-center gap-0.5">
       {[...Array(5)].map((_, i) => (
-        <i key={i} className={`fas fa-star ${size} ${i < rating ? "text-amber-400" : "text-slate-200"}`}></i>
+        <i key={i} className={`fas fa-star ${size} ${i < rating ? "text-amber-400" : "text-slate-200"}`} aria-hidden="true"></i>
       ))}
     </div>
   );
@@ -242,12 +242,12 @@ export default function AdminReviews() {
       {/* ── #4 Page header with icon badge ── */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center">
-              <i className="fas fa-star text-amber-600"></i>
+              <i className="fas fa-star text-amber-600" aria-hidden="true"></i>
             </span>
             Reviews
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Monitor guest feedback and keep your service quality high.</p>
         </div>
         {/* ── #13 Pending badge ── */}
@@ -271,7 +271,7 @@ export default function AdminReviews() {
           <div key={c.label} className="rounded-2xl bg-white border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-3">
               <span className={`h-9 w-9 rounded-lg ${c.bg} flex items-center justify-center`}>
-                <i className={`fas ${c.icon} ${c.text}`}></i>
+                <i className={`fas ${c.icon} ${c.text}`} aria-hidden="true"></i>
               </span>
               <div>
                 <p className="text-slate-500 text-xs font-medium">{c.label}</p>
@@ -286,7 +286,7 @@ export default function AdminReviews() {
       <div className="bg-white rounded-xl shadow-sm p-4 space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="relative flex-1">
-            <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+            <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
             <input
               ref={searchRef}
               type="text"
@@ -298,7 +298,7 @@ export default function AdminReviews() {
             {searchTerm && (
               <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-                <i className="fas fa-times-circle text-sm"></i>
+                <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
               </button>
             )}
           </div>
@@ -309,7 +309,7 @@ export default function AdminReviews() {
             <button key={p.value} onClick={() => setFilterStatus(p.value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 filterStatus === p.value
-                  ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                  ? "bg-warning-bg text-warning-fg ring-1 ring-amber-200"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}>
               {p.label}
@@ -321,7 +321,7 @@ export default function AdminReviews() {
             <button key={p.value} onClick={() => setFilterRating(p.value)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
                 filterRating === p.value
-                  ? "bg-amber-100 text-amber-700 ring-1 ring-amber-200"
+                  ? "bg-warning-bg text-warning-fg ring-1 ring-amber-200"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}>
               {p.label}
@@ -353,20 +353,20 @@ export default function AdminReviews() {
           /* ── #7 Error retry ── */
           <div className="px-6 py-16 text-center">
             <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-rose-100 mb-4">
-              <i className="fas fa-exclamation-triangle text-rose-400 text-2xl"></i>
+              <i className="fas fa-exclamation-triangle text-rose-400 text-2xl" aria-hidden="true"></i>
             </div>
             <p className="text-slate-700 font-semibold">Failed to load reviews</p>
             <p className="text-sm text-slate-400 mt-1 mb-5">Check your connection and try again.</p>
             <button onClick={load}
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl shadow-sm transition">
-              <i className="fas fa-redo text-xs"></i>Retry
+              <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry
             </button>
           </div>
         ) : filtered.length === 0 ? (
           /* ── #6 Empty state ── */
           <div className="px-6 py-16 text-center">
             <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-              <i className="fas fa-star text-slate-300 text-2xl"></i>
+              <i className="fas fa-star text-slate-300 text-2xl" aria-hidden="true"></i>
             </div>
             <p className="text-slate-500 font-medium">
               {debouncedSearch || filterStatus || filterRating ? "No reviews match your filters." : "No reviews yet."}
@@ -379,7 +379,7 @@ export default function AdminReviews() {
             {(debouncedSearch || filterStatus || filterRating) && (
               <button onClick={() => { setSearchTerm(""); setFilterStatus(""); setFilterRating(""); }}
                 className="mt-4 text-sm text-amber-600 hover:text-amber-700 font-medium">
-                <i className="fas fa-times mr-1.5"></i>Clear filters
+                <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
               </button>
             )}
           </div>
@@ -402,8 +402,8 @@ export default function AdminReviews() {
                           <h4 className="text-sm font-semibold text-slate-900">{review.guestName}</h4>
                           <Stars rating={review.rating} />
                           {review.featured && (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
-                              <i className="fas fa-heart text-[8px]"></i>Featured
+                            <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-success-bg text-success-fg px-2 py-0.5 rounded-full">
+                              <i className="fas fa-heart text-[8px]" aria-hidden="true"></i>Featured
                             </span>
                           )}
                           {review.room && (
@@ -417,14 +417,14 @@ export default function AdminReviews() {
 
                     <div className="flex flex-wrap items-center gap-2 shrink-0" onClick={e => e.stopPropagation()}>
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                        review.status === "Approved" ? "bg-emerald-100 text-emerald-800" :
-                        review.status === "Pending"  ? "bg-amber-100 text-amber-800" :
-                                                       "bg-rose-100 text-rose-800"
+                        review.status === "Approved" ? "bg-success-bg text-success-fg" :
+                        review.status === "Pending"  ? "bg-warning-bg text-warning-fg" :
+                                                       "bg-danger-bg text-danger-fg"
                       }`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${
-                          review.status === "Approved" ? "bg-emerald-500" :
-                          review.status === "Pending"  ? "bg-amber-500" :
-                                                         "bg-rose-500"
+                          review.status === "Approved" ? "bg-success-ring" :
+                          review.status === "Pending"  ? "bg-warning-ring" :
+                                                         "bg-danger-ring"
                         }`} />
                         {review.status}
                       </span>
@@ -433,11 +433,11 @@ export default function AdminReviews() {
                         <>
                           <button onClick={() => setPendingAction({ id: review.id, type: "approve", label: "Approve Review", desc: "This review will be approved and made visible to guests." })}
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition" title="Approve">
-                            <i className="fas fa-check text-xs"></i>
+                            <i className="fas fa-check text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => setPendingAction({ id: review.id, type: "reject", label: "Reject Review", desc: "This review will be rejected and hidden from guests." })}
                             className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-500 hover:text-rose-700 transition" title="Reject">
-                            <i className="fas fa-ban text-xs"></i>
+                            <i className="fas fa-ban text-xs" aria-hidden="true"></i>
                           </button>
                         </>
                       )}
@@ -446,12 +446,12 @@ export default function AdminReviews() {
                         className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${
                           review.featured ? "hover:bg-rose-50 text-rose-400 hover:text-rose-600" : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"
                         }`} title={review.featured ? "Unfeature" : "Feature"}>
-                        <i className={`fas fa-heart text-xs`}></i>
+                        <i className={`fas fa-heart text-xs`} aria-hidden="true"></i>
                       </button>
 
                       <button onClick={() => setPendingAction({ id: review.id, type: "delete", label: "Delete Review", desc: `Delete review by ${review.guestName}? You can undo within 6 seconds.`, review })}
                         className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-600 transition" title="Delete">
-                        <i className="fas fa-trash-alt text-xs"></i>
+                        <i className="fas fa-trash-alt text-xs" aria-hidden="true"></i>
                       </button>
                     </div>
                   </div>
@@ -468,7 +468,7 @@ export default function AdminReviews() {
                 <div className="flex items-center gap-1">
                   <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
                     className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                    <i className="fas fa-chevron-left text-xs"></i>
+                    <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
                   </button>
                   {getPageNumbers().map((n, i) =>
                     n === "..." ? (
@@ -486,7 +486,7 @@ export default function AdminReviews() {
                   )}
                   <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
                     className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                    <i className="fas fa-chevron-right text-xs"></i>
+                    <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
                   </button>
                 </div>
               </div>
@@ -502,12 +502,12 @@ export default function AdminReviews() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2.5">
                 <span className="h-9 w-9 rounded-xl bg-amber-100 flex items-center justify-center">
-                  <i className="fas fa-star text-amber-600"></i>
+                  <i className="fas fa-star text-amber-600" aria-hidden="true"></i>
                 </span>
                 Review Details
               </h3>
               <button onClick={() => setViewReview(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
             <div className="p-6 space-y-4">
@@ -536,7 +536,7 @@ export default function AdminReviews() {
                 <div className="rounded-xl bg-sky-50 border border-sky-100 p-3.5">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="h-6 w-6 rounded-md bg-sky-100 flex items-center justify-center">
-                      <i className="fas fa-bed text-sky-600 text-[10px]"></i>
+                      <i className="fas fa-bed text-sky-600 text-[10px]" aria-hidden="true"></i>
                     </span>
                     <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wide">Room</span>
                   </div>
@@ -546,7 +546,7 @@ export default function AdminReviews() {
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center">
-                      <i className="fas fa-calendar text-slate-500 text-[10px]"></i>
+                      <i className="fas fa-calendar text-slate-500 text-[10px]" aria-hidden="true"></i>
                     </span>
                     <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Date</span>
                   </div>
@@ -569,7 +569,7 @@ export default function AdminReviews() {
                       } text-[10px] ${
                         viewReview.status === "Approved" ? "text-emerald-600" :
                         viewReview.status === "Pending"  ? "text-amber-600" : "text-rose-600"
-                      }`}></i>
+                      }`} aria-hidden="true"></i>
                     </span>
                     <span className={`text-[10px] font-semibold uppercase tracking-wide ${
                       viewReview.status === "Approved" ? "text-emerald-600" :
@@ -585,7 +585,7 @@ export default function AdminReviews() {
                 <div className={`rounded-xl border p-3.5 ${viewReview.featured ? "bg-emerald-50 border-emerald-100" : "bg-slate-50 border-slate-200"}`}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`h-6 w-6 rounded-md flex items-center justify-center ${viewReview.featured ? "bg-emerald-100" : "bg-slate-100"}`}>
-                      <i className={`fas fa-heart text-[10px] ${viewReview.featured ? "text-emerald-600" : "text-slate-400"}`}></i>
+                      <i className={`fas fa-heart text-[10px] ${viewReview.featured ? "text-emerald-600" : "text-slate-400"}`} aria-hidden="true"></i>
                     </span>
                     <span className={`text-[10px] font-semibold uppercase tracking-wide ${viewReview.featured ? "text-emerald-600" : "text-slate-500"}`}>Featured</span>
                   </div>
@@ -600,11 +600,11 @@ export default function AdminReviews() {
                 <>
                   <button onClick={() => setPendingAction({ id: viewReview.id, type: "approve", label: "Approve Review", desc: "This review will be approved and made visible to guests." })}
                     className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-medium transition">
-                    <i className="fas fa-check mr-1.5 text-xs"></i>Approve
+                    <i className="fas fa-check mr-1.5 text-xs" aria-hidden="true"></i>Approve
                   </button>
                   <button onClick={() => setPendingAction({ id: viewReview.id, type: "reject", label: "Reject Review", desc: "This review will be rejected and hidden from guests." })}
                     className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-medium transition">
-                    <i className="fas fa-ban mr-1.5 text-xs"></i>Reject
+                    <i className="fas fa-ban mr-1.5 text-xs" aria-hidden="true"></i>Reject
                   </button>
                 </>
               )}

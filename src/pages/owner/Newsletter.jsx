@@ -273,7 +273,7 @@ export default function OwnerNewsletter() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Newsletter</h1>
+          <h2 className="text-2xl font-bold text-slate-800">Newsletter</h2>
           <p className="text-sm text-slate-500 mt-1">
             Manage subscribers and send promotional email campaigns.
           </p>
@@ -282,7 +282,7 @@ export default function OwnerNewsletter() {
           onClick={openCompose}
           className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-5 py-2.5 rounded-xl text-sm font-medium transition"
         >
-          <i className="fas fa-paper-plane text-xs"></i> Send Campaign
+          <i className="fas fa-paper-plane text-xs" aria-hidden="true"></i> Send Campaign
         </button>
       </div>
 
@@ -290,7 +290,7 @@ export default function OwnerNewsletter() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-xl shadow border border-slate-100 p-5 flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center text-brand">
-            <i className="fas fa-envelope text-lg"></i>
+            <i className="fas fa-envelope text-lg" aria-hidden="true"></i>
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-800">{total}</p>
@@ -299,7 +299,7 @@ export default function OwnerNewsletter() {
         </div>
         <div className="bg-white rounded-xl shadow border border-slate-100 p-5 flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-            <i className="fas fa-circle-check text-lg"></i>
+            <i className="fas fa-circle-check text-lg" aria-hidden="true"></i>
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-800">{total}</p>
@@ -308,7 +308,7 @@ export default function OwnerNewsletter() {
         </div>
         <div className="bg-white rounded-xl shadow border border-slate-100 p-5 flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center text-purple-600">
-            <i className="fas fa-bullhorn text-lg"></i>
+            <i className="fas fa-bullhorn text-lg" aria-hidden="true"></i>
           </div>
           <div>
             <p className="text-2xl font-bold text-slate-800">—</p>
@@ -321,11 +321,11 @@ export default function OwnerNewsletter() {
       <div className="bg-white rounded-xl shadow border border-slate-100 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-2 flex-1">
-            <i className="fas fa-users text-sm text-brand"></i>
+            <i className="fas fa-users text-sm text-brand" aria-hidden="true"></i>
             <h3 className="font-semibold text-slate-800 text-sm">Subscribers</h3>
           </div>
           <div className="relative">
-            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+            <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden="true"></i>
             <input
               type="text"
               placeholder="Search email…"
@@ -348,7 +348,7 @@ export default function OwnerNewsletter() {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400">
-                  <i className="fas fa-spinner fa-spin mr-2"></i>Loading…
+                  <i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Loading…
                 </td></tr>
               ) : filtered.length === 0 ? (
                 <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400">
@@ -375,7 +375,7 @@ export default function OwnerNewsletter() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-brand">
-                  <i className="fas fa-paper-plane text-sm"></i>
+                  <i className="fas fa-paper-plane text-sm" aria-hidden="true"></i>
                 </div>
                 <div>
                   <h3 className="font-bold text-slate-800">Send Email Campaign</h3>
@@ -383,14 +383,14 @@ export default function OwnerNewsletter() {
                 </div>
               </div>
               <button onClick={() => setComposeOpen(false)} className="text-slate-400 hover:text-slate-600 w-11 h-11 flex items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
 
             {/* Result banner */}
             {result && (
               <div className="mx-6 mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-start gap-3">
-                <i className="fas fa-check-circle text-emerald-500 mt-0.5"></i>
+                <i className="fas fa-check-circle text-emerald-500 mt-0.5" aria-hidden="true"></i>
                 <div>
                   <p className="text-sm font-semibold text-emerald-800">Campaign Sent!</p>
                   <p className="text-xs text-emerald-600 mt-0.5">
@@ -414,7 +414,7 @@ export default function OwnerNewsletter() {
                     onClick={() => setTab(t.key)}
                     className={`px-6 py-3 text-sm font-medium border-b-2 transition ${tab === t.key ? 'border-brand text-brand' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
                   >
-                    <i className={`fas ${t.icon} mr-2`}></i>{t.label}
+                    <i className={`fas ${t.icon} mr-2`} aria-hidden="true"></i>{t.label}
                   </button>
                 ))}
               </div>
@@ -427,7 +427,7 @@ export default function OwnerNewsletter() {
                 <div className="p-6 space-y-4">
                   {error && (
                     <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700 flex items-center gap-2">
-                      <i className="fas fa-exclamation-circle"></i> {error}
+                      <i className="fas fa-exclamation-circle" aria-hidden="true"></i> {error}
                     </div>
                   )}
                   <div>
@@ -471,7 +471,7 @@ export default function OwnerNewsletter() {
                         {editingIdx !== i && (
                           <div className="p-4 flex items-start gap-4">
                             <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${tpl.color}`}>
-                              <i className={`fas ${tpl.icon} text-sm`}></i>
+                              <i className={`fas ${tpl.icon} text-sm`} aria-hidden="true"></i>
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="font-semibold text-slate-800 text-sm">{tpl.label}</p>
@@ -491,7 +491,7 @@ export default function OwnerNewsletter() {
                                 onClick={(e) => startEdit(i, e)}
                                 className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-lg font-medium"
                               >
-                                <i className="fas fa-pen text-xs mr-1"></i>Edit
+                                <i className="fas fa-pen text-xs mr-1" aria-hidden="true"></i>Edit
                               </button>
                               <button
                                 type="button"
@@ -499,7 +499,7 @@ export default function OwnerNewsletter() {
                                 title="Reset to default"
                                 className="text-xs text-slate-400 hover:text-slate-600 w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100"
                               >
-                                <i className="fas fa-rotate-left text-xs"></i>
+                                <i className="fas fa-rotate-left text-xs" aria-hidden="true"></i>
                               </button>
                             </div>
                           </div>
@@ -510,7 +510,7 @@ export default function OwnerNewsletter() {
                           <div className="p-4 bg-blue-50/50 space-y-3">
                             <div className="flex items-center gap-2 mb-1">
                               <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${tpl.color}`}>
-                                <i className={`fas ${tpl.icon} text-xs`}></i>
+                                <i className={`fas ${tpl.icon} text-xs`} aria-hidden="true"></i>
                               </div>
                               <p className="text-sm font-semibold text-slate-700">Editing Template</p>
                             </div>
@@ -554,7 +554,7 @@ export default function OwnerNewsletter() {
                                 onClick={() => saveEdit(i)}
                                 className="px-3 py-1.5 text-sm bg-brand hover:bg-brand-dark text-white rounded-lg font-medium flex items-center gap-1.5"
                               >
-                                <i className="fas fa-check text-xs"></i> Save Template
+                                <i className="fas fa-check text-xs" aria-hidden="true"></i> Save Template
                               </button>
                             </div>
                           </div>
@@ -610,7 +610,7 @@ export default function OwnerNewsletter() {
                   disabled={sending || !subject.trim() || !body.trim() || total === 0}
                   className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white px-5 py-2 rounded-xl text-sm font-medium transition"
                 >
-                  <i className="fas fa-paper-plane text-xs"></i>
+                  <i className="fas fa-paper-plane text-xs" aria-hidden="true"></i>
                   Send to {total} Subscriber{total !== 1 ? 's' : ''}
                 </button>
               )}
@@ -652,7 +652,7 @@ export default function OwnerNewsletter() {
               </p>
               {error && (
                 <div className="mt-2 px-3 py-2 bg-rose-50 text-rose-700 rounded-lg text-xs border border-rose-200">
-                  <i className="fas fa-exclamation-circle mr-1.5" />{error}
+                  <i className="fas fa-exclamation-circle mr-1.5" aria-hidden="true" />{error}
                 </div>
               )}
             </div>
@@ -671,8 +671,8 @@ export default function OwnerNewsletter() {
                 className="flex-[2] px-4 py-2 bg-brand hover:bg-brand-dark disabled:opacity-60 text-white rounded-lg text-sm font-bold"
               >
                 {sending
-                  ? <><i className="fas fa-spinner fa-spin mr-1.5"></i>Sending…</>
-                  : <><i className="fas fa-paper-plane mr-1.5"></i>Confirm &amp; Send</>}
+                  ? <><i className="fas fa-spinner fa-spin mr-1.5" aria-hidden="true"></i>Sending…</>
+                  : <><i className="fas fa-paper-plane mr-1.5" aria-hidden="true"></i>Confirm &amp; Send</>}
               </button>
             </div>
           </div>

@@ -332,19 +332,19 @@ export default function AdminAddons() {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-lg bg-emerald-100 flex items-center justify-center">
-              <i className="fas fa-puzzle-piece text-emerald-600"></i>
+              <i className="fas fa-puzzle-piece text-emerald-600" aria-hidden="true"></i>
             </span>
             Add-ons
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Manage bookable add-ons guests can attach to their reservation.</p>
         </div>
         <button
           onClick={openNew}
           className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 transition"
         >
-          <i className="fas fa-plus text-xs"></i>
+          <i className="fas fa-plus text-xs" aria-hidden="true"></i>
           <span className="text-sm font-medium">New Add-on</span>
         </button>
       </div>
@@ -352,7 +352,7 @@ export default function AdminAddons() {
       {/* Search + Filter bar */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
-          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
           <input
             ref={searchRef}
             type="text"
@@ -364,7 +364,7 @@ export default function AdminAddons() {
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times-circle text-sm"></i>
+              <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
         </div>
@@ -373,7 +373,7 @@ export default function AdminAddons() {
             <button key={f} onClick={() => setFilterStatus(f)}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold capitalize transition ${
                 filterStatus === f
-                  ? "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200"
+                  ? "bg-success-bg text-success-fg ring-1 ring-emerald-200"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}>
               {f === "all" ? "All" : f === "active" ? "Active" : "Inactive"}
@@ -386,20 +386,20 @@ export default function AdminAddons() {
       {selected.size > 0 && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-5 py-3 flex items-center justify-between animate-hero-fade-in opacity-0">
           <span className="text-sm font-medium text-emerald-800">
-            <i className="fas fa-check-circle mr-2"></i>{selected.size} add-on{selected.size > 1 ? "s" : ""} selected
+            <i className="fas fa-check-circle mr-2" aria-hidden="true"></i>{selected.size} add-on{selected.size > 1 ? "s" : ""} selected
           </span>
           <div className="flex items-center gap-2">
             <button onClick={() => bulkToggle(true)}
               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-check mr-1.5"></i>Activate
+              <i className="fas fa-check mr-1.5" aria-hidden="true"></i>Activate
             </button>
             <button onClick={() => bulkToggle(false)}
               className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-pause mr-1.5"></i>Deactivate
+              <i className="fas fa-pause mr-1.5" aria-hidden="true"></i>Deactivate
             </button>
             <button onClick={() => setBulkDeleteOpen(true)}
               className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-trash mr-1.5"></i>Delete
+              <i className="fas fa-trash mr-1.5" aria-hidden="true"></i>Delete
             </button>
             <button onClick={() => setSelected(new Set())}
               className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
@@ -445,19 +445,19 @@ export default function AdminAddons() {
             /* ── #6 error state with retry ── */
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-rose-100 mb-4">
-                <i className="fas fa-exclamation-triangle text-rose-400 text-2xl"></i>
+                <i className="fas fa-exclamation-triangle text-rose-400 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-700 font-semibold">Failed to load add-ons</p>
               <p className="text-sm text-slate-400 mt-1 mb-5">Check your connection and try again.</p>
               <button onClick={load}
                 className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl shadow-sm transition">
-                <i className="fas fa-redo text-xs"></i>Retry
+                <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry
               </button>
             </div>
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-puzzle-piece text-slate-300 text-2xl"></i>
+                <i className="fas fa-puzzle-piece text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterStatus !== "all"
@@ -472,7 +472,7 @@ export default function AdminAddons() {
               {(debouncedSearch || filterStatus !== "all") && (
                 <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); }}
                   className="mt-4 text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -494,7 +494,7 @@ export default function AdminAddons() {
                           className="flex items-center gap-1 hover:text-emerald-600 transition-colors group">
                           {label}
                           <span className="text-slate-400 group-hover:text-emerald-400">
-                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==="asc"?"up":"down"} text-emerald-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                            {sortBy===key ? <i className={`fas fa-arrow-${sortDir==="asc"?"up":"down"} text-emerald-500`} aria-hidden="true"></i> : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                           </span>
                         </button>
                       </th>
@@ -520,7 +520,7 @@ export default function AdminAddons() {
                       <td className="px-6 py-4 font-medium text-slate-900">
                         <span className="flex items-center gap-2.5">
                           <span className="h-8 w-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-                            <i className={`fas ${item.icon || "fa-tag"} text-slate-500 text-sm`}></i>
+                            <i className={`fas ${item.icon || "fa-tag"} text-slate-500 text-sm`} aria-hidden="true"></i>
                           </span>
                           {item.name || <span className="italic text-slate-400">Unnamed</span>}
                         </span>
@@ -531,16 +531,16 @@ export default function AdminAddons() {
                       <td className="px-6 py-4">{item.max_qty}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          item.per_booking ? "bg-purple-100 text-purple-800" : "bg-sky-100 text-sky-800"
+                          item.per_booking ? "bg-purple-100 text-purple-800" : "bg-info-bg text-info-fg"
                         }`}>
                           {item.per_booking ? "Per Booking" : "Per Item"}
                         </span>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          item.is_active ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"
+                          item.is_active ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg"
                         }`}>
-                          <span className={`h-2 w-2 rounded-full ${item.is_active ? "bg-emerald-500" : "bg-rose-500"}`} />
+                          <span className={`h-2 w-2 rounded-full ${item.is_active ? "bg-success-ring" : "bg-danger-ring"}`} />
                           {item.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
@@ -548,11 +548,11 @@ export default function AdminAddons() {
                         <div className="flex items-center gap-1">
                           <button onClick={() => openEdit(item)} title="Edit"
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs"></i>
+                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => openDuplicate(item)} title="Duplicate"
                             className="h-8 w-8 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-copy text-xs"></i>
+                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
                           </button>
                           <button
                             onClick={() => toggleActive(item)} title={item.is_active ? "Deactivate" : "Activate"}
@@ -560,11 +560,11 @@ export default function AdminAddons() {
                               ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
                               : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}
                           >
-                            <i className={`fas ${item.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`}></i>
+                            <i className={`fas ${item.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                           </button>
                           <button onClick={() => setConfirmDelete(item)} title="Delete"
                             className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs"></i>
+                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -582,7 +582,7 @@ export default function AdminAddons() {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs"></i>
+                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
                     </button>
                     {getPageNumbers().map((n, i) =>
                       n === "..." ? (
@@ -600,7 +600,7 @@ export default function AdminAddons() {
                     )}
                     <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs"></i>
+                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -617,12 +617,12 @@ export default function AdminAddons() {
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2.5">
                 <span className="h-9 w-9 rounded-xl bg-emerald-100 flex items-center justify-center">
-                  <i className={`fas ${viewItem.icon || "fa-tag"} text-emerald-600`}></i>
+                  <i className={`fas ${viewItem.icon || "fa-tag"} text-emerald-600`} aria-hidden="true"></i>
                 </span>
                 {viewItem.name || <span className="italic text-slate-400">Unnamed</span>}
               </h3>
               <button onClick={() => setViewItem(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
             <div className="p-6 space-y-4">
@@ -631,7 +631,7 @@ export default function AdminAddons() {
                 <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="h-6 w-6 rounded-md bg-emerald-100 flex items-center justify-center">
-                      <i className="fas fa-peso-sign text-emerald-600 text-[10px]"></i>
+                      <i className="fas fa-peso-sign text-emerald-600 text-[10px]" aria-hidden="true"></i>
                     </span>
                     <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Price</span>
                   </div>
@@ -641,7 +641,7 @@ export default function AdminAddons() {
                 <div className="rounded-xl bg-sky-50 border border-sky-100 p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className="h-6 w-6 rounded-md bg-sky-100 flex items-center justify-center">
-                      <i className="fas fa-layer-group text-sky-600 text-[10px]"></i>
+                      <i className="fas fa-layer-group text-sky-600 text-[10px]" aria-hidden="true"></i>
                     </span>
                     <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wide">Max Qty</span>
                   </div>
@@ -651,7 +651,7 @@ export default function AdminAddons() {
                 <div className={`rounded-xl border p-3.5 ${viewItem.per_booking ? "bg-purple-50 border-purple-100" : "bg-sky-50 border-sky-100"}`}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className={`h-6 w-6 rounded-md flex items-center justify-center ${viewItem.per_booking ? "bg-purple-100" : "bg-sky-100"}`}>
-                      <i className={`fas ${viewItem.per_booking ? "fa-receipt" : "fa-layer-group"} text-[10px] ${viewItem.per_booking ? "text-purple-600" : "text-sky-600"}`}></i>
+                      <i className={`fas ${viewItem.per_booking ? "fa-receipt" : "fa-layer-group"} text-[10px] ${viewItem.per_booking ? "text-purple-600" : "text-sky-600"}`} aria-hidden="true"></i>
                     </span>
                     <span className={`text-[10px] font-semibold uppercase tracking-wide ${viewItem.per_booking ? "text-purple-600" : "text-sky-600"}`}>Type</span>
                   </div>
@@ -663,7 +663,7 @@ export default function AdminAddons() {
                 <div className={`rounded-xl border p-3.5 ${viewItem.is_active ? "bg-emerald-50 border-emerald-100" : "bg-rose-50 border-rose-100"}`}>
                   <div className="flex items-center gap-2 mb-1.5">
                     <span className={`h-6 w-6 rounded-md flex items-center justify-center ${viewItem.is_active ? "bg-emerald-100" : "bg-rose-100"}`}>
-                      <i className={`fas ${viewItem.is_active ? "fa-check-circle" : "fa-pause-circle"} text-[10px] ${viewItem.is_active ? "text-emerald-600" : "text-rose-600"}`}></i>
+                      <i className={`fas ${viewItem.is_active ? "fa-check-circle" : "fa-pause-circle"} text-[10px] ${viewItem.is_active ? "text-emerald-600" : "text-rose-600"}`} aria-hidden="true"></i>
                     </span>
                     <span className={`text-[10px] font-semibold uppercase tracking-wide ${viewItem.is_active ? "text-emerald-600" : "text-rose-600"}`}>Status</span>
                   </div>
@@ -686,11 +686,11 @@ export default function AdminAddons() {
               </button>
               <button onClick={() => openDuplicate(viewItem)}
                 className="px-4 py-2 border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-xl text-sm font-medium transition">
-                <i className="fas fa-copy mr-1.5 text-xs"></i>Duplicate
+                <i className="fas fa-copy mr-1.5 text-xs" aria-hidden="true"></i>Duplicate
               </button>
               <button onClick={() => openEdit(viewItem)}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-medium transition">
-                <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
+                <i className="fas fa-pen mr-1.5 text-xs" aria-hidden="true"></i>Edit
               </button>
             </div>
           </div>
@@ -737,7 +737,7 @@ export default function AdminAddons() {
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
-                <i className={`fas ${editing?.icon || "fa-tag"} text-emerald-600 text-lg`}></i>
+                <i className={`fas ${editing?.icon || "fa-tag"} text-emerald-600 text-lg`} aria-hidden="true"></i>
               </div>
               <div>
                 <h2 className="text-lg font-bold text-slate-900">{editing?.id ? `Edit \u2014 ${editing.name || "Unnamed"}` : "New Add-on"}</h2>
@@ -746,7 +746,7 @@ export default function AdminAddons() {
             </div>
             <button type="button" onClick={guardedCloseModal}
               className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -756,7 +756,7 @@ export default function AdminAddons() {
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-sky-100 flex items-center justify-center">
-                    <i className="fas fa-info-circle text-sky-500 text-[10px]"></i>
+                    <i className="fas fa-info-circle text-sky-500 text-[10px]" aria-hidden="true"></i>
                   </span>Basic Info
                 </h3>
               </div>
@@ -794,7 +794,7 @@ export default function AdminAddons() {
                             ? "border-emerald-400 bg-emerald-50 text-emerald-600 ring-2 ring-emerald-200 shadow-sm"
                             : "border-slate-200 text-slate-400 hover:border-slate-300 hover:bg-white hover:text-slate-600"
                         }`}>
-                        <i className={`fas ${icon} text-base`}></i>
+                        <i className={`fas ${icon} text-base`} aria-hidden="true"></i>
                         <span className="text-[9px] leading-none text-center truncate w-full">{label}</span>
                       </button>
                     ))}
@@ -808,7 +808,7 @@ export default function AdminAddons() {
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center">
-                    <i className="fas fa-peso-sign text-emerald-500 text-[10px]"></i>
+                    <i className="fas fa-peso-sign text-emerald-500 text-[10px]" aria-hidden="true"></i>
                   </span>Pricing
                 </h3>
               </div>
@@ -840,7 +840,7 @@ export default function AdminAddons() {
                           className={`flex flex-col items-center gap-1.5 p-3.5 border rounded-lg transition-all cursor-pointer ${
                             isChecked ? activeBg : "bg-white border-slate-200 hover:border-slate-300"
                           }`}>
-                          <i className={`fas ${icon} ${isChecked ? activeIcon : "text-slate-400"}`}></i>
+                          <i className={`fas ${icon} ${isChecked ? activeIcon : "text-slate-400"}`} aria-hidden="true"></i>
                           <span className="text-xs font-semibold text-slate-700">{label}</span>
                           <span className="text-[10px] text-slate-400">{sub}</span>
                         </button>
@@ -856,7 +856,7 @@ export default function AdminAddons() {
               <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-5 w-5 rounded-md bg-amber-100 flex items-center justify-center">
-                    <i className="fas fa-cog text-amber-500 text-[10px]"></i>
+                    <i className="fas fa-cog text-amber-500 text-[10px]" aria-hidden="true"></i>
                   </span>Settings
                 </h3>
               </div>
@@ -867,7 +867,7 @@ export default function AdminAddons() {
                 >
                   <div className="flex items-center gap-3">
                     <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${editing?.is_active ? "bg-emerald-100" : "bg-slate-100"}`}>
-                      <i className={`fas ${editing?.is_active ? "fa-check-circle text-emerald-500" : "fa-pause-circle text-slate-400"}`}></i>
+                      <i className={`fas ${editing?.is_active ? "fa-check-circle text-emerald-500" : "fa-pause-circle text-slate-400"}`} aria-hidden="true"></i>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-slate-700">{editing?.is_active ? "Active" : "Inactive"}</p>
@@ -875,7 +875,7 @@ export default function AdminAddons() {
                     </div>
                   </div>
                   <div
-                    className={`relative w-11 h-6 rounded-full transition-colors ${editing?.is_active ? "bg-emerald-500" : "bg-slate-300"}`}>
+                    className={`relative w-11 h-6 rounded-full transition-colors ${editing?.is_active ? "bg-success-ring" : "bg-slate-300"}`}>
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${editing?.is_active ? "left-6" : "left-1"}`} />
                   </div>
                 </div>
@@ -889,7 +889,7 @@ export default function AdminAddons() {
               className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
             <button type="submit" disabled={saving}
               className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
-              {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>{editing?.id ? "Save Changes" : "Create Add-on"}</>}
+              {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>{editing?.id ? "Save Changes" : "Create Add-on"}</>}
             </button>
           </div>
         </form>

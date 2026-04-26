@@ -405,19 +405,19 @@ export default function AdminAnnouncements() {
       {/* Page header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-lg bg-indigo-100 flex items-center justify-center">
-              <i className="fas fa-bullhorn text-indigo-600"></i>
+              <i className="fas fa-bullhorn text-indigo-600" aria-hidden="true"></i>
             </span>
             Announcements
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">Post updates, event notices, and promos visible to guests.</p>
         </div>
         <button
           onClick={openNew}
           className="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 transition"
         >
-          <i className="fas fa-plus text-xs"></i>
+          <i className="fas fa-plus text-xs" aria-hidden="true"></i>
           <span className="text-sm font-medium">New Announcement</span>
           <kbd className="hidden sm:inline-flex ml-2 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono">Ctrl+N</kbd>
         </button>
@@ -427,7 +427,7 @@ export default function AdminAnnouncements() {
       {loadError && !loading && (
         <div className="flex items-center gap-3 bg-rose-50 border border-rose-200 rounded-xl px-5 py-4">
           <div className="h-9 w-9 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
-            <i className="fas fa-exclamation-triangle text-rose-500"></i>
+            <i className="fas fa-exclamation-triangle text-rose-500" aria-hidden="true"></i>
           </div>
           <div className="flex-1">
             <p className="text-sm font-semibold text-rose-800">Failed to load announcements</p>
@@ -435,7 +435,7 @@ export default function AdminAnnouncements() {
           </div>
           <button onClick={load}
             className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-sm font-semibold rounded-lg transition">
-            <i className="fas fa-redo mr-1.5 text-xs"></i>Retry
+            <i className="fas fa-redo mr-1.5 text-xs" aria-hidden="true"></i>Retry
           </button>
         </div>
       )}
@@ -443,7 +443,7 @@ export default function AdminAnnouncements() {
       {/* Search + Filter */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
-          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
           <input
             ref={searchRef}
             type="text"
@@ -455,7 +455,7 @@ export default function AdminAnnouncements() {
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times-circle text-sm"></i>
+              <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
         </div>
@@ -482,20 +482,20 @@ export default function AdminAnnouncements() {
       {selected.size > 0 && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-5 py-3 flex items-center justify-between animate-hero-fade-in opacity-0">
           <span className="text-sm font-medium text-indigo-800">
-            <i className="fas fa-check-circle mr-2"></i>{selected.size} selected
+            <i className="fas fa-check-circle mr-2" aria-hidden="true"></i>{selected.size} selected
           </span>
           <div className="flex items-center gap-2">
             <button onClick={() => bulkAction("activate")}
               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-check mr-1.5"></i>Activate
+              <i className="fas fa-check mr-1.5" aria-hidden="true"></i>Activate
             </button>
             <button onClick={() => bulkAction("deactivate")}
               className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-pause mr-1.5"></i>Deactivate
+              <i className="fas fa-pause mr-1.5" aria-hidden="true"></i>Deactivate
             </button>
             <button onClick={() => setBulkDeleteConfirm(true)}
               className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-trash mr-1.5"></i>Delete
+              <i className="fas fa-trash mr-1.5" aria-hidden="true"></i>Delete
             </button>
             <button onClick={() => setSelected(new Set())}
               className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
@@ -550,7 +550,7 @@ export default function AdminAnnouncements() {
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-bullhorn text-slate-300 text-2xl"></i>
+                <i className="fas fa-bullhorn text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterStatus !== "all" ? "No announcements match your search." : "No announcements yet."}
@@ -563,7 +563,7 @@ export default function AdminAnnouncements() {
               {(debouncedSearch || filterStatus !== "all") && (
                 <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); }}
                   className="mt-4 text-sm text-indigo-600 hover:text-indigo-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -586,8 +586,8 @@ export default function AdminAnnouncements() {
                           {label}
                           <span className="text-slate-400 group-hover:text-indigo-400">
                             {sortBy === key
-                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-indigo-500`}></i>
-                              : <i className="fas fa-sort opacity-40"></i>}
+                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-indigo-500`} aria-hidden="true"></i>
+                              : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                           </span>
                         </button>
                       </th>
@@ -619,7 +619,7 @@ export default function AdminAnnouncements() {
                               <div className="relative w-full h-full">
                                 <video src={item.media_url} muted className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                                  <i className="fas fa-play text-white text-[10px]"></i>
+                                  <i className="fas fa-play text-white text-[10px]" aria-hidden="true"></i>
                                 </div>
                               </div>
                             ) : (
@@ -628,7 +628,7 @@ export default function AdminAnnouncements() {
                           </div>
                         ) : (
                           <div className="w-11 h-11 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300">
-                            <i className="fas fa-image text-sm"></i>
+                            <i className="fas fa-image text-sm" aria-hidden="true"></i>
                           </div>
                         )}
                       </td>
@@ -637,8 +637,8 @@ export default function AdminAnnouncements() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           {item.is_pinned && (
-                            <span className="inline-flex items-center gap-1 text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
-                              <i className="fas fa-thumbtack text-[8px]"></i>Pinned
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-warning-bg text-warning-fg px-2 py-0.5 rounded-full font-semibold">
+                              <i className="fas fa-thumbtack text-[8px]" aria-hidden="true"></i>Pinned
                             </span>
                           )}
                           <span className="font-semibold text-slate-800">{item.title}</span>
@@ -661,11 +661,11 @@ export default function AdminAnnouncements() {
                           title={item.is_active ? "Deactivate" : "Activate"}
                           className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full transition ${
                             item.is_active
-                              ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                              ? "bg-success-bg text-success-fg hover:bg-emerald-200"
                               : "bg-slate-100 text-slate-500 hover:bg-slate-200"
                           }`}
                         >
-                          <span className={`w-2 h-2 rounded-full ${item.is_active ? "bg-emerald-500" : "bg-slate-400"}`} />
+                          <span className={`w-2 h-2 rounded-full ${item.is_active ? "bg-success-ring" : "bg-slate-400"}`} />
                           {item.is_active ? "Active" : "Inactive"}
                         </button>
                       </td>
@@ -675,15 +675,15 @@ export default function AdminAnnouncements() {
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => openEdit(item)} title="Edit"
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs"></i>
+                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => openDuplicate(item)} title="Duplicate"
                             className="h-8 w-8 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-copy text-xs"></i>
+                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => setConfirmDelete(item)} title="Delete"
                             className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs"></i>
+                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -701,7 +701,7 @@ export default function AdminAnnouncements() {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs"></i>
+                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
                     </button>
                     {pageNumbers.map((n, i) =>
                       n === "..." ? (
@@ -721,7 +721,7 @@ export default function AdminAnnouncements() {
                     )}
                     <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs"></i>
+                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -735,7 +735,7 @@ export default function AdminAnnouncements() {
           <div className="px-6 pb-6 flex justify-center">
             <button onClick={load}
               className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1.5">
-              <i className="fas fa-redo text-xs"></i>Retry loading
+              <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry loading
             </button>
           </div>
         )}
@@ -748,7 +748,7 @@ export default function AdminAnnouncements() {
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <span className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                  <i className="fas fa-bullhorn text-indigo-600 text-lg"></i>
+                  <i className="fas fa-bullhorn text-indigo-600 text-lg" aria-hidden="true"></i>
                 </span>
                 <div className="min-w-0">
                   <h3 className="text-lg font-bold text-slate-900 truncate">{viewItem.title}</h3>
@@ -759,7 +759,7 @@ export default function AdminAnnouncements() {
               </div>
               <button onClick={() => setViewItem(null)}
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -768,19 +768,19 @@ export default function AdminAnnouncements() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                   <div className={`h-8 w-8 rounded-lg ${viewItem.is_active ? "bg-emerald-100" : "bg-slate-100"} flex items-center justify-center mx-auto mb-1.5`}>
-                    <i className={`fas ${viewItem.is_active ? "fa-eye text-emerald-600" : "fa-eye-slash text-slate-400"} text-xs`}></i>
+                    <i className={`fas ${viewItem.is_active ? "fa-eye text-emerald-600" : "fa-eye-slash text-slate-400"} text-xs`} aria-hidden="true"></i>
                   </div>
                   <p className="text-xs font-semibold text-slate-700">{viewItem.is_active ? "Active" : "Inactive"}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                   <div className={`h-8 w-8 rounded-lg ${viewItem.is_pinned ? "bg-amber-100" : "bg-slate-100"} flex items-center justify-center mx-auto mb-1.5`}>
-                    <i className={`fas fa-thumbtack ${viewItem.is_pinned ? "text-amber-600" : "text-slate-400"} text-xs`}></i>
+                    <i className={`fas fa-thumbtack ${viewItem.is_pinned ? "text-amber-600" : "text-slate-400"} text-xs`} aria-hidden="true"></i>
                   </div>
                   <p className="text-xs font-semibold text-slate-700">{viewItem.is_pinned ? "Pinned" : "Not Pinned"}</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                   <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center mx-auto mb-1.5">
-                    <i className="fas fa-calendar text-indigo-600 text-xs"></i>
+                    <i className="fas fa-calendar text-indigo-600 text-xs" aria-hidden="true"></i>
                   </div>
                   <p className="text-xs font-semibold text-slate-700">{formatDate(viewItem.published_at)}</p>
                 </div>
@@ -810,11 +810,11 @@ export default function AdminAnnouncements() {
               </button>
               <button onClick={() => openDuplicate(viewItem)}
                 className="px-4 py-2 border border-violet-200 bg-violet-50 hover:bg-violet-100 text-violet-700 rounded-xl text-sm font-medium transition">
-                <i className="fas fa-copy mr-1.5 text-xs"></i>Duplicate
+                <i className="fas fa-copy mr-1.5 text-xs" aria-hidden="true"></i>Duplicate
               </button>
               <button onClick={() => openEdit(viewItem)}
                 className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-medium transition">
-                <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
+                <i className="fas fa-pen mr-1.5 text-xs" aria-hidden="true"></i>Edit
               </button>
             </div>
           </div>
@@ -871,7 +871,7 @@ export default function AdminAnnouncements() {
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
-                  <i className="fas fa-bullhorn text-indigo-600 text-lg"></i>
+                  <i className="fas fa-bullhorn text-indigo-600 text-lg" aria-hidden="true"></i>
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">{editing.id ? "Edit Announcement" : "New Announcement"}</h2>
@@ -880,7 +880,7 @@ export default function AdminAnnouncements() {
               </div>
               <button type="button" onClick={guardedCloseModal}
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -890,7 +890,7 @@ export default function AdminAnnouncements() {
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-5 w-5 rounded-md bg-indigo-100 flex items-center justify-center">
-                      <i className="fas fa-pen-nib text-indigo-500 text-[10px]"></i>
+                      <i className="fas fa-pen-nib text-indigo-500 text-[10px]" aria-hidden="true"></i>
                     </span>Content
                   </h3>
                 </div>
@@ -921,7 +921,7 @@ export default function AdminAnnouncements() {
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-5 w-5 rounded-md bg-pink-100 flex items-center justify-center">
-                      <i className="fas fa-image text-pink-500 text-[10px]"></i>
+                      <i className="fas fa-image text-pink-500 text-[10px]" aria-hidden="true"></i>
                     </span>Media <span className="text-slate-400 text-xs font-normal ml-1">optional</span>
                   </h3>
                 </div>
@@ -951,7 +951,7 @@ export default function AdminAnnouncements() {
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-5 w-5 rounded-md bg-emerald-100 flex items-center justify-center">
-                      <i className="fas fa-calendar-check text-emerald-500 text-[10px]"></i>
+                      <i className="fas fa-calendar-check text-emerald-500 text-[10px]" aria-hidden="true"></i>
                     </span>Publishing
                   </h3>
                 </div>
@@ -986,14 +986,14 @@ export default function AdminAnnouncements() {
                     >
                       <div className="flex items-center gap-2.5">
                         <div className={`h-7 w-7 rounded-md flex items-center justify-center ${editing.is_pinned ? "bg-amber-100" : "bg-slate-100"}`}>
-                          <i className={`fas fa-thumbtack text-xs ${editing.is_pinned ? "text-amber-500" : "text-slate-400"}`}></i>
+                          <i className={`fas fa-thumbtack text-xs ${editing.is_pinned ? "text-amber-500" : "text-slate-400"}`} aria-hidden="true"></i>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-700">Pinned</p>
                           <p className="text-[10px] text-slate-400">Shows at top of list</p>
                         </div>
                       </div>
-                      <div className={`relative w-11 h-6 rounded-full transition-colors ${editing.is_pinned ? "bg-amber-500" : "bg-slate-300"}`}>
+                      <div className={`relative w-11 h-6 rounded-full transition-colors ${editing.is_pinned ? "bg-warning-ring" : "bg-slate-300"}`}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${editing.is_pinned ? "left-6" : "left-1"}`} />
                       </div>
                     </div>
@@ -1004,14 +1004,14 @@ export default function AdminAnnouncements() {
                     >
                       <div className="flex items-center gap-2.5">
                         <div className={`h-7 w-7 rounded-md flex items-center justify-center ${editing.is_active ? "bg-emerald-100" : "bg-slate-100"}`}>
-                          <i className={`fas ${editing.is_active ? "fa-eye text-emerald-500" : "fa-eye-slash text-slate-400"} text-xs`}></i>
+                          <i className={`fas ${editing.is_active ? "fa-eye text-emerald-500" : "fa-eye-slash text-slate-400"} text-xs`} aria-hidden="true"></i>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-700">Active</p>
                           <p className="text-[10px] text-slate-400">Visible to guests</p>
                         </div>
                       </div>
-                      <div className={`relative w-11 h-6 rounded-full transition-colors ${editing.is_active ? "bg-emerald-500" : "bg-slate-300"}`}>
+                      <div className={`relative w-11 h-6 rounded-full transition-colors ${editing.is_active ? "bg-success-ring" : "bg-slate-300"}`}>
                         <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${editing.is_active ? "left-6" : "left-1"}`} />
                       </div>
                     </div>
@@ -1026,7 +1026,7 @@ export default function AdminAnnouncements() {
                 className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
               <button type="submit" disabled={saving}
                 className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
-                {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>{editing.id ? "Save Changes" : "Create"}</>}
+                {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>{editing.id ? "Save Changes" : "Create"}</>}
               </button>
             </div>
           </form>

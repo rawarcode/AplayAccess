@@ -355,10 +355,10 @@ export default function OwnerDashboard() {
   if (error) return (
     <div className="p-6">
       <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-6 text-center">
-        <i className="fas fa-exclamation-triangle text-3xl mb-3 block"></i>
+        <i className="fas fa-exclamation-triangle text-3xl mb-3 block" aria-hidden="true"></i>
         <p className="font-medium mb-3">{error}</p>
         <button onClick={() => load()} className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm hover:bg-rose-700 transition">
-          <i className="fas fa-redo mr-2"></i>Retry
+          <i className="fas fa-redo mr-2" aria-hidden="true"></i>Retry
         </button>
       </div>
     </div>
@@ -380,7 +380,7 @@ export default function OwnerDashboard() {
           className="text-slate-400 hover:text-slate-600 transition disabled:opacity-50 p-2"
           title="Refresh"
         >
-          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`}></i>
+          <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
         </button>
       </div>
 
@@ -391,12 +391,12 @@ export default function OwnerDashboard() {
             <div>
               <p className="text-slate-500 text-sm">Monthly Revenue</p>
               <h3 className="text-2xl font-bold mt-1">{fmt(revThisMonth)}</h3>
-              <p className={`text-xs mt-1 ${revMoM >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                <i className={`fas fa-arrow-${revMoM >= 0 ? "up" : "down"} mr-1`}></i>
+              <p className={`text-xs mt-1 ${revMoM >= 0 ? "text-success-fg" : "text-danger-fg"}`}>
+                <i className={`fas fa-arrow-${revMoM >= 0 ? "up" : "down"} mr-1`} aria-hidden="true"></i>
                 {revMoM >= 0 ? "+" : ""}{revMoM}% from last month
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-emerald-100 text-emerald-600"><i className="fas fa-chart-line text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700"><i className="fas fa-chart-line text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
 
@@ -405,12 +405,12 @@ export default function OwnerDashboard() {
             <div>
               <p className="text-slate-500 text-sm">Monthly Bookings</p>
               <h3 className="text-2xl font-bold mt-1">{txThisMonth}</h3>
-              <p className={`text-xs mt-1 ${txMoM >= 0 ? "text-emerald-500" : "text-rose-500"}`}>
-                <i className={`fas fa-arrow-${txMoM >= 0 ? "up" : "down"} mr-1`}></i>
+              <p className={`text-xs mt-1 ${txMoM >= 0 ? "text-success-fg" : "text-danger-fg"}`}>
+                <i className={`fas fa-arrow-${txMoM >= 0 ? "up" : "down"} mr-1`} aria-hidden="true"></i>
                 {txMoM >= 0 ? "+" : ""}{txMoM} from last month
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-sky-100 text-sky-600"><i className="fas fa-calendar-check text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700"><i className="fas fa-calendar-check text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
 
@@ -421,7 +421,7 @@ export default function OwnerDashboard() {
               <h3 className="text-2xl font-bold mt-1">{fmt(avgBookingValue)}</h3>
               <p className="text-xs text-slate-400 mt-1">per completed booking</p>
             </div>
-            <div className="p-3 rounded-xl bg-violet-100 text-violet-600"><i className="fas fa-peso-sign text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700"><i className="fas fa-peso-sign text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
       </div>
@@ -446,7 +446,7 @@ export default function OwnerDashboard() {
                   : 'No bookings yet this month'}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-amber-100 text-amber-600 shrink-0">
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700 shrink-0">
               <i className="fas fa-bed text-xl" aria-hidden="true"></i>
             </div>
           </div>
@@ -459,7 +459,7 @@ export default function OwnerDashboard() {
               <h3 className="text-2xl font-bold mt-1">{onlinePct}% online</h3>
               <p className="text-xs text-slate-400 mt-1">{onlineBookings} online · {walkinBookings} walk-in</p>
             </div>
-            <div className="p-3 rounded-xl bg-indigo-100 text-indigo-600"><i className="fas fa-globe text-xl"></i></div>
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700"><i className="fas fa-globe text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
 
@@ -482,7 +482,7 @@ export default function OwnerDashboard() {
                   : `${newCustomersThisMonth === 1 ? 'new guest' : 'new guests'} this month (identifiable)`}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-teal-100 text-teal-600">
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700">
               <i className="fas fa-user-plus text-xl" aria-hidden="true"></i>
             </div>
           </div>
@@ -503,7 +503,7 @@ export default function OwnerDashboard() {
                   : `${dayOfWeekCounts[peakDayIdx]} booking${dayOfWeekCounts[peakDayIdx] === 1 ? '' : 's'} on ${peakDay}s (last 30 days)`}
               </p>
             </div>
-            <div className="p-3 rounded-xl bg-amber-100 text-amber-600"><i className="fas fa-fire text-xl" aria-hidden="true"></i></div>
+            <div className="p-3 rounded-xl bg-slate-100 text-slate-700"><i className="fas fa-fire text-xl" aria-hidden="true"></i></div>
           </div>
         </div>
       </div>
@@ -527,7 +527,7 @@ export default function OwnerDashboard() {
       {revGrand > 0 && (
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold mb-4">
-            <i className="fas fa-chart-pie text-sky-500 mr-2"></i>Revenue Breakdown
+            <i className="fas fa-chart-pie text-sky-500 mr-2" aria-hidden="true"></i>Revenue Breakdown
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
             {/* Donut */}
@@ -545,7 +545,7 @@ export default function OwnerDashboard() {
                 return (
                   <div key={s.label} className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: s.color + '1a' }}>
-                      <i className={`fas ${s.icon}`} style={{ color: s.color }}></i>
+                      <i className={`fas ${s.icon}`} style={{ color: s.color }} aria-hidden="true"></i>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between text-sm">
@@ -563,7 +563,7 @@ export default function OwnerDashboard() {
               {revBreakdown.promos > 0 && (
                 <div className="flex items-center gap-3 pt-2 border-t border-slate-100">
                   <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-rose-50">
-                    <i className="fas fa-tag text-rose-500"></i>
+                    <i className="fas fa-tag text-rose-500" aria-hidden="true"></i>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between text-sm">
@@ -582,7 +582,7 @@ export default function OwnerDashboard() {
       {topRooms.length > 0 && (
         <div className="bg-white rounded-xl shadow p-6">
           <h2 className="text-lg font-semibold mb-4">
-            <i className="fas fa-trophy text-amber-500 mr-2"></i>Top Rooms — Last 30 Days
+            <i className="fas fa-trophy text-amber-500 mr-2" aria-hidden="true"></i>Top Rooms — Last 30 Days
           </h2>
           <div className="space-y-3">
             {topRooms.map((r, i) => {

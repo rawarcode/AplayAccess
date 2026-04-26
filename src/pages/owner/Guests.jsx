@@ -112,15 +112,15 @@ export default function AdminGuests() {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center">
-              <i className="fas fa-users text-sky-600"></i>
+              <i className="fas fa-users text-sky-600" aria-hidden="true"></i>
             </span>
             Guests
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">View guest accounts, booking history, and spending.
             <span className="text-slate-400 ml-1" title="Guests are marked inactive if they have no bookings in the past 6 months and their account is older than 6 months.">
-              <i className="fas fa-circle-info text-xs ml-0.5"></i>
+              <i className="fas fa-circle-info text-xs ml-0.5" aria-hidden="true"></i>
             </span>
           </p>
         </div>
@@ -129,14 +129,14 @@ export default function AdminGuests() {
       {/* Search + Filter */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
-          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
           <input ref={searchRef} type="text" aria-label="Search guests" placeholder="Search by name or email..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times-circle text-sm"></i>
+              <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
         </div>
@@ -149,7 +149,7 @@ export default function AdminGuests() {
             <button key={f.key} onClick={() => setFilterStatus(f.key)}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
                 filterStatus === f.key
-                  ? "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
+                  ? "bg-info-bg text-info-fg ring-1 ring-sky-200"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}>
               {f.label}
@@ -205,7 +205,7 @@ export default function AdminGuests() {
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-users text-slate-300 text-2xl"></i>
+                <i className="fas fa-users text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterStatus !== "all" ? "No guests match your search." : "No guests yet."}
@@ -218,7 +218,7 @@ export default function AdminGuests() {
               {(debouncedSearch || filterStatus !== "all") && (
                 <button onClick={() => { setSearchTerm(""); setFilterStatus("all"); }}
                   className="mt-4 text-sm text-sky-600 hover:text-sky-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -242,8 +242,8 @@ export default function AdminGuests() {
                           {label}
                           <span className="text-slate-400 group-hover:text-sky-400">
                             {sortBy === key
-                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-sky-500`}></i>
-                              : <i className="fas fa-sort opacity-40"></i>}
+                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-sky-500`} aria-hidden="true"></i>
+                              : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                           </span>
                         </button>
                       </th>
@@ -282,9 +282,9 @@ export default function AdminGuests() {
                       <td className="px-6 py-4">
                         <span title={g.is_active ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
                           className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          g.is_active ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"
+                          g.is_active ? "bg-success-bg text-success-fg" : "bg-slate-100 text-slate-600"
                         }`}>
-                          <span className={`h-2 w-2 rounded-full ${g.is_active ? "bg-emerald-500" : "bg-slate-400"}`} />
+                          <span className={`h-2 w-2 rounded-full ${g.is_active ? "bg-success-ring" : "bg-slate-400"}`} />
                           {g.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
@@ -292,11 +292,11 @@ export default function AdminGuests() {
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => copyEmail(g.email)} title="Copy email"
                             className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                            <i className="fas fa-envelope text-xs"></i>
+                            <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
                           </button>
                           <button onClick={() => setViewGuest(g)} title="View"
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-eye text-xs"></i>
+                            <i className="fas fa-eye text-xs" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -314,7 +314,7 @@ export default function AdminGuests() {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs"></i>
+                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
                     </button>
                     {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
                       <button key={n} onClick={() => setPage(n)}
@@ -328,7 +328,7 @@ export default function AdminGuests() {
                     ))}
                     <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
                       className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs"></i>
+                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -342,7 +342,7 @@ export default function AdminGuests() {
           <div className="px-6 pb-6 flex justify-center">
             <button onClick={load}
               className="text-sm text-sky-600 hover:text-sky-700 font-medium flex items-center gap-1.5">
-              <i className="fas fa-redo text-xs"></i>Retry loading
+              <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry loading
             </button>
           </div>
         )}
@@ -355,13 +355,13 @@ export default function AdminGuests() {
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <span className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center">
-                  <i className="fas fa-user text-sky-600"></i>
+                  <i className="fas fa-user text-sky-600" aria-hidden="true"></i>
                 </span>
                 Guest Details
               </h3>
               <button onClick={() => setViewGuest(null)}
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
             <div className="p-6 space-y-5">
@@ -376,14 +376,14 @@ export default function AdminGuests() {
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <span title={viewGuest.is_active ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                      viewGuest.is_active ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                      viewGuest.is_active ? "bg-success-bg text-success-fg" : "bg-slate-100 text-slate-500"
                     }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${viewGuest.is_active ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                      <span className={`h-1.5 w-1.5 rounded-full ${viewGuest.is_active ? "bg-success-ring" : "bg-slate-400"}`}></span>
                       {viewGuest.is_active ? "Active" : "Inactive"}
                     </span>
                     {viewGuest.joined && (
                       <span className="text-[10px] text-slate-400">
-                        <i className="fas fa-calendar-alt mr-1"></i>Joined {viewGuest.joined}
+                        <i className="fas fa-calendar-alt mr-1" aria-hidden="true"></i>Joined {viewGuest.joined}
                       </span>
                     )}
                   </div>
@@ -394,21 +394,21 @@ export default function AdminGuests() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                   <div className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center mx-auto mb-2">
-                    <i className="fas fa-calendar-check text-sky-600 text-sm"></i>
+                    <i className="fas fa-calendar-check text-sky-600 text-sm" aria-hidden="true"></i>
                   </div>
                   <p className="text-2xl font-bold text-slate-900">{viewGuest.total_bookings || 0}</p>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold mt-0.5">Bookings</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                   <div className="h-9 w-9 rounded-lg bg-indigo-100 flex items-center justify-center mx-auto mb-2">
-                    <i className="fas fa-peso-sign text-indigo-600 text-sm"></i>
+                    <i className="fas fa-peso-sign text-indigo-600 text-sm" aria-hidden="true"></i>
                   </div>
                   <p className="text-2xl font-bold text-indigo-600">{"\u20B1"}{Number(viewGuest.total_spent || 0).toLocaleString()}</p>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold mt-0.5">Total Spent</p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white p-4 text-center">
                   <div className="h-9 w-9 rounded-lg bg-amber-100 flex items-center justify-center mx-auto mb-2">
-                    <i className="fas fa-clock-rotate-left text-amber-600 text-sm"></i>
+                    <i className="fas fa-clock-rotate-left text-amber-600 text-sm" aria-hidden="true"></i>
                   </div>
                   <p className="text-sm font-bold text-slate-900">{viewGuest.last_booking || "Never"}</p>
                   <p className="text-[10px] text-slate-400 uppercase tracking-wide font-semibold mt-0.5">Last Booking</p>
@@ -420,7 +420,7 @@ export default function AdminGuests() {
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-5 w-5 rounded-md bg-sky-100 flex items-center justify-center">
-                      <i className="fas fa-address-card text-sky-500 text-[10px]"></i>
+                      <i className="fas fa-address-card text-sky-500 text-[10px]" aria-hidden="true"></i>
                     </span>Contact Info
                   </h3>
                 </div>
@@ -432,7 +432,7 @@ export default function AdminGuests() {
                       {!/@removed\.local$/i.test(viewGuest.email ?? '') && (
                         <button onClick={() => copyEmail(viewGuest.email)} title="Copy"
                           className="h-6 w-6 rounded flex items-center justify-center text-slate-400 hover:text-sky-600 hover:bg-sky-50 transition shrink-0">
-                          <i className="fas fa-copy text-[10px]"></i>
+                          <i className="fas fa-copy text-[10px]" aria-hidden="true"></i>
                         </button>
                       )}
                     </div>
@@ -454,7 +454,7 @@ export default function AdminGuests() {
               {!/@removed\.local$/i.test(viewGuest.email ?? '') && (
                 <button onClick={() => copyEmail(viewGuest.email)}
                   className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
-                  <i className="fas fa-envelope mr-1.5 text-xs"></i>Copy Email
+                  <i className="fas fa-envelope mr-1.5 text-xs" aria-hidden="true"></i>Copy Email
                 </button>
               )}
             </div>

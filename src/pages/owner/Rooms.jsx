@@ -15,9 +15,9 @@ const PAGE_SIZE = 10;
 
 // ── Availability status config ────────────────────────────────────────────
 const AVAIL = {
-  available:   { label: "Available",          color: "bg-emerald-100 text-emerald-800", dot: "bg-emerald-500", icon: "fa-check-circle" },
-  renovation:  { label: "Under Renovation",   color: "bg-rose-100 text-rose-800",       dot: "bg-rose-500",    icon: "fa-hard-hat"     },
-  maintenance: { label: "Under Maintenance",  color: "bg-amber-100 text-amber-800",     dot: "bg-amber-500",   icon: "fa-wrench"       },
+  available:   { label: "Available",          color: "bg-success-bg text-success-fg", dot: "bg-success-ring", icon: "fa-check-circle" },
+  renovation:  { label: "Under Renovation",   color: "bg-danger-bg text-danger-fg",       dot: "bg-danger-ring",    icon: "fa-hard-hat"     },
+  maintenance: { label: "Under Maintenance",  color: "bg-warning-bg text-warning-fg",     dot: "bg-warning-ring",   icon: "fa-wrench"       },
   reserved:    { label: "Reserved / Blocked", color: "bg-purple-100 text-purple-800",   dot: "bg-purple-500",  icon: "fa-lock"         },
   closed:      { label: "Temporarily Closed", color: "bg-slate-100 text-slate-600",     dot: "bg-slate-400",   icon: "fa-ban"          },
 };
@@ -111,7 +111,7 @@ function RoomPreview({ room }) {
           ? <img src={room.image} alt={room.name} className="w-full h-full object-cover"
               onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
           : <div className="w-full h-full flex items-center justify-center text-slate-300">
-              <i className="fas fa-image text-4xl"></i>
+              <i className="fas fa-image text-4xl" aria-hidden="true"></i>
             </div>
         }
       </div>
@@ -122,7 +122,7 @@ function RoomPreview({ room }) {
           <div className="flex flex-wrap gap-1.5 mb-3">
             {room.features.slice(0, 4).map((f, i) => (
               <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full text-xs">
-                <i className={`fas ${f.icon || "fa-check"} text-[10px]`}></i> {f.text}
+                <i className={`fas ${f.icon || "fa-check"} text-[10px]`} aria-hidden="true"></i> {f.text}
               </span>
             ))}
             {room.features.length > 4 && <span className="text-xs text-slate-400">+{room.features.length - 4} more</span>}
@@ -668,10 +668,10 @@ export default function AdminRooms() {
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
-            <i className="fas fa-bed text-sky-600 text-lg"></i>
+            <i className="fas fa-bed text-sky-600 text-lg" aria-hidden="true"></i>
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">Room Management</h1>
+            <h2 className="text-lg font-bold text-slate-900">Room Management</h2>
             <p className="text-sm text-slate-500">Manage rooms, rates, and availability.</p>
             {rooms.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1.5">
@@ -681,7 +681,7 @@ export default function AdminRooms() {
                   { count: countPavilion, label: "Pavilions", icon: "fa-archway",        bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
                 ].map(({ count, label, icon, bg }) => (
                   <span key={label} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${bg}`}>
-                    <i className={`fas ${icon} text-[10px]`}></i>{count} {label}
+                    <i className={`fas ${icon} text-[10px]`} aria-hidden="true"></i>{count} {label}
                   </span>
                 ))}
               </div>
@@ -697,7 +697,7 @@ export default function AdminRooms() {
               </span>
               <button onClick={() => setBulkDeleteOpen(true)} type="button"
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-semibold hover:bg-rose-100 transition">
-                <i className="fas fa-trash text-[10px]"></i>Delete
+                <i className="fas fa-trash text-[10px]" aria-hidden="true"></i>Delete
               </button>
               <button onClick={() => setSelected(new Set())} type="button"
                 className="text-xs text-slate-400 hover:text-slate-600 px-2 py-1.5 transition">
@@ -708,13 +708,13 @@ export default function AdminRooms() {
 
           <button onClick={() => load(true)} disabled={refreshing}
             className="p-2 text-slate-400 hover:text-slate-600 transition disabled:opacity-50" title="Refresh" type="button">
-            <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`}></i>
+            <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           </button>
           <div className="relative" ref={addMenuRef}>
             <button onClick={() => setAddMenuOpen(o => !o)} type="button"
               className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-xl shadow-sm text-sm font-medium transition">
-              <i className="fas fa-plus"></i>Add New
-              <i className={`fas fa-chevron-down text-[10px] transition-transform ${addMenuOpen ? "rotate-180" : ""}`}></i>
+              <i className="fas fa-plus" aria-hidden="true"></i>Add New
+              <i className={`fas fa-chevron-down text-[10px] transition-transform ${addMenuOpen ? "rotate-180" : ""}`} aria-hidden="true"></i>
             </button>
             {addMenuOpen && (
               <div className="absolute right-0 top-11 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-1.5 w-48 animate-hero-fade-in opacity-0">
@@ -726,7 +726,7 @@ export default function AdminRooms() {
                   <button key={label} type="button"
                     onClick={() => openCreate(template)}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition">
-                    <i className={`fas ${icon} w-4 text-center ${color}`}></i>
+                    <i className={`fas ${icon} w-4 text-center ${color}`} aria-hidden="true"></i>
                     <span>New {label}</span>
                   </button>
                 ))}
@@ -739,10 +739,10 @@ export default function AdminRooms() {
       {/* Error with retry */}
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-6 text-center">
-          <i className="fas fa-exclamation-triangle text-3xl mb-3 block"></i>
+          <i className="fas fa-exclamation-triangle text-3xl mb-3 block" aria-hidden="true"></i>
           <p className="font-medium mb-3">{error}</p>
           <button onClick={() => load()} className="px-4 py-2 bg-rose-600 text-white rounded-lg text-sm hover:bg-rose-700 transition" type="button">
-            <i className="fas fa-redo mr-2"></i>Retry
+            <i className="fas fa-redo mr-2" aria-hidden="true"></i>Retry
           </button>
         </div>
       )}
@@ -763,7 +763,7 @@ export default function AdminRooms() {
               }`}
               type="button"
             >
-              <i className={`fas ${tab.icon} text-xs`}></i>
+              <i className={`fas ${tab.icon} text-xs`} aria-hidden="true"></i>
               {tab.label}
               <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
                 filterCategory === tab.key ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
@@ -786,7 +786,7 @@ export default function AdminRooms() {
                 value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
                 className="w-full pr-10 pl-10 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm"
               />
-              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true"></i>
             </div>
             <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
               className="min-w-44 px-3 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 text-sm">
@@ -803,7 +803,7 @@ export default function AdminRooms() {
             renderSkeleton()
           ) : filtered.length === 0 ? (
             <div className="px-6 py-12 text-center">
-              <i className="fas fa-bed text-slate-200 text-4xl mb-3 block"></i>
+              <i className="fas fa-bed text-slate-200 text-4xl mb-3 block" aria-hidden="true"></i>
               <p className="text-slate-400 font-medium">
                 {debouncedSearch || filterAvail || filterCategory ? "No rooms match your filters." : "No rooms yet. Add your first room above."}
               </p>
@@ -827,7 +827,7 @@ export default function AdminRooms() {
                         className="flex items-center gap-1 hover:text-sky-600 transition-colors group" type="button">
                         {label}
                         <span className="text-slate-400 group-hover:text-sky-400">
-                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==="asc"?"up":"down"} text-sky-500`}></i> : <i className="fas fa-sort opacity-40"></i>}
+                          {sortBy===key ? <i className={`fas fa-arrow-${sortDir==="asc"?"up":"down"} text-sky-500`} aria-hidden="true"></i> : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                         </span>
                       </button>
                     </th>
@@ -852,7 +852,7 @@ export default function AdminRooms() {
                       <td className="px-4 py-4">
                         {room.image
                           ? <img src={room.image} alt={room.name} className="h-10 w-10 rounded-full object-cover" loading="lazy" decoding="async" />
-                          : <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i className="fas fa-bed"></i></div>
+                          : <div className="h-10 w-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i className="fas fa-bed" aria-hidden="true"></i></div>
                         }
                       </td>
                       <td className="px-4 py-4 font-medium text-slate-900">
@@ -860,7 +860,7 @@ export default function AdminRooms() {
                           {room.name}
                           {(() => {
                             const cat = getRoomCategory(room);
-                            const catStyle = { cottage: "bg-amber-100 text-amber-700", pavilion: "bg-emerald-100 text-emerald-700" }[cat];
+                            const catStyle = { cottage: "bg-warning-bg text-warning-fg", pavilion: "bg-success-bg text-success-fg" }[cat];
                             return catStyle ? (
                               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${catStyle}`}>{cat}</span>
                             ) : null;
@@ -868,7 +868,7 @@ export default function AdminRooms() {
                         </div>
                         {room.capacity_label && <span className="text-xs text-slate-400">{room.capacity_label}</span>}
                         {room.allowed_booking_types?.length > 0 && (
-                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-medium">
+                          <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-warning-bg text-warning-fg rounded-full font-medium">
                             {room.allowed_booking_types.join("/")} only
                           </span>
                         )}
@@ -904,7 +904,7 @@ export default function AdminRooms() {
               <div className="flex items-center gap-1">
                 <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
                   className="px-4 py-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition" type="button">
-                  <i className="fas fa-chevron-left text-[10px] mr-1"></i>Prev
+                  <i className="fas fa-chevron-left text-[10px] mr-1" aria-hidden="true"></i>Prev
                 </button>
                 {Array.from({ length: totalPages }, (_, i) => i + 1)
                   .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
@@ -925,7 +925,7 @@ export default function AdminRooms() {
                   )}
                 <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
                   className="px-4 py-2.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-600 hover:bg-slate-100 disabled:opacity-40 transition" type="button">
-                  Next<i className="fas fa-chevron-right text-[10px] ml-1"></i>
+                  Next<i className="fas fa-chevron-right text-[10px] ml-1" aria-hidden="true"></i>
                 </button>
               </div>
             )}
@@ -946,7 +946,7 @@ export default function AdminRooms() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
                 <div className="flex items-center gap-3">
                   <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${CATEGORY_META[getRoomCategory(viewRoom)]?.color || "bg-sky-100 text-sky-600"}`}>
-                    <i className={`fas ${CATEGORY_META[getRoomCategory(viewRoom)]?.icon || "fa-bed"}`}></i>
+                    <i className={`fas ${CATEGORY_META[getRoomCategory(viewRoom)]?.icon || "fa-bed"}`} aria-hidden="true"></i>
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900">{viewRoom.name}</h3>
@@ -954,7 +954,7 @@ export default function AdminRooms() {
                   </div>
                 </div>
                 <button onClick={() => setViewRoom(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close" type="button">
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 
@@ -967,7 +967,7 @@ export default function AdminRooms() {
                 {/* Unavailable banner */}
                 {avail !== "available" && (
                   <div className={`flex items-center gap-2 p-3 rounded-xl text-sm font-medium ${AVAIL[avail].color}`}>
-                    <i className={`fas ${AVAIL[avail].icon}`}></i>{AVAIL[avail].label}
+                    <i className={`fas ${AVAIL[avail].icon}`} aria-hidden="true"></i>{AVAIL[avail].label}
                   </div>
                 )}
 
@@ -980,7 +980,7 @@ export default function AdminRooms() {
                   ].map(({ label, value, icon, bg, text, iconBg }) => (
                     <div key={label} className={`${bg} rounded-xl p-3 text-center`}>
                       <div className={`h-8 w-8 rounded-lg ${iconBg} flex items-center justify-center mx-auto mb-2`}>
-                        <i className={`fas ${icon} text-xs`}></i>
+                        <i className={`fas ${icon} text-xs`} aria-hidden="true"></i>
                       </div>
                       <p className={`text-sm font-bold ${text}`}>{value}</p>
                       <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
@@ -997,7 +997,7 @@ export default function AdminRooms() {
                   ].map(({ label, value, icon, bg, iconColor }) => (
                     <div key={label} className={`${bg} rounded-xl p-3 flex items-center gap-3`}>
                       <div className={`h-8 w-8 rounded-lg bg-white flex items-center justify-center shrink-0 ${iconColor}`}>
-                        <i className={`fas ${icon} text-xs`}></i>
+                        <i className={`fas ${icon} text-xs`} aria-hidden="true"></i>
                       </div>
                       <div className="min-w-0">
                         <p className="text-[10px] text-slate-500 uppercase tracking-wide">{label}</p>
@@ -1019,7 +1019,7 @@ export default function AdminRooms() {
                 {viewRoom.allowed_booking_types?.length > 0 && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
                     <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-2">
-                      <i className="fas fa-exclamation-triangle mr-1"></i>Booking Type Restriction
+                      <i className="fas fa-exclamation-triangle mr-1" aria-hidden="true"></i>Booking Type Restriction
                     </p>
                     <div className="flex gap-2">
                       {viewRoom.allowed_booking_types.map(t => (
@@ -1038,7 +1038,7 @@ export default function AdminRooms() {
                     <div className="flex flex-wrap gap-1.5">
                       {features.map((f, i) => (
                         <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-sky-50 text-sky-700 rounded-full text-xs font-medium">
-                          <i className={`fas ${f.icon} text-[10px]`}></i> {f.text}
+                          <i className={`fas ${f.icon} text-[10px]`} aria-hidden="true"></i> {f.text}
                         </span>
                       ))}
                     </div>
@@ -1050,11 +1050,11 @@ export default function AdminRooms() {
               <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-2">
                 <button onClick={() => setDeleteTarget(viewRoom)} type="button"
                   className="px-4 py-2 bg-rose-50 text-rose-600 rounded-xl text-sm hover:bg-rose-100 transition">
-                  <i className="fas fa-trash mr-1"></i>Delete
+                  <i className="fas fa-trash mr-1" aria-hidden="true"></i>Delete
                 </button>
                 <button onClick={() => openDuplicate(viewRoom)} type="button"
                   className="px-4 py-2 bg-amber-50 text-amber-600 rounded-xl text-sm hover:bg-amber-100 transition">
-                  <i className="fas fa-copy mr-1"></i>Duplicate
+                  <i className="fas fa-copy mr-1" aria-hidden="true"></i>Duplicate
                 </button>
                 <button onClick={() => setViewRoom(null)} type="button"
                   className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">Close</button>
@@ -1078,7 +1078,7 @@ export default function AdminRooms() {
               <div className="sticky top-0 z-10 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${meta.color}`}>
-                    <i className={`fas ${meta.icon} text-lg`}></i>
+                    <i className={`fas ${meta.icon} text-lg`} aria-hidden="true"></i>
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-slate-900">
@@ -1091,7 +1091,7 @@ export default function AdminRooms() {
                 </div>
                 <button type="button" onClick={guardedCloseModal}
                   className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                  <i className="fas fa-times"></i>
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
             );
@@ -1104,7 +1104,7 @@ export default function AdminRooms() {
               <div className="px-5 py-3 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-md bg-sky-100 flex items-center justify-center">
-                    <i className="fas fa-info-circle text-sky-500 text-[11px]"></i>
+                    <i className="fas fa-info-circle text-sky-500 text-[11px]" aria-hidden="true"></i>
                   </span>
                   Basic Information
                 </h3>
@@ -1146,7 +1146,7 @@ export default function AdminRooms() {
                   </select>
                   {editing?.availability_status && editing.availability_status !== "available" && (
                     <div className="mt-2 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                      <i className="fas fa-exclamation-triangle shrink-0"></i>
+                      <i className="fas fa-exclamation-triangle shrink-0" aria-hidden="true"></i>
                       This room won't appear for booking until set back to Available.
                     </div>
                   )}
@@ -1159,7 +1159,7 @@ export default function AdminRooms() {
               <div className="px-5 py-3 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-md bg-emerald-100 flex items-center justify-center">
-                    <i className="fas fa-peso-sign text-emerald-500 text-[11px]"></i>
+                    <i className="fas fa-peso-sign text-emerald-500 text-[11px]" aria-hidden="true"></i>
                   </span>
                   Pricing
                 </h3>
@@ -1173,7 +1173,7 @@ export default function AdminRooms() {
                   ].map(([label, key, icon, sub]) => (
                     <div key={key} className="bg-white rounded-lg border border-slate-200 p-3.5">
                       <div className="flex items-center gap-2 mb-2">
-                        <i className={`fas ${icon} text-slate-400 text-xs`}></i>
+                        <i className={`fas ${icon} text-slate-400 text-xs`} aria-hidden="true"></i>
                         <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">{label}</span>
                         <span className="text-red-400 text-xs">*</span>
                       </div>
@@ -1198,7 +1198,7 @@ export default function AdminRooms() {
                   if (d > 0 && h > 0 && h < d) warnings.push("24hr rate is lower than day rate");
                   return warnings.length > 0 ? (
                     <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-4">
-                      <i className="fas fa-exclamation-triangle mt-0.5 shrink-0"></i>
+                      <i className="fas fa-exclamation-triangle mt-0.5 shrink-0" aria-hidden="true"></i>
                       <div>{warnings.map((w, i) => <p key={i}>{w}</p>)}</div>
                     </div>
                   ) : null;
@@ -1211,7 +1211,7 @@ export default function AdminRooms() {
               <div className="px-5 py-3 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-md bg-violet-100 flex items-center justify-center">
-                    <i className="fas fa-users text-violet-500 text-[11px]"></i>
+                    <i className="fas fa-users text-violet-500 text-[11px]" aria-hidden="true"></i>
                   </span>
                   Capacity & Details
                 </h3>
@@ -1246,7 +1246,7 @@ export default function AdminRooms() {
               <div className="px-5 py-3 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-md bg-pink-100 flex items-center justify-center">
-                    <i className="fas fa-image text-pink-500 text-[11px]"></i>
+                    <i className="fas fa-image text-pink-500 text-[11px]" aria-hidden="true"></i>
                   </span>
                   Media
                 </h3>
@@ -1262,7 +1262,7 @@ export default function AdminRooms() {
                     </div>
                     <button type="button" onClick={() => setField("image", "")}
                       className="text-xs text-rose-500 hover:text-rose-700 shrink-0 px-2 py-1 hover:bg-rose-50 rounded-md transition">
-                      <i className="fas fa-trash mr-1"></i>Remove
+                      <i className="fas fa-trash mr-1" aria-hidden="true"></i>Remove
                     </button>
                   </div>
                 )}
@@ -1280,7 +1280,7 @@ export default function AdminRooms() {
               <div className="px-5 py-3 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-md bg-amber-100 flex items-center justify-center">
-                    <i className="fas fa-sparkles text-amber-500 text-[11px]"></i>
+                    <i className="fas fa-sparkles text-amber-500 text-[11px]" aria-hidden="true"></i>
                   </span>
                   Features
                   {(editing?.features || []).length > 0 && (
@@ -1336,8 +1336,8 @@ export default function AdminRooms() {
                     className="flex-1 px-3.5 py-2.5 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-300 transition"
                   />
                   <button type="button" onClick={addFeature}
-                    className="px-4 py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 rounded-lg text-sm font-semibold shrink-0 transition">
-                    <i className="fas fa-plus mr-1 text-xs"></i>Add
+                    className="px-4 py-2.5 bg-sky-50 hover:bg-info-bg text-info-fg border border-sky-200 rounded-lg text-sm font-semibold shrink-0 transition">
+                    <i className="fas fa-plus mr-1 text-xs" aria-hidden="true"></i>Add
                   </button>
                 </div>
 
@@ -1345,20 +1345,20 @@ export default function AdminRooms() {
                   <div className="flex flex-wrap gap-2">
                     {editing.features.map((f, i) => (
                       <div key={i} className="inline-flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-medium text-slate-700 shadow-sm">
-                        <i className={`fas ${f.icon || "fa-check"} text-sky-500 text-[10px]`}></i>
+                        <i className={`fas ${f.icon || "fa-check"} text-sky-500 text-[10px]`} aria-hidden="true"></i>
                         <span>{f.text}</span>
                         <div className="flex items-center gap-0.5 ml-1 border-l border-slate-200 pl-1.5">
                           <button type="button" onClick={() => moveFeature(i, -1)} disabled={i === 0}
                             className="h-5 w-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 transition" title="Move up">
-                            <i className="fas fa-chevron-up text-[9px]"></i>
+                            <i className="fas fa-chevron-up text-[9px]" aria-hidden="true"></i>
                           </button>
                           <button type="button" onClick={() => moveFeature(i, 1)} disabled={i === editing.features.length - 1}
                             className="h-5 w-5 rounded flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 disabled:opacity-30 transition" title="Move down">
-                            <i className="fas fa-chevron-down text-[9px]"></i>
+                            <i className="fas fa-chevron-down text-[9px]" aria-hidden="true"></i>
                           </button>
                           <button type="button" onClick={() => removeFeature(i)}
                             className="h-5 w-5 rounded flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition" title="Remove">
-                            <i className="fas fa-times text-[9px]"></i>
+                            <i className="fas fa-times text-[9px]" aria-hidden="true"></i>
                           </button>
                         </div>
                       </div>
@@ -1368,7 +1368,7 @@ export default function AdminRooms() {
 
                 {(editing?.features || []).length === 0 && (
                   <p className="text-xs text-slate-400 text-center py-3 bg-white rounded-lg border border-dashed border-slate-200">
-                    <i className="fas fa-sparkles mr-1"></i>No features added yet. Pick an icon and type above.
+                    <i className="fas fa-sparkles mr-1" aria-hidden="true"></i>No features added yet. Pick an icon and type above.
                   </p>
                 )}
               </div>
@@ -1379,7 +1379,7 @@ export default function AdminRooms() {
               <div className="px-5 py-3 border-b border-slate-200 bg-white">
                 <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                   <span className="h-6 w-6 rounded-md bg-indigo-100 flex items-center justify-center">
-                    <i className="fas fa-calendar-check text-indigo-500 text-[11px]"></i>
+                    <i className="fas fa-calendar-check text-indigo-500 text-[11px]" aria-hidden="true"></i>
                   </span>
                   Booking Types
                 </h3>
@@ -1404,7 +1404,7 @@ export default function AdminRooms() {
                           className="sr-only"
                         />
                         <div className={`flex flex-col items-center gap-1.5 p-3.5 bg-white border border-slate-200 rounded-lg transition-all hover:border-slate-300 ${checked ? checkedBg : ""}`}>
-                          <i className={`fas ${icon} ${checked ? checkedIcon : "text-slate-400"} transition-colors`}></i>
+                          <i className={`fas ${icon} ${checked ? checkedIcon : "text-slate-400"} transition-colors`} aria-hidden="true"></i>
                           <span className="text-xs font-semibold text-slate-700">{label}</span>
                           <span className="text-[10px] text-slate-400">{sub}</span>
                         </div>
@@ -1414,7 +1414,7 @@ export default function AdminRooms() {
                 </div>
                 {editing?.allowed_booking_types?.length > 0 && (
                   <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-                    <i className="fas fa-exclamation-triangle shrink-0"></i>
+                    <i className="fas fa-exclamation-triangle shrink-0" aria-hidden="true"></i>
                     Guests can only book: {editing.allowed_booking_types.join(", ")}.
                   </div>
                 )}
@@ -1436,7 +1436,7 @@ export default function AdminRooms() {
                   <div className="px-5 py-3 border-b border-slate-200 bg-white">
                     <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                       <span className="h-6 w-6 rounded-md bg-amber-100 flex items-center justify-center">
-                        <i className="fas fa-link text-amber-500 text-[11px]"></i>
+                        <i className="fas fa-link text-amber-500 text-[11px]" aria-hidden="true"></i>
                       </span>
                       Attached Add-ons
                     </h3>
@@ -1526,7 +1526,7 @@ export default function AdminRooms() {
                     {basePackageTotal > 0 && (
                       <div className="rounded-md bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs flex items-center justify-between text-emerald-800">
                         <span className="flex items-center gap-1.5">
-                          <i className="fas fa-box text-emerald-500 text-[11px]"></i>
+                          <i className="fas fa-box text-emerald-500 text-[11px]" aria-hidden="true"></i>
                           Bundled day rate shown to guest
                         </span>
                         <span className="font-bold tabular-nums">
@@ -1548,7 +1548,7 @@ export default function AdminRooms() {
                 <div className="px-5 py-3 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-6 w-6 rounded-md bg-slate-100 flex items-center justify-center">
-                      <i className="fas fa-eye text-slate-500 text-[11px]"></i>
+                      <i className="fas fa-eye text-slate-500 text-[11px]" aria-hidden="true"></i>
                     </span>
                     Guest Card Preview
                   </h3>
@@ -1561,7 +1561,7 @@ export default function AdminRooms() {
 
             {saveError && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700 flex items-center gap-2">
-                <i className="fas fa-exclamation-circle shrink-0"></i>{saveError}
+                <i className="fas fa-exclamation-circle shrink-0" aria-hidden="true"></i>{saveError}
               </div>
             )}
 
@@ -1573,7 +1573,7 @@ export default function AdminRooms() {
               className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
             <button type="submit" disabled={saving}
               className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
-              {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>Save {CATEGORY_META[editing?.category || "room"]?.label}</>}
+              {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>Save {CATEGORY_META[editing?.category || "room"]?.label}</>}
             </button>
           </div>
         </form>

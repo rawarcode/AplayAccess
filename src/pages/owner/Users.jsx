@@ -46,12 +46,12 @@ const PAGE_SIZE = 10;
 
 const ROLE_LABELS = { front_desk: "Front Desk", admin: "Admin", owner: "Owner" };
 const ROLE_COLORS = {
-  front_desk: "bg-sky-100 text-sky-800",
+  front_desk: "bg-info-bg text-info-fg",
   admin:      "bg-violet-100 text-violet-800",
-  owner:      "bg-amber-100 text-amber-800",
+  owner:      "bg-warning-bg text-warning-fg",
 };
 const ROLE_AVATAR = {
-  owner:      "bg-amber-500",
+  owner:      "bg-warning-ring",
   admin:      "bg-violet-500",
   front_desk: "bg-sky-500",
 };
@@ -465,12 +465,12 @@ export default function OwnerUsers() {
       {/* Header */}
       <div className="bg-white rounded-xl shadow-sm p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
+          <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2.5">
             <span className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center">
-              <i className="fas fa-users-cog text-sky-600"></i>
+              <i className="fas fa-users-cog text-sky-600" aria-hidden="true"></i>
             </span>
             Staff Users
-          </h1>
+          </h2>
           <p className="text-sm text-slate-500 mt-1 ml-[46px]">
             {isAdminView
               ? "Add, edit, and toggle front-desk accounts. Admin and owner accounts stay with the owner."
@@ -479,7 +479,7 @@ export default function OwnerUsers() {
         </div>
         <button onClick={openNew}
           className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400 transition">
-          <i className="fas fa-user-plus text-xs"></i>
+          <i className="fas fa-user-plus text-xs" aria-hidden="true"></i>
           <span className="text-sm font-medium">{isAdminView ? "Add Front Desk" : "Add User"}</span>
           <kbd className="ml-1.5 hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-white/20 rounded text-[10px] font-mono leading-none">
             Ctrl+N
@@ -491,11 +491,11 @@ export default function OwnerUsers() {
       {loadError && !loading && (
         <div className="bg-rose-50 border border-rose-200 rounded-xl px-5 py-3 flex items-center justify-between">
           <span className="text-sm text-rose-700 font-medium">
-            <i className="fas fa-exclamation-triangle mr-2"></i>Failed to load users. Please try again.
+            <i className="fas fa-exclamation-triangle mr-2" aria-hidden="true"></i>Failed to load users. Please try again.
           </span>
           <button onClick={load}
             className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition">
-            <i className="fas fa-redo mr-1.5"></i>Retry
+            <i className="fas fa-redo mr-1.5" aria-hidden="true"></i>Retry
           </button>
         </div>
       )}
@@ -503,14 +503,14 @@ export default function OwnerUsers() {
       {/* Search + Filters */}
       <div className="bg-white rounded-xl shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="relative flex-1">
-          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <i className="fas fa-search absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm" aria-hidden="true"></i>
           <input ref={searchRef} type="text" aria-label="Search users" placeholder="Search by name or email..."
             value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-400 transition" />
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
-              <i className="fas fa-times-circle text-sm"></i>
+              <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
         </div>
@@ -519,7 +519,7 @@ export default function OwnerUsers() {
               chips are redundant for them; render a static label
               instead so the layout doesn't shift. */}
           {isAdminView ? (
-            <span className="px-3.5 py-2 rounded-full text-xs font-semibold bg-sky-100 text-sky-700 ring-1 ring-sky-200">
+            <span className="px-3.5 py-2 rounded-full text-xs font-semibold bg-info-bg text-info-fg ring-1 ring-sky-200">
               Front Desk
             </span>
           ) : (
@@ -532,7 +532,7 @@ export default function OwnerUsers() {
               <button key={f.key} onClick={() => setFilterRole(f.key)}
                 className={`px-3.5 py-2 rounded-full text-xs font-semibold transition ${
                   filterRole === f.key
-                    ? "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
+                    ? "bg-info-bg text-info-fg ring-1 ring-sky-200"
                     : "bg-slate-50 text-slate-500 hover:bg-slate-100"
                 }`}>
                 {f.label}
@@ -549,7 +549,7 @@ export default function OwnerUsers() {
             <button key={`s-${f.key}`} onClick={() => setFilterStatus(f.key)}
               className={`px-3.5 py-2 rounded-full text-xs font-semibold transition ${
                 filterStatus === f.key
-                  ? "bg-sky-100 text-sky-700 ring-1 ring-sky-200"
+                  ? "bg-info-bg text-info-fg ring-1 ring-sky-200"
                   : "bg-slate-50 text-slate-500 hover:bg-slate-100"
               }`}>
               {f.label}
@@ -562,20 +562,20 @@ export default function OwnerUsers() {
       {!isAdminView && selected.size > 0 && (
         <div className="bg-sky-50 border border-sky-200 rounded-xl px-5 py-3 flex items-center justify-between animate-hero-fade-in opacity-0">
           <span className="text-sm font-medium text-sky-800">
-            <i className="fas fa-check-circle mr-2"></i>{selected.size} selected
+            <i className="fas fa-check-circle mr-2" aria-hidden="true"></i>{selected.size} selected
           </span>
           <div className="flex items-center gap-2">
             <button onClick={() => bulkAction("activate")}
               className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-check mr-1.5"></i>Activate
+              <i className="fas fa-check mr-1.5" aria-hidden="true"></i>Activate
             </button>
             <button onClick={() => bulkAction("deactivate")}
               className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-pause mr-1.5"></i>Deactivate
+              <i className="fas fa-pause mr-1.5" aria-hidden="true"></i>Deactivate
             </button>
             <button onClick={() => setBulkDeleteConfirm(true)}
               className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold rounded-lg transition">
-              <i className="fas fa-trash mr-1.5"></i>Delete
+              <i className="fas fa-trash mr-1.5" aria-hidden="true"></i>Delete
             </button>
             <button onClick={() => setSelected(new Set())}
               className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
@@ -633,7 +633,7 @@ export default function OwnerUsers() {
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
-                <i className="fas fa-users text-slate-300 text-2xl"></i>
+                <i className="fas fa-users text-slate-300 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-slate-500 font-medium">
                 {debouncedSearch || filterRole !== "all" || filterStatus !== "all" ? "No users match your filters." : "No staff users yet."}
@@ -646,7 +646,7 @@ export default function OwnerUsers() {
               {(debouncedSearch || filterRole !== "all" || filterStatus !== "all") && (
                 <button onClick={() => { setSearchTerm(""); setFilterRole(isAdminView ? "front_desk" : "all"); setFilterStatus("all"); }}
                   className="mt-4 text-sm text-sky-600 hover:text-sky-700 font-medium">
-                  <i className="fas fa-times mr-1.5"></i>Clear filters
+                  <i className="fas fa-times mr-1.5" aria-hidden="true"></i>Clear filters
                 </button>
               )}
             </div>
@@ -670,8 +670,8 @@ export default function OwnerUsers() {
                           {label}
                           <span className="text-slate-400 group-hover:text-sky-400">
                             {sortBy === key
-                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-sky-500`}></i>
-                              : <i className="fas fa-sort opacity-40"></i>}
+                              ? <i className={`fas fa-arrow-${sortDir === "asc" ? "up" : "down"} text-sky-500`} aria-hidden="true"></i>
+                              : <i className="fas fa-sort opacity-40" aria-hidden="true"></i>}
                           </span>
                         </button>
                       </th>
@@ -725,8 +725,8 @@ export default function OwnerUsers() {
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                          u.is_active ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
-                          <span className={`h-2 w-2 rounded-full ${u.is_active ? "bg-emerald-500" : "bg-rose-500"}`} />
+                          u.is_active ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg"}`}>
+                          <span className={`h-2 w-2 rounded-full ${u.is_active ? "bg-success-ring" : "bg-danger-ring"}`} />
                           {u.is_active ? "Active" : "Disabled"}
                         </span>
                       </td>
@@ -734,12 +734,12 @@ export default function OwnerUsers() {
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => copyEmail(u.email)} title="Copy email"
                             className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                            <i className="fas fa-envelope text-xs"></i>
+                            <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
                           </button>
                           {canEdit(u) && (
                             <button onClick={() => openEdit(u)} title="Edit"
                               className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                              <i className="fas fa-pen text-xs"></i>
+                              <i className="fas fa-pen text-xs" aria-hidden="true"></i>
                             </button>
                           )}
                           {canToggleActive(u) && (
@@ -747,13 +747,13 @@ export default function OwnerUsers() {
                               className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
                                 ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
                                 : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}>
-                              <i className={`fas ${u.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`}></i>
+                              <i className={`fas ${u.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                             </button>
                           )}
                           {canDelete(u) && (
                             <button onClick={() => setConfirmDelete(u)} title="Delete"
                               className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                              <i className="fas fa-trash text-xs"></i>
+                              <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                             </button>
                           )}
                         </div>
@@ -772,7 +772,7 @@ export default function OwnerUsers() {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
                       className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs"></i>
+                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
                     </button>
                     {getPageNumbers(safePage, totalPages).map((n, i) =>
                       n === "..." ? (
@@ -792,7 +792,7 @@ export default function OwnerUsers() {
                     )}
                     <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
                       className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs"></i>
+                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -806,7 +806,7 @@ export default function OwnerUsers() {
           <div className="px-6 pb-6 flex justify-center">
             <button onClick={load}
               className="text-sm text-sky-600 hover:text-sky-700 font-medium flex items-center gap-1.5">
-              <i className="fas fa-redo text-xs"></i>Retry loading
+              <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry loading
             </button>
           </div>
         )}
@@ -819,13 +819,13 @@ export default function OwnerUsers() {
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <span className="h-9 w-9 rounded-lg bg-sky-100 flex items-center justify-center">
-                  <i className="fas fa-user text-sky-600"></i>
+                  <i className="fas fa-user text-sky-600" aria-hidden="true"></i>
                 </span>
                 User Details
               </h3>
               <button onClick={() => setViewUser(null)}
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
             <div className="p-6 space-y-4">
@@ -854,21 +854,21 @@ export default function OwnerUsers() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                   <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center mx-auto mb-1.5">
-                    <i className="fas fa-shield-halved text-sky-600 text-xs"></i>
+                    <i className="fas fa-shield-halved text-sky-600 text-xs" aria-hidden="true"></i>
                   </div>
                   <p className="text-xs font-semibold text-slate-700">{ROLE_LABELS[viewUser.role] || viewUser.role}</p>
                   <p className="text-[10px] text-slate-400">Role</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                   <div className={`h-8 w-8 rounded-lg flex items-center justify-center mx-auto mb-1.5 ${viewUser.is_active ? "bg-emerald-100" : "bg-rose-100"}`}>
-                    <i className={`fas ${viewUser.is_active ? "fa-check-circle text-emerald-600" : "fa-times-circle text-rose-600"} text-xs`}></i>
+                    <i className={`fas ${viewUser.is_active ? "fa-check-circle text-emerald-600" : "fa-times-circle text-rose-600"} text-xs`} aria-hidden="true"></i>
                   </div>
                   <p className="text-xs font-semibold text-slate-700">{viewUser.is_active ? "Active" : "Disabled"}</p>
                   <p className="text-[10px] text-slate-400">Status</p>
                 </div>
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
                   <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center mx-auto mb-1.5">
-                    <i className="fas fa-calendar text-violet-600 text-xs"></i>
+                    <i className="fas fa-calendar text-violet-600 text-xs" aria-hidden="true"></i>
                   </div>
                   <p className="text-xs font-semibold text-slate-700">
                     {viewUser.created_at ? new Date(viewUser.created_at).toLocaleDateString("en-PH", { year: "numeric", month: "short", day: "numeric" }) : "\u2014"}
@@ -897,12 +897,12 @@ export default function OwnerUsers() {
                 className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">Close</button>
               <button onClick={() => copyEmail(viewUser.email)}
                 className="px-4 py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-medium transition">
-                <i className="fas fa-envelope mr-1.5 text-xs"></i>Copy Email
+                <i className="fas fa-envelope mr-1.5 text-xs" aria-hidden="true"></i>Copy Email
               </button>
               {canEdit(viewUser) && (
                 <button onClick={() => openEdit(viewUser)}
                   className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-sm font-medium transition">
-                  <i className="fas fa-pen mr-1.5 text-xs"></i>Edit
+                  <i className="fas fa-pen mr-1.5 text-xs" aria-hidden="true"></i>Edit
                 </button>
               )}
             </div>
@@ -965,7 +965,7 @@ export default function OwnerUsers() {
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">
-                  <i className={`fas ${editing.id ? "fa-user-pen" : "fa-user-plus"} text-sky-600 text-lg`}></i>
+                  <i className={`fas ${editing.id ? "fa-user-pen" : "fa-user-plus"} text-sky-600 text-lg`} aria-hidden="true"></i>
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">{editing.id ? "Edit User" : "Add New User"}</h2>
@@ -974,7 +974,7 @@ export default function OwnerUsers() {
               </div>
               <button type="button" onClick={guardedCloseModal}
                 className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
-                <i className="fas fa-times"></i>
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -984,7 +984,7 @@ export default function OwnerUsers() {
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-5 w-5 rounded-md bg-sky-100 flex items-center justify-center">
-                      <i className="fas fa-id-card text-sky-500 text-[10px]"></i>
+                      <i className="fas fa-id-card text-sky-500 text-[10px]" aria-hidden="true"></i>
                     </span>Account Info
                   </h3>
                 </div>
@@ -1013,8 +1013,8 @@ export default function OwnerUsers() {
                         title="Change photo"
                       >
                         {uploadingAvatar
-                          ? <i className="fas fa-spinner fa-spin text-[11px]"></i>
-                          : <i className="fas fa-camera text-[11px]"></i>}
+                          ? <i className="fas fa-spinner fa-spin text-[11px]" aria-hidden="true"></i>
+                          : <i className="fas fa-camera text-[11px]" aria-hidden="true"></i>}
                       </button>
                       <input
                         ref={avatarFileRef}
@@ -1033,7 +1033,7 @@ export default function OwnerUsers() {
                           onClick={() => setField("avatar", "")}
                           className="text-xs text-rose-600 hover:text-rose-700 mt-1"
                         >
-                          <i className="fas fa-trash-alt mr-1"></i>Remove
+                          <i className="fas fa-trash-alt mr-1" aria-hidden="true"></i>Remove
                         </button>
                       )}
                     </div>
@@ -1064,7 +1064,7 @@ export default function OwnerUsers() {
                 <div className="px-4 py-2.5 border-b border-slate-200 bg-white">
                   <h3 className="text-sm font-semibold text-slate-800 flex items-center gap-2">
                     <span className="h-5 w-5 rounded-md bg-violet-100 flex items-center justify-center">
-                      <i className="fas fa-shield-halved text-violet-500 text-[10px]"></i>
+                      <i className="fas fa-shield-halved text-violet-500 text-[10px]" aria-hidden="true"></i>
                     </span>Access & Security
                   </h3>
                 </div>
@@ -1087,7 +1087,7 @@ export default function OwnerUsers() {
                             onChange={() => setField("role", key)} className="peer sr-only"
                             disabled={isAdminView} />
                           <div className={`flex flex-col items-center gap-1.5 p-3 bg-white border border-slate-200 rounded-lg transition-all hover:border-slate-300 ${bg} ${isAdminView ? "bg-sky-50 border-sky-300 ring-1 ring-sky-200" : ""}`}>
-                            <i className={`fas ${icon} text-slate-400`}></i>
+                            <i className={`fas ${icon} text-slate-400`} aria-hidden="true"></i>
                             <span className="text-xs font-semibold text-slate-700">{label}</span>
                           </div>
                         </label>
@@ -1099,7 +1099,7 @@ export default function OwnerUsers() {
                       Password {editing.id ? <span className="text-slate-400 font-normal normal-case">(leave blank to keep current)</span> : <span className="text-red-400">*</span>}
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i className="fas fa-lock text-xs"></i></span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i className="fas fa-lock text-xs" aria-hidden="true"></i></span>
                       <input type={showPassword ? "text" : "password"} value={editing.password || ""} onChange={(e) => setField("password", e.target.value)}
                         required={!editing.id} minLength={8}
                         placeholder={editing.id ? "Enter new password to change" : "Meet all requirements below"}
@@ -1107,7 +1107,7 @@ export default function OwnerUsers() {
                       <button type="button" onClick={() => setShowPassword((s) => !s)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
                         aria-label={showPassword ? "Hide password" : "Show password"}>
-                        <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} text-xs`}></i>
+                        <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"} text-xs`} aria-hidden="true"></i>
                       </button>
                     </div>
                     {/* Live requirements checklist — shown only when the
@@ -1135,7 +1135,7 @@ export default function OwnerUsers() {
                 || ((editing?.password ?? "").length > 0 && !checkPasswordStrength(editing?.password))
               }
                 className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition">
-                {saving ? <><i className="fas fa-spinner fa-spin mr-2"></i>Saving...</> : <><i className="fas fa-check mr-2"></i>Save User</>}
+                {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>Save User</>}
               </button>
             </div>
           </form>
