@@ -15,6 +15,7 @@ import { getAdminBookings } from "../../lib/adminApi.js";
 import { api } from "../../lib/api";
 import { localDateStr } from "../../lib/format";
 import Toast, { useToast } from "../../components/ui/Toast";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -39,7 +40,15 @@ const chartOptions = {
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
+function greetForHour() {
+  const h = new Date().getHours();
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
 export default function OwnerDashboard() {
+  const { user } = useAuth();
   const [toast, showToast, clearToast, toastType] = useToast();
   const [bookings,   setBookings]   = useState([]);
 
@@ -370,15 +379,18 @@ export default function OwnerDashboard() {
       {/* Header + refresh */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-xl md:text-2xl font-semibold text-slate-900">
+            {greetForHour()}, {user?.name?.split(" ")[0] || "Owner"}.
+          </h2>
+          <p className="text-sm text-slate-500 mt-0.5">
             {new Date().toLocaleDateString("en-PH", { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
           </p>
         </div>
         <button
           onClick={() => load(true)}
           disabled={refreshing}
-          className="text-slate-400 hover:text-slate-600 transition disabled:opacity-50 p-2"
-          title="Refresh"
+          aria-label="Refresh dashboard"
+          className="text-slate-400 hover:text-slate-600 transition disabled:opacity-50 h-11 w-11 flex items-center justify-center rounded-lg"
         >
           <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
         </button>

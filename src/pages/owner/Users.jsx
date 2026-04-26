@@ -680,43 +680,47 @@ export default function OwnerUsers() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
+                  {/* Restructured rows: dropped role="button" + tabIndex + the
+                      whole-row onClick. Tab order no longer walks into a
+                      "row button" then immediately into nested form
+                      controls — each row is a static <tr> and the user
+                      name is its own button (the natural click affordance).
+                      Mirrors the admin/Catalog.jsx template from 8391ff3. */}
                   {paginated.map((u, idx) => (
                     <tr key={u.id}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setViewUser(u)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewUser(u); } }}
-                      className={`cursor-pointer transition-all hover:bg-sky-50/40 hover:shadow-sm ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!u.is_active ? "opacity-60" : ""}`}>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      className={`transition-all ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!u.is_active ? "opacity-60" : ""}`}>
+                      <td className="px-6 py-4">
                         {!isAdminView && u.id !== currentUser?.id ? (
                           <input type="checkbox" checked={selected.has(u.id)}
                             onChange={() => toggleSelect(u.id)}
+                            aria-label={`Select ${u.name}`}
                             className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400" />
-                        ) : <div className="h-4 w-4"></div>}
+                        ) : <div className="h-4 w-4" aria-hidden="true"></div>}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                        <button type="button" onClick={() => setViewUser(u)}
+                          className="flex items-center gap-3 text-left w-full hover:text-sky-700 group focus:outline-none focus:ring-2 focus:ring-sky-400 rounded-md p-1 -m-1">
                           {u.avatar ? (
                             <img
                               src={u.avatar}
-                              alt={u.name}
+                              alt=""
                               className="h-9 w-9 rounded-full object-cover shrink-0"
                               loading="lazy"
                               decoding="async"
                             />
                           ) : (
-                            <div className={`h-9 w-9 rounded-full ${ROLE_AVATAR[u.role] || "bg-slate-400"} text-white flex items-center justify-center text-xs font-bold shrink-0`}>
+                            <div className={`h-9 w-9 rounded-full ${ROLE_AVATAR[u.role] || "bg-slate-400"} text-white flex items-center justify-center text-xs font-bold shrink-0`} aria-hidden="true">
                               {getInitials(u.name)}
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="font-medium text-slate-900 truncate">
+                            <p className="font-medium text-slate-900 group-hover:text-sky-700 truncate">
                               {u.name}
                               {u.id === currentUser?.id && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">(you)</span>}
                             </p>
                             <p className="text-xs text-slate-400 truncate">{u.email}</p>
                           </div>
-                        </div>
+                        </button>
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || "bg-slate-100 text-slate-700"}`}>
@@ -726,33 +730,33 @@ export default function OwnerUsers() {
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
                           u.is_active ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg"}`}>
-                          <span className={`h-2 w-2 rounded-full ${u.is_active ? "bg-success-ring" : "bg-danger-ring"}`} />
+                          <span className={`h-2 w-2 rounded-full ${u.is_active ? "bg-success-ring" : "bg-danger-ring"}`} aria-hidden="true" />
                           {u.is_active ? "Active" : "Disabled"}
                         </span>
                       </td>
-                      <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                      <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => copyEmail(u.email)} title="Copy email"
+                          <button onClick={() => copyEmail(u.email)} aria-label={`Copy email for ${u.name}`}
                             className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
                             <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
                           </button>
                           {canEdit(u) && (
-                            <button onClick={() => openEdit(u)} title="Edit"
+                            <button onClick={() => openEdit(u)} aria-label={`Edit ${u.name}`}
                               className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                               <i className="fas fa-pen text-xs" aria-hidden="true"></i>
                             </button>
                           )}
                           {canToggleActive(u) && (
-                            <button onClick={() => setConfirmToggle(u)} title={u.is_active ? "Deactivate" : "Activate"}
+                            <button onClick={() => setConfirmToggle(u)} aria-label={u.is_active ? `Deactivate ${u.name}` : `Activate ${u.name}`}
                               className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
-                                ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
-                                : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}>
+                                ? "hover:bg-warning-bg text-warning-fg"
+                                : "hover:bg-success-bg text-success-fg"}`}>
                               <i className={`fas ${u.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                             </button>
                           )}
                           {canDelete(u) && (
-                            <button onClick={() => setConfirmDelete(u)} title="Delete"
-                              className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
+                            <button onClick={() => setConfirmDelete(u)} aria-label={`Delete ${u.name}`}
+                              className="h-10 w-10 rounded-lg hover:bg-danger-bg text-danger-fg flex items-center justify-center transition">
                               <i className="fas fa-trash text-xs" aria-hidden="true"></i>
                             </button>
                           )}
@@ -1011,6 +1015,7 @@ export default function OwnerUsers() {
                         disabled={uploadingAvatar}
                         className="absolute -bottom-1 -right-1 bg-sky-600 text-white rounded-full w-7 h-7 flex items-center justify-center border-2 border-white hover:bg-sky-700 disabled:opacity-60"
                         title="Change photo"
+                        aria-label="Change profile photo"
                       >
                         {uploadingAvatar
                           ? <i className="fas fa-spinner fa-spin text-[11px]" aria-hidden="true"></i>

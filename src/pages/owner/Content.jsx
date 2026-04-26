@@ -3075,7 +3075,7 @@ function SitePreviewModal({ open, onClose }) {
         {/* Close */}
         <button
           onClick={onClose}
-          className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center transition"
+          className="w-11 h-11 rounded-lg hover:bg-white/10 flex items-center justify-center transition"
           title="Close preview"
           aria-label="Close"
         >
