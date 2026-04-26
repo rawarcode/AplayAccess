@@ -270,23 +270,44 @@ export default function GuestRecords({ embedded = false }) {
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
+                  {/* Header order MUST match the body-cell order below
+                      (Guest → Contact → Total Visits → Completed →
+                      Last Visit → Total Spend → Actions). The non-sortable
+                      "Contact" column sits at position 2 between Guest
+                      and Total Visits, before the sortable cluster. */}
                   <tr>
-                    {[['Guest','Guest'],['Total Visits','Total Visits'],['Completed','Completed'],['Last Visit','Last Visit'],['Total Spend','Total Spend']].map(([label,key]) => {
-                      const isSorted = sortBy === key;
+                    {[
+                      { kind: 'sort',   label: 'Guest',        key: 'Guest' },
+                      { kind: 'plain',  label: 'Contact' },
+                      { kind: 'sort',   label: 'Total Visits', key: 'Total Visits' },
+                      { kind: 'sort',   label: 'Completed',    key: 'Completed' },
+                      { kind: 'sort',   label: 'Last Visit',   key: 'Last Visit' },
+                      { kind: 'sort',   label: 'Total Spend',  key: 'Total Spend' },
+                      { kind: 'plain',  label: 'Actions' },
+                    ].map((col) => {
+                      if (col.kind === 'plain') {
+                        return (
+                          <th key={col.label} scope="col"
+                            className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">
+                            {col.label}
+                          </th>
+                        );
+                      }
+                      const isSorted = sortBy === col.key;
                       const ariaSort = isSorted ? (sortDir === 'asc' ? 'ascending' : 'descending') : 'none';
                       return (
                         <th
-                          key={key}
+                          key={col.key}
                           scope="col"
                           aria-sort={ariaSort}
                           className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase"
                         >
                           <button
-                            onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
-                            aria-label={`Sort by ${label}, currently ${ariaSort}`}
+                            onClick={() => { if(sortBy===col.key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(col.key);setSortDir('asc');} }}
+                            aria-label={`Sort by ${col.label}, currently ${ariaSort}`}
                             className="flex items-center gap-1 hover:text-sky-600 transition-colors group"
                           >
-                            {label}
+                            {col.label}
                             <span className="text-slate-400 group-hover:text-sky-400" aria-hidden="true">
                               {isSorted
                                 ? <i className={`fas fa-arrow-${sortDir==='asc'?'up':'down'} text-sky-500`}></i>
@@ -296,8 +317,6 @@ export default function GuestRecords({ embedded = false }) {
                         </th>
                       );
                     })}
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Contact</th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
