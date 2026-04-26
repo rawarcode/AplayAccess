@@ -175,18 +175,14 @@ function RoomsTab() {
           <div>
             <h2 className="text-lg font-bold text-slate-900">Rooms Catalog</h2>
             <p className="text-sm text-slate-500">Toggle which rooms are currently bookable. Owner controls rates and inventory.</p>
-            {/* Category counts use a single neutral pill style — color
-                is reserved for status (AvailBadge). Earlier rotation
-                of sky/amber/emerald per category was decorative noise
-                that didn't help admin distinguish action targets. */}
             {rooms.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-1.5">
                 {[
-                  { count: countRoom,     label: "Rooms",     icon: "fa-bed"            },
-                  { count: countCottage,  label: "Cottages",  icon: "fa-umbrella-beach" },
-                  { count: countPavilion, label: "Pavilions", icon: "fa-archway"        },
-                ].map(({ count, label, icon }) => (
-                  <span key={label} className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border bg-slate-50 text-slate-600 border-slate-200">
+                  { count: countRoom,     label: "Rooms",     icon: "fa-bed",            bg: "bg-sky-50 text-sky-700 border-sky-200" },
+                  { count: countCottage,  label: "Cottages",  icon: "fa-umbrella-beach", bg: "bg-amber-50 text-amber-700 border-amber-200" },
+                  { count: countPavilion, label: "Pavilions", icon: "fa-archway",        bg: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                ].map(({ count, label, icon, bg }) => (
+                  <span key={label} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${bg}`}>
                     <i className={`fas ${icon} text-[10px]`} aria-hidden="true"></i>{count} {label}
                   </span>
                 ))}
@@ -411,20 +407,17 @@ function RoomsTab() {
                   </div>
                 )}
 
-                {/* Rate cards — neutral surface, single hue. The earlier
-                    amber/indigo/emerald rotation was decorative, not
-                    semantic; consistent neutral scans faster. */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: "Day Rate",  value: `₱${Number(viewRoom.day_rate || 0).toLocaleString()}`,       icon: "fa-sun"   },
-                    { label: "Overnight", value: `₱${Number(viewRoom.overnight_rate || 0).toLocaleString()}`, icon: "fa-moon"  },
-                    { label: "24 Hours",  value: `₱${Number(viewRoom.rate_24hr || 0).toLocaleString()}`,      icon: "fa-clock" },
-                  ].map(({ label, value, icon }) => (
-                    <div key={label} className="rounded-xl bg-slate-50 border border-slate-200 p-3 text-center">
-                      <div className="h-8 w-8 rounded-lg bg-white text-slate-500 flex items-center justify-center mx-auto mb-1.5">
+                    { label: "Day Rate",   value: `₱${Number(viewRoom.day_rate || 0).toLocaleString()}`,       icon: "fa-sun",   bg: "bg-amber-50",   text: "text-amber-700",   iconBg: "bg-amber-100 text-amber-500" },
+                    { label: "Overnight",  value: `₱${Number(viewRoom.overnight_rate || 0).toLocaleString()}`, icon: "fa-moon",  bg: "bg-indigo-50",  text: "text-indigo-700",  iconBg: "bg-indigo-100 text-indigo-500" },
+                    { label: "24 Hours",   value: `₱${Number(viewRoom.rate_24hr || 0).toLocaleString()}`,      icon: "fa-clock", bg: "bg-emerald-50", text: "text-emerald-700", iconBg: "bg-emerald-100 text-emerald-500" },
+                  ].map(({ label, value, icon, bg, text, iconBg }) => (
+                    <div key={label} className={`rounded-xl ${bg} border border-slate-100 p-3 text-center`}>
+                      <div className={`h-8 w-8 rounded-lg ${iconBg} flex items-center justify-center mx-auto mb-1.5`}>
                         <i className={`fas ${icon} text-xs`} aria-hidden="true"></i>
                       </div>
-                      <p className="text-sm font-bold text-slate-800">{value}</p>
+                      <p className={`text-sm font-bold ${text}`}>{value}</p>
                       <p className="text-[10px] text-slate-500 mt-0.5">{label}</p>
                     </div>
                   ))}
@@ -772,23 +765,23 @@ function AddonsTab() {
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="h-6 w-6 rounded-md bg-white flex items-center justify-center">
-                      <i className="fas fa-peso-sign text-slate-500 text-[10px]" aria-hidden="true"></i>
+                    <span className="h-6 w-6 rounded-md bg-emerald-100 flex items-center justify-center">
+                      <i className="fas fa-peso-sign text-emerald-600 text-[10px]" aria-hidden="true"></i>
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Price</span>
+                    <span className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide">Price</span>
                   </div>
-                  <p className="text-lg font-bold text-slate-800">{"₱"}{Number(viewItem.price).toLocaleString()}</p>
+                  <p className="text-lg font-bold text-emerald-800">{"₱"}{Number(viewItem.price).toLocaleString()}</p>
                 </div>
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-3.5">
+                <div className="rounded-xl bg-sky-50 border border-sky-100 p-3.5">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <span className="h-6 w-6 rounded-md bg-white flex items-center justify-center">
-                      <i className="fas fa-boxes-stacked text-slate-500 text-[10px]" aria-hidden="true"></i>
+                    <span className="h-6 w-6 rounded-md bg-sky-100 flex items-center justify-center">
+                      <i className="fas fa-boxes-stacked text-sky-600 text-[10px]" aria-hidden="true"></i>
                     </span>
-                    <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Max Qty</span>
+                    <span className="text-[10px] font-semibold text-sky-600 uppercase tracking-wide">Max Qty</span>
                   </div>
-                  <p className="text-lg font-bold text-slate-800">{viewItem.max_qty}</p>
+                  <p className="text-lg font-bold text-sky-800">{viewItem.max_qty}</p>
                 </div>
               </div>
 
