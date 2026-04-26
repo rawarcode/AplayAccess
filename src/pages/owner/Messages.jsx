@@ -1015,8 +1015,12 @@ export default function AdminMessages() {
           On a laptop-height viewport the page felt "too tall". */}
       <div className="flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex min-h-0">
 
-        {/* Thread list */}
-        <div className="w-80 shrink-0 flex flex-col border-r border-slate-200">
+        {/* Thread list — full-width on mobile when no thread is open;
+            fixed 320px sidebar on md+ alongside the conversation panel.
+            Master-detail mobile pattern (matches dashboard/Messages.jsx
+            from the guest side) — only ONE panel visible at a time on
+            mobile so neither gets crushed into a 40px column. */}
+        <div className={`${active ? 'hidden md:flex' : 'flex'} w-full md:w-80 shrink-0 flex-col border-r border-slate-200`}>
           <div className="p-3 border-b border-slate-100 space-y-2">
             <div className="relative">
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden="true"></i>
@@ -1104,8 +1108,11 @@ export default function AdminMessages() {
           </div>
         </div>
 
-        {/* Conversation panel */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Conversation panel — hidden on mobile when no thread open
+            (the thread list takes the whole width); takes over the
+            whole width on mobile when a thread is selected. Desktop
+            stays as flex-1 alongside the 320px thread list. */}
+        <div className={`${active ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-w-0`}>
           {!active ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-4">
               <div className="h-20 w-20 rounded-2xl bg-slate-100 flex items-center justify-center">
@@ -1118,8 +1125,19 @@ export default function AdminMessages() {
             </div>
           ) : (
             <>
-              <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-4">
-                <div className="min-w-0">
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-3 md:gap-4">
+                {/* Mobile-only back button — clearing activeId returns the
+                    panel-toggle classes above to "show thread list,
+                    hide conversation". Hidden on md+ where both panels
+                    are visible side-by-side. */}
+                <button
+                  onClick={() => setActiveId(null)}
+                  aria-label="Back to threads"
+                  className="md:hidden h-11 w-11 -ml-2 shrink-0 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200/60"
+                >
+                  <i className="fas fa-arrow-left" aria-hidden="true"></i>
+                </button>
+                <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-slate-900 truncate">{active.subject}</h3>
                   <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
                     <span><i className="fas fa-user mr-1 text-slate-400" aria-hidden="true"></i>{active.sender}</span>
