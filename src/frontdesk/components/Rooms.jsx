@@ -513,29 +513,35 @@ export default function FDRooms({ embedded = false }) {
     };
   }), [rooms, bookings]);
 
-  // Summary counts. Previously each room contributed both its day and
-  // night status to the totals, which double-counted 24hr bookings (one
-  // booking → +1 occupied for day + +1 occupied for night = misleading
-  // "2 occupied" in the header strip).
+  // Summary counts. Counts UNITS not slot-cards: single-unit rooms
+  // classify by max-severity status across both slots (occupied >
+  // incoming > vacant); multi-unit rooms take the max occupied/incoming
+  // counts across their two slots so a 24hr booking on one cottage
+  // only contributes 1 to occupied (not 2 from being in both windows).
   //
-  // Now: count UNITS, not slot-cards. Single-unit rooms classify by
-  // max-severity status across both slots (occupied > incoming > vacant).
-  // Multi-unit rooms take the max occupied/incoming counts across their
-  // two slots, since a single physical unit booked 24hr appears in both.
+  // Tent inventory is intentionally excluded from the Vacant tally —
+  // the tent row carries hundreds of "spaces" that exist conceptually
+  // (bring-your-own-pitch service) but aren't real room inventory.
+  // Padding the Vacant card with "+1023 vacant tent slots" produced a
+  // misleading 4-digit number on the board. The same row IS counted
+  // when it has actual occupied/incoming activity, matching the
+  // "tents only render when active" filter elsewhere on the page.
   const counts = useMemo(() => {
     const c = { vacant: 0, occupied: 0, incoming: 0 };
-    roomInfos.forEach(({ dayInfo, nightInfo }) => {
+    roomInfos.forEach(({ room, dayInfo, nightInfo }) => {
+      const isTent = getCat(room) === 'tent';
       if (dayInfo.multi) {
         const occ = Math.max(dayInfo.occupied, nightInfo.occupied);
         const inc = Math.max(dayInfo.incoming, nightInfo.incoming);
         c.occupied += occ;
         c.incoming += inc;
-        c.vacant   += Math.max(0, dayInfo.quantity - occ - inc);
+        if (!isTent) c.vacant += Math.max(0, dayInfo.quantity - occ - inc);
       } else {
         const status =
           (dayInfo.status === 'occupied' || nightInfo.status === 'occupied') ? 'occupied'
         : (dayInfo.status === 'incoming' || nightInfo.status === 'incoming') ? 'incoming'
         : 'vacant';
+        if (status === 'vacant' && isTent) return;
         c[status] += 1;
       }
     });
