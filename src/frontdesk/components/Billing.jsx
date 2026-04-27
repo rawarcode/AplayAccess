@@ -543,10 +543,22 @@ export default function Billing({ embedded = false }) {
   // outstanding balance. Using outstanding (derived from paidAmount) means
   // a booking that was fully paid, then had extra guests added, correctly
   // shows up here again.
+  //
+  // Sort: overdue rows first (a Checked-In whose checkOut already
+  // passed is the most urgent collect — guest is physically still
+  // there past their slot). Same isOverdue rule the main-table sort
+  // uses (fb69c53), kept here so both surfaces agree on what counts
+  // as overdue.
   const { todayConfirmed, todayCompleted, todayCancelled, revenueToday } = useMemo(() => {
     const outstandingFor = b =>
       Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
-    const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && outstandingFor(b) > 0);
+    const todayConfirmed  = todayAll
+      .filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && outstandingFor(b) > 0)
+      .sort((a, b) => {
+        const ao = isOverdue(a), bo = isOverdue(b);
+        if (ao !== bo) return ao ? -1 : 1;
+        return 0; // stable within tier
+      });
     const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
     const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
     // Revenue = paid_amount (backend-maintained single source of truth).
