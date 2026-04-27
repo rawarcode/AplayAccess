@@ -534,7 +534,8 @@ export default function AdminAnnouncements() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <table className="w-full text-sm">
+            <>
+            <table className="hidden md:table w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                 <tr>
                   <th className="px-4 py-3 w-10"></th>
@@ -547,6 +548,22 @@ export default function AdminAnnouncements() {
               </thead>
               <tbody className="divide-y divide-slate-100"><SkeletonRows /></tbody>
             </table>
+            <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading announcements">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-start gap-3">
+                    <div className="h-12 w-12 rounded-lg bg-slate-200 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 bg-slate-200 rounded w-40" />
+                      <div className="h-3 bg-slate-100 rounded w-full" />
+                      <div className="h-3 bg-slate-100 rounded w-2/3" />
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded-full w-16" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            </>
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
@@ -569,7 +586,11 @@ export default function AdminAnnouncements() {
             </div>
           ) : (
             <>
-              <table className="w-full text-sm text-slate-700">
+              {/* Desktop table — wrapped hidden md:table so the mobile
+                  card list (rendered below) is the sole listing visible
+                  <md. 6 cols including a media thumbnail + multi-line
+                  body text doesn't fit phone widths. */}
+              <table className="hidden md:table w-full text-sm text-slate-700">
                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                   <tr>
                     <th className="px-4 py-3 w-10">
@@ -691,6 +712,103 @@ export default function AdminAnnouncements() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile card list — same paginated set. Whole-card tap
+                  opens the detail viewer. Pin badge surfaces above the
+                  title (matches desktop). Active toggle stays inline as
+                  a tappable pill on the bottom-right; edit/duplicate/
+                  delete cluster on the bottom-left. */}
+              <ul className="md:hidden space-y-3 p-4">
+                {paginated.map((item) => (
+                  <li key={item.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setViewItem(item)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewItem(item); } }}
+                      className={`rounded-xl border border-slate-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-indigo-50/40 transition focus:outline-none focus:ring-2 focus:ring-indigo-400 ${!item.is_active ? 'opacity-70' : ''}`}
+                    >
+                      {/* Top row — checkbox + media thumb + title/body */}
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select ${item.title}`}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400 shrink-0"
+                        />
+                        {item.media_url ? (
+                          <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center shrink-0">
+                            {isVideoUrl(item.media_url) ? (
+                              <div className="relative w-full h-full">
+                                <video src={item.media_url} muted className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                  <i className="fas fa-play text-white text-xs" aria-hidden="true"></i>
+                                </div>
+                              </div>
+                            ) : (
+                              <img src={item.media_url} alt="" loading="lazy" className="w-full h-full object-cover" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-slate-100 flex items-center justify-center text-slate-300 shrink-0">
+                            <i className="fas fa-image text-base" aria-hidden="true"></i>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          {item.is_pinned && (
+                            <span className="inline-flex items-center gap-1 text-[10px] bg-warning-bg text-warning-fg px-2 py-0.5 rounded-full font-semibold mb-1">
+                              <i className="fas fa-thumbtack text-[8px]" aria-hidden="true"></i>Pinned
+                            </span>
+                          )}
+                          <p className="font-semibold text-slate-800 truncate">{item.title}</p>
+                          <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{item.body}</p>
+                          {item.creator?.name && (
+                            <p className="text-[10px] text-slate-400 mt-1">by {item.creator.name}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Footer — published date + active toggle + actions */}
+                      <div
+                        className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <p className="text-[11px] text-slate-400 whitespace-nowrap">
+                          {formatDate(item.published_at)}
+                        </p>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => toggleActive(item)}
+                            aria-label={item.is_active ? `Deactivate ${item.title}` : `Activate ${item.title}`}
+                            className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition mr-1 ${
+                              item.is_active
+                                ? 'bg-success-bg text-success-fg hover:bg-emerald-200'
+                                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                            }`}
+                          >
+                            <span className={`w-2 h-2 rounded-full ${item.is_active ? 'bg-success-ring' : 'bg-slate-400'}`} aria-hidden="true" />
+                            {item.is_active ? 'Active' : 'Inactive'}
+                          </button>
+                          <button onClick={() => openEdit(item)} aria-label={`Edit ${item.title}`}
+                            className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                          </button>
+                          <button onClick={() => openDuplicate(item)} aria-label={`Duplicate ${item.title}`}
+                            className="h-10 w-10 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
+                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                          </button>
+                          <button onClick={() => setConfirmDelete(item)} aria-label={`Delete ${item.title}`}
+                            className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
+                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
               {/* Pagination */}
               {totalPages > 1 && (
