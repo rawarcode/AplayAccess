@@ -9,6 +9,7 @@ import { getFdBookings, getFdRooms, updateBookingStatus, checkInBooking, checkOu
 import { api } from '../../lib/api';
 import { fmtDateTime, fmtTime, fmtMoney, fmtGuestEmail } from '../../lib/format';
 import { useNotifications } from '../../context/NotificationContext.jsx';
+import { usePagination, PaginationBar } from '../../lib/pagination.jsx';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -303,6 +304,14 @@ export default function Bookings({ embedded = false }) {
     });
     return keyed.map(x => x.b);
   }, [bookings, filterStatus, filterSource, searchTerm, sortBy, sortDir, entranceRates]);
+
+  // Pagination — 25 rows per page is dense enough to scan a busy
+  // booking day at a glance, sparse enough to keep mobile cards from
+  // becoming an endless scroll. Reset to page 1 whenever any filter
+  // changes so the user doesn't end up on "page 5 of 1" after
+  // narrowing the list.
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(filtered, 25);
+  useEffect(() => { setPage(1); }, [filterStatus, filterSource, searchTerm, sortBy, sortDir, setPage]);
 
   // Source-count badges for the segmented toggle
   const sourceCounts = useMemo(() => {
@@ -683,7 +692,7 @@ export default function Bookings({ embedded = false }) {
                 <tbody className="bg-white divide-y divide-slate-200">
                   {filtered.length === 0 ? (
                     <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">No bookings found.</td></tr>
-                  ) : filtered.map(b => {
+                  ) : paginated.map(b => {
                     const wi       = parseWalkIn(b);
                     const isWalkIn = b.source === 'walk-in';
                     const overdue  = isOverdueCheckout(b);
@@ -854,7 +863,7 @@ export default function Bookings({ embedded = false }) {
               </div>
             ) : (
               <ul className="md:hidden space-y-3">
-                {filtered.map(b => {
+                {paginated.map(b => {
                   const wi          = parseWalkIn(b);
                   const isWalkIn    = b.source === 'walk-in';
                   const overdue     = isOverdueCheckout(b);
@@ -937,6 +946,17 @@ export default function Bookings({ embedded = false }) {
                 })}
               </ul>
             )}
+
+            {/* Pagination — sits below both the desktop table and the
+                mobile card list since it controls both. PaginationBar
+                hides itself when totalPages <= 1, so a search that
+                narrows results to a single page collapses it cleanly. */}
+            <PaginationBar
+              safePage={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              info={info}
+            />
             </>
           )}
 
