@@ -492,7 +492,24 @@ export default function Billing({ embedded = false }) {
     );
   }, [todayAll, searchTerm, isSearching]);
 
+  // Overdue checkout = Checked In booking whose scheduled checkOut
+  // has already passed. Same definition the mobile card render uses
+  // (search "overdue" further down). Lifted here so the sort
+  // comparator can use it as the primary tier — overdue rows always
+  // float to the top regardless of which column the user picks.
+  // Within the overdue group AND within the non-overdue group, the
+  // column sort still applies.
+  const isOverdue = (b) => b.status === 'Checked In'
+    && b.checkOut
+    && new Date(String(b.checkOut).replace(' ', 'T')) < new Date();
+
   const sortedTodayAll = useMemo(() => [...searchedTodayAll].sort((a, b) => {
+    // Primary tier — overdue first. A staff member sweeping the list
+    // for "who's still here past their checkout" should never have
+    // to dig past Confirmed bookings to find them.
+    const ao = isOverdue(a), bo = isOverdue(b);
+    if (ao !== bo) return ao ? -1 : 1;
+
     let aVal, bVal;
     if (sortBy === 'Booking ID') { aVal = a.id ?? '';             bVal = b.id ?? ''; }
     else if (sortBy === 'Guest')      { aVal = walkInName(a).toLowerCase();        bVal = walkInName(b).toLowerCase(); }
@@ -514,7 +531,7 @@ export default function Billing({ embedded = false }) {
     if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
     if (aVal > bVal) return sortDir === 'asc' ?  1 : -1;
     return 0;
-  }), [searchedTodayAll, sortBy, sortDir]);
+  }), [searchedTodayAll, sortBy, sortDir, entranceRates]);
 
   // Pagination — same 25/page cap as Bookings. Page resets to 1 on
   // search/sort change so a narrowed list snaps back to the top
