@@ -677,9 +677,13 @@ function normalizeResortContentForm(c) {
 function HomeResortEditor({ content, onSave }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => normalizeResortContentForm(content));
+  // Confirm-before-delete gate. Card removal is destructive (the
+  // owner loses the image upload + all card content) so an explicit
+  // confirm matches the page-wide policy on mutating actions.
+  const [removeIdx, setRemoveIdx] = useState(null);
 
-  const cancel = () => { setForm(normalizeResortContentForm(content)); setEditing(false); };
-  const save   = () => { onSave(form); setEditing(false); };
+  const cancel = () => { setForm(normalizeResortContentForm(content)); setEditing(false); setRemoveIdx(null); };
+  const save   = () => { onSave(form); setEditing(false); setRemoveIdx(null); };
 
   function updateSection(key, val) { setForm(p => ({ ...p, [key]: val })); }
   function updateCard(idx, key, val) {
@@ -688,8 +692,13 @@ function HomeResortEditor({ content, onSave }) {
   function addCard() {
     setForm(p => ({ ...p, cards: [...p.cards, blankResortCard()] }));
   }
-  function removeCard(idx) {
-    setForm(p => ({ ...p, cards: p.cards.filter((_, i) => i !== idx) }));
+  function confirmRemoveCard(idx) {
+    setRemoveIdx(idx);
+  }
+  function actuallyRemoveCard() {
+    if (removeIdx == null) return;
+    setForm(p => ({ ...p, cards: p.cards.filter((_, i) => i !== removeIdx) }));
+    setRemoveIdx(null);
   }
   function moveCard(idx, dir) {
     setForm(p => {
@@ -770,7 +779,7 @@ function HomeResortEditor({ content, onSave }) {
                       className="h-8 w-8 rounded hover:bg-slate-100 disabled:opacity-30 text-slate-500 transition">
                       <i className="fas fa-arrow-down text-xs" aria-hidden="true"></i>
                     </button>
-                    <button type="button" onClick={() => removeCard(idx)}
+                    <button type="button" onClick={() => confirmRemoveCard(idx)}
                       title="Remove card"
                       className="h-8 w-8 rounded hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition">
                       <i className="fas fa-trash text-xs" aria-hidden="true"></i>
@@ -790,11 +799,17 @@ function HomeResortEditor({ content, onSave }) {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
+                      {/* folder must match the backend UploadController's
+                          allowlist (avatars/rooms/gallery/hero/
+                          announcements/logo/misc). 'gallery' is the
+                          right bucket for marketing-card imagery —
+                          'hero' is reserved for full-bleed page
+                          backgrounds. */}
                       <MediaPicker
                         value={card.image}
                         onChange={url => updateCard(idx, 'image', url)}
                         previousUrl={card.image}
-                        folder="resort-card"
+                        folder="gallery"
                         accept="image/*"
                         label="Choose Image"
                       />
@@ -820,6 +835,22 @@ function HomeResortEditor({ content, onSave }) {
           </button>
         </div>
       )}
+
+      {/* Per-card delete confirmation. Unlike the SectionCard's
+          built-in save confirm (which fires on the whole-section
+          Save), this gates the in-form trash-icon click so an
+          accidental tap doesn't wipe a card's image and content. */}
+      <ConfirmDialog
+        open={removeIdx != null}
+        title="Remove resort card?"
+        message={removeIdx != null && form.cards[removeIdx]
+          ? <>Remove <strong>{form.cards[removeIdx].name || `Card ${removeIdx + 1}`}</strong>? The card and its image disappear immediately. Click Cancel on the section editor afterwards if you want to undo.</>
+          : 'Remove this card?'}
+        confirmLabel="Remove card"
+        variant="danger"
+        onConfirm={actuallyRemoveCard}
+        onCancel={() => setRemoveIdx(null)}
+      />
     </SectionCard>
   );
 }
