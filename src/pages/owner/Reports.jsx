@@ -520,7 +520,11 @@ export default function OwnerReports() {
           <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
             <h3 className="font-semibold text-slate-800">Booking Details — {period}</h3>
           </div>
-          <div className="overflow-x-auto">
+          {/* Desktop table — wrapped hidden md:block so the mobile
+              card list (rendered below) is the sole listing visible
+              <md. 6 cols including a Status pill column doesn't fit
+              phone widths. */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="min-w-full text-sm text-slate-700">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
                 <tr>
@@ -572,6 +576,60 @@ export default function OwnerReports() {
               )}
             </table>
           </div>
+
+          {/* Mobile card list — same data + tfoot summary card. */}
+          {loading ? (
+            <p className="md:hidden p-8 text-center text-slate-400">Loading...</p>
+          ) : bookings.length === 0 ? (
+            <p className="md:hidden p-8 text-center text-slate-400">No bookings for this period.</p>
+          ) : (
+            <ul className="md:hidden space-y-3 p-4">
+              {bookings.map((b) => {
+                const collected = Number(b.paidAmount ?? 0);
+                const isCancelled = b.status === 'Cancelled';
+                return (
+                  <li key={b.id} className="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900 truncate">{b.guest}</p>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{b.room}</p>
+                      </div>
+                      <span className={`shrink-0 inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_CLASSES[b.status] || 'bg-gray-100 text-gray-800'}`}>
+                        {b.status}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Payment</p>
+                        <p className="text-xs text-slate-700 mt-0.5 truncate">{b.payment || '—'}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Duration</p>
+                        <p className="text-xs text-slate-700 mt-0.5">
+                          {b.bookingType === 'day' ? '1 day' : `${b.nights || 1} night${(b.nights || 1) !== 1 ? 's' : ''}`}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Collected</p>
+                        <p className="text-sm font-semibold mt-0.5">
+                          {isCancelled
+                            ? <span className="line-through text-slate-400">{fmt(collected)}</span>
+                            : <span className="text-slate-800">{fmt(collected)}</span>}
+                        </p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+              {/* Mobile equivalent of the desktop tfoot. */}
+              <li className="rounded-xl border border-slate-200 bg-slate-50 p-4 mt-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-semibold text-slate-600">Total (excl. cancelled)</span>
+                  <span className="font-semibold text-slate-900">{fmt(revenue)}</span>
+                </div>
+              </li>
+            </ul>
+          )}
         </div>
 
       </div>

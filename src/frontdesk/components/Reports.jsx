@@ -317,7 +317,13 @@ export default function Reports() {
           ) : dateBookings.length === 0 ? (
             <p className="text-slate-400 text-center py-6">No bookings for this date.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Desktop table — wrapped hidden md:block so the mobile
+                card list (rendered below) is the sole listing visible
+                <md. 10 columns is the widest table in the app and was
+                forcing major sideways scroll on phones during the
+                daily report review. */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
@@ -368,6 +374,92 @@ export default function Reports() {
                 </tfoot>
               </table>
             </div>
+
+            {/* Mobile card list — same data + tfoot summary card. */}
+            <ul className="md:hidden space-y-3 p-4">
+              {dateBookings.map(b => {
+                const entrance = calcEntrance(b, entranceRates);
+                return (
+                  <li key={b.bookingId} className="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+                    {/* Top — guest + booking id + status pill */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-900 truncate">{b.guest}</p>
+                        <p className="text-xs font-mono text-slate-500 truncate mt-0.5">{b.id}</p>
+                      </div>
+                      <span className={`shrink-0 inline-flex px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                        b.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
+                        b.status === 'Confirmed' ? 'bg-sky-100 text-sky-800' :
+                        b.status === 'Cancelled' ? 'bg-rose-100 text-rose-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>{b.status}</span>
+                    </div>
+
+                    {/* Body — Room + visit window */}
+                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                      <div className="col-span-2">
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room</p>
+                        <p className="text-sm text-slate-700 mt-0.5 truncate">{b.roomType}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Visit</p>
+                        <p className="text-xs text-slate-700 mt-0.5 whitespace-nowrap">
+                          {fmtTime(b.checkIn)} → {fmtTime(b.checkOut)}
+                        </p>
+                        <p className="text-[10px] text-slate-400">{calcDuration(b.checkIn, b.checkOut)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                        <p className="text-sm text-slate-700 mt-0.5">{b.guests}</p>
+                      </div>
+                    </div>
+
+                    {/* Money row — Room Total + Entrance Fee */}
+                    <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room Total</p>
+                        <p className="text-sm font-semibold text-slate-800 mt-0.5">{fmtMoney(b.total)}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Entrance Fee</p>
+                        <p className="text-sm font-semibold text-amber-700 mt-0.5">{fmtMoney(entrance)}</p>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+              {/* Mobile equivalent of the tfoot Totals row. */}
+              <li className="rounded-xl border border-slate-200 bg-slate-50 p-4 mt-3">
+                <p className="text-xs font-semibold text-slate-600 mb-2">
+                  Totals — {dateBookings.length} booking{dateBookings.length !== 1 ? 's' : ''}
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                    <p className="font-semibold text-slate-800 mt-0.5">
+                      {dateBookings.reduce((s, b) => s + (b.guests || 0), 0)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room Total</p>
+                    <p className="font-semibold text-slate-800 mt-0.5">
+                      {fmtMoney(dateBookings.reduce((s, b) => s + Number(b.total || 0), 0))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Entrance</p>
+                    <p className="font-semibold text-amber-700 mt-0.5">
+                      {fmtMoney(dateBookings.reduce((s, b) => s + calcEntrance(b, entranceRates), 0))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Collected</p>
+                    <p className="font-semibold text-emerald-700 mt-0.5">{fmtMoney(totalRevenue)}</p>
+                  </div>
+                </div>
+              </li>
+            </ul>
+            </>
           )}
         </div>
       </main>
