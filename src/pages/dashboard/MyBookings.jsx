@@ -652,9 +652,15 @@ export default function MyBookings() {
         </div>
 
         {/* ── Mobile cards ── */}
-        <div className="md:hidden divide-y divide-slate-100">
+        {/* Mobile card stack — same data + actions as the desktop
+            table, restyled to match the card-stack pattern used in
+            frontdesk Bookings / Billing / GuestRecords (rounded
+            border, soft shadow, breathing room between cards).
+            Pending rows get an amber accent border so guests can
+            scan their action queue at a glance. */}
+        <ul className="md:hidden space-y-3 px-2 py-3">
           {filtered.length === 0 && !loadError && (
-            <div className="px-5 py-12 text-center">
+            <li className="px-5 py-12 text-center bg-white rounded-xl border border-slate-200">
               <i className="fas fa-calendar-times text-slate-200 text-4xl mb-3 block" />
               <p className="text-slate-400 text-sm">
                 {filter !== "all" ? `No ${filter.toLowerCase()} bookings.` : "No bookings found."}
@@ -664,16 +670,23 @@ export default function MyBookings() {
                   <i className="fas fa-plus mr-1" />Book a stay
                 </Link>
               )}
-            </div>
+            </li>
           )}
           {filtered.map(b => {
             const onCardActivate = () => b.status === 'Pending'
               ? setResuming(toResumeBooking(b))
               : setSelected(b);
+            const cardCls = [
+              'bg-white p-4 rounded-xl border shadow-sm cursor-pointer hover:bg-slate-50 transition-colors space-y-3 focus:outline-none focus:ring-2 focus:ring-sky-400',
+              b.status === 'Pending'
+                ? 'border-l-4 border-l-amber-400 border-amber-100 bg-amber-50/30'
+                : 'border-slate-200',
+            ].join(' ');
             return (
-            <div key={b.id} role="button" tabIndex={0} onClick={onCardActivate}
+            <li key={b.id}>
+            <div role="button" tabIndex={0} onClick={onCardActivate}
               onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCardActivate(); }}}
-              className={`bg-white px-5 py-4 cursor-pointer hover:bg-slate-50 transition-colors space-y-3 ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
+              className={cardCls}>
               {/* Top row: ID + status */}
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold text-slate-900">{b.id}</span>
@@ -739,9 +752,10 @@ export default function MyBookings() {
                 </div>
               </div>
             </div>
+            </li>
             );
           })}
-        </div>
+        </ul>
       </div>
 
       {/* ── Resume-payment modal — reuses BookingModal in resume mode.
