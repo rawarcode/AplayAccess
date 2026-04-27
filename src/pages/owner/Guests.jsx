@@ -187,7 +187,8 @@ export default function AdminGuests() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <table className="min-w-full text-sm">
+            <>
+            <table className="hidden md:table min-w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-3 text-left">Guest</th>
@@ -202,6 +203,29 @@ export default function AdminGuests() {
               </thead>
               <tbody className="divide-y divide-slate-100"><SkeletonRows /></tbody>
             </table>
+            <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading guests">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-200" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 bg-slate-200 rounded w-32" />
+                      <div className="h-3 bg-slate-100 rounded w-44" />
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded-full w-16" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                    {Array.from({ length: 4 }).map((__, j) => (
+                      <div key={j}>
+                        <div className="h-2.5 bg-slate-100 rounded w-12 mb-1.5" />
+                        <div className="h-3 bg-slate-200 rounded w-16" />
+                      </div>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            </>
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
@@ -224,7 +248,13 @@ export default function AdminGuests() {
             </div>
           ) : (
             <>
-              <table className="min-w-full text-sm text-slate-700">
+              {/* Desktop table — wrapped in hidden md:table so the
+                  mobile card list (rendered below) is the sole listing
+                  visible <md. Was already using `hidden md:table-cell`
+                  per-column hiding, but on phones that left only 5/8
+                  columns crammed sideways. The card stack mirrors the
+                  pattern used across the other ported listing pages. */}
+              <table className="hidden md:table min-w-full text-sm text-slate-700">
                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                   <tr>
                     {[
@@ -304,6 +334,85 @@ export default function AdminGuests() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile card list — same paginated set as the desktop
+                  table. Whole-card click opens the detail modal. The
+                  copy-email + view buttons stay as a small action
+                  cluster on the bottom-right of each card; tap
+                  propagation stopped so a button tap doesn't also
+                  trigger setViewGuest. */}
+              <ul className="md:hidden space-y-3 p-4">
+                {paginated.map((g) => (
+                  <li key={g.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setViewGuest(g)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewGuest(g); } }}
+                      className={`rounded-xl border border-slate-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-sky-50/40 transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${!g.is_active ? 'opacity-70' : ''}`}
+                    >
+                      {/* Top — avatar + name/email + status pill */}
+                      <div className="flex items-start gap-3">
+                        <div className="h-10 w-10 rounded-full bg-sky-500 text-white flex items-center justify-center text-sm font-bold shrink-0">
+                          {getInitials(g.name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">{g.name}</p>
+                          <p className="text-xs text-slate-500 truncate">{fmtGuestEmail(g.email)}</p>
+                          {g.phone && <p className="text-xs text-slate-400 truncate mt-0.5">{g.phone}</p>}
+                        </div>
+                        <span
+                          title={g.is_active ? 'Booked within the last 6 months or new account' : 'No bookings in 6+ months'}
+                          className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                            g.is_active ? 'bg-success-bg text-success-fg' : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          <span className={`h-2 w-2 rounded-full ${g.is_active ? 'bg-success-ring' : 'bg-slate-400'}`} aria-hidden="true" />
+                          {g.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      {/* Stats — 2x2 grid (Bookings, Spent, Joined,
+                          Last Booking). Same fields as the desktop
+                          row's `hidden lg:table-cell` columns — the
+                          card surfaces them all on phones. */}
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Bookings</p>
+                          <p className="text-sm text-slate-800 font-semibold mt-0.5">{g.total_bookings || 0}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Total Spent</p>
+                          <p className="text-sm text-slate-800 font-semibold mt-0.5">{'₱'}{Number(g.total_spent || 0).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Joined</p>
+                          <p className="text-xs text-slate-600 mt-0.5 truncate">{g.joined || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Last Booking</p>
+                          <p className="text-xs text-slate-600 mt-0.5 truncate">{g.last_booking || '—'}</p>
+                        </div>
+                      </div>
+
+                      {/* Action cluster — copy email + explicit view
+                          button. setViewGuest is also fired by the
+                          whole-card click, but the explicit button is
+                          the more discoverable affordance. */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => copyEmail(g.email)} aria-label={`Copy email for ${g.name}`}
+                          className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                          <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                        </button>
+                        <button onClick={() => setViewGuest(g)} aria-label={`View ${g.name}`}
+                          className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                          <i className="fas fa-eye text-xs" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
               {/* Pagination */}
               {totalPages > 1 && (
