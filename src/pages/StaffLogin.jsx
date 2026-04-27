@@ -90,11 +90,18 @@ export default function StaffLogin() {
               </p>
             </div>
 
-            {/* Role hints */}
+            {/* Role hints — order matches the operational hierarchy
+                (front desk → admin → owner). Admin row was missing
+                after the role was reintroduced; restoring it so all
+                three staff portals are advertised. */}
             <div className="mt-6 space-y-2 text-sm text-coastal-text">
               <div className="flex items-center gap-2">
                 <i className="fas fa-circle-dot text-coastal-accent text-xs"></i>
                 <span>Front Desk → reservations & walk-ins</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <i className="fas fa-circle-dot text-coastal-accent text-xs"></i>
+                <span>Admin → content & day-to-day operations</span>
               </div>
               <div className="flex items-center gap-2">
                 <i className="fas fa-circle-dot text-coastal-accent text-xs"></i>
