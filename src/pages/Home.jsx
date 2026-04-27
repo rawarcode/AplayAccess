@@ -382,8 +382,24 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {why.features.map((f, i) => (
+          {/* Column count adapts to feature count so dropping or
+              adding cards in the CMS doesn't leave a phantom empty
+              column. Was hardcoded lg:grid-cols-4 — when "Entrance
+              covered too" was removed (factually wrong: entrance fee
+              is collected at the gate, not built into total), the
+              section read as left-aligned because the 4th slot was
+              empty. Now: 1-3 features → that many columns, 4+ →
+              cap at 4 (deeper grids would crowd on desktop). */}
+          {(() => {
+            const n = why.features.length;
+            const colsClass =
+              n <= 1 ? 'lg:grid-cols-1'
+              : n === 2 ? 'lg:grid-cols-2'
+              : n === 3 ? 'lg:grid-cols-3'
+              : 'lg:grid-cols-4';
+            return (
+              <div className={`grid grid-cols-1 sm:grid-cols-2 ${colsClass} gap-6 justify-items-center max-w-6xl mx-auto`}>
+                {why.features.map((f, i) => (
               <div
                 key={f.title}
                 className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center border border-slate-100"
@@ -396,7 +412,9 @@ export default function Home() {
                 <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
               </div>
             ))}
-          </div>
+              </div>
+            );
+          })()}
         </div>
       </section>
 
