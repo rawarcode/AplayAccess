@@ -149,12 +149,23 @@ export default function AdminAddons() {
     setEditing(x => ({ ...x, [k]: v }));
   }
 
-  async function saveAddon(e) {
+  // Save flow: form submit → requestSaveAddon (validates + opens
+  // confirm) → user confirms → saveAddon (does the API call).
+  // Add-ons are inventory items — wrong price or max_qty propagates
+  // to every booking that picks them, so confirm gates the commit.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+
+  function requestSaveAddon(e) {
     e.preventDefault();
     if (!editing.name?.trim()) {
       showToast("Name is required.", "error");
       return;
     }
+    setSaveConfirmOpen(true);
+  }
+
+  async function saveAddon() {
+    setSaveConfirmOpen(false);
     setSaving(true);
     const payload = {
       name:        editing.name.trim(),
@@ -812,6 +823,19 @@ export default function AdminAddons() {
         )}
       </Modal>
 
+      {/* ── Save Add-on Confirm ── */}
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title={editing?.id ? "Save add-on changes?" : "Create add-on?"}
+        message={editing?.id
+          ? <>Save changes to <strong>{editing?.name || 'this add-on'}</strong>? Pricing and inventory will apply to new bookings from now on.</>
+          : <>Create <strong>{editing?.name || 'this add-on'}</strong> at <strong>₱{Number(editing?.price ?? 0).toLocaleString()}</strong>? It becomes available immediately.</>}
+        confirmLabel={editing?.id ? "Save changes" : "Create add-on"}
+        variant={editing?.id ? "info" : "warning"}
+        onConfirm={saveAddon}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
+
       {/* ── Delete Confirm (single) ── */}
       <ConfirmDialog
         open={!!confirmDelete}
@@ -847,7 +871,7 @@ export default function AdminAddons() {
 
       {/* ── Create / Edit Modal ── */}
       <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-xl">
-        <form onSubmit={saveAddon}>
+        <form onSubmit={requestSaveAddon}>
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">

@@ -247,10 +247,22 @@ export default function OwnerUsers() {
     }
   }
 
-  async function saveUser(e) {
+  // Save flow: form submit → requestSaveUser (validates + opens
+  // confirm) → user confirms → saveUser (does the API call). Staff
+  // create/edit affects who can sign in and what they can do, so a
+  // confirm gates the commit.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+
+  function requestSaveUser(e) {
     e.preventDefault();
     if (!editing.name || !editing.email) { showToast("Name and email are required.", "error"); return; }
     if (!editing.id && !editing.password) { showToast("Password is required for new users.", "error"); return; }
+    setSaveConfirmOpen(true);
+  }
+
+  async function saveUser() {
+    // Validation already ran in requestSaveUser; go straight to API.
+    setSaveConfirmOpen(false);
     setSaving(true);
     const payload = {
       name: editing.name,
@@ -1044,6 +1056,19 @@ export default function OwnerUsers() {
         onCancel={() => setConfirmToggle(null)}
       />
 
+      {/* ── Save User ConfirmDialog ── */}
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title={editing?.id ? "Save user changes?" : "Create user?"}
+        message={editing?.id
+          ? <>Save changes to <strong>{editing?.name || 'this user'}</strong>? Role + status changes take effect on their next sign-in.</>
+          : <>Create <strong>{editing?.name || 'this user'}</strong> as a <strong>{editing?.role}</strong>? They'll be able to sign in immediately.</>}
+        confirmLabel={editing?.id ? "Save changes" : "Create user"}
+        variant={editing?.id ? "info" : "warning"}
+        onConfirm={saveUser}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
+
       {/* ── Delete ConfirmDialog ── */}
       <ConfirmDialog
         open={!!confirmDelete}
@@ -1080,7 +1105,7 @@ export default function OwnerUsers() {
       {/* ── Edit / Create Modal ── */}
       <Modal open={modalOpen} onClose={guardedCloseModal}>
         {editing && (
-          <form onSubmit={saveUser}>
+          <form onSubmit={requestSaveUser}>
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-sky-100 flex items-center justify-center shrink-0">

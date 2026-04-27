@@ -158,12 +158,23 @@ function AutoReplyPanel({ open, onClose, showToast }) {
   useEffect(() => { if (open) loadRules(); }, [open, loadRules]);
   useEffect(() => () => { if (undoRef.current) clearTimeout(undoRef.current.timer); }, []);
 
-  async function saveRule(e) {
+  // Save flow: form submit → requestSaveRule (validates + opens
+  // confirm) → user confirms → saveRule (does the API call). Auto-
+  // reply rules fire on every inbound message — confirm gates the
+  // commit per the page-wide policy on mutating actions.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+
+  function requestSaveRule(e) {
     e.preventDefault();
     if (!editing.keyword?.trim() || !editing.response?.trim()) {
       showToast("Keyword and response are required.", "error");
       return;
     }
+    setSaveConfirmOpen(true);
+  }
+
+  async function saveRule() {
+    setSaveConfirmOpen(false);
     setSaving(true);
     const payload = {
       keyword:    editing.keyword.trim(),
@@ -222,7 +233,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
   if (editing) {
     return (
       <Modal open={open} onClose={() => setEditing(null)} maxWidth="max-w-lg">
-        <form onSubmit={saveRule}>
+        <form onSubmit={requestSaveRule}>
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-violet-100 flex items-center justify-center">
@@ -447,6 +458,19 @@ function AutoReplyPanel({ open, onClose, showToast }) {
           </div>
         )}
       </div>
+
+      {/* Save Rule confirmation */}
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title={editing?.id ? "Save rule changes?" : "Create auto-reply rule?"}
+        message={editing?.id
+          ? <>Save changes to the rule for <strong>"{editing?.keyword}"</strong>? It fires on every matching inbound message.</>
+          : <>Create an auto-reply for messages matching <strong>"{editing?.keyword}"</strong>? It starts firing immediately on inbound messages.</>}
+        confirmLabel={editing?.id ? "Save changes" : "Create rule"}
+        variant="info"
+        onConfirm={saveRule}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

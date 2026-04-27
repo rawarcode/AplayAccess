@@ -7,6 +7,7 @@ import { RESORT_ID } from "../../lib/config.js";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
 import { isVideoUrl, uploadFile } from "../../lib/uploadApi.js";
 import Modal from "../../components/modals/Modal.jsx";
+import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
 import OwnerAnnouncements from "./Announcements.jsx";
@@ -199,6 +200,12 @@ function Field({ label, value, onChange, type = "text", rows, placeholder, maxLe
 // ─── Section card wrapper ─────────────────────────────────────────────────────
 function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, onCancel, visible, onToggleVisible }) {
   const hideable = visible !== undefined;
+  // Confirm-before-save gate. Save button opens the confirm; on
+  // confirm we fire the parent's onSave. One source of truth so
+  // every editable CMS section gets the gate without each call site
+  // wiring its own dialog. See pages-wide policy on mutating
+  // actions (the CLAUDE.md note).
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
 
   return (
     <div className={`bg-white rounded-lg shadow border ${editing ? "border-brand" : visible === false ? "border-slate-200 opacity-60" : "border-slate-200"} overflow-hidden`}>
@@ -251,13 +258,23 @@ function SectionCard({ icon, title, badge, children, onEdit, editing, onSave, on
               className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">
               Cancel
             </button>
-            <button onClick={onSave}
+            <button onClick={() => setSaveConfirmOpen(true)}
               className="px-4 py-2 text-sm bg-brand hover:bg-brand-dark text-white rounded-lg flex items-center gap-2">
               <i className="fas fa-check text-xs" aria-hidden="true"></i> Save Changes
             </button>
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title={`Save changes to "${title}"?`}
+        message="The change goes live on the public site immediately. You can re-edit at any time."
+        confirmLabel="Save changes"
+        variant="info"
+        onConfirm={() => { setSaveConfirmOpen(false); onSave?.(); }}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
     </div>
   );
 }
@@ -1156,6 +1173,11 @@ const EMPTY_FORM = { name: "", icon: "✨", description: "" };
 function AmenityForm({ initial = EMPTY_FORM, onSave, onCancel, saving, label = "Save" }) {
   const [form, setForm] = useState(initial);
   const [showPicker, setShowPicker] = useState(false);
+  // Confirm-before-save gate. Same pattern as SectionCard above —
+  // each call site re-uses this form for both create + edit paths
+  // and goes through one shared confirm. See pages-wide policy on
+  // mutating actions.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
   const f = k => v => setForm(p => ({ ...p, [k]: v }));
 
   return (
@@ -1213,7 +1235,7 @@ function AmenityForm({ initial = EMPTY_FORM, onSave, onCancel, saving, label = "
       </div>
 
       <div className="flex gap-2">
-        <button onClick={() => onSave(form)} disabled={saving || !form.name.trim()}
+        <button onClick={() => setSaveConfirmOpen(true)} disabled={saving || !form.name.trim()}
           className="px-4 py-2 text-xs font-medium text-white bg-brand rounded-lg hover:bg-brand-dark disabled:opacity-50 transition">
           {saving ? "Saving..." : label}
         </button>
@@ -1222,6 +1244,16 @@ function AmenityForm({ initial = EMPTY_FORM, onSave, onCancel, saving, label = "
           Cancel
         </button>
       </div>
+
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title="Save amenity?"
+        message={<>Save <strong>{form.name || 'this amenity'}</strong>? It will appear on the public Resort page immediately.</>}
+        confirmLabel="Save"
+        variant="info"
+        onConfirm={() => { setSaveConfirmOpen(false); onSave(form); }}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
     </div>
   );
 }
@@ -1827,7 +1859,14 @@ function GalleryTab({ imageCount, setImageCount }) {
     });
   }
 
+  // Save flow: button click → opens confirm → user confirms →
+  // handleSave does the API call. Featured-gallery selection
+  // controls what shows on the public /resort page, so confirm
+  // gates the commit per the page-wide policy.
+  const [gallerySaveConfirmOpen, setGallerySaveConfirmOpen] = useState(false);
+
   async function handleSave() {
+    setGallerySaveConfirmOpen(false);
     setSaving(true);
     try {
       const r = await batchFeaturedGallery([...selectedIds]);
@@ -2056,7 +2095,7 @@ function GalleryTab({ imageCount, setImageCount }) {
             </button>
           )}
           <button
-            onClick={handleSave}
+            onClick={() => setGallerySaveConfirmOpen(true)}
             disabled={saving || !isDirty}
             className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark disabled:opacity-50 text-white px-4 py-2 rounded-lg text-sm font-medium"
           >
@@ -2480,6 +2519,18 @@ function GalleryTab({ imageCount, setImageCount }) {
           </div>
         )}
       </Modal>
+
+      {/* Save Resort Gallery confirm — gates featured-image
+          publishing per the page-wide policy on mutating actions. */}
+      <ConfirmDialog
+        open={gallerySaveConfirmOpen}
+        title="Update resort gallery?"
+        message={<>Push <strong>{selectedIds.size}</strong> selected image{selectedIds.size !== 1 ? 's' : ''} to the public <strong>/resort</strong> page? Unselected images are removed from the featured set.</>}
+        confirmLabel="Save to /resort"
+        variant="info"
+        onConfirm={handleSave}
+        onCancel={() => setGallerySaveConfirmOpen(false)}
+      />
     </div>
   );
 }

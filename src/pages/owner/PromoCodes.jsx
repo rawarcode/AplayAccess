@@ -257,8 +257,20 @@ export default function PromoCodes() {
     }
   }
 
-  async function handleSubmitEdit(e) {
+  // Edit save flow now mirrors create: form submit → opens confirm
+  // → user confirms → handleConfirmEdit calls the API. Was a
+  // direct save before; brought into line with the create path
+  // and the page-wide policy on mutating actions.
+  const [editConfirmOpen, setEditConfirmOpen] = useState(false);
+
+  function handleSubmitEdit(e) {
     e.preventDefault();
+    setFormError("");
+    setEditConfirmOpen(true);
+  }
+
+  async function handleConfirmEdit() {
+    setEditConfirmOpen(false);
     setFormError("");
     setSaving(true);
     try {
@@ -1181,6 +1193,17 @@ export default function PromoCodes() {
           </form>
         )}
       </Modal>
+
+      {/* ── Save Edit ConfirmDialog ── */}
+      <ConfirmDialog
+        open={editConfirmOpen}
+        title="Save promo changes?"
+        message={<>Save changes to <strong className="font-mono">{editTarget?.code}</strong>? The new max-uses cap and expiry apply to redemption attempts from now on.</>}
+        confirmLabel="Save changes"
+        variant="info"
+        onConfirm={handleConfirmEdit}
+        onCancel={() => setEditConfirmOpen(false)}
+      />
 
       {/* ── Delete ConfirmDialog ── */}
       <ConfirmDialog

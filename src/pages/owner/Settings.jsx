@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import Toast, { useToast } from "../../components/ui/Toast";
+import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import { getAdminSettings, updateAdminSettings } from "../../lib/adminApi";
 
 const PRICING_FIELDS = [
@@ -89,13 +90,22 @@ export default function OwnerSettings() {
   useEffect(() => { load(); }, [load]);
 
   /* ---------- handlers ---------- */
+  // Save flow: form submit → requestSave (validates + opens confirm)
+  // → user confirms → handleSave (does the API call). Pricing
+  // settings are high-stakes — they affect every future booking's
+  // total + entrance fee — so a confirm dialog gates the commit.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+
   function handleChange(key, val) {
     setDraft(d => ({ ...d, [key]: val }));
     setDirty(true);
   }
 
-  async function handleSave(e) {
+  function requestSave(e) {
     e.preventDefault();
+    // Validate before opening the confirm so the dialog only appears
+    // for a submittable form. Same field-level checks that handleSave
+    // used to do up-front; they're surfaced here as toasts and bail.
     for (const f of PRICING_FIELDS) {
       const v = Number(draft[f.key]);
       if (isNaN(v) || v < 0) {
@@ -107,6 +117,14 @@ export default function OwnerSettings() {
         return;
       }
     }
+    setSaveConfirmOpen(true);
+  }
+
+  async function handleSave() {
+    // Validation already ran in requestSave before opening the
+    // confirm dialog — no need to re-validate here. Going straight
+    // to the API call.
+    setSaveConfirmOpen(false);
     setSaving(true);
     try {
       // Only submit the pricing keys the UI actually controls. Posting
@@ -204,7 +222,7 @@ export default function OwnerSettings() {
           </div>
         </div>
       ) : (
-        <form onSubmit={handleSave} className="space-y-5">
+        <form onSubmit={requestSave} className="space-y-5">
 
           {/* Pricing card — #8 violet accent */}
           <div className="rounded-2xl bg-white border border-slate-200 shadow-sm overflow-hidden">
@@ -316,6 +334,19 @@ export default function OwnerSettings() {
           )}
         </form>
       )}
+
+      {/* Pricing settings affect every future booking — confirm
+          before committing so an accidental keystroke doesn't
+          re-price tomorrow's check-ins. */}
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title="Save pricing settings?"
+        message="These rates apply to every new booking from now on. Existing bookings keep their saved totals."
+        confirmLabel="Save"
+        variant="warning"
+        onConfirm={handleSave}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
     </div>
   );
 }

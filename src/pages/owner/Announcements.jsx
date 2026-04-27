@@ -225,10 +225,22 @@ export default function AdminAnnouncements() {
     setEditing((x) => ({ ...x, [k]: v }));
   }
 
-  async function save(e) {
+  // Save flow: form submit → requestSave (validates + opens
+  // confirm) → user confirms → save (does the API call). Even
+  // though announcements are easy to edit/delete after publishing,
+  // a confirm gates the commit per the page-wide policy on
+  // mutating actions.
+  const [saveConfirmOpen, setSaveConfirmOpen] = useState(false);
+
+  function requestSave(e) {
     e.preventDefault();
     if (!editing.title?.trim()) { showToast("Title is required.", "error"); return; }
     if (!editing.body?.trim()) { showToast("Body is required.", "error"); return; }
+    setSaveConfirmOpen(true);
+  }
+
+  async function save() {
+    setSaveConfirmOpen(false);
     setSaving(true);
     try {
       const payload = {
@@ -939,6 +951,19 @@ export default function AdminAnnouncements() {
         )}
       </Modal>
 
+      {/* ── Save Announcement ConfirmDialog ── */}
+      <ConfirmDialog
+        open={saveConfirmOpen}
+        title={editing?.id ? "Save announcement?" : "Publish announcement?"}
+        message={editing?.id
+          ? <>Save changes to <strong>"{editing?.title || 'this announcement'}"</strong>?</>
+          : <>Publish <strong>"{editing?.title || 'this announcement'}"</strong>? It appears on the public site immediately.</>}
+        confirmLabel={editing?.id ? "Save changes" : "Publish"}
+        variant="info"
+        onConfirm={save}
+        onCancel={() => setSaveConfirmOpen(false)}
+      />
+
       {/* ── Delete ConfirmDialog ── */}
       <ConfirmDialog
         open={!!confirmDelete}
@@ -984,7 +1009,7 @@ export default function AdminAnnouncements() {
       {/* ── Create / Edit Modal ── */}
       <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-2xl">
         {editing && (
-          <form onSubmit={save}>
+          <form onSubmit={requestSave}>
             {/* Header */}
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-3">
