@@ -4,6 +4,7 @@ import useDebounce from "../../hooks/useDebounce.js";
 import Modal from "../../components/modals/Modal.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { fmtDateTime } from "../../lib/format";
+import { printHtml } from "../../lib/print.js";
 
 // ── Category config ──────────────────────────────────────────────────────────
 // When adding a new category, also add a QUICK_FILTERS entry below AND a
@@ -126,9 +127,6 @@ const esc = (s) => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").re
 
 // ── PDF Export ───────────────────────────────────────────────────────────────
 function exportPDF(logs, filters) {
-  const win = window.open("", "_blank");
-  if (!win) return;
-
   const filterSummary = [
     filters.search && `Search: "${esc(filters.search)}"`,
     filters.category && `Category: ${esc(filters.category)}`,
@@ -148,7 +146,7 @@ function exportPDF(logs, filters) {
     </tr>
   `).join("");
 
-  win.document.write(`<!DOCTYPE html><html><head><title>Activity Log Export</title>
+  const html = `<!DOCTYPE html><html><head><title>Activity Log Export</title>
     <style>
       body{font-family:Arial,sans-serif;margin:24px;color:#1e293b}
       h1{font-size:18px;margin:0 0 4px}
@@ -164,9 +162,12 @@ function exportPDF(logs, filters) {
       <thead><tr><th>Timestamp</th><th>User</th><th>Category</th><th>Action</th><th>Description</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
-  </body></html>`);
-  win.document.close();
-  setTimeout(() => win.print(), 300);
+  </body></html>`;
+  // Hidden-iframe print via the shared util — works on mobile where
+  // the window.open popup pattern is blocked or renders as a dead
+  // tab. Same fix as the other three print callers (Reports owner +
+  // frontdesk, Transactions). See lib/print.js.
+  printHtml(html, { title: 'Aplaya Activity Log' });
 }
 
 // ── Page number buttons (#4 — sky palette) ──────────────────────────────────
