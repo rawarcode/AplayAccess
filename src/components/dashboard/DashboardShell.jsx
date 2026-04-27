@@ -55,7 +55,9 @@ function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread]               = useState(0);
   const [open, setOpen]                   = useState(false);
-  const ref                               = useRef(null);
+  const [style, setStyle]                 = useState({});
+  const btnRef                            = useRef(null);
+  const dropRef                           = useRef(null);
   const navigate                          = useNavigate();
 
   // Load on mount, refresh every 60s
@@ -73,14 +75,42 @@ function NotificationBell() {
     return () => clearInterval(id);
   }, []);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside (button + dropdown both checked
+  // since dropdown is rendered fixed-position outside the button's parent).
   useEffect(() => {
     function handler(e) {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+      if (
+        btnRef.current  && !btnRef.current.contains(e.target) &&
+        dropRef.current && !dropRef.current.contains(e.target)
+      ) setOpen(false);
     }
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  // Position dropdown via fixed coords so it can't be clipped by overflow:
+  // hidden parents in the navbar, and clamp width to viewport so it never
+  // extends off-screen left on narrow phones. Same pattern as the staff
+  // NotificationBell at src/components/ui/NotificationBell.jsx.
+  function openDropdown() {
+    const rect = btnRef.current?.getBoundingClientRect();
+    if (rect) {
+      const vw     = window.innerWidth;
+      const width  = Math.min(320, vw - 16);
+      // Default: align dropdown right edge with bell right edge.
+      let right    = Math.max(8, vw - rect.right);
+      // But if that would push the left edge off-screen, shift the
+      // dropdown rightward so the left edge sits at 8px gutter.
+      if (vw - right - width < 8) right = vw - width - 8;
+      setStyle({
+        position: 'fixed',
+        top:   rect.bottom + 6,
+        right,
+        width,
+      });
+    }
+    setOpen(true);
+  }
 
   async function handleMarkAll() {
     await markAllNotificationsRead().catch(() => {});
@@ -95,11 +125,14 @@ function NotificationBell() {
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <>
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={btnRef}
+        onClick={() => (open ? setOpen(false) : openDropdown())}
         className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
         aria-label="Notifications"
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <i className="fas fa-bell-concierge text-lg"></i>
         {unread > 0 && (
@@ -110,7 +143,11 @@ function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border z-50 overflow-hidden">
+        <div
+          ref={dropRef}
+          style={style}
+          className="z-[9999] bg-white rounded-xl shadow-xl border overflow-hidden"
+        >
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <h4 className="font-semibold text-gray-900 text-sm">Notifications</h4>
             {unread > 0 && (
@@ -164,7 +201,7 @@ function NotificationBell() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
