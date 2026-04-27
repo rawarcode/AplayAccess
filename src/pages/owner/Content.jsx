@@ -76,20 +76,31 @@ const DEFAULT_CONTENT = {
   // function below is now unreferenced and can be deleted in a
   // follow-up cleanup.
 
-  // home_resort (SINGULAR) — the actual "About the resort" card block
-  // that ships on Home. Was previously NOT exposed in the CMS editor
-  // (CLAUDE.md hazard note flagged this), so the section was visible
-  // on the live site but invisible to owners trying to edit it.
-  // Defaults must stay in sync with src/pages/Home.jsx
-  // HOME_DEFAULTS.resort.
+  // home_resort — "About the resort" / "Our resorts" card block on
+  // Home. Shape is { sectionTitle, sectionSubtitle, cards: [{...}] }
+  // so the section can scale from one resort today to N resorts
+  // later (e.g. Cavite + Cebu + Bohol) without code changes — owner
+  // adds cards through the editor. Defaults must stay in sync with
+  // src/pages/Home.jsx HOME_DEFAULTS.resort.
+  //
+  // CMS overrides saved against the OLD singular shape
+  // (top-level name/desc/image/badge/ctaText) are still consumed by
+  // Home.jsx via normalizeResortContent — no DB migration needed.
   home_resort: {
     sectionTitle:    "About the resort",
     sectionSubtitle: "A small beachfront resort on the Cavite coast — built for day trips, family getaways, and overnight stays without the metro hotel markup.",
-    name:            "Aplaya Beach Resort Cavite",
-    desc:            "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
-    image:           "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
-    badge:           "Now Open",
-    ctaText:         "Explore & Book Now",
+    cards: [
+      {
+        id:       "aplaya-cavite",
+        name:     "Aplaya Beach Resort Cavite",
+        location: "Naic, Cavite",
+        desc:     "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
+        image:    "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
+        badge:    "Now Open",
+        ctaText:  "Explore & Book Now",
+        link:     "/resort",
+      },
+    ],
   },
   home_cta: {
     title:      "Ready to book?",
@@ -604,75 +615,209 @@ function HomeHeroEditor({ content, onSave }) {
 }
 
 // ─── HomeResortEditor ────────────────────────────────────────────────────────
-// Editor for the "About the resort" card block on Home (singular
-// page_home_resort key — see DEFAULT_CONTENT comment for why this
-// editor was missing entirely until now). Exposes every field the
-// section renders, including the badge ("Now Open") and the CTA
-// button text, both of which were hardcoded in Home.jsx before this
-// commit.
+// Multi-card editor for the "About the resort" / "Our resorts" block
+// on Home. Shape is { sectionTitle, sectionSubtitle, cards: [{...}] }
+// — one card today, N cards if/when the resort expands to multiple
+// physical locations. Owner can add, remove, reorder, and edit
+// per-card fields without touching code.
+//
+// Backward-compatibility: CMS overrides saved before this multi-
+// card change have name/desc/image/etc. at the top level. The
+// normalizer below detects the old shape and migrates it into a
+// single-element cards array on first edit, so an owner who hits
+// "Edit" on a legacy section gets the new editor populated with
+// their existing data.
+//
+// Card layout on the public site is automatic:
+//   - 1 card  → full-width landscape (image left, text right)
+//   - 2 cards → 2-column grid, portrait
+//   - 3+ cards → 3-column grid, portrait
+// See src/pages/Home.jsx for the renderer.
+function blankResortCard() {
+  return {
+    id:       `card-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    name:     "",
+    location: "",
+    desc:     "",
+    image:    "",
+    badge:    "",
+    ctaText:  "Explore & Book Now",
+    link:     "/resort",
+  };
+}
+
+function normalizeResortContentForm(c) {
+  if (!c || typeof c !== 'object') {
+    return { sectionTitle: '', sectionSubtitle: '', cards: [] };
+  }
+  if (Array.isArray(c.cards)) {
+    return {
+      sectionTitle:    c.sectionTitle    ?? '',
+      sectionSubtitle: c.sectionSubtitle ?? '',
+      cards:           c.cards.map(card => ({ ...blankResortCard(), ...card })),
+    };
+  }
+  // Old singular shape — promote to single-card array.
+  return {
+    sectionTitle:    c.sectionTitle    ?? '',
+    sectionSubtitle: c.sectionSubtitle ?? '',
+    cards: [{
+      ...blankResortCard(),
+      name:     c.name    ?? '',
+      location: c.location ?? '',
+      desc:     c.desc    ?? '',
+      image:    c.image   ?? '',
+      badge:    c.badge   ?? '',
+      ctaText:  c.ctaText ?? 'Explore & Book Now',
+      link:     c.link    ?? '/resort',
+    }],
+  };
+}
+
 function HomeResortEditor({ content, onSave }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState(content);
-  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+  const [form, setForm] = useState(() => normalizeResortContentForm(content));
 
-  const cancel = () => { setForm(content); setEditing(false); };
+  const cancel = () => { setForm(normalizeResortContentForm(content)); setEditing(false); };
   const save   = () => { onSave(form); setEditing(false); };
 
+  function updateSection(key, val) { setForm(p => ({ ...p, [key]: val })); }
+  function updateCard(idx, key, val) {
+    setForm(p => ({ ...p, cards: p.cards.map((c, i) => i === idx ? { ...c, [key]: val } : c) }));
+  }
+  function addCard() {
+    setForm(p => ({ ...p, cards: [...p.cards, blankResortCard()] }));
+  }
+  function removeCard(idx) {
+    setForm(p => ({ ...p, cards: p.cards.filter((_, i) => i !== idx) }));
+  }
+  function moveCard(idx, dir) {
+    setForm(p => {
+      const next = [...p.cards];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return p;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return { ...p, cards: next };
+    });
+  }
+
+  // Read-only preview uses the canonical (already-normalized) shape
+  // so the preview never crashes on legacy CMS data.
+  const previewCards = normalizeResortContentForm(content).cards;
+  const cardCountLabel = previewCards.length === 0
+    ? 'No cards'
+    : previewCards.length === 1 ? '1 card' : `${previewCards.length} cards`;
+
   return (
-    <SectionCard icon="fa-umbrella-beach" title="Resort Card" badge="Home page · about-the-resort section" editing={editing}
-      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+    <SectionCard icon="fa-umbrella-beach" title="Resort Cards" badge={`Home page · ${cardCountLabel}`} editing={editing}
+      onEdit={() => { setForm(normalizeResortContentForm(content)); setEditing(true); }} onSave={save} onCancel={cancel}>
       {!editing ? (
-        <div className="rounded-lg border border-slate-200 overflow-hidden flex bg-white">
-          <div className="w-32 h-24 shrink-0 bg-slate-100">
-            {content.image && (
-              <img src={content.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
-            )}
-          </div>
-          <div className="p-3 flex-1 min-w-0">
-            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">{content.sectionTitle}</p>
-            {content.badge && (
-              <span className="inline-block bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1">
-                {content.badge}
-              </span>
-            )}
-            <p className="text-sm font-bold text-slate-800 truncate">{content.name}</p>
-            <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{content.desc}</p>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Resort Image</label>
-            <div className="flex items-start gap-4">
-              <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
-                {form.image ? (
-                  <img src={form.image} alt="Resort" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
-                ) : (
-                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg" aria-hidden="true"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+        <div className="space-y-2">
+          {previewCards.length === 0 ? (
+            <p className="text-xs text-slate-400 italic py-3 text-center">No resort cards configured. Click Edit to add one.</p>
+          ) : previewCards.map((c, i) => (
+            <div key={c.id || i} className="rounded-lg border border-slate-200 overflow-hidden flex bg-white">
+              <div className="w-24 h-20 shrink-0 bg-slate-100">
+                {c.image && (
+                  <img src={c.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
                 )}
               </div>
-              <div className="flex-1 min-w-0 space-y-2">
-                <MediaPicker
-                  value={form.image}
-                  onChange={url => setForm(p => ({ ...p, image: url }))}
-                  previousUrl={content.image}
-                  folder="resort-card"
-                  accept="image/*"
-                  label="Choose Image"
-                />
-                <p className="text-[10px] text-slate-400">Recommended: 1280px wide. The image renders alongside the text on desktop, stacked above on mobile.</p>
+              <div className="p-3 flex-1 min-w-0">
+                {c.badge && (
+                  <span className="inline-block bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1">{c.badge}</span>
+                )}
+                <p className="text-sm font-bold text-slate-800 truncate">{c.name || <span className="text-slate-300 italic">Untitled</span>}</p>
+                {c.location && <p className="text-[10px] text-slate-400 truncate">{c.location}</p>}
+                <p className="text-xs text-slate-500 line-clamp-1 mt-0.5">{c.desc}</p>
               </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {/* Shared header — section title + subtitle that sit ABOVE
+              all cards on the rendered page. */}
+          <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 space-y-3">
+            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Section Header (shown above all cards)</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="Section Title"    value={form.sectionTitle}    onChange={(v) => updateSection('sectionTitle', v)}    placeholder="e.g. About the resort / Our resorts" />
+              <Field label="Section Subtitle" value={form.sectionSubtitle} onChange={(v) => updateSection('sectionSubtitle', v)} rows={2} placeholder="Short paragraph above the card grid" />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Section Title"    value={form.sectionTitle    || ""} onChange={f("sectionTitle")}    placeholder="e.g. About the resort" />
-            <Field label="Section Subtitle" value={form.sectionSubtitle || ""} onChange={f("sectionSubtitle")} rows={2} placeholder="Short paragraph above the card" />
-            <Field label="Resort Name"      value={form.name            || ""} onChange={f("name")}            placeholder="e.g. Aplaya Beach Resort Cavite" />
-            <Field label="Badge"            value={form.badge           || ""} onChange={f("badge")}           placeholder="e.g. Now Open (leave empty to hide)" />
-            <Field label="Description"      value={form.desc            || ""} onChange={f("desc")}            rows={4} placeholder="Card body text" />
-            <Field label="CTA Button Text"  value={form.ctaText         || ""} onChange={f("ctaText")}         placeholder="e.g. Explore & Book Now" />
+          {/* Per-card editors */}
+          <div className="space-y-3">
+            {form.cards.length === 0 && (
+              <p className="text-xs text-slate-400 italic text-center py-4 border border-dashed border-slate-200 rounded-lg">
+                No resort cards yet. Click "Add Resort Card" below to start.
+              </p>
+            )}
+            {form.cards.map((card, idx) => (
+              <div key={card.id || idx} className="rounded-lg border border-slate-200 bg-white p-4 space-y-3">
+                {/* Card header — index + reorder + remove */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <p className="text-xs font-semibold text-slate-600">
+                    Card {idx + 1}{card.name ? ` — ${card.name}` : ''}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => moveCard(idx, -1)} disabled={idx === 0}
+                      title="Move up"
+                      className="h-8 w-8 rounded hover:bg-slate-100 disabled:opacity-30 text-slate-500 transition">
+                      <i className="fas fa-arrow-up text-xs" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" onClick={() => moveCard(idx, 1)} disabled={idx === form.cards.length - 1}
+                      title="Move down"
+                      className="h-8 w-8 rounded hover:bg-slate-100 disabled:opacity-30 text-slate-500 transition">
+                      <i className="fas fa-arrow-down text-xs" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" onClick={() => removeCard(idx)}
+                      title="Remove card"
+                      className="h-8 w-8 rounded hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition">
+                      <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Image picker */}
+                <div>
+                  <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Card Image</label>
+                  <div className="flex items-start gap-4">
+                    <div className="h-16 w-24 rounded border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                      {card.image ? (
+                        <img src={card.image} alt="" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+                      ) : (
+                        <i className="fas fa-image text-slate-300 text-sm" aria-hidden="true"></i>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <MediaPicker
+                        value={card.image}
+                        onChange={url => updateCard(idx, 'image', url)}
+                        previousUrl={card.image}
+                        folder="resort-card"
+                        accept="image/*"
+                        label="Choose Image"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Field label="Resort Name"    value={card.name     || ""} onChange={(v) => updateCard(idx, 'name',     v)} placeholder="e.g. Aplaya Beach Resort Cavite" />
+                  <Field label="Location"       value={card.location || ""} onChange={(v) => updateCard(idx, 'location', v)} placeholder="e.g. Naic, Cavite (optional)" />
+                  <Field label="Badge"          value={card.badge    || ""} onChange={(v) => updateCard(idx, 'badge',    v)} placeholder="e.g. Now Open (leave empty to hide)" />
+                  <Field label="CTA Button"     value={card.ctaText  || ""} onChange={(v) => updateCard(idx, 'ctaText',  v)} placeholder="e.g. Explore & Book Now" />
+                  <Field label="Description"    value={card.desc     || ""} onChange={(v) => updateCard(idx, 'desc',     v)} rows={3} placeholder="Card body text" />
+                  <Field label="Link / URL"     value={card.link     || ""} onChange={(v) => updateCard(idx, 'link',     v)} placeholder="e.g. /resort or /resort/cebu or # for none" />
+                </div>
+              </div>
+            ))}
           </div>
+
+          <button type="button" onClick={addCard}
+            className="w-full py-2.5 border-2 border-dashed border-slate-300 rounded-lg text-sm font-medium text-slate-500 hover:border-sky-400 hover:text-sky-600 hover:bg-sky-50 transition">
+            <i className="fas fa-plus text-xs mr-1.5" aria-hidden="true"></i>Add Resort Card
+          </button>
         </div>
       )}
     </SectionCard>

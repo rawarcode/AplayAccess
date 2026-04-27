@@ -18,17 +18,37 @@ const HOME_DEFAULTS = {
     subtitle: "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.",
     ctaText:  "See rooms & rates",
   },
+  // Resort cards block. Shape is { sectionTitle, sectionSubtitle,
+  // cards: [{...}] } so the section can scale from one resort today
+  // to multiple later (Cavite + Cebu + Bohol, etc.) without code
+  // changes — the owner adds cards through the CMS editor.
+  //
+  // Booking-side (rooms, /resort detail page, RESORT_ID config) is
+  // still single-resort. The cards block is CMS scalability only —
+  // when a second physical location actually opens, schema-level
+  // multi-tenancy is a separate refactor.
+  //
+  // Backward-compatible: normalizeResortCards() (helper below)
+  // accepts either the old singular shape (sectionTitle + name + desc
+  // + image + badge + ctaText all at the top level) or the new
+  // multi-card shape, returning a guaranteed cards array. CMS
+  // overrides saved before this change keep rendering as a 1-card
+  // section without any data migration.
   resort: {
     sectionTitle:    "About the resort",
     sectionSubtitle: "A small beachfront resort on the Cavite coast — built for day trips, family getaways, and overnight stays without the metro hotel markup.",
-    name:  "Aplaya Beach Resort Cavite",
-    desc:  "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
-    image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
-    // Badge and CTA were hardcoded in the JSX before — promoted to
-    // editable fields so the owner can change them via the CMS
-    // (HomeResortEditor in pages/owner/Content.jsx).
-    badge:   "Now Open",
-    ctaText: "Explore & Book Now",
+    cards: [
+      {
+        id:       "aplaya-cavite",
+        name:     "Aplaya Beach Resort Cavite",
+        location: "Naic, Cavite",
+        desc:     "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
+        image:    "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
+        badge:    "Now Open",
+        ctaText:  "Explore & Book Now",
+        link:     "/resort",
+      },
+    ],
   },
   why: {
     sectionTitle:    "What you get",
@@ -75,6 +95,46 @@ function useReveal() {
 /* ------------------------------------------------------------------ */
 
 /* ------------------------------------------------------------------ */
+/*  Resort cards — normalize old singular shape → new cards array    */
+/* ------------------------------------------------------------------ */
+// CMS overrides saved before the multi-resort change had top-level
+// name/desc/image/badge/ctaText. New shape moves all of that into a
+// `cards` array so the section can hold 1..N resorts. This shim
+// detects either shape and returns the canonical
+// { sectionTitle, sectionSubtitle, cards: [{...}] } structure so
+// the renderer never has to branch on "is this old or new content".
+//
+// If a future re-edit through the CMS saves the new shape, the shim
+// is a no-op and the cards pass through unchanged.
+function normalizeResortContent(c) {
+  if (!c || typeof c !== 'object') {
+    return { sectionTitle: '', sectionSubtitle: '', cards: [] };
+  }
+  if (Array.isArray(c.cards)) {
+    return {
+      sectionTitle:    c.sectionTitle    ?? '',
+      sectionSubtitle: c.sectionSubtitle ?? '',
+      cards:           c.cards.filter(Boolean),
+    };
+  }
+  // Old shape — single resort embedded at the top level.
+  return {
+    sectionTitle:    c.sectionTitle    ?? '',
+    sectionSubtitle: c.sectionSubtitle ?? '',
+    cards: [{
+      id:       'legacy-single',
+      name:     c.name    ?? '',
+      location: c.location ?? '',
+      desc:     c.desc    ?? '',
+      image:    c.image   ?? '',
+      badge:    c.badge   ?? '',
+      ctaText:  c.ctaText ?? 'Explore & Book Now',
+      link:     c.link    ?? '/resort',
+    }],
+  };
+}
+
+/* ------------------------------------------------------------------ */
 /*  #4 — Wavy SVG divider                                            */
 /* ------------------------------------------------------------------ */
 function WaveDivider({ flip = false, color = "#ffffff" }) {
@@ -106,7 +166,14 @@ export default function Home() {
     const homeCta    = d.page_home_cta    ?? {};
     return {
       hero:   { ...HOME_DEFAULTS.hero,   ...homeHero },
-      resort: { ...HOME_DEFAULTS.resort, ...homeResort },
+      // resort: prefer the CMS override IF it contains usable data —
+      // either the new shape (cards array) or the old singular shape
+      // (top-level name/desc/etc). normalizeResortContent unifies
+      // both into the canonical { sectionTitle, sectionSubtitle,
+      // cards } structure the renderer expects.
+      resort: normalizeResortContent(
+        Object.keys(homeResort).length > 0 ? homeResort : HOME_DEFAULTS.resort
+      ),
       why: {
         sectionTitle:    homeWhy.sectionTitle    ?? HOME_DEFAULTS.why.sectionTitle,
         sectionSubtitle: homeWhy.sectionSubtitle ?? HOME_DEFAULTS.why.sectionSubtitle,
@@ -216,30 +283,76 @@ export default function Home() {
             <p className="text-xl text-slate-600 max-w-3xl mx-auto">{resort.sectionSubtitle}</p>
           </div>
 
-          <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50">
-
-            <img
-              src={resort.image}
-              alt={resort.name}
-              className="w-full md:w-1/2 h-72 md:h-auto object-cover"
-              loading="lazy"
-            />
-            <div className="p-8 md:p-10 flex flex-col justify-center">
-              {resort.badge && (
-                <span className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full mb-4 w-fit">
-                  {resort.badge}
-                </span>
-              )}
-              <h3 className="text-2xl font-bold text-slate-900 mb-3">{resort.name}</h3>
-              <p className="text-slate-600 mb-6 leading-relaxed">{resort.desc}</p>
-              <Link
-                to="/resort"
-                className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
-              >
-                {resort.ctaText || "Explore & Book Now"}
-              </Link>
+          {/* Layout switches by card count:
+              - 1 card → full-width landscape (image left, text right)
+              - 2 cards → 2-col responsive grid, portrait cards
+              - 3+ cards → 3-col responsive grid, portrait cards
+              Empty cards array → render nothing (CMS lets owner save
+              an empty section to hide it). */}
+          {resort.cards.length === 0 ? null : resort.cards.length === 1 ? (
+            (() => {
+              const c = resort.cards[0];
+              const linkTo = c.link || '/resort';
+              return (
+                <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50">
+                  <img
+                    src={c.image}
+                    alt={c.name}
+                    className="w-full md:w-1/2 h-72 md:h-auto object-cover"
+                    loading="lazy"
+                  />
+                  <div className="p-8 md:p-10 flex flex-col justify-center">
+                    {c.badge && (
+                      <span className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full mb-4 w-fit">
+                        {c.badge}
+                      </span>
+                    )}
+                    <h3 className="text-2xl font-bold text-slate-900 mb-1">{c.name}</h3>
+                    {c.location && <p className="text-sm text-slate-500 mb-3"><i className="fas fa-location-dot mr-1.5 text-slate-400"></i>{c.location}</p>}
+                    <p className="text-slate-600 mb-6 leading-relaxed">{c.desc}</p>
+                    <Link
+                      to={linkTo}
+                      className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
+                    >
+                      {c.ctaText || 'Explore & Book Now'}
+                    </Link>
+                  </div>
+                </div>
+              );
+            })()
+          ) : (
+            <div className={`grid gap-6 ${resort.cards.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
+              {resort.cards.map((c) => {
+                const linkTo = c.link || '/resort';
+                return (
+                  <div key={c.id || c.name} className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ring-1 ring-slate-200 hover:ring-sky-400/50 flex flex-col">
+                    <img
+                      src={c.image}
+                      alt={c.name}
+                      className="w-full h-48 object-cover"
+                      loading="lazy"
+                    />
+                    <div className="p-6 flex flex-col flex-1">
+                      {c.badge && (
+                        <span className="inline-block bg-sky-100 text-sky-700 text-[11px] font-semibold px-2.5 py-0.5 rounded-full mb-3 w-fit">
+                          {c.badge}
+                        </span>
+                      )}
+                      <h3 className="text-xl font-bold text-slate-900 mb-1">{c.name}</h3>
+                      {c.location && <p className="text-xs text-slate-500 mb-2"><i className="fas fa-location-dot mr-1 text-slate-400"></i>{c.location}</p>}
+                      <p className="text-sm text-slate-600 mb-5 leading-relaxed flex-1 line-clamp-4">{c.desc}</p>
+                      <Link
+                        to={linkTo}
+                        className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-5 py-2.5 rounded-lg font-medium text-sm transition w-fit mt-auto"
+                      >
+                        {c.ctaText || 'Explore & Book Now'}
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
