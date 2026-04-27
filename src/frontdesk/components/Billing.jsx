@@ -902,7 +902,16 @@ export default function Billing({ embedded = false }) {
           ) : !isSearching && todayAll.length === 0 ? (
             <p className="text-slate-400 text-center py-6">No bookings for today.</p>
           ) : (
-            <div className="overflow-x-auto">
+          <>
+            {/* Desktop table — same shape as before, wrapped so that the
+                mobile card list below is the only one visible <md. The
+                eight-column grid crushes badly on phones; the cards
+                preserve the same fields without horizontal scrolling.
+                Action column has multiple states (Collect / Paid /
+                Awaiting / Confirmation / Cancelled) — those move into
+                the card footer in the mobile view, with stopPropagation
+                so they don't also trigger the row's setSelected. */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
@@ -1047,6 +1056,144 @@ export default function Billing({ embedded = false }) {
                 </tfoot>
               </table>
             </div>
+
+            {/* Mobile card list — same booking set, card layout. Action
+                buttons stay inline (Collect is the primary daily counter
+                action, so hiding it behind a modal would slow staff
+                down). Whole-card click opens the detail drawer; the
+                action button cluster stops propagation. */}
+            <ul className="md:hidden space-y-3">
+              {sortedTodayAll.map(b => {
+                const guestLabel = walkInName(b);
+                const isResolved = b.status === 'Cancelled' || b.status === 'Completed';
+                const cardCls = [
+                  'rounded-xl border bg-white shadow-sm transition cursor-pointer',
+                  b.status === 'Confirmed' && !b.fullyPaid
+                    ? 'border-l-4 border-l-emerald-400 border-emerald-100 hover:bg-emerald-50/40'
+                    : b.status === 'Pending'
+                      ? 'border-l-4 border-l-amber-400 border-amber-100 hover:bg-amber-50/40'
+                      : 'border-slate-200 hover:bg-slate-50',
+                  isResolved ? 'opacity-70' : '',
+                ].filter(Boolean).join(' ');
+                return (
+                  <li key={b.bookingId}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setSelected(b)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); } }}
+                      className={cardCls + ' p-4 focus:outline-none focus:ring-2 focus:ring-sky-400'}
+                      aria-label={`View billing detail for ${b.id}, guest ${guestLabel}`}
+                    >
+                      {/* Top — guest + total */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-base font-semibold text-slate-900 truncate">{guestLabel}</p>
+                          <p className="text-xs font-mono text-slate-500 mt-0.5 truncate">{b.id}</p>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-end gap-1.5">
+                          <p className="text-sm font-semibold text-slate-800">{fmtMoney(b.total)}</p>
+                          <StatusBadge status={b.status} />
+                        </div>
+                      </div>
+
+                      {/* Body — Room / Time Slot */}
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room</p>
+                          <p className="text-sm text-slate-700 mt-0.5 truncate">{b.roomType}</p>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Time</p>
+                          <p className="text-sm text-slate-700 mt-0.5">
+                            {fmtDateTime(b.checkIn)}
+                            <span className="block text-xs text-slate-400">→ {fmtDateTime(b.checkOut)}</span>
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide mb-1">Payment</p>
+                          <PaymentCell booking={b} entranceRates={entranceRates} />
+                        </div>
+                      </div>
+
+                      {/* Action cluster — mirrors the desktop Action
+                          column. stopPropagation so tapping a button
+                          doesn't also open the detail drawer. */}
+                      <div
+                        className="mt-3 pt-3 border-t border-slate-100 flex items-center gap-2 flex-wrap"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {b.status === 'Confirmed' && !b.fullyPaid && (
+                          <button
+                            onClick={() => openCollect(b)}
+                            aria-label={`Collect payment for ${b.id}`}
+                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                          >
+                            <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
+                          </button>
+                        )}
+                        {b.status === 'Confirmed' && b.fullyPaid && (
+                          <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-emerald-700 font-medium">
+                            <i className="fas fa-check-circle" aria-hidden="true"></i>Paid — awaiting check-in
+                          </span>
+                        )}
+                        {b.status === 'Pending' && (
+                          <span
+                            aria-label="Awaiting payment clearance"
+                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
+                          >
+                            <i className="fas fa-hourglass-half text-[11px]" aria-hidden="true"></i>Awaiting payment
+                          </span>
+                        )}
+                        {b.status !== 'Pending' && !(b.status === 'Cancelled' && Number(b.paidAmount ?? 0) <= 0) && (
+                          <button
+                            onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
+                            disabled={downloading === b.bookingId}
+                            aria-label={`Download booking confirmation PDF for ${b.id}`}
+                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                            title="Download booking confirmation (PDF)"
+                          >
+                            <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} text-[11px]`} aria-hidden="true"></i>
+                            Confirmation
+                          </button>
+                        )}
+                        {b.status === 'Cancelled' && (
+                          <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-rose-600">
+                            <i className="fas fa-ban" aria-hidden="true"></i>Cancelled
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Mobile summary — replaces the desktop <tfoot>. Sums the
+                same set: excludes Cancelled + Pending, matching the
+                visible "Booking Total" column. "earned" tracks
+                revenueToday so the two figures stay in sync with
+                desktop. */}
+            <div className="md:hidden mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-600 inline-flex items-center gap-1.5 font-medium">
+                  Billed
+                  <i
+                    className="fas fa-circle-info text-slate-400 text-[11px]"
+                    title="Excludes cancelled and pending bookings. Entrance fees are collected at the gate and tracked separately."
+                    aria-label="Excludes cancelled and pending bookings. Entrance fees are collected at the gate and tracked separately."
+                  ></i>
+                </span>
+                <span className="font-semibold text-slate-800">
+                  {fmtMoney(todayAll.filter(b => !['Cancelled', 'Pending'].includes(b.status)).reduce((s, b) => s + Number(b.total || 0), 0))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200">
+                <span className="text-slate-600 font-medium">Earned</span>
+                <span className="font-semibold text-emerald-700">{fmtMoney(revenueToday)}</span>
+              </div>
+            </div>
+          </>
           )}
         </div>
       </main>
