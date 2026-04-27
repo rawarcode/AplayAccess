@@ -22,7 +22,7 @@ const HOME_DEFAULTS = {
     sectionTitle:    "About the resort",
     sectionSubtitle: "A small beachfront resort on the Cavite coast — built for day trips, family getaways, and overnight stays without the metro hotel markup.",
     name:  "Aplaya Beach Resort Cavite",
-    desc:  "Private cottages, pavilions, and rooms a few steps from the water. Each booking includes pool access and a parking slot. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
+    desc:  "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
     image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
   },
   why: {

@@ -35,9 +35,9 @@ Summer is in full swing, and there's no better place to enjoy it than Aplaya Bea
 
 Whether you're looking for a relaxing day by the beach, a romantic overnight getaway, or a fun-filled family vacation, we have the perfect package for you.
 
-🌊 Enjoy our beachfront rooms, swimming pool, and world-class amenities.
-🍹 Sip cocktails as you watch the sunset.
-🏄 Try our exciting water activities.
+🌊 Beachfront cottages, pavilions, and rooms — pick your group size.
+☀️ Day visits from 6 AM, overnight from 6 PM, or stay the full 24 hours.
+🚪 Walk-ins welcome — or reserve online and pay with GCash.
 
 Book now and make this summer unforgettable!
 
@@ -53,10 +53,10 @@ Aplaya Beach Resort Team`,
 
 We are thrilled to announce the launch of our newest accommodation — the [Room Name]!
 
-Designed with your comfort in mind, this stunning [room type] features:
-• [Feature 1, e.g. panoramic ocean views]
-• [Feature 2, e.g. private plunge pool]
-• [Feature 3, e.g. king-sized bed with premium linens]
+This [room type] features:
+• [Feature 1, e.g. ocean view]
+• [Feature 2, e.g. private terrace]
+• [Feature 3, e.g. king-sized bed]
 
 As one of our valued newsletter subscribers, you get early access to book before we open it to the public.
 

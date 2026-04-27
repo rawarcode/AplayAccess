@@ -57,17 +57,13 @@ export const rooms = [
     img: "https://plus.unsplash.com/premium_photo-1661962346904-8a489ef9b9e7?auto=format&fit=crop&w=1974&q=80",
     price: 1500,
     detailsDescription:
-      "Our most luxurious accommodation with direct beach access, a private plunge pool, and panoramic ocean views. The suite features a separate living area, dining space, and a luxurious bathroom with a soaking tub.",
+      "Direct beach access from a private terrace. The suite has a separate living area, dining space, and an en-suite bathroom.",
     amenities: [
       "Direct Beach Access",
-      "Private Plunge Pool",
       "Separate Living & Dining Area",
-      "Private Terrace with Sun Loungers",
-      "Luxury Bathroom with Soaking Tub & Rain Shower",
-      "Free High-Speed WiFi",
-      "Flat-screen TV with Premium Channels",
-      "Mini-bar (Complimentary)",
-      "Nespresso Machine",
+      "Private Terrace",
+      "Free WiFi",
+      "Flat-screen TV",
       "In-room Safe",
       "Air Conditioning",
       "Hair Dryer",
@@ -76,6 +72,10 @@ export const rooms = [
     beds: "1 King Bed + 1 Sofa Bed",
     occupancy: "Max 4 Guests",
     view: "Direct Beachfront",
-    highlights: ["King + Sofa Bed", "65 sqm", "Private Plunge Pool"],
+    // Was "Private Plunge Pool" — Aplaya doesn't have a pool of any
+    // kind, so the highlight (and the corresponding amenities entry +
+    // detailsDescription mention) was deleted. Replaced with the
+    // legit beachfront-access claim.
+    highlights: ["King + Sofa Bed", "65 sqm", "Beachfront"],
   },
 ];

@@ -137,10 +137,21 @@ function WaveDivider({ flip = false, color = "#ffffff" }) {
   );
 }
 
+// Audit-flagged previously: "Welcome to Paradise" / "perfect blend
+// of luxury, comfort, and breathtaking ocean views" was the most
+// AI-template hero copy on the site. Replaced with honest, fact-led
+// language. Aplaya is a small beachfront resort in Naic, Cavite —
+// not a luxury resort, no pool, no swim-up bar. Marketing copy
+// shouldn't promise things the property doesn't have.
+//
+// Defaults must stay in sync with src/pages/owner/Content.jsx
+// DEFAULT_CONTENT.resort_* keys (the website-builder pre-fill).
+// CLAUDE.md hazard note: editing one without the other creates a
+// "live site shows X, builder pre-fills Y" mismatch.
 const DEFAULT_PC = {
-  hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Welcome to Paradise", subtitle: "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.", ctaText: "Book Your Stay" },
-  about:      { title: "Discover Aplaya Beach Resort", paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.", paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
-  rooms:      { sectionTitle: "Our Accommodations", sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation." },
+  hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Aplaya Beach Resort", subtitle: "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.", ctaText: "See rooms & rates" },
+  about:      { title: "About the resort", paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.", paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
+  rooms:      { sectionTitle: "Rooms, cottages, and pavilions", sectionSubtitle: "Pick what fits your group size and the kind of trip you're planning." },
   contact:    { address: "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110", phone: "+63 908 191 4721", email: "aplayabeachresortph@gmail.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus", osm_url: "https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971" },
   reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
   newsletter: { visible: true,  title: "Subscribe to Our Newsletter", subtitle: "Stay updated with our latest offers, news, and events. Join our mailing list today!" },

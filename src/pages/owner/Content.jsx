@@ -66,56 +66,51 @@ const DEFAULT_CONTENT = {
       { icon: "fa-id-card",        title: "Entrance covered too",  desc: "Per-head entrance fee is built into the booking total. No surprises at the gate." },
     ],
   },
-  home_resorts: {
-    sectionTitle:    "Our Beach Resorts",
-    sectionSubtitle: "Select the resort that matches your dream vacation.",
-    cards: [
-      {
-        name:  "Aplaya Beach Resort Cavite",
-        desc:  "Experience luxury and breathtaking ocean views at our flagship resort.",
-        image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=2070&q=80",
-        badge: "Popular",
-      },
-      {
-        name:  "Aplaya Beach Resort Cebu",
-        desc:  "Relax in our serene bay-side location with world-class amenities.",
-        image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
-        badge: "",
-      },
-      {
-        name:  "Aplaya Beach Resort Bohol",
-        desc:  "Dive into adventure with our exclusive coral reef access and diving center.",
-        image: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=2000&q=80",
-        badge: "",
-      },
-    ],
-  },
+  // home_resorts (PLURAL) was a legacy multi-resort cards block ("Our
+  // Beach Resorts" listing fake Cavite/Cebu/Bohol locations) that
+  // Home.jsx never consumed — Home reads page_home_resort (SINGULAR)
+  // for the about-the-resort block instead. Audit caught it because
+  // the CMS editor still rendered the section, exposing made-up
+  // claims about a "collection of stunning beach resorts" that
+  // Aplaya does not have. Removed entirely; the HomeResortsEditor
+  // function below is now unreferenced and can be deleted in a
+  // follow-up cleanup.
   home_cta: {
     title:      "Ready to book?",
     subtitle:   "Pick a date and a room — most slots can be reserved in under a minute.",
     buttonText: "Book a stay",
   },
   // ── Resort page (/resort) ──────────────────────────────────────────────────
+  // Defaults sync with src/pages/Resort.jsx DEFAULT_PC. CLAUDE.md
+  // hazard note: editing one without the other creates a "live site
+  // shows X, builder pre-fills Y" mismatch. Audit-flagged AI-template
+  // copy ("Welcome to Paradise", "perfect blend of luxury", "tropical
+  // paradise", "luxurious accommodations") replaced with fact-led
+  // language. Aplaya is a small beachfront in Naic, Cavite — no
+  // pool, no luxury accommodations, marketing shouldn't claim them.
   resort_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
-    title:      "Welcome to Paradise",
-    subtitle:   "Aplaya Beach Resort offers the perfect blend of luxury, comfort, and breathtaking ocean views.",
-    ctaText:    "Book Your Stay",
+    title:      "Aplaya Beach Resort",
+    subtitle:   "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.",
+    ctaText:    "See rooms & rates",
   },
   resort_about: {
-    title:      "Discover Aplaya Beach Resort",
-    paragraph1: "Nestled along the pristine coastline, Aplaya Beach Resort is a tropical paradise offering luxurious accommodations, world-class amenities, and unforgettable experiences.",
-    paragraph2: "Our resort combines modern comfort with traditional charm, creating the perfect setting for your dream vacation.",
+    title:      "About the resort",
+    paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.",
+    paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.",
     image:      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
   },
   resort_rooms: {
-    sectionTitle:    "Our Accommodations",
-    sectionSubtitle: "Choose from our selection of luxurious rooms and suites, each designed to provide the ultimate comfort and relaxation.",
+    sectionTitle:    "Rooms, cottages, and pavilions",
+    sectionSubtitle: "Pick what fits your group size and the kind of trip you're planning.",
   },
   resort_contact: {
-    address:        "123 Beachfront Avenue, Coastal City, Paradise Island",
-    phone:          "+1 (555) 123-4567",
-    email:          "reservations@aplayabeachresort.com",
+    // Real Aplaya address (Naic, Cavite). Was a "123 Beachfront
+    // Avenue, Coastal City, Paradise Island" placeholder before —
+    // would have shipped to live if the owner never visited the CMS.
+    address:        "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Cavite, 4110",
+    phone:          "+63 908 191 4721",
+    email:          "aplayabeachresortph@gmail.com",
     directions_url: "",
   },
   resort_reviews: {
@@ -3311,7 +3306,8 @@ export default function AdminContent() {
             </div>
             <div className="space-y-3">
               <HomeHeroEditor    content={content.home_hero}    onSave={update("home_hero")} />
-              <HomeResortsEditor content={content.home_resorts} onSave={update("home_resorts")} />
+              {/* HomeResortsEditor removed — was a legacy multi-resort
+                  block Home.jsx never consumed. See defaults comment. */}
               <HomeWhyEditor     content={content.home_why}     onSave={update("home_why")} />
               <HomeCTAEditor     content={content.home_cta}     onSave={update("home_cta")} />
             </div>
