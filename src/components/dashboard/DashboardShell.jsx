@@ -290,11 +290,18 @@ export default function DashboardShell() {
           </nav>
         </aside>
 
-        {/* Mobile sidebar toggle */}
+        {/* Mobile sidebar toggle — top-left, just below the global
+            Navbar (which sits fixed at top-0 with h-16). Matches the
+            convention used by frontdesk Sidebar (top-left white square)
+            and Admin/Owner shells (hamburger inside the top header).
+            Was previously bottom-left blue FAB — non-standard for menu
+            actions and the only outlier in the app. Top-20 = 80px,
+            which is the navbar's 64px + 16px breathing room so the
+            button never visually collides with the navbar contents. */}
         <button
           onClick={() => setSidebarOpen((s) => !s)}
-          className="md:hidden fixed bottom-4 left-4 z-20 h-12 w-12 rounded-full bg-blue-600 text-white shadow-lg flex items-center justify-center hover:bg-blue-700 transition"
-          aria-label="Toggle sidebar"
+          className="md:hidden fixed top-20 left-4 z-30 flex items-center justify-center w-10 h-10 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/50 transition"
+          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
         >
           <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"}`}></i>
         </button>
