@@ -4,6 +4,7 @@ import { Bar } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from "chart.js";
 import { getAdminBookings, getAnalyticsOverview } from "../../lib/adminApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
+import { printHtml } from "../../lib/print.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -71,17 +72,11 @@ function printTransactions(rows) {
 <table><thead><tr><th>Booking ID</th><th>Check-in</th><th>Guest</th><th>Room</th><th style="text-align:right">Discount</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th style="text-align:right">Collected</th><th>Status</th><th>Payment</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="4">Totals</td><td style="text-align:right">₱${fmtN(discTotal)}</td><td style="text-align:right">₱${fmtN(total - efTotal)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right">₱${fmtN(efTotal)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right;color:#6ee7b7">₱${fmtN(revenueCollected)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">all rows</div></td><td colspan="2"></td></tr></tfoot></table>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 </body></html>`;
-  // Fire print() from the opener — inline <script> in the popup is
-  // blocked by the parent page's CSP (script-src no longer allows
-  // 'unsafe-inline' since the P1 hardening pass). Chromium
-  // propagates the opener's CSP to about:blank popups. Same fix
-  // pattern as frontdesk/Reports.jsx.
-  const w = window.open('','_blank');
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { w.print(); w.onafterprint = () => w.close(); }, 250);
+  // Hidden-iframe print via the shared util. Mobile browsers block
+  // the `window.open('','_blank')` popup pattern (or render it as a
+  // dead tab with no print dialog). Iframe approach works on both
+  // mobile and desktop. CSP-safe — see lib/print.js docstring.
+  printHtml(html, { title: 'Aplaya Transactions' });
 }
 
 

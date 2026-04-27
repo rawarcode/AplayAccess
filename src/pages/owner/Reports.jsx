@@ -13,6 +13,7 @@ import {
 } from "chart.js";
 import { getAnalyticsReport, getAnalyticsBookings, getAnalyticsRooms, getAnalyticsOverview, getAnalyticsMonthly } from "../../lib/adminApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
+import { printHtml } from "../../lib/print.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -65,17 +66,10 @@ function printReport({ bookings, active, revenue, forfeited, forfeitedCount, avg
 <div class="sec"><div class="sech">Booking Details</div><table><thead><tr><th>Guest</th><th>Room</th><th>Payment</th><th style="text-align:center">Duration</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th style="text-align:right">Collected</th><th>Status</th></tr></thead><tbody>${bookingRows}</tbody><tfoot><tr><td colspan="4">Totals</td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.total??0),0))}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right">₱${fmtN(active.reduce((s,b)=>s+Number(b.entranceFee??0),0))}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">excl. cancelled</div></td><td style="text-align:right;color:#6ee7b7">₱${fmtN(revenue)}<div style="font-size:7.5pt;opacity:0.75;font-weight:normal">all rows</div></td><td></td></tr></tfoot></table></div>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 </body></html>`;
-  // Fire print() from the opener — inline <script> in the popup is
-  // blocked by the parent page's CSP (script-src no longer allows
-  // 'unsafe-inline' since the P1 hardening pass). Chromium
-  // propagates the opener's CSP to about:blank popups. Same fix
-  // pattern as frontdesk/Reports.jsx.
-  const w = window.open('','_blank');
-  if (!w) return;
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  setTimeout(() => { w.print(); w.onafterprint = () => w.close(); }, 250);
+  // Hidden-iframe print via the shared util — works on mobile where
+  // window.open popups are blocked or render as a dead tab without
+  // a print dialog. See lib/print.js docstring.
+  printHtml(html, { title: 'Aplaya Owner Report' });
 }
 
 const STATUS_CLASSES = {

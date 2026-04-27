@@ -9,6 +9,7 @@ import { getFdBookings } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtMoney, fmtTime, localDateStr } from '../../lib/format';
+import { printHtml } from '../../lib/print.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -139,21 +140,11 @@ function printDailyReport(dateBookings, reportDateLabel, totalRevenue, entranceR
 <table><thead><tr><th>ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th style="text-align:center">Duration</th><th style="text-align:center">Guests</th><th style="text-align:right">Room Total</th><th style="text-align:right">Entrance Fee</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody><tfoot><tr><td colspan="6">Totals</td><td style="text-align:center">${totalGuests}</td><td style="text-align:right">${fmtM(grossTotal - efTotal)}</td><td style="text-align:right">${fmtM(efTotal)}</td><td style="text-align:right">${fmtM(totalRevenue)} collected</td></tr></tfoot></table>
 <div class="ftr"><span>AplayAccess · Aplaya Beach Resort · Front Desk</span><span>Confidential — Internal use only</span><span>Generated: ${now}</span></div>
 </body></html>`;
-  // Inline <script> in the popup HTML was blocked by the parent page's
-  // CSP (we removed script-src 'unsafe-inline' during the P1 audit
-  // pass), which propagates to about:blank windows in Chromium. Fire
-  // print() from the opener instead — doesn't need CSP relaxation.
-  const w = window.open('','_blank');
-  if (!w) return; // Pop-up blocked by browser — caller should surface a toast.
-  w.document.write(html);
-  w.document.close();
-  w.focus();
-  // Give the popup a tick to parse + lay out before invoking print
-  // (otherwise Chromium sometimes opens an empty print dialog).
-  setTimeout(() => {
-    w.print();
-    w.onafterprint = () => w.close();
-  }, 250);
+  // Hidden-iframe print via the shared util — works on mobile where
+  // window.open popups are blocked or render as a dead tab without
+  // a print dialog. CSP-safe (no inline script in the printable
+  // HTML — print() fires from this module). See lib/print.js.
+  printHtml(html, { title: 'Aplaya Front Desk Report' });
 }
 
 // ─── component ────────────────────────────────────────────────────────────────
