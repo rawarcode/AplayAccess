@@ -6,6 +6,7 @@ import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
 import PaymentCell from '../../components/ui/PaymentPill';
 import { fmtMoney, fmtDate, fmtDateTime, localDateStr } from '../../lib/format';
+import { usePagination, PaginationBar } from '../../lib/pagination.jsx';
 
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
@@ -515,6 +516,12 @@ export default function Billing({ embedded = false }) {
     return 0;
   }), [searchedTodayAll, sortBy, sortDir]);
 
+  // Pagination — same 25/page cap as Bookings. Page resets to 1 on
+  // search/sort change so a narrowed list snaps back to the top
+  // instead of stranding the user on a now-empty page.
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(sortedTodayAll, 25);
+  useEffect(() => { setPage(1); }, [searchTerm, sortBy, sortDir, setPage]);
+
   // Bookings awaiting balance collection: Confirmed/Checked In with any
   // outstanding balance. Using outstanding (derived from paidAmount) means
   // a booking that was fully paid, then had extra guests added, correctly
@@ -947,7 +954,7 @@ export default function Billing({ embedded = false }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {sortedTodayAll.map(b => {
+                  {paginated.map(b => {
                     const guestLabel = walkInName(b);
                     return (
                       <tr key={b.bookingId}
@@ -1063,7 +1070,7 @@ export default function Billing({ embedded = false }) {
                 down). Whole-card click opens the detail drawer; the
                 action button cluster stops propagation. */}
             <ul className="md:hidden space-y-3">
-              {sortedTodayAll.map(b => {
+              {paginated.map(b => {
                 const guestLabel = walkInName(b);
                 const isResolved = b.status === 'Cancelled' || b.status === 'Completed';
                 const cardCls = [
@@ -1193,6 +1200,18 @@ export default function Billing({ embedded = false }) {
                 <span className="font-semibold text-emerald-700">{fmtMoney(revenueToday)}</span>
               </div>
             </div>
+
+            {/* Pagination — sits below both desktop table + mobile
+                cards so it controls the slice on every viewport. The
+                Billed/Earned summary above always reflects the FULL
+                day (not just the current page) — those totals are
+                computed from todayAll, not the paginated subset. */}
+            <PaginationBar
+              safePage={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              info={info}
+            />
           </>
           )}
         </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getNewsletterSubscribers, sendNewsletterCampaign } from "../../lib/adminApi";
 import useFocusTrap from "../../hooks/useFocusTrap.js";
+import { usePagination, PaginationBar } from "../../lib/pagination.jsx";
 
 const TEMPLATES = [
   {
@@ -207,6 +208,12 @@ export default function OwnerNewsletter() {
     s.email.toLowerCase().includes(search.toLowerCase())
   );
 
+  // Pagination — subscriber lists grow append-only, can hit thousands.
+  // 25/page matches the convention used across the app's listing
+  // pages. Reset to page 1 when search narrows the list.
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(filtered, 25);
+  useEffect(() => { setPage(1); }, [search, setPage]);
+
   function openCompose() {
     setSubject("");
     setBody("");
@@ -354,15 +361,26 @@ export default function OwnerNewsletter() {
                 <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400">
                   {search ? "No subscribers match your search." : "No subscribers yet."}
                 </td></tr>
-              ) : filtered.map((s, i) => (
+              ) : paginated.map((s, i) => (
                 <tr key={s.id} className="hover:bg-slate-50">
-                  <td className="px-6 py-3 text-slate-400 text-xs">{i + 1}</td>
+                  {/* Index column shows the global position (across
+                      all pages) so a row's number stays stable as you
+                      paginate — `(safePage-1) * pageSize + localIdx`
+                      instead of `i + 1` which would restart at 1 on
+                      every page. */}
+                  <td className="px-6 py-3 text-slate-400 text-xs">{(safePage - 1) * 25 + i + 1}</td>
                   <td className="px-6 py-3 font-medium text-slate-800">{s.email}</td>
                   <td className="px-6 py-3 text-slate-400 text-xs">{formatDate(s.created_at)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <PaginationBar
+            safePage={safePage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            info={info}
+          />
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import Sidebar from './Layout/Sidebar';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtDate, fmtMoney, fmtGuestEmail } from '../../lib/format';
+import { usePagination, PaginationBar } from '../../lib/pagination.jsx';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 function initials(name) {
@@ -153,6 +154,12 @@ export default function GuestRecords({ embedded = false }) {
       return 0;
     });
   }, [guests, search, sortBy, sortDir]);
+
+  // Pagination — 25 per page matches the Bookings/Billing cap. Reset
+  // to page 1 whenever search or sort changes so a narrowed list snaps
+  // back to the top.
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(filtered, 25);
+  useEffect(() => { setPage(1); }, [search, sortBy, sortDir, setPage]);
 
   // ─── render ───────────────────────────────────────────────────────────────────
   return (
@@ -428,7 +435,7 @@ export default function GuestRecords({ embedded = false }) {
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-slate-400">No guests found.</td>
                     </tr>
-                  ) : filtered.map((g) => (
+                  ) : paginated.map((g) => (
                     <tr
                       key={g.id}
                       role="button"
@@ -481,7 +488,7 @@ export default function GuestRecords({ embedded = false }) {
               </div>
             ) : (
               <ul className="md:hidden space-y-3">
-                {filtered.map((g) => (
+                {paginated.map((g) => (
                   <li key={g.id}>
                     <button
                       type="button"
@@ -525,6 +532,15 @@ export default function GuestRecords({ embedded = false }) {
                 ))}
               </ul>
             )}
+
+            {/* Pagination — sits below both desktop table + mobile
+                cards. Hides itself when totalPages <= 1. */}
+            <PaginationBar
+              safePage={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              info={info}
+            />
           </>
           )}
         </div>
