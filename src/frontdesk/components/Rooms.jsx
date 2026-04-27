@@ -353,20 +353,33 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
   // Pending bookings are excluded in line with getSlotStatus —
   // they don't hold the room and auto-cancel, so surfacing them in
   // the detail modal was just noise.
+  //
+  // Checked-In rows are force-included regardless of slot overlap —
+  // an overdue Checked-In or a 24hr stay whose window doesn't fall
+  // inside the current Day/Night slot still occupies the unit, and
+  // getMultiSlotStatus counts them toward the header's "Occ" badge.
+  // Without this special-case, the modal body could read "No active
+  // bookings" while the header simultaneously showed "1 Occ" —
+  // because the count and the body filter would disagree on whether
+  // a checked-in 24hr stay belongs in this slot's view.
   const occupied = [], incoming = [];
   bookings
-    .filter(b =>
-      b.roomType === room.name &&
-      b.status !== 'Cancelled' &&
-      b.status !== 'Completed' &&
-      b.status !== 'Pending' &&
-      overlapsWindow(b, ws, we)
-    )
+    .filter(b => {
+      if (b.roomType !== room.name) return false;
+      if (b.status === 'Cancelled' || b.status === 'Completed' || b.status === 'Pending') return false;
+      if (b.status === 'Checked In') return true;
+      return overlapsWindow(b, ws, we);
+    })
     .forEach(b => {
       const r = bookingRange(b);
       if (!r) return;
-      if (now >= r.ci && now < r.co) occupied.push(b);
-      else if (now < r.ci)           incoming.push(b);
+      // Checked-In always classifies as occupied — mirrors the count
+      // logic. A Checked-In whose checkOut is in the past (overdue)
+      // or whose window doesn't overlap the current slot is still
+      // physically inside the unit until staff check them out.
+      if (b.status === 'Checked In')   { occupied.push(b); return; }
+      if (now >= r.ci && now < r.co)     occupied.push(b);
+      else if (now < r.ci)               incoming.push(b);
     });
 
   const cat = getCat(room);
