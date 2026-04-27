@@ -334,10 +334,16 @@ export default function OwnerReports() {
             {loadingChart ? <p className="text-sm text-gray-400">Loading...</p> : roomsData.length === 0 ? <p className="text-sm text-gray-400">No data for this period</p> : (
               <>
                 <div style={{ height: Math.max(224, 224 + (roomsData.length - 4) * 28) }}><Bar data={analyticsRoomBarData} options={analyticsBarOptions} /></div>
-                <div className={`mt-4 divide-y divide-slate-100 ${roomsData.length >= 5 ? "grid grid-cols-2 gap-x-6 divide-y-0" : ""}`}>
+                {/* Single column on phones — was forcing grid-cols-2
+                    whenever there were 5+ rooms regardless of viewport,
+                    which crushed each cell to ~150px on a 375px phone
+                    and truncated room labels brutally. The 2-col
+                    layout only kicks in at md+ now where each cell
+                    has 280px+ to breathe. */}
+                <div className={`mt-4 divide-y divide-slate-100 ${roomsData.length >= 5 ? "md:grid md:grid-cols-2 md:gap-x-6 md:divide-y-0" : ""}`}>
                   {roomsData.map((r, i) => (
                     <div key={r.label} className="flex items-center justify-between py-2 border-b border-slate-100">
-                      <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full shrink-0" style={{ background: DOT_COLORS[i % DOT_COLORS.length] }} /><span className="text-sm text-gray-700 truncate">{r.label}</span></div>
+                      <div className="flex items-center gap-2 min-w-0"><span className="w-3 h-3 rounded-full shrink-0" style={{ background: DOT_COLORS[i % DOT_COLORS.length] }} /><span className="text-sm text-gray-700 truncate">{r.label}</span></div>
                       <div className="text-right shrink-0 ml-3"><p className="text-sm font-semibold text-gray-900">{fmt(r.revenue)}</p><p className="text-xs text-gray-400">{r.bookings} bookings</p></div>
                     </div>
                   ))}
