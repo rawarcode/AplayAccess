@@ -37,6 +37,7 @@ import {
   replyAdminMessage,
   markAdminMessageRead,
 } from '../lib/adminApi.js';
+import { useDraggableWidget } from '../lib/useDraggableWidget.js';
 
 function timeAgo(iso) {
   if (!iso) return '';
@@ -179,13 +180,22 @@ export default function StaffChatWidget() {
     }
   }
 
+  // Drag-to-reposition. Separate storage key from the guest widget so
+  // staff can park it independently. See ../lib/useDraggableWidget.js
+  // for the rationale (lets staff move the bubble out of the way of
+  // any underlying button instead of refactoring every page).
+  const { handlers: dragHandlers, style: dragStyle, wasDragged } = useDraggableWidget('staff-chat');
+
   return (
     <>
       {/* Floating bubble — violet to distinguish from the guest
-          widget. Same bottom-right anchor + bounce animation. */}
+          widget. Same bottom-right anchor. Draggable; transition-colors
+          (not transition-all) so the drag transform isn't smoothed. */}
       <button
-        onClick={() => setOpen(o => !o)}
-        className={`fixed bottom-6 right-6 z-[9989] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+        onClick={() => { if (wasDragged.current) return; setOpen(o => !o); }}
+        {...dragHandlers}
+        style={dragStyle}
+        className={`fixed bottom-6 right-6 z-[9989] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors duration-300 cursor-grab active:cursor-grabbing ${
           open
             ? 'bg-slate-700 hover:bg-slate-800'
             : 'bg-violet-600 hover:bg-violet-700'
@@ -198,7 +208,7 @@ export default function StaffChatWidget() {
               : 'Open staff messages'
         }
       >
-        <i className={`fas ${open ? 'fa-times' : 'fa-headset'} text-white text-xl`}></i>
+        <i className={`fas ${open ? 'fa-times' : 'fa-headset'} text-white text-xl pointer-events-none`}></i>
         {!open && totalUnread > 0 && (
           <span
             className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full bg-rose-500 border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none pointer-events-none animate-pulse"
@@ -209,9 +219,17 @@ export default function StaffChatWidget() {
         )}
       </button>
 
-      {/* Panel */}
+      {/* Panel — outer wrapper carries the drag translate; inner div
+          keeps the open/close scale animation. Same two-layer pattern
+          as the guest ChatWidget — see comment there. pointer-events
+          -none on outer wrapper so the invisible 400px region doesn't
+          block underlying buttons; inner re-enables when open. */}
       <div
-        className={`fixed bottom-24 right-6 z-[9989] w-[400px] max-w-[calc(100vw-2rem)] transition-all duration-300 origin-bottom-right ${
+        style={dragStyle}
+        className="fixed bottom-24 right-6 z-[9989] w-[400px] max-w-[calc(100vw-2rem)] pointer-events-none"
+      >
+      <div
+        className={`transition-all duration-300 origin-bottom-right ${
           open ? 'scale-100 opacity-100 pointer-events-auto' : 'scale-90 opacity-0 pointer-events-none'
         }`}
       >
@@ -283,6 +301,7 @@ export default function StaffChatWidget() {
             </div>
           )}
         </div>
+      </div>
       </div>
 
     </>

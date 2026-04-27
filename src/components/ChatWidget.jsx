@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { getAutoReplyKeywords } from "../lib/resortApi.js";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../lib/messageApi.js";
 import { playMessageChime } from "../lib/notificationSound.js";
+import { useDraggableWidget } from "../lib/useDraggableWidget.js";
 
 /** Render bot text with route links (/rooms, /resort, etc.) as clickable Link components */
 function BotText({ text }) {
@@ -250,16 +251,26 @@ export default function ChatWidget() {
   const askedKeywords = messages.filter(m => m.type === "user").map(m => m.text.toLowerCase());
   const availableKeywords = keywords.filter(k => !askedKeywords.includes(k.keyword.toLowerCase()));
 
+  // Drag-to-reposition. Persists per-widget; bubble + panel translate
+  // in lockstep so the panel stays anchored above the bubble wherever
+  // the user parks it.
+  const { handlers: dragHandlers, style: dragStyle, wasDragged } = useDraggableWidget('guest-chat');
+
   return (
     <>
       {/* Floating bubble — shows an unread badge when the widget is
           closed and the guest has untouched staff replies on their
-          thread. Badge clears the instant they open the widget. */}
+          thread. Badge clears the instant they open the widget.
+          Draggable: the user can move it out of the way of any
+          underlying button. transition-colors instead of transition-all
+          so the drag transform isn't smoothed (would feel laggy). */}
       <button
-        onClick={() => setOpen(o => !o)}
-        className={`fixed bottom-6 right-6 z-[9990] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-all duration-300 ${
+        onClick={() => { if (wasDragged.current) return; setOpen(o => !o); }}
+        {...dragHandlers}
+        style={dragStyle}
+        className={`fixed bottom-6 right-6 z-[9990] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors duration-300 cursor-grab active:cursor-grabbing ${
           open
-            ? "bg-slate-700 hover:bg-slate-800 rotate-0"
+            ? "bg-slate-700 hover:bg-slate-800"
             : "bg-sky-600 hover:bg-sky-700"
         }`}
         aria-label={
@@ -270,7 +281,7 @@ export default function ChatWidget() {
               : "Open chat"
         }
       >
-        <i className={`fas ${open ? "fa-times" : "fa-comments"} text-white text-xl transition-transform duration-200`}></i>
+        <i className={`fas ${open ? "fa-times" : "fa-comments"} text-white text-xl transition-transform duration-200 pointer-events-none`}></i>
         {!open && unreadCount > 0 && (
           <span
             className="absolute -top-1 -right-1 min-w-[20px] h-[20px] rounded-full bg-rose-500 border-2 border-white text-white text-[10px] font-bold flex items-center justify-center px-1 leading-none pointer-events-none animate-pulse"
@@ -281,8 +292,21 @@ export default function ChatWidget() {
         )}
       </button>
 
-      {/* Chat panel */}
-      <div className={`fixed bottom-24 right-6 z-[9990] w-[380px] max-w-[calc(100vw-2rem)] transition-all duration-300 origin-bottom-right ${
+      {/* Chat panel — outer wrapper carries the drag translate so it
+          tracks the bubble; inner div keeps the open/close scale
+          animation. Two layers because the inline transform on the
+          wrapper would otherwise stomp the Tailwind `scale-*` class on
+          the panel and the open animation would jump-cut.
+          pointer-events-none on the OUTER wrapper unconditionally —
+          the wrapper is a 380px region floating over the page even
+          when the panel is invisible, and would otherwise block
+          underlying buttons. The inner div re-enables pointer events
+          while open so clicks on visible panel content still work. */}
+      <div
+        style={dragStyle}
+        className="fixed bottom-24 right-6 z-[9990] w-[380px] max-w-[calc(100vw-2rem)] pointer-events-none"
+      >
+      <div className={`transition-all duration-300 origin-bottom-right ${
         open ? "scale-100 opacity-100 pointer-events-auto" : "scale-90 opacity-0 pointer-events-none"
       }`}>
         <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col" style={{ maxHeight: "520px" }}>
@@ -390,6 +414,7 @@ export default function ChatWidget() {
             )}
           </div>
         </div>
+      </div>
       </div>
 
     </>
