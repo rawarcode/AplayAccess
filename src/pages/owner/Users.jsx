@@ -618,7 +618,8 @@ export default function OwnerUsers() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <table className="min-w-full text-sm">
+            <>
+            <table className="hidden md:table min-w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                 <tr>
                   <th className="px-6 py-3 w-10"></th>
@@ -630,6 +631,27 @@ export default function OwnerUsers() {
               </thead>
               <tbody className="divide-y divide-slate-100"><SkeletonRows /></tbody>
             </table>
+            {/* Mobile loading skeleton — matches the card-stack shape
+                rendered when data lands. */}
+            <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading users">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-200" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 bg-slate-200 rounded w-32" />
+                      <div className="h-3 bg-slate-100 rounded w-44" />
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded-full w-16" />
+                  </div>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                    <div className="h-5 bg-slate-200 rounded-full w-20" />
+                    <div className="h-8 bg-slate-200 rounded w-28" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            </>
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
@@ -652,7 +674,11 @@ export default function OwnerUsers() {
             </div>
           ) : (
             <>
-              <table className="min-w-full text-sm text-slate-700">
+              {/* Desktop table — wrapped in hidden md:table so the
+                  mobile card list (rendered below) is the sole listing
+                  visible <md. Five columns with avatar + multiple
+                  action buttons doesn't fit phone widths. */}
+              <table className="hidden md:table min-w-full text-sm text-slate-700">
                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                   <tr>
                     <th className="px-6 py-3 w-10">
@@ -766,6 +792,95 @@ export default function OwnerUsers() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile card list — same data + actions as the desktop
+                  table. Card click opens the user-detail modal (same
+                  as clicking the user's name on desktop). Bulk-select
+                  checkbox sits inline with the avatar; hidden in admin
+                  view (matches desktop behavior — bulk actions are
+                  owner-only). Action buttons get tap-target height
+                  and stop propagation so a tap doesn't also open the
+                  detail modal. */}
+              <ul className="md:hidden space-y-3 p-4">
+                {paginated.map((u) => {
+                  const isMe = u.id === currentUser?.id;
+                  return (
+                    <li key={u.id}>
+                      <div className={`rounded-xl border border-slate-200 bg-white shadow-sm p-4 ${!u.is_active ? 'opacity-70' : ''}`}>
+                        <div className="flex items-start gap-3">
+                          {!isAdminView && !isMe && (
+                            <input
+                              type="checkbox"
+                              checked={selected.has(u.id)}
+                              onChange={() => toggleSelect(u.id)}
+                              aria-label={`Select ${u.name}`}
+                              className="mt-2 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-400 shrink-0"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setViewUser(u)}
+                            className="flex-1 flex items-center gap-3 text-left min-w-0 focus:outline-none focus:ring-2 focus:ring-sky-400 rounded-md p-1 -m-1"
+                            aria-label={`View ${u.name}`}
+                          >
+                            {u.avatar ? (
+                              <img src={u.avatar} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" loading="lazy" decoding="async" />
+                            ) : (
+                              <div className={`h-10 w-10 rounded-full ${ROLE_AVATAR[u.role] || 'bg-slate-400'} text-white flex items-center justify-center text-sm font-bold shrink-0`} aria-hidden="true">
+                                {getInitials(u.name)}
+                              </div>
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <p className="font-semibold text-slate-900 truncate">
+                                {u.name}
+                                {isMe && <span className="ml-1.5 text-[10px] text-slate-400 font-normal">(you)</span>}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate">{u.email}</p>
+                            </div>
+                          </button>
+                          <span className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                            u.is_active ? 'bg-success-bg text-success-fg' : 'bg-danger-bg text-danger-fg'}`}>
+                            <span className={`h-2 w-2 rounded-full ${u.is_active ? 'bg-success-ring' : 'bg-danger-ring'}`} aria-hidden="true" />
+                            {u.is_active ? 'Active' : 'Disabled'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || 'bg-slate-100 text-slate-700'}`}>
+                            {ROLE_LABELS[u.role] || u.role}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => copyEmail(u.email)} aria-label={`Copy email for ${u.name}`}
+                              className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                              <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                            </button>
+                            {canEdit(u) && (
+                              <button onClick={() => openEdit(u)} aria-label={`Edit ${u.name}`}
+                                className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                                <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                              </button>
+                            )}
+                            {canToggleActive(u) && (
+                              <button onClick={() => setConfirmToggle(u)} aria-label={u.is_active ? `Deactivate ${u.name}` : `Activate ${u.name}`}
+                                className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
+                                  ? 'hover:bg-warning-bg text-warning-fg'
+                                  : 'hover:bg-success-bg text-success-fg'}`}>
+                                <i className={`fas ${u.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-xs`} aria-hidden="true"></i>
+                              </button>
+                            )}
+                            {canDelete(u) && (
+                              <button onClick={() => setConfirmDelete(u)} aria-label={`Delete ${u.name}`}
+                                className="h-10 w-10 rounded-lg hover:bg-danger-bg text-danger-fg flex items-center justify-center transition">
+                                <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
 
               {/* Pagination */}
               {totalPages > 1 && (
