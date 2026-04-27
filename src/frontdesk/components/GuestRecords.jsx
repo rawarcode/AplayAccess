@@ -293,7 +293,11 @@ export default function GuestRecords({ embedded = false }) {
               />
             </div>
             <p className="text-sm text-slate-500 whitespace-nowrap">
-              {loading ? '—' : `${filtered.length} guest${filtered.length !== 1 ? 's' : ''}`}
+              {loading
+                ? '—'
+                : search.trim()
+                  ? `${filtered.length} of ${guests.length} match "${search.trim()}"`
+                  : `${filtered.length} guest${filtered.length !== 1 ? 's' : ''}`}
             </p>
           </div>
 
