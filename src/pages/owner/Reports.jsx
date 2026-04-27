@@ -348,11 +348,8 @@ export default function OwnerReports() {
 
           {/* Daily breakdown table */}
           <div className="rounded-2xl bg-white shadow-lg border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+            <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
               <h3 className="font-semibold text-slate-800">Daily Breakdown</h3>
-              <button onClick={() => { /* print financials */ }} className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-brand border border-brand rounded-lg hover:bg-blue-50 transition">
-                <i className="fas fa-print text-xs" aria-hidden="true"></i>Print
-              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm text-slate-700">
