@@ -65,7 +65,15 @@ export default function GuestRecords({ embedded = false }) {
       const wi    = parseWalkIn(b);
       const email = wi ? wi.email : (b.guestEmail || '—');
       const phone = wi ? wi.phone : (b.guestPhone || '—');
-      const name  = wi ? wi.name  : b.guest;
+      // Guard: b.guest can be null on bookings with missing user data
+      // (legacy records, malformed walk-ins). Without a fallback, the
+      // search-filter predicate below calls .toLowerCase() on undefined
+      // and throws — Array.filter propagates the error, useMemo throws,
+      // React keeps the last-successful filtered list (everyone, from
+      // when search was empty), and the user sees "search doesn't
+      // filter." Falling back to a literal here keeps both filter and
+      // sort comparator safe and renders cleanly in every name slot.
+      const name  = (wi ? wi.name : b.guest) || 'Guest';
       let key;
       // Authed bookings: group by user_id. Walk-ins entering the same
       // email never collide with this key because their userId is null.
@@ -112,14 +120,18 @@ export default function GuestRecords({ embedded = false }) {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
+    // Defensive coercion: name/email/phone *should* be strings after
+    // the `guests` memo above, but a future regression upstream
+    // shouldn't silently break filtering again. (|| '') keeps a
+    // throwing predicate from cratering the whole memo.
     const list = !term ? guests : guests.filter(g =>
-      g.name.toLowerCase().includes(term) ||
-      g.email.toLowerCase().includes(term) ||
-      g.phone.includes(term)
+      (g.name  || '').toLowerCase().includes(term) ||
+      (g.email || '').toLowerCase().includes(term) ||
+      String(g.phone || '').includes(term)
     );
     return [...list].sort((a, b) => {
       let aVal, bVal;
-      if (sortBy === 'Guest')         { aVal = a.name.toLowerCase();     bVal = b.name.toLowerCase(); }
+      if (sortBy === 'Guest')         { aVal = (a.name || '').toLowerCase(); bVal = (b.name || '').toLowerCase(); }
       else if (sortBy === 'Total Visits') { aVal = a.totalVisits;            bVal = b.totalVisits; }
       else if (sortBy === 'Completed')    { aVal = a.completedVisits;         bVal = b.completedVisits; }
       else if (sortBy === 'Total Spend')  { aVal = a.totalSpend;              bVal = b.totalSpend; }
