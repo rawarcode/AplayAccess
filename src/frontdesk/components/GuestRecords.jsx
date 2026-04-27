@@ -87,7 +87,19 @@ export default function GuestRecords({ embedded = false }) {
         key = `id:${b.id}`;
       }
       if (!map[key]) {
-        map[key] = { name, email, phone, visits: [] };
+        // Persist the grouping key on the object so React row keys can
+        // reuse it. Previously the row key was
+        //   key={g.email || g.userId || g.name}
+        // which collided whenever multiple guests shared a fallback
+        // value (anonymous walk-ins all had email='—' and name='Guest'
+        // → identical keys). React's reconciler against duplicate keys
+        // is undefined-behavior-prone — when the filtered list shrunk
+        // on search, stale rows from the prior render lingered in the
+        // DOM. The grouping `key` here is already unique-per-guest by
+        // construction (user_id / email / name+phone / booking_id), so
+        // it's the right thing to render with too. Same pattern as
+        // Bookings using b.bookingId.
+        map[key] = { id: key, name, email, phone, visits: [] };
       }
       map[key].visits.push(b);
     });
@@ -293,11 +305,7 @@ export default function GuestRecords({ embedded = false }) {
               />
             </div>
             <p className="text-sm text-slate-500 whitespace-nowrap">
-              {loading
-                ? '—'
-                : search.trim()
-                  ? `${filtered.length} of ${guests.length} match "${search.trim()}"`
-                  : `${filtered.length} guest${filtered.length !== 1 ? 's' : ''}`}
+              {loading ? '—' : `${filtered.length} guest${filtered.length !== 1 ? 's' : ''}`}
             </p>
           </div>
 
@@ -415,25 +423,14 @@ export default function GuestRecords({ embedded = false }) {
                     })}
                   </tr>
                 </thead>
-                {/* key on tbody forces a fresh remount whenever the
-                    filter result changes shape. Diagnostic for an
-                    observed bug where the badge correctly showed
-                    `${filtered.length}` (e.g. 1) while the rendered
-                    rows were the unfiltered set — both reference the
-                    same `filtered` const, so this should be impossible.
-                    If forcing a remount cures it, the cause was React
-                    reconciliation getting confused by duplicate row
-                    keys (many guests share `g.email === '—'` or
-                    similar fallback values, producing colliding keys).
-                    Real fix in that case is unique row keys. */}
-                <tbody key={`tbody-${search}-${filtered.length}`} className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-200">
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-slate-400">No guests found.</td>
                     </tr>
-                  ) : filtered.map((g, idx) => (
+                  ) : filtered.map((g) => (
                     <tr
-                      key={`row-${idx}-${g.email || g.userId || g.name || 'unknown'}`}
+                      key={g.id}
                       role="button"
                       tabIndex={0}
                       aria-label={`View history for ${g.name}`}
@@ -483,9 +480,9 @@ export default function GuestRecords({ embedded = false }) {
                 No guests found.
               </div>
             ) : (
-              <ul key={`ul-${search}-${filtered.length}`} className="md:hidden space-y-3">
-                {filtered.map((g, idx) => (
-                  <li key={`row-${idx}-${g.email || g.userId || g.name || 'unknown'}`}>
+              <ul className="md:hidden space-y-3">
+                {filtered.map((g) => (
+                  <li key={g.id}>
                     <button
                       type="button"
                       onClick={() => setViewGuest(g)}
