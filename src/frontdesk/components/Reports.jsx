@@ -10,6 +10,7 @@ import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtMoney, fmtTime, localDateStr } from '../../lib/format';
 import { printHtml } from '../../lib/print.js';
+import { usePagination, PaginationBar } from '../../lib/pagination.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -192,6 +193,13 @@ export default function Reports() {
     (b.status === 'Cancelled' && b.updatedAt?.slice(0, 10) === reportDate)
   ), [bookings, reportDate]);
 
+  // Pagination for the per-row Booking Details. Aggregates above
+  // (totalRevenue, totalGuests, gross, etc.) still operate on the
+  // full dateBookings array; only the listing renders the slice.
+  // Page resets when the report date changes.
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(dateBookings, 25);
+  useEffect(() => { setPage(1); }, [reportDate, setPage]);
+
   // Revenue actually collected per booking:
   //   Completed / fullyPaid  → total + persisted entrance fee
   // Revenue collected = SUM(paidAmount). paidAmount is the backend's single
@@ -333,7 +341,7 @@ export default function Reports() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {dateBookings.map(b => (
+                  {paginated.map(b => (
                     <tr key={b.bookingId} className="hover:bg-slate-50">
                       <td className="px-4 py-3 text-xs text-slate-500">{b.id}</td>
                       <td className="px-4 py-3 text-sm font-medium">{b.guest}</td>
@@ -377,7 +385,7 @@ export default function Reports() {
 
             {/* Mobile card list — same data + tfoot summary card. */}
             <ul className="md:hidden space-y-3 p-4">
-              {dateBookings.map(b => {
+              {paginated.map(b => {
                 const entrance = calcEntrance(b, entranceRates);
                 return (
                   <li key={b.bookingId} className="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
@@ -459,6 +467,16 @@ export default function Reports() {
                 </div>
               </li>
             </ul>
+
+            {/* Pagination — sits below both renders. The KPI cards
+                + tfoot/summary aggregates above reflect the FULL
+                day's bookings; only the per-row listing is sliced. */}
+            <PaginationBar
+              safePage={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              info={info}
+            />
             </>
           )}
         </div>

@@ -14,6 +14,7 @@ import {
 import { getAnalyticsReport, getAnalyticsBookings, getAnalyticsRooms, getAnalyticsOverview, getAnalyticsMonthly } from "../../lib/adminApi.js";
 import Toast, { useToast } from "../../components/ui/Toast";
 import { printHtml } from "../../lib/print.js";
+import { usePagination, PaginationBar } from "../../lib/pagination.jsx";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend, Filler);
 
@@ -185,6 +186,14 @@ export default function OwnerReports() {
   // Room type breakdown — revenue uses ALL bookings (including cancelled
   // forfeitures) so the room chart totals match the headline Total
   // Revenue. Booking count stays on `active` since cancelled rows didn't
+  // Pagination for the Booking Details table — aggregates above
+  // (revenue, forfeited, roomTypes, etc.) still operate on the full
+  // `bookings` array; only the per-row listing renders the slice.
+  // Page resets when month/year changes (i.e. when the underlying
+  // dataset is replaced).
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(bookings, 25);
+  useEffect(() => { setPage(1); }, [month, year, setPage]);
+
   // produce a stay for that room.
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
   const roomRevenue  = useMemo(() => roomTypes.map((r) =>
@@ -547,7 +556,7 @@ export default function OwnerReports() {
                   <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Loading...</td></tr>
                 ) : bookings.length === 0 ? (
                   <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">No bookings for this period.</td></tr>
-                ) : bookings.map((b) => (
+                ) : paginated.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-50">
                     <td className="px-6 py-3 font-medium text-slate-900">{b.guest}</td>
                     <td className="px-6 py-3 text-slate-500">{b.room}</td>
@@ -590,7 +599,7 @@ export default function OwnerReports() {
             <p className="md:hidden p-8 text-center text-slate-400">No bookings for this period.</p>
           ) : (
             <ul className="md:hidden space-y-3 p-4">
-              {bookings.map((b) => {
+              {paginated.map((b) => {
                 const collected = Number(b.paidAmount ?? 0);
                 const isCancelled = b.status === 'Cancelled';
                 return (
@@ -636,6 +645,17 @@ export default function OwnerReports() {
               </li>
             </ul>
           )}
+
+          {/* Pagination — sits below both desktop table + mobile
+              cards. Aggregates above (Total Revenue / Forfeited /
+              Avg / etc.) reflect the FULL period; the page slice
+              affects only the per-row listing. */}
+          <PaginationBar
+            safePage={safePage}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            info={info}
+          />
         </div>
 
       </div>
