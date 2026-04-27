@@ -544,22 +544,23 @@ export default function Billing({ embedded = false }) {
   // a booking that was fully paid, then had extra guests added, correctly
   // shows up here again.
   //
-  // The fullyPaid short-circuit is critical — backend's collectPayment
-  // sets fully_paid=true and paid_amount=newGrandTotal, but the math
-  // total + entrance - paidAmount can still resolve to a tiny positive
-  // value due to float noise (entrance_fee snapshotted from one rate
-  // path, calcEntrance recomputing from another) or a brief field-fetch
-  // race between the optimistic update and the next 20s poll.
-  // Without this guard a just-collected booking flickers back into the
-  // "Awaiting Payment Collection" list before the next poll resolves.
-  // Mirrors the same fullyPaid short-circuit the sort comparator uses
-  // (search "fullyPaid" in this file).
+  // Math-only filter, no fully_paid short-circuit. Earlier ea264c8
+  // tried to trust fully_paid to suppress a just-collected booking
+  // from flickering back, but real-world data has rows with stale
+  // fully_paid=true while still owing money (legacy bookings from
+  // before the check-in flow re-derived the flag). Trusting the flag
+  // silently hid those from Billing — Bookings page still showed
+  // "Due ₱X" via its own math, the two pages disagreed.
+  //
+  // The 0.01 epsilon (1 centavo) handles the original "comes back"
+  // bug — float noise between server snapshot entrance_fee and
+  // client-side calcEntrance can produce sub-centavo positive
+  // residuals after a clean collect. Anything less than a centavo
+  // owed isn't really owed.
   const { todayConfirmed, todayCompleted, todayCancelled, revenueToday } = useMemo(() => {
-    const outstandingFor = b => {
-      if (b.fullyPaid) return 0;
-      return Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
-    };
-    const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && outstandingFor(b) > 0);
+    const outstandingFor = b =>
+      Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
+    const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && outstandingFor(b) > 0.01);
     const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
     const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
     // Revenue = paid_amount (backend-maintained single source of truth).
