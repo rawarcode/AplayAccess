@@ -521,7 +521,8 @@ export default function PromoCodes() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <table className="w-full text-sm">
+            <>
+            <table className="hidden md:table w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                 <tr>
                   <th className="px-5 py-3 w-10"></th>
@@ -535,6 +536,24 @@ export default function PromoCodes() {
               </thead>
               <tbody className="divide-y divide-slate-100"><SkeletonRows /></tbody>
             </table>
+            <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading promo codes">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-5 bg-slate-200 rounded w-24" />
+                      <div className="h-4 bg-slate-100 rounded w-20" />
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded-full w-16" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                    <div className="h-8 bg-slate-100 rounded" />
+                    <div className="h-8 bg-slate-100 rounded" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            </>
           ) : sorted.length === 0 ? (
             <div className="px-6 py-16 text-center">
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-slate-100 mb-4">
@@ -557,7 +576,11 @@ export default function PromoCodes() {
             </div>
           ) : (
             <>
-              <table className="w-full text-sm text-slate-700">
+              {/* Desktop table — wrapped hidden md:table so the mobile
+                  card list (rendered below) is the sole listing visible
+                  <md. 7 columns + 5 inline action buttons crushes
+                  badly on phone widths. */}
+              <table className="hidden md:table w-full text-sm text-slate-700">
                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide border-b border-slate-200">
                   <tr>
                     <th className="px-5 py-3 w-10">
@@ -658,6 +681,107 @@ export default function PromoCodes() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile card list — same paginated set as the desktop
+                  table. Whole-card click opens the detail view. The
+                  bulk-select checkbox stays inline on the top-left;
+                  action cluster (copy / edit / duplicate / toggle /
+                  delete) sits at the bottom with stopPropagation so
+                  taps don't also fire the card click. */}
+              <ul className="md:hidden space-y-3 p-4">
+                {paginated.map((code) => {
+                  const expired = isExpired(code);
+                  const accent = code.is_active && !expired
+                    ? 'border-l-4 border-l-emerald-400'
+                    : expired
+                      ? 'border-l-4 border-l-rose-400'
+                      : 'border-l-4 border-l-slate-300';
+                  return (
+                    <li key={code.id}>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setViewItem(code)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewItem(code); } }}
+                        className={`rounded-xl border border-slate-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-indigo-50/40 transition focus:outline-none focus:ring-2 focus:ring-indigo-400 ${accent} ${!code.is_active ? 'opacity-70' : ''}`}
+                      >
+                        {/* Top — checkbox + code + status pill */}
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(code.id)}
+                            onChange={() => toggleSelect(code.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            aria-label={`Select ${code.code}`}
+                            className="mt-1 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-400 shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <span className="font-mono font-semibold text-slate-900 bg-slate-100 px-2.5 py-1 rounded-md text-xs tracking-wide">
+                              {code.code}
+                            </span>
+                            <p className="text-base font-semibold text-indigo-700 mt-2">{formatDiscount(code)}</p>
+                          </div>
+                          {code.is_active && !expired ? (
+                            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-success-bg text-success-fg">
+                              <span className="h-2 w-2 rounded-full bg-success-ring" aria-hidden="true" />Active
+                            </span>
+                          ) : expired ? (
+                            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-danger-bg text-danger-fg">
+                              <span className="h-2 w-2 rounded-full bg-danger-ring" aria-hidden="true" />Expired
+                            </span>
+                          ) : (
+                            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-600">
+                              <span className="h-2 w-2 rounded-full bg-slate-400" aria-hidden="true" />Inactive
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Body — Expires + Uses */}
+                        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                          <div>
+                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Expires</p>
+                            <p className={`text-sm mt-0.5 ${expired ? 'text-rose-500 font-medium' : 'text-slate-700'}`}>
+                              {formatDate(code.expires_at)}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Uses</p>
+                            <p className="text-sm text-slate-700 mt-0.5">
+                              {code.uses_count || 0}{code.max_uses ? ` / ${code.max_uses}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Action cluster — same five buttons as desktop. */}
+                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                          <button onClick={() => copyCode(code.code)} aria-label={`Copy ${code.code}`}
+                            className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                          </button>
+                          <button onClick={() => openEdit(code)} aria-label={`Edit ${code.code}`}
+                            className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                          </button>
+                          <button onClick={() => openDuplicate(code)} aria-label={`Duplicate ${code.code}`}
+                            className="h-10 w-10 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
+                            <i className="fas fa-clone text-xs" aria-hidden="true"></i>
+                          </button>
+                          <button onClick={() => toggleActive(code)} aria-label={code.is_active ? `Deactivate ${code.code}` : `Activate ${code.code}`}
+                            className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${code.is_active
+                              ? 'hover:bg-amber-50 text-amber-500 hover:text-amber-700'
+                              : 'hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700'}`}>
+                            <i className={`fas ${code.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-xs`} aria-hidden="true"></i>
+                          </button>
+                          <button onClick={() => setDeleteTarget(code)} aria-label={`Delete ${code.code}`}
+                            className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
+                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
 
               {/* Pagination */}
               {totalPages > 1 && (
