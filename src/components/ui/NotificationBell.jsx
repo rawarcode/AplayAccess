@@ -40,15 +40,26 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
   const [soundMuted, setSoundMutedLocal] = useState(isMessageSoundMuted);
   useEffect(() => onMessageSoundMuteChange(setSoundMutedLocal), []);
 
-  // Position dropdown using fixed coords so it's never clipped by overflow:hidden parents
+  // Position dropdown using fixed coords so it's never clipped by
+  // overflow:hidden parents. Width clamps to viewport on narrow screens
+  // so the dropdown never extends off-screen left on phones — without
+  // this the hard-coded 320px ate into negative left offsets on 320px
+  // (iPhone SE) viewports and crowded the right edge on 360px Android.
   const openDropdown = useCallback(() => {
     const rect = btnRef.current?.getBoundingClientRect();
     if (rect) {
+      const vw      = window.innerWidth;
+      const width   = Math.min(320, vw - 16);
+      // Pin 8px from the right edge minimum so the dropdown doesn't
+      // hug the viewport boundary, but let the bell's actual right
+      // offset win when there's room (keeps it visually anchored
+      // under the bell on desktop).
+      const right   = Math.max(8, vw - rect.right);
       setStyle({
         position: 'fixed',
         top:   rect.bottom + 6,
-        right: window.innerWidth - rect.right,
-        width: 320,
+        right,
+        width,
       });
     }
     refresh?.();
