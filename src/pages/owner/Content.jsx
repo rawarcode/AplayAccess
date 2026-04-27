@@ -53,7 +53,7 @@ const DEFAULT_CONTENT = {
   home_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
     title:      "Aplaya Beach Resort",
-    subtitle:   "Day visits, night stays, and 24-hour packages on the Cavite coast.",
+    subtitle:   "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.",
     ctaText:    "See rooms & rates",
   },
   home_why: {
