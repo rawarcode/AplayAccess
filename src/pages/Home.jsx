@@ -24,6 +24,11 @@ const HOME_DEFAULTS = {
     name:  "Aplaya Beach Resort Cavite",
     desc:  "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
     image: "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
+    // Badge and CTA were hardcoded in the JSX before — promoted to
+    // editable fields so the owner can change them via the CMS
+    // (HomeResortEditor in pages/owner/Content.jsx).
+    badge:   "Now Open",
+    ctaText: "Explore & Book Now",
   },
   why: {
     sectionTitle:    "What you get",
@@ -220,16 +225,18 @@ export default function Home() {
               loading="lazy"
             />
             <div className="p-8 md:p-10 flex flex-col justify-center">
-              <span className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full mb-4 w-fit">
-                Now Open
-              </span>
+              {resort.badge && (
+                <span className="inline-block bg-sky-100 text-sky-700 text-xs font-semibold px-3 py-1 rounded-full mb-4 w-fit">
+                  {resort.badge}
+                </span>
+              )}
               <h3 className="text-2xl font-bold text-slate-900 mb-3">{resort.name}</h3>
               <p className="text-slate-600 mb-6 leading-relaxed">{resort.desc}</p>
               <Link
                 to="/resort"
                 className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
               >
-                Explore &amp; Book Now
+                {resort.ctaText || "Explore & Book Now"}
               </Link>
             </div>
           </div>

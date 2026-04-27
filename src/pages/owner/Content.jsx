@@ -75,6 +75,22 @@ const DEFAULT_CONTENT = {
   // Aplaya does not have. Removed entirely; the HomeResortsEditor
   // function below is now unreferenced and can be deleted in a
   // follow-up cleanup.
+
+  // home_resort (SINGULAR) — the actual "About the resort" card block
+  // that ships on Home. Was previously NOT exposed in the CMS editor
+  // (CLAUDE.md hazard note flagged this), so the section was visible
+  // on the live site but invisible to owners trying to edit it.
+  // Defaults must stay in sync with src/pages/Home.jsx
+  // HOME_DEFAULTS.resort.
+  home_resort: {
+    sectionTitle:    "About the resort",
+    sectionSubtitle: "A small beachfront resort on the Cavite coast — built for day trips, family getaways, and overnight stays without the metro hotel markup.",
+    name:            "Aplaya Beach Resort Cavite",
+    desc:            "Private cottages, pavilions, and rooms a few steps from the water. Parking is included with every booking. Day rate, overnight, and 24-hour options — pick the window that fits the trip.",
+    image:           "https://images.unsplash.com/photo-1578683010236-d716f9a3f461?auto=format&fit=crop&w=1280&q=80",
+    badge:           "Now Open",
+    ctaText:         "Explore & Book Now",
+  },
   home_cta: {
     title:      "Ready to book?",
     subtitle:   "Pick a date and a room — most slots can be reserved in under a minute.",
@@ -581,6 +597,82 @@ function HomeHeroEditor({ content, onSave }) {
             subtitle={form.subtitle}
             extra={form.ctaText ? <span className="mt-1.5 text-xs bg-blue-600 px-2 py-0.5 rounded">{form.ctaText}</span> : null}
           />
+        </div>
+      )}
+    </SectionCard>
+  );
+}
+
+// ─── HomeResortEditor ────────────────────────────────────────────────────────
+// Editor for the "About the resort" card block on Home (singular
+// page_home_resort key — see DEFAULT_CONTENT comment for why this
+// editor was missing entirely until now). Exposes every field the
+// section renders, including the badge ("Now Open") and the CTA
+// button text, both of which were hardcoded in Home.jsx before this
+// commit.
+function HomeResortEditor({ content, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(content);
+  const f = (key) => (val) => setForm(p => ({ ...p, [key]: val }));
+
+  const cancel = () => { setForm(content); setEditing(false); };
+  const save   = () => { onSave(form); setEditing(false); };
+
+  return (
+    <SectionCard icon="fa-umbrella-beach" title="Resort Card" badge="Home page · about-the-resort section" editing={editing}
+      onEdit={() => { setForm(content); setEditing(true); }} onSave={save} onCancel={cancel}>
+      {!editing ? (
+        <div className="rounded-lg border border-slate-200 overflow-hidden flex bg-white">
+          <div className="w-32 h-24 shrink-0 bg-slate-100">
+            {content.image && (
+              <img src={content.image} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+            )}
+          </div>
+          <div className="p-3 flex-1 min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-0.5">{content.sectionTitle}</p>
+            {content.badge && (
+              <span className="inline-block bg-sky-100 text-sky-700 text-[10px] font-semibold px-2 py-0.5 rounded-full mb-1">
+                {content.badge}
+              </span>
+            )}
+            <p className="text-sm font-bold text-slate-800 truncate">{content.name}</p>
+            <p className="text-xs text-slate-500 line-clamp-2 mt-0.5">{content.desc}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">Resort Image</label>
+            <div className="flex items-start gap-4">
+              <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                {form.image ? (
+                  <img src={form.image} alt="Resort" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+                ) : (
+                  <div className="text-center"><i className="fas fa-image text-slate-300 text-lg" aria-hidden="true"></i><p className="text-[9px] text-slate-300 mt-0.5">No image</p></div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <MediaPicker
+                  value={form.image}
+                  onChange={url => setForm(p => ({ ...p, image: url }))}
+                  previousUrl={content.image}
+                  folder="resort-card"
+                  accept="image/*"
+                  label="Choose Image"
+                />
+                <p className="text-[10px] text-slate-400">Recommended: 1280px wide. The image renders alongside the text on desktop, stacked above on mobile.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Section Title"    value={form.sectionTitle    || ""} onChange={f("sectionTitle")}    placeholder="e.g. About the resort" />
+            <Field label="Section Subtitle" value={form.sectionSubtitle || ""} onChange={f("sectionSubtitle")} rows={2} placeholder="Short paragraph above the card" />
+            <Field label="Resort Name"      value={form.name            || ""} onChange={f("name")}            placeholder="e.g. Aplaya Beach Resort Cavite" />
+            <Field label="Badge"            value={form.badge           || ""} onChange={f("badge")}           placeholder="e.g. Now Open (leave empty to hide)" />
+            <Field label="Description"      value={form.desc            || ""} onChange={f("desc")}            rows={4} placeholder="Card body text" />
+            <Field label="CTA Button Text"  value={form.ctaText         || ""} onChange={f("ctaText")}         placeholder="e.g. Explore & Book Now" />
+          </div>
         </div>
       )}
     </SectionCard>
@@ -3306,8 +3398,12 @@ export default function AdminContent() {
             </div>
             <div className="space-y-3">
               <HomeHeroEditor    content={content.home_hero}    onSave={update("home_hero")} />
-              {/* HomeResortsEditor removed — was a legacy multi-resort
-                  block Home.jsx never consumed. See defaults comment. */}
+              {/* HomeResortsEditor (PLURAL) removed — was a legacy
+                  multi-resort block Home.jsx never consumed. See
+                  defaults comment. The SINGULAR home_resort editor
+                  below is the actual "About the resort" card that
+                  ships on Home. */}
+              <HomeResortEditor  content={content.home_resort}  onSave={update("home_resort")} />
               <HomeWhyEditor     content={content.home_why}     onSave={update("home_why")} />
               <HomeCTAEditor     content={content.home_cta}     onSave={update("home_cta")} />
             </div>
