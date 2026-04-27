@@ -415,14 +415,25 @@ export default function GuestRecords({ embedded = false }) {
                     })}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                {/* key on tbody forces a fresh remount whenever the
+                    filter result changes shape. Diagnostic for an
+                    observed bug where the badge correctly showed
+                    `${filtered.length}` (e.g. 1) while the rendered
+                    rows were the unfiltered set — both reference the
+                    same `filtered` const, so this should be impossible.
+                    If forcing a remount cures it, the cause was React
+                    reconciliation getting confused by duplicate row
+                    keys (many guests share `g.email === '—'` or
+                    similar fallback values, producing colliding keys).
+                    Real fix in that case is unique row keys. */}
+                <tbody key={`tbody-${search}-${filtered.length}`} className="divide-y divide-slate-200">
                   {filtered.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-10 text-center text-slate-400">No guests found.</td>
                     </tr>
-                  ) : filtered.map((g) => (
+                  ) : filtered.map((g, idx) => (
                     <tr
-                      key={g.email || g.userId || g.name}
+                      key={`row-${idx}-${g.email || g.userId || g.name || 'unknown'}`}
                       role="button"
                       tabIndex={0}
                       aria-label={`View history for ${g.name}`}
@@ -472,9 +483,9 @@ export default function GuestRecords({ embedded = false }) {
                 No guests found.
               </div>
             ) : (
-              <ul className="md:hidden space-y-3">
-                {filtered.map((g) => (
-                  <li key={g.email || g.userId || g.name}>
+              <ul key={`ul-${search}-${filtered.length}`} className="md:hidden space-y-3">
+                {filtered.map((g, idx) => (
+                  <li key={`row-${idx}-${g.email || g.userId || g.name || 'unknown'}`}>
                     <button
                       type="button"
                       onClick={() => setViewGuest(g)}
