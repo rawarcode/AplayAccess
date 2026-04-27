@@ -425,7 +425,8 @@ export default function AdminAddons() {
 
         <div className="overflow-x-auto">
           {loading ? (
-            <table className="min-w-full text-sm">
+            <>
+            <table className="hidden md:table min-w-full text-sm">
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
                   <th className="px-6 py-3 w-10"></th>
@@ -441,6 +442,25 @@ export default function AdminAddons() {
                 <SkeletonRows />
               </tbody>
             </table>
+            <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading add-ons">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-slate-200 shrink-0" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 bg-slate-200 rounded w-32" />
+                      <div className="h-3 bg-slate-100 rounded w-20" />
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded-full w-16" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                    <div className="h-8 bg-slate-100 rounded" />
+                    <div className="h-8 bg-slate-100 rounded" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+            </>
           ) : loadError && addons.length === 0 ? (
             /* ── #6 error state with retry ── */
             <div className="px-6 py-16 text-center">
@@ -478,7 +498,11 @@ export default function AdminAddons() {
             </div>
           ) : (
             <>
-              <table className="min-w-full text-sm text-slate-700">
+              {/* Desktop table — wrapped hidden md:table so the mobile
+                  card list (rendered below) is the sole listing visible
+                  <md. 7 cols + 4 inline action buttons doesn't fit
+                  phone widths. */}
+              <table className="hidden md:table min-w-full text-sm text-slate-700">
                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                   <tr>
                     <th className="px-6 py-3 w-10">
@@ -572,6 +596,97 @@ export default function AdminAddons() {
                   ))}
                 </tbody>
               </table>
+
+              {/* Mobile card list — same paginated set. Whole-card tap
+                  opens the detail viewer; action buttons (edit /
+                  duplicate / toggle / delete) sit inline at the
+                  bottom with stopPropagation so taps don't also fire
+                  the card click. */}
+              <ul className="md:hidden space-y-3 p-4">
+                {paginated.map((item) => (
+                  <li key={item.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setViewItem(item)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewItem(item); } }}
+                      className={`rounded-xl border border-slate-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-emerald-50/40 transition focus:outline-none focus:ring-2 focus:ring-emerald-400 ${!item.is_active ? 'opacity-70' : ''}`}
+                    >
+                      {/* Top row — checkbox + icon + name + status pill */}
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(item.id)}
+                          onChange={() => toggleSelect(item.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select ${item.name || 'add-on'}`}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-400 shrink-0"
+                        />
+                        <span className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                          <i className={`fas ${item.icon || 'fa-tag'} text-slate-500`} aria-hidden="true"></i>
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-900 truncate">
+                            {item.name || <span className="italic text-slate-400">Unnamed</span>}
+                          </p>
+                          <p className="text-base font-semibold text-slate-800 mt-0.5">
+                            {'₱'}{Number(item.price).toLocaleString()}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                            item.is_active ? 'bg-success-bg text-success-fg' : 'bg-danger-bg text-danger-fg'
+                          }`}
+                        >
+                          <span className={`h-2 w-2 rounded-full ${item.is_active ? 'bg-success-ring' : 'bg-danger-ring'}`} aria-hidden="true" />
+                          {item.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+
+                      {/* Body — Max Qty + Type */}
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Max Qty</p>
+                          <p className="text-sm text-slate-700 mt-0.5">{item.max_qty}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Type</p>
+                          <span className={`mt-0.5 inline-flex px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                            item.per_booking ? 'bg-purple-100 text-purple-800' : 'bg-info-bg text-info-fg'
+                          }`}>
+                            {item.per_booking ? 'Per Booking' : 'Per Item'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action cluster — same four buttons as desktop. */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => openEdit(item)} aria-label={`Edit ${item.name || 'add-on'}`}
+                          className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
+                          <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                        </button>
+                        <button onClick={() => openDuplicate(item)} aria-label={`Duplicate ${item.name || 'add-on'}`}
+                          className="h-10 w-10 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
+                          <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                        </button>
+                        <button
+                          onClick={() => toggleActive(item)}
+                          aria-label={item.is_active ? `Deactivate ${item.name || 'add-on'}` : `Activate ${item.name || 'add-on'}`}
+                          className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${item.is_active
+                            ? 'hover:bg-amber-50 text-amber-500 hover:text-amber-700'
+                            : 'hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700'}`}
+                        >
+                          <i className={`fas ${item.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-xs`} aria-hidden="true"></i>
+                        </button>
+                        <button onClick={() => setConfirmDelete(item)} aria-label={`Delete ${item.name || 'add-on'}`}
+                          className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
+                          <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
 
               {/* ── #7 Pagination with ellipsis ── */}
               {totalPages > 1 && (
