@@ -186,13 +186,25 @@ export default function OwnerReports() {
   // Room type breakdown — revenue uses ALL bookings (including cancelled
   // forfeitures) so the room chart totals match the headline Total
   // Revenue. Booking count stays on `active` since cancelled rows didn't
-  // Pagination for the Booking Details table — aggregates above
-  // (revenue, forfeited, roomTypes, etc.) still operate on the full
-  // `bookings` array; only the per-row listing renders the slice.
-  // Page resets when month/year changes (i.e. when the underlying
-  // dataset is replaced).
+  // Pagination — two independent paginators on this page since the
+  // Monthly and Analytics tabs render different datasets.
+  //
+  // 1. Monthly tab Booking Details — aggregates above (revenue,
+  //    forfeited, roomTypes, etc.) still operate on the full
+  //    `bookings` array; only the per-row listing renders the slice.
+  //    Page resets when month/year changes.
   const { setPage, paginated, totalPages, safePage, info } = usePagination(bookings, 25);
   useEffect(() => { setPage(1); }, [month, year, setPage]);
+
+  // 2. Analytics tab Daily Breakdown — paginates the reversed daily
+  //    series (newest first). Default chartDays=30 fits in 2 pages
+  //    of 25; higher windows (60/90 day views) can grow long enough
+  //    that pagination becomes worthwhile. Aggregates (totalBk,
+  //    totalRev, line chart) consume the full `dailyData`. Page
+  //    resets when chartDays changes.
+  const dailyReversed = useMemo(() => [...dailyData].reverse(), [dailyData]);
+  const dailyPg = usePagination(dailyReversed, 25);
+  useEffect(() => { dailyPg.setPage(1); }, [chartDays]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // produce a stay for that room.
   const roomTypes    = useMemo(() => [...new Set(bookings.map((b) => b.room))], [bookings]);
@@ -373,7 +385,7 @@ export default function OwnerReports() {
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {loadingChart ? <tr><td colSpan={3} className="px-6 py-6 text-center text-slate-400">Loading...</td></tr>
-                    : [...dailyData].reverse().map((row, i) => (
+                    : dailyPg.paginated.map((row, i) => (
                       <tr key={i} className="hover:bg-slate-50"><td className="px-6 py-3 text-slate-500">{row.date}</td><td className="px-6 py-3">{row.bookings}</td><td className="px-6 py-3 font-medium text-slate-900">{fmt(row.revenue)}</td></tr>
                     ))}
                 </tbody>
@@ -384,6 +396,13 @@ export default function OwnerReports() {
                 )}
               </table>
             </div>
+            {/* Pagination — Tofoot above remains a full-period total. */}
+            <PaginationBar
+              safePage={dailyPg.safePage}
+              totalPages={dailyPg.totalPages}
+              onPageChange={dailyPg.setPage}
+              info={dailyPg.info}
+            />
           </div>
         </div>
       )}
