@@ -164,8 +164,8 @@ export default function GuestRecords({ embedded = false }) {
                 </div>
               </div>
 
-              {/* Visit history table */}
-              <div className="overflow-x-auto">
+              {/* Visit history — desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-slate-200 text-sm">
                   <thead className="bg-slate-50">
                     <tr>
@@ -204,6 +204,55 @@ export default function GuestRecords({ embedded = false }) {
                 </table>
               </div>
 
+              {/* Visit history — mobile cards. Modal max-w-xl is wider
+                  than a phone viewport, so the six-column desktop
+                  table forces horizontal scroll inside the modal.
+                  Card stack keeps every visit visible at a glance. */}
+              <ul className="md:hidden space-y-2">
+                {viewGuest.visits.map(v => (
+                  <li key={v.bookingId} className="rounded-lg border border-slate-200 bg-white p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-sm text-slate-800 truncate">{v.roomType}</p>
+                        <p className="text-xs font-mono text-slate-400 mt-0.5 truncate">{v.id}</p>
+                      </div>
+                      <span className={`px-2 py-1 rounded text-[10px] font-medium shrink-0 ${
+                        v.status === 'Completed' ? 'bg-emerald-100 text-emerald-800' :
+                        v.status === 'Confirmed' ? 'bg-sky-100 text-sky-800' :
+                        v.status === 'Cancelled' ? 'bg-rose-100 text-rose-800' :
+                        'bg-amber-100 text-amber-800'
+                      }`}>{v.status}</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-100 text-xs">
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Date</p>
+                        <p className="text-slate-700 mt-0.5">{fmtDate(v.checkIn)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                        <p className="text-slate-700 mt-0.5">{v.guests}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Amount</p>
+                        <p className="text-slate-800 font-medium mt-0.5">{fmtMoney(v.total)}</p>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+                {/* Mobile equivalent of the tfoot — Totals row. */}
+                <li className="rounded-lg border border-slate-200 bg-slate-50 p-3 mt-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-semibold text-slate-600">Totals</span>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">
+                        {viewGuest.visits.reduce((s, v) => s + v.guests, 0)} guests
+                      </p>
+                      <p className="font-semibold text-emerald-700">{fmtMoney(viewGuest.totalSpend)}</p>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+
               <div className="flex justify-end mt-4">
                 <button onClick={() => setViewGuest(null)}
                   className="px-4 py-2 border rounded text-sm text-slate-700">
@@ -237,8 +286,12 @@ export default function GuestRecords({ embedded = false }) {
           </div>
 
           {loading ? (
-            // Skeleton table — see Bookings.jsx for the rationale.
-            <div className="overflow-x-auto" aria-busy="true" aria-label="Loading guest records">
+            // Skeleton — see Bookings.jsx for the rationale. Two
+            // variants: a ghost table for md+ that mirrors the real
+            // table's column count, and a card-stack for <md that
+            // mirrors the mobile card list rendered below.
+            <>
+            <div className="hidden md:block overflow-x-auto" aria-busy="true" aria-label="Loading guest records">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
@@ -266,8 +319,35 @@ export default function GuestRecords({ embedded = false }) {
                 </tbody>
               </table>
             </div>
+            <ul className="md:hidden space-y-3" aria-busy="true" aria-label="Loading guest records">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-slate-200" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-4 bg-slate-200 rounded w-32" />
+                      <div className="h-3 bg-slate-100 rounded w-44" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                    {Array.from({ length: 4 }).map((__, j) => (
+                      <div key={j}>
+                        <div className="h-2.5 bg-slate-100 rounded w-12 mb-1.5" />
+                        <div className="h-3 bg-slate-200 rounded w-16" />
+                      </div>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+            </>
           ) : (
-            <div className="overflow-x-auto">
+          <>
+            {/* Desktop table — wrapped in hidden md:block so the mobile
+                card list (rendered after this block) is the only one
+                visible <md. Seven columns with avatar + numerics
+                doesn't fit phone widths without crushing. */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   {/* Header order MUST match the body-cell order below
@@ -366,6 +446,62 @@ export default function GuestRecords({ embedded = false }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile card list — same data, single-column. Whole card
+                is the click target; the View button (visible on
+                desktop) collapses into the chevron affordance and an
+                aria-label on the card. */}
+            {filtered.length === 0 ? (
+              <div className="md:hidden px-4 py-10 text-center text-slate-400">
+                No guests found.
+              </div>
+            ) : (
+              <ul className="md:hidden space-y-3">
+                {filtered.map((g) => (
+                  <li key={g.email || g.userId || g.name}>
+                    <button
+                      type="button"
+                      onClick={() => setViewGuest(g)}
+                      className="w-full text-left rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      aria-label={`View history for ${g.name}`}
+                    >
+                      {/* Top — avatar + name + chevron */}
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-sky-600 text-white flex items-center justify-center font-semibold flex-shrink-0 text-sm">
+                          {initials(g.name)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-base text-slate-900 truncate">{g.name}</p>
+                          <p className="text-xs text-slate-600 truncate">{fmtGuestEmail(g.email)}</p>
+                          {g.phone && <p className="text-xs text-slate-500 truncate">{g.phone}</p>}
+                        </div>
+                        <i className="fas fa-chevron-right text-slate-300 text-xs" aria-hidden="true"></i>
+                      </div>
+
+                      {/* Stats — 2x2 grid */}
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Visits</p>
+                          <p className="text-sm text-slate-700 mt-0.5">
+                            {g.totalVisits}
+                            <span className="text-emerald-700 font-medium"> · {g.completedVisits} done</span>
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Last Visit</p>
+                          <p className="text-sm text-slate-700 mt-0.5">{fmtDate(g.lastVisit)}</p>
+                        </div>
+                        <div className="col-span-2">
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Total Spend</p>
+                          <p className="text-sm font-semibold text-slate-800 mt-0.5">{fmtMoney(g.totalSpend)}</p>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
           )}
         </div>
       </main>
