@@ -596,33 +596,61 @@ export default function Bookings({ embedded = false }) {
           )}
 
           {loading ? (
-            // Skeleton table — pulses 6 rows at the same shape the
-            // real table renders. Less jarring than a spinner because
-            // the layout doesn't shift when data arrives.
-            <div className="overflow-x-auto" aria-busy="true" aria-label="Loading bookings">
-              <table className="min-w-full divide-y divide-slate-200">
-                <thead className="bg-slate-50">
-                  <tr>
-                    {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Payment', 'Status'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 animate-pulse">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <tr key={i}>
-                      {Array.from({ length: 7 }).map((__, j) => (
-                        <td key={j} className="px-4 py-4">
-                          <div className="h-3 bg-slate-200 rounded" style={{ width: `${50 + ((i + j) * 7) % 40}%` }} />
-                        </td>
+            <>
+              {/* Desktop skeleton table — pulses 6 rows at the same shape
+                  the real table renders. Less jarring than a spinner
+                  because the layout doesn't shift when data arrives. */}
+              <div className="hidden md:block overflow-x-auto" aria-busy="true" aria-label="Loading bookings">
+                <table className="min-w-full divide-y divide-slate-200">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Payment', 'Status'].map(h => (
+                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">{h}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 animate-pulse">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <tr key={i}>
+                        {Array.from({ length: 7 }).map((__, j) => (
+                          <td key={j} className="px-4 py-4">
+                            <div className="h-3 bg-slate-200 rounded" style={{ width: `${50 + ((i + j) * 7) % 40}%` }} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {/* Mobile skeleton — same row count, card shape. */}
+              <ul className="md:hidden space-y-3" aria-busy="true" aria-label="Loading bookings">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                    <div className="flex justify-between mb-3">
+                      <div className="h-4 bg-slate-200 rounded w-32"></div>
+                      <div className="h-4 bg-slate-200 rounded w-20"></div>
+                    </div>
+                    <div className="h-3 bg-slate-200 rounded w-24 mb-3"></div>
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                      <div>
+                        <div className="h-2.5 bg-slate-100 rounded w-12 mb-1.5"></div>
+                        <div className="h-3 bg-slate-200 rounded w-20"></div>
+                      </div>
+                      <div>
+                        <div className="h-2.5 bg-slate-100 rounded w-12 mb-1.5"></div>
+                        <div className="h-3 bg-slate-200 rounded w-24"></div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Desktop table — wrapped in hidden md:block so the mobile
+                card list (rendered after this block) is the only one
+                visible below md. The table stays unchanged on md+. */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="min-w-full divide-y divide-slate-200">
                 <thead className="bg-slate-50">
                   <tr>
@@ -812,6 +840,104 @@ export default function Bookings({ embedded = false }) {
                 </tbody>
               </table>
             </div>
+
+            {/* Mobile card list — same data + same handlers as the
+                desktop table. Each card opens the existing
+                BookingDetailModal where every action button (check-in,
+                check-out, cancel, transfer, receipt download, etc.)
+                lives full-size with confirmation flows. Inline icon
+                buttons would re-create the same "everything crushed"
+                problem the desktop table has on phone widths. */}
+            {filtered.length === 0 ? (
+              <div className="md:hidden px-4 py-10 text-center text-slate-400">
+                No bookings found.
+              </div>
+            ) : (
+              <ul className="md:hidden space-y-3">
+                {filtered.map(b => {
+                  const wi          = parseWalkIn(b);
+                  const isWalkIn    = b.source === 'walk-in';
+                  const overdue     = isOverdueCheckout(b);
+                  const isResolved  = b.status === 'Cancelled' || b.status === 'Completed';
+                  const showSourcePill = filterSource === 'all';
+                  const guestLabel  = wi ? wi.name : (b.guest || 'Guest');
+                  // Same accent-color logic as the desktop row — overdue
+                  // overrides walk-in tint; both override the default
+                  // sky border for online bookings.
+                  const cardCls = [
+                    'w-full text-left rounded-xl border-l-4 border bg-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400',
+                    overdue
+                      ? 'border-l-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100'
+                      : isWalkIn
+                        ? 'border-l-amber-400 border-amber-200 bg-amber-50/60 hover:bg-amber-100/80'
+                        : 'border-l-sky-200 border-slate-200 hover:bg-slate-50',
+                    isResolved ? 'opacity-60' : '',
+                  ].filter(Boolean).join(' ');
+
+                  return (
+                    <li key={b.bookingId}>
+                      <button
+                        type="button"
+                        onClick={() => setViewBooking(b)}
+                        className={cardCls + ' p-4 block'}
+                        aria-label={`View booking ${b.id} for ${guestLabel}`}
+                      >
+                        {/* Top row — guest + payment/status cluster */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-base font-semibold text-slate-900 truncate">
+                              {guestLabel}
+                            </p>
+                            <p className="text-xs font-mono text-slate-500 mt-0.5 truncate">
+                              {b.id}
+                            </p>
+                            {(wi ? wi.email : b.guestEmail) && (
+                              <p className="text-xs text-slate-500 truncate">
+                                {fmtGuestEmail(wi ? wi.email : b.guestEmail)}
+                              </p>
+                            )}
+                          </div>
+                          <div className="shrink-0 flex flex-col items-end gap-1.5">
+                            <PaymentPill booking={b} entranceRates={entranceRates} />
+                            <StatusBadge status={b.status} booking={b} />
+                          </div>
+                        </div>
+
+                        {/* Body — Room + Stay label/value pair */}
+                        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room</p>
+                            <p className="text-sm text-slate-700 mt-0.5 truncate">{b.roomType}</p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Stay</p>
+                            <p className="text-sm text-slate-700 mt-0.5">
+                              {fmtDateTime(b.checkIn)}
+                              <span className="block text-xs text-slate-400">→ {fmtTime(b.checkOut)}</span>
+                            </p>
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                            <p className="text-sm text-slate-700 mt-0.5">{b.guests}</p>
+                          </div>
+                          {(showSourcePill || overdue) && (
+                            <div className="flex items-end justify-end gap-1.5 flex-wrap">
+                              {overdue && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-100 text-rose-800 inline-flex items-center gap-1">
+                                  <i className="fas fa-exclamation-triangle text-[9px]" aria-hidden="true"></i>Overdue
+                                </span>
+                              )}
+                              {showSourcePill && <SourcePill source={b.source} />}
+                            </div>
+                          )}
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            </>
           )}
 
           {/* Legend — only the rows that actually carry a visible accent
