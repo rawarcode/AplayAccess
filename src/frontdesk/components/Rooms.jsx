@@ -6,7 +6,7 @@ import Modal from '../../components/modals/Modal';
 import { getFdBookings, getFdRooms } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import BookingDetailModal from './BookingDetailModal';
-import { fmtTime, localDateStr } from '../../lib/format';
+import { fmtTime, fmtMoney, localDateStr } from '../../lib/format';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 const todayStr = () => localDateStr();
@@ -202,7 +202,27 @@ const STATUS_CONFIG = {
 };
 
 // ─── VacantModal — shown when card has no active booking (vacant) ────────────
-function VacantModal({ room, onClose, onWalkIn }) {
+function VacantModal({ room, bookings = [], onClose, onWalkIn }) {
+  const now = new Date();
+  const dayRate = Number(room.day_rate ?? 0);
+  const overnightRate = Number(room.overnight_rate ?? 0);
+  const r24Rate = Number(room.rate_24hr ?? 0);
+  const hasAnyRate = dayRate > 0 || overnightRate > 0 || r24Rate > 0;
+  // Next reservation = soonest confirmed/incoming booking on this
+  // room name with check-in still in the future. Same exclusion rules
+  // as MultiUnitModal so the two modals can't surface conflicting
+  // info about the same room.
+  const nextBooking = bookings
+    .filter(b =>
+      b.roomType === room.name &&
+      b.status !== 'Cancelled' &&
+      b.status !== 'Completed' &&
+      b.status !== 'Pending'
+    )
+    .map(b => ({ b, r: bookingRange(b) }))
+    .filter(x => x.r && x.r.ci > now)
+    .sort((a, b) => a.r.ci - b.r.ci)[0];
+
   return (
     <Modal open onClose={onClose} title={room.name} maxWidth="max-w-sm">
       <div className="bg-emerald-500 rounded-lg p-4 mb-4 flex items-center gap-3">
@@ -211,6 +231,40 @@ function VacantModal({ room, onClose, onWalkIn }) {
         </span>
         {room.type && <span className="text-sm text-white/80">{room.type}</span>}
       </div>
+
+      {/* Quick-reference strip — rates + next reservation. Same shape
+          as MultiUnitModal's strip; see the comment there for why we
+          surface this even on a clearly-empty modal. */}
+      {(hasAnyRate || nextBooking) && (
+        <div className="mb-4 rounded-lg border border-slate-200 bg-slate-50/60 p-3 space-y-2">
+          {hasAnyRate && (
+            <div>
+              <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide mb-1">Rates</p>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-slate-700">
+                {dayRate > 0       && <span><span className="text-slate-500">Day</span> <strong>{fmtMoney(dayRate)}</strong></span>}
+                {overnightRate > 0 && <span><span className="text-slate-500">Overnight</span> <strong>{fmtMoney(overnightRate)}</strong></span>}
+                {r24Rate > 0       && <span><span className="text-slate-500">24-hour</span> <strong>{fmtMoney(r24Rate)}</strong></span>}
+              </div>
+            </div>
+          )}
+          <div>
+            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide mb-1">Next Reservation</p>
+            {nextBooking ? (
+              <p className="text-xs text-slate-700">
+                <i className="fas fa-clock text-slate-400 mr-1"></i>
+                {fmtTime(nextBooking.b.checkIn)} ({bookingSlotLabel(nextBooking.b)})
+                {' · '}
+                <span className="text-slate-600">{guestName(nextBooking.b) || nextBooking.b.guest || 'Guest'}</span>
+                {nextBooking.r.ci.toDateString() !== now.toDateString() && (
+                  <span className="text-slate-400"> · {nextBooking.r.ci.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>
+                )}
+              </p>
+            ) : (
+              <p className="text-xs text-slate-400">No upcoming reservations on the books.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Walk-in button */}
       <button
@@ -376,12 +430,77 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
         {occupied.map(b => renderRow(b, 'occupied'))}
         {incoming.map(b => renderRow(b, 'incoming'))}
         {total === 0 && (
-          <div className="py-8 text-center text-slate-400 text-sm">
-            <i className="fas fa-calendar-check block text-3xl mb-2 text-slate-300"></i>
+          <div className="py-6 text-center text-slate-400 text-sm">
+            <i className="fas fa-calendar-check block text-2xl mb-1 text-slate-300"></i>
             No active bookings in this slot.
           </div>
         )}
       </div>
+
+      {/*
+        Quick-reference strip — rates + next reservation.
+        Surfaces info staff routinely need WHILE this modal is open
+        (rate quote on the phone, next-arrival timing for housekeeping
+        turnaround, conflict check before walking someone in). Renders
+        regardless of occupancy state — useful in both the empty-slot
+        case (avoids the modal looking blank) and the occupied case
+        (next arrival matters more here, since the current guest's
+        checkout has to happen before it).
+      */}
+      {(() => {
+        const dayRate = Number(room.day_rate ?? 0);
+        const overnightRate = Number(room.overnight_rate ?? 0);
+        const r24Rate = Number(room.rate_24hr ?? 0);
+        // Next reservation = soonest confirmed/incoming booking on
+        // this room name with check-in still in the future. Excludes
+        // Cancelled, Completed, Pending — same exclusion the modal's
+        // own occupancy tally above uses, kept consistent so what's
+        // shown here can't contradict the count badges.
+        const nextBooking = bookings
+          .filter(b =>
+            b.roomType === room.name &&
+            b.status !== 'Cancelled' &&
+            b.status !== 'Completed' &&
+            b.status !== 'Pending'
+          )
+          .map(b => ({ b, r: bookingRange(b) }))
+          .filter(x => x.r && x.r.ci > now)
+          .sort((a, b) => a.r.ci - b.r.ci)[0];
+
+        const hasAnyRate = dayRate > 0 || overnightRate > 0 || r24Rate > 0;
+        if (!hasAnyRate && !nextBooking) return null;
+
+        return (
+          <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/60 p-3 space-y-2">
+            {hasAnyRate && (
+              <div>
+                <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide mb-1">Rates</p>
+                <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-slate-700">
+                  {dayRate > 0       && <span><span className="text-slate-500">Day</span> <strong>{fmtMoney(dayRate)}</strong></span>}
+                  {overnightRate > 0 && <span><span className="text-slate-500">Overnight</span> <strong>{fmtMoney(overnightRate)}</strong></span>}
+                  {r24Rate > 0       && <span><span className="text-slate-500">24-hour</span> <strong>{fmtMoney(r24Rate)}</strong></span>}
+                </div>
+              </div>
+            )}
+            <div>
+              <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide mb-1">Next Reservation</p>
+              {nextBooking ? (
+                <p className="text-xs text-slate-700">
+                  <i className="fas fa-clock text-slate-400 mr-1"></i>
+                  {fmtTime(nextBooking.b.checkIn)} ({bookingSlotLabel(nextBooking.b)})
+                  {' · '}
+                  <span className="text-slate-600">{guestName(nextBooking.b) || nextBooking.b.guest || 'Guest'}</span>
+                  {nextBooking.r.ci.toDateString() !== now.toDateString() && (
+                    <span className="text-slate-400"> · {nextBooking.r.ci.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })}</span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-xs text-slate-400">No upcoming reservations on the books.</p>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Walk-in + close */}
       <div className="mt-4 flex flex-col gap-2">
@@ -603,6 +722,7 @@ export default function FDRooms({ embedded = false }) {
         ) : (
           <VacantModal
             room={selectedSlot.room}
+            bookings={bookings}
             onClose={() => setSelectedSlot(null)}
             onWalkIn={() => navigate('/frontdesk/walkin', { state: { preselectedRoom: selectedSlot.room } })}
           />
