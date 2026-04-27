@@ -624,8 +624,13 @@ export default function AdminRooms() {
   }
 
   // ── Skeleton loading ──────────────────────────────────────────────────────
+  // Two variants: a flat horizontal row for md+ that mirrors the table
+  // shape, and a card-stack for <md that mirrors the mobile cards. Was
+  // previously only the flat row, which forced sideways scroll on
+  // phones during the load flash.
   const renderSkeleton = () => (
-    <div className="divide-y divide-slate-100">
+    <>
+    <div className="hidden md:block divide-y divide-slate-100">
       {Array.from({ length: 5 }).map((_, i) => (
         <div key={i} className="px-6 py-4 flex items-center gap-6 animate-pulse">
           <div className="h-5 w-5 rounded bg-slate-200 shrink-0"></div>
@@ -640,6 +645,26 @@ export default function AdminRooms() {
         </div>
       ))}
     </div>
+    <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading rooms">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="h-12 w-12 rounded-lg bg-slate-200 shrink-0" />
+            <div className="flex-1 space-y-1.5">
+              <div className="h-4 bg-slate-200 rounded w-32" />
+              <div className="h-3 bg-slate-100 rounded w-24" />
+            </div>
+            <div className="h-5 bg-slate-200 rounded-full w-20" />
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
+            <div className="h-8 bg-slate-100 rounded" />
+            <div className="h-8 bg-slate-100 rounded" />
+            <div className="h-8 bg-slate-100 rounded" />
+          </div>
+        </li>
+      ))}
+    </ul>
+    </>
   );
 
   const TABS = [
@@ -809,7 +834,12 @@ export default function AdminRooms() {
               </p>
             </div>
           ) : (
-            <table className="min-w-full text-sm text-slate-700">
+            <>
+            {/* Desktop table — wrapped hidden md:table so the mobile
+                card list (rendered below) is the sole listing visible
+                <md. 10 columns including 3 separate rate columns
+                doesn't fit phone widths. */}
+            <table className="hidden md:table min-w-full text-sm text-slate-700">
               {/* #10 — sky palette for sort headers */}
               <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
                 <tr>
@@ -890,6 +920,98 @@ export default function AdminRooms() {
                 })}
               </tbody>
             </table>
+
+            {/* Mobile card list — same paginated set. Whole-card tap
+                opens the detail viewer; checkbox + edit/delete buttons
+                stop propagation. Three rate cells stack into a 3-col
+                grid on the card so all rate values stay scannable. */}
+            <ul className="md:hidden space-y-3 p-4">
+              {paginated.map((room) => {
+                const avail = room.availability_status || 'available';
+                const isUnavailable = avail !== 'available';
+                const isSelected = selected.has(room.id);
+                const cat = getRoomCategory(room);
+                const catStyle = { cottage: 'bg-warning-bg text-warning-fg', pavilion: 'bg-success-bg text-success-fg' }[cat];
+                return (
+                  <li key={room.id}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setViewRoom(room)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setViewRoom(room); } }}
+                      className={`rounded-xl border border-slate-200 bg-white shadow-sm p-4 cursor-pointer hover:bg-sky-50/40 transition focus:outline-none focus:ring-2 focus:ring-sky-400 ${isUnavailable ? 'opacity-70' : ''} ${isSelected ? 'ring-2 ring-sky-300' : ''}`}
+                    >
+                      {/* Top — checkbox + image + name + availability badge */}
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelect(room.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select ${room.name}`}
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-500 shrink-0"
+                        />
+                        {room.image
+                          ? <img src={room.image} alt="" className="h-12 w-12 rounded-lg object-cover shrink-0" loading="lazy" decoding="async" />
+                          : <div className="h-12 w-12 rounded-lg bg-slate-200 flex items-center justify-center text-slate-400 shrink-0"><i className="fas fa-bed" aria-hidden="true"></i></div>
+                        }
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-semibold text-slate-900 truncate">{room.name}</p>
+                            {catStyle && (
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${catStyle}`}>{cat}</span>
+                            )}
+                            {room.allowed_booking_types?.length > 0 && (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-warning-bg text-warning-fg rounded-full font-medium">
+                                {room.allowed_booking_types.join('/')} only
+                              </span>
+                            )}
+                          </div>
+                          {room.capacity_label && (
+                            <p className="text-xs text-slate-400 mt-0.5">{room.capacity_label}</p>
+                          )}
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            {room.capacity} pax · qty {room.quantity ?? 1}
+                          </p>
+                        </div>
+                        <div className="shrink-0">
+                          <AvailBadge status={avail} />
+                        </div>
+                      </div>
+
+                      {/* Body — three rate columns. */}
+                      <div className="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-slate-100">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Day</p>
+                          <p className="text-sm font-semibold text-slate-800 mt-0.5">{'₱'}{Number(room.day_rate).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Overnight</p>
+                          <p className="text-sm font-semibold text-slate-800 mt-0.5">{'₱'}{Number(room.overnight_rate).toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">24hr</p>
+                          <p className="text-sm font-semibold text-slate-800 mt-0.5">{'₱'}{Number(room.rate_24hr ?? 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Action cluster */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button onClick={() => openEdit(room)} aria-label={`Edit ${room.name}`}
+                          className="px-4 py-2 rounded-lg text-xs font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 transition" type="button">
+                          <i className="fas fa-pen text-[10px] mr-1.5" aria-hidden="true"></i>Edit
+                        </button>
+                        <button onClick={() => setDeleteTarget(room)} aria-label={`Delete ${room.name}`}
+                          className="px-4 py-2 rounded-lg text-xs font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 transition" type="button">
+                          <i className="fas fa-trash text-[10px] mr-1.5" aria-hidden="true"></i>Delete
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+            </>
           )}
         </div>
 
