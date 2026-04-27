@@ -41,20 +41,26 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
   useEffect(() => onMessageSoundMuteChange(setSoundMutedLocal), []);
 
   // Position dropdown using fixed coords so it's never clipped by
-  // overflow:hidden parents. Width clamps to viewport on narrow screens
-  // so the dropdown never extends off-screen left on phones — without
-  // this the hard-coded 320px ate into negative left offsets on 320px
-  // (iPhone SE) viewports and crowded the right edge on 360px Android.
+  // overflow:hidden parents. Width clamps to viewport on narrow screens.
+  //
+  // Two clamps on the right offset:
+  //  1. Default: align dropdown right edge with bell right edge —
+  //     visually anchors the dropdown under the bell on desktop.
+  //  2. BUT the bell isn't always pinned to the viewport's right edge.
+  //     In every staff shell the profile dropdown sits TO THE RIGHT of
+  //     the bell, so bell.right is ~100px from viewport right on phone
+  //     widths. Without the second clamp, "right: vw - bell.right" sets
+  //     a huge right offset, pushing the dropdown's left edge to
+  //     negative coords — i.e. off-screen left, exactly the cut-off bug.
+  //     The second clamp shifts the dropdown right when needed so its
+  //     left edge sits at the 8px gutter.
   const openDropdown = useCallback(() => {
     const rect = btnRef.current?.getBoundingClientRect();
     if (rect) {
-      const vw      = window.innerWidth;
-      const width   = Math.min(320, vw - 16);
-      // Pin 8px from the right edge minimum so the dropdown doesn't
-      // hug the viewport boundary, but let the bell's actual right
-      // offset win when there's room (keeps it visually anchored
-      // under the bell on desktop).
-      const right   = Math.max(8, vw - rect.right);
+      const vw     = window.innerWidth;
+      const width  = Math.min(320, vw - 16);
+      let right    = Math.max(8, vw - rect.right);
+      if (vw - right - width < 8) right = vw - width - 8;
       setStyle({
         position: 'fixed',
         top:   rect.bottom + 6,
