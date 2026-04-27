@@ -543,9 +543,22 @@ export default function Billing({ embedded = false }) {
   // outstanding balance. Using outstanding (derived from paidAmount) means
   // a booking that was fully paid, then had extra guests added, correctly
   // shows up here again.
+  //
+  // The fullyPaid short-circuit is critical — backend's collectPayment
+  // sets fully_paid=true and paid_amount=newGrandTotal, but the math
+  // total + entrance - paidAmount can still resolve to a tiny positive
+  // value due to float noise (entrance_fee snapshotted from one rate
+  // path, calcEntrance recomputing from another) or a brief field-fetch
+  // race between the optimistic update and the next 20s poll.
+  // Without this guard a just-collected booking flickers back into the
+  // "Awaiting Payment Collection" list before the next poll resolves.
+  // Mirrors the same fullyPaid short-circuit the sort comparator uses
+  // (search "fullyPaid" in this file).
   const { todayConfirmed, todayCompleted, todayCancelled, revenueToday } = useMemo(() => {
-    const outstandingFor = b =>
-      Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
+    const outstandingFor = b => {
+      if (b.fullyPaid) return 0;
+      return Math.max(0, Number(b.total ?? 0) + calcEntrance(b, entranceRates) - Number(b.paidAmount ?? 0));
+    };
     const todayConfirmed  = todayAll.filter(b => (b.status === 'Confirmed' || b.status === 'Checked In') && outstandingFor(b) > 0);
     const todayCompleted  = todayAll.filter(b => b.status === 'Completed');
     const todayCancelled  = todayAll.filter(b => b.status === 'Cancelled');
