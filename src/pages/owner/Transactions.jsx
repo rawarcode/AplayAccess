@@ -415,7 +415,12 @@ export default function OwnerTransactions() {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-full text-sm text-slate-700">
+          {/* Desktop table — wrapped in hidden md:table so the mobile
+              card list (rendered below) is the sole listing visible
+              <md. 8 columns with the Amount column carrying nested
+              subtitles (incl./forfeited/of-quoted) doesn't fit phone
+              widths; cards preserve every field on a single column. */}
+          <table className="hidden md:table min-w-full text-sm text-slate-700">
             <thead className="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider">
               <tr>
                 {[['Booking ID','Booking ID'],['Check-in','Check-in'],['Guest','Guest'],['Room','Room'],['Discount','Discount'],['Amount','Amount'],['Status','Status']].map(([label,key]) => (
@@ -521,6 +526,132 @@ export default function OwnerTransactions() {
               </tfoot>
             )}
           </table>
+
+          {/* Mobile card list — same currentRows slice as the desktop
+              table. Whole-card click mirrors the desktop row's
+              navigate("/owner/transactions") (self-link, harmless).
+              Amount cell preserves the desktop's conditional
+              subtitle logic — incl. entrance, forfeited, "of N
+              quoted" — which is the most information-dense cell on
+              this table. */}
+          {loading ? (
+            <ul className="md:hidden space-y-3 p-4" aria-busy="true" aria-label="Loading transactions">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <li key={i} className="rounded-xl border border-slate-200 bg-white p-4 animate-pulse">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-4 bg-slate-200 rounded w-32" />
+                      <div className="h-3 bg-slate-100 rounded w-24" />
+                    </div>
+                    <div className="h-5 bg-slate-200 rounded-full w-20" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-100">
+                    <div className="h-8 bg-slate-100 rounded" />
+                    <div className="h-8 bg-slate-100 rounded" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : currentRows.length === 0 ? (
+            <p className="md:hidden p-8 text-center text-slate-400">No transactions found.</p>
+          ) : (
+            <ul className="md:hidden space-y-3 p-4">
+              {currentRows.map((b) => {
+                const entrance      = Number(b.entranceFee ?? 0);
+                const grandTotal    = Number(b.total ?? 0) + entrance;
+                const collected     = collectedAmt(b);
+                const isCancelled   = b.status === 'Cancelled';
+                const isFullyPaid   = collected > 0 && collected + 0.01 >= grandTotal;
+                const hasPartialGap = grandTotal > 0 && collected < grandTotal;
+                return (
+                  <li key={b.bookingId}>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => navigate("/owner/transactions")}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigate("/owner/transactions"); } }}
+                      className="rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:bg-slate-50 transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    >
+                      {/* Top — guest + ID + status pill */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-slate-900 truncate">{b.guest}</p>
+                          <p className="text-xs font-mono text-slate-500 truncate mt-0.5">{b.id}</p>
+                        </div>
+                        <span className={`shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${STATUS_CLASSES[b.status] || 'bg-gray-100 text-gray-800'}`}>
+                          {b.status}
+                        </span>
+                      </div>
+
+                      {/* Body — Check-in / Room */}
+                      <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Check-in</p>
+                          <p className="text-sm text-slate-700 mt-0.5">{(b.checkIn ?? '').slice(0, 10) || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room</p>
+                          <p className="text-sm text-slate-700 mt-0.5 truncate">{b.roomType}</p>
+                        </div>
+                      </div>
+
+                      {/* Amount — with the same conditional subtitles
+                          as the desktop cell. Discount + payment
+                          method tucked under as supporting facts. */}
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-end justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Amount</p>
+                          <p className={`text-lg font-semibold mt-0.5 ${isCancelled && collected === 0 ? 'text-slate-400' : 'text-slate-900'}`}>
+                            {collected > 0 ? fmt(collected) : (isCancelled ? '—' : fmt(0))}
+                          </p>
+                          {isFullyPaid && entrance > 0 && (
+                            <p className="text-[11px] text-slate-400">incl. {fmt(entrance)} entrance</p>
+                          )}
+                          {hasPartialGap && (
+                            <p className="text-[11px] text-slate-400">
+                              {isCancelled ? 'forfeited · ' : ''}of {fmt(grandTotal)} quoted
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right text-xs text-slate-500 shrink-0 space-y-1">
+                          {Number(b.discount) > 0 && (
+                            <span className="inline-flex items-center gap-1 text-emerald-700 font-medium">
+                              <i className="fas fa-tag text-[10px]" aria-hidden="true"></i>
+                              {fmt(b.discount)}
+                            </span>
+                          )}
+                          <p>{b.paymentMethod || '—'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+
+              {/* Mobile equivalent of the desktop tfoot's "Page total"
+                  row. Sums identical to the tfoot — discount excludes
+                  cancelled, amount sums all rows on this page. */}
+              <li className="rounded-xl border border-slate-200 bg-slate-50 p-4 mt-3">
+                <p className="text-xs font-semibold text-slate-600 mb-2">
+                  Page total ({currentRows.length} row{currentRows.length !== 1 ? 's' : ''})
+                </p>
+                <div className="flex items-center justify-between text-sm">
+                  <div>
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Discount</p>
+                    <p className="font-semibold text-emerald-700 mt-0.5">
+                      {fmt(currentRows.filter(b => b.status !== 'Cancelled').reduce((s, b) => s + Number(b.discount || 0), 0))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Amount</p>
+                    <p className="font-semibold text-slate-900 mt-0.5">
+                      {fmt(currentRows.reduce((s, b) => s + collectedAmt(b), 0))}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          )}
         </div>
 
         {/* Pagination */}
