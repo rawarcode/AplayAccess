@@ -580,13 +580,13 @@ export default function Rooms() {
 
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden ring-1 ring-slate-200">
                 <div className="grid grid-cols-1 lg:grid-cols-2">
-                  <div className="relative overflow-hidden h-80 lg:h-auto">
+                  <div className="relative overflow-hidden bg-slate-100 aspect-[4/3] lg:aspect-auto lg:h-full lg:min-h-[24rem]">
                     <img src={detailRoom.img}
                       srcSet={unsplashSrcSet(detailRoom.img)}
                       sizes="(min-width: 1024px) 50vw, 100vw"
                       width="1200" height="900"
                       alt={detailRoom.name}
-                      className="w-full h-full object-cover" loading="lazy" />
+                      className="w-full h-full object-contain" loading="lazy" />
                     {/* Bottom-only darken so badges sit on pills against the
                         photograph rather than fighting a full-frame overlay. */}
                     <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/55 to-transparent" />
