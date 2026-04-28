@@ -70,7 +70,7 @@ function buildRoomCard(room) {
     local?.desc ??
     "Relax in comfort with a cozy space, clean linens, and a peaceful resort atmosphere.";
 
-  const img = local?.img ?? FALLBACK_ROOM_IMG;
+  const img = room?.image ?? local?.img ?? FALLBACK_ROOM_IMG;
 
   return { ...room, name, day_rate: dayRate, overnight_rate: nightRate, rate_24hr: rate24hr, img, desc };
 }
