@@ -43,9 +43,16 @@ export function AuthProvider({ children }) {
         if (!alive) return;
 
         const u = normalizeUser(data);
-        setUser(u || null);
-        if (u) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
-        else localStorage.removeItem(STORAGE_KEY);
+        // Defense-in-depth: if /api/me returns an anonymized account
+        // (deleted-by-user flow flips is_active to false), treat it
+        // as logged out so the dashboard isn't shown to a ghost.
+        const accountUsable = u && u.is_active !== false;
+        setUser(accountUsable ? u : null);
+        if (accountUsable) localStorage.setItem(STORAGE_KEY, JSON.stringify(u));
+        else {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(TOKEN_KEY);
+        }
       } catch (err) {
         if (!alive) return;
         // Only clear session on explicit 401 — network errors / aborted requests
