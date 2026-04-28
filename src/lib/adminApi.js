@@ -64,7 +64,9 @@ export const renameCategoryGallery   = (oldName, newName) => api.patch('/api/adm
 export const toggleCategoryHidden    = (category, isHidden) => api.patch('/api/admin/gallery/toggle-category-hidden', { category, is_hidden: isHidden });
 
 // ── Contact Submissions ───────────────────────────────────────────────────────
-export const getAdminContacts   = ()         => api.get('/api/admin/contacts');
+export const getAdminContacts      = ()              => api.get('/api/admin/contacts');
+export const markAdminContactRead  = (id)            => api.patch(`/api/admin/contacts/${id}/read`);
+export const replyAdminContact     = (id, body)      => api.post(`/api/admin/contacts/${id}/reply`, { body });
 
 // ── Messages ─────────────────────────────────────────────────────────────────
 export const getAdminMessages       = ()           => api.get('/api/admin/messages');

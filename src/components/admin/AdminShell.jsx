@@ -123,6 +123,7 @@ export default function AdminShell() {
     soonCheckouts:      '/admin/bookings?status=Checked+In',
     overdueCheckouts:   '/admin/bookings?status=Checked+In',
     reviews:            '/admin/content?tab=reviews',
+    contacts:           '/admin/content?tab=contact',
   });
 
   // Persist collapsed preference

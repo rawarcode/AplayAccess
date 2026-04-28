@@ -126,6 +126,7 @@ export default function OwnerShell() {
     soonCheckouts:      '/frontdesk/bookings?status=Checked+In',
     overdueCheckouts:   '/frontdesk/bookings?status=Checked+In',
     reviews:            '/owner/reviews',
+    contacts:           '/owner/content?tab=contact',
   });
 
   // Persist collapsed preference

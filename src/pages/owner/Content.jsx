@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { createPortal } from "react-dom";
-import { getAdminGallery, updateAdminGallery, batchCreateGallery, renameCategoryGallery, toggleCategoryHidden, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
+import { getAdminGallery, updateAdminGallery, batchCreateGallery, renameCategoryGallery, toggleCategoryHidden, batchFeaturedGallery, deleteAdminGallery, getAdminContacts, markAdminContactRead, replyAdminContact, updateAdminContent, getAdminReviews, updateAdminReview, deleteAdminReview, getResortAmenities, createResortAmenity, updateResortAmenity, deleteResortAmenity } from "../../lib/adminApi";
 import { api } from "../../lib/api";
 import { RESORT_ID } from "../../lib/config.js";
 import MediaPicker from "../../components/ui/MediaPicker.jsx";
@@ -2808,6 +2808,8 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
   const [loading,  setLoading]  = useState(true);
   const [toast, showToast, clearToast, toastType] = useToast();
   const [selected, setSelected] = useState(null);
+  const [replyBody, setReplyBody] = useState("");
+  const [sending, setSending] = useState(false);
   const [search,   setSearch]   = useState("");
   const [page,     setPage]     = useState(1);
   const searchRef = useRef(null);
@@ -2824,6 +2826,39 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
       .catch(() => showToast("Failed to load contact submissions.", "error"))
       .finally(() => setLoading(false));
   }, [showToast, setContactCount]);
+
+  // Open the modal and stamp the row read on the backend so the bell
+  // badge decays. Optimistic local update so the UI flips even if the
+  // PATCH is in flight; failure path is silent (we'll resync on next
+  // poll).
+  function openSubmission(c) {
+    setSelected(c);
+    setReplyBody(c.reply_body || "");
+    if (!c.is_read) {
+      setContacts(prev => prev.map(x => x.id === c.id ? { ...x, is_read: true } : x));
+      markAdminContactRead(c.id).catch(() => {});
+    }
+  }
+
+  async function handleSendReply() {
+    const body = replyBody.trim();
+    if (!body || sending || !selected) return;
+    setSending(true);
+    try {
+      const r = await replyAdminContact(selected.id, body);
+      const updated = r.data?.data ?? null;
+      if (updated) {
+        setContacts(prev => prev.map(x => x.id === updated.id ? updated : x));
+        setSelected(updated);
+      }
+      showToast("Reply sent. The customer will receive your email.", "success");
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to send reply. Please try again.";
+      showToast(msg, "error");
+    } finally {
+      setSending(false);
+    }
+  }
 
   const filtered = contacts.filter(c =>
     [c.name, c.email, c.subject].some(v => v && v.toLowerCase().includes(debouncedSearch.toLowerCase()))
@@ -2936,14 +2971,26 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {paginated.map((c, idx) => (
-                    <tr key={c.id} className={`hover:bg-sky-50/40 transition ${idx % 2 === 1 ? "bg-slate-50/50" : ""}`}>
-                      <td className="px-6 py-4 font-medium text-slate-900">{c.name}</td>
+                    <tr key={c.id} className={`hover:bg-sky-50/40 transition ${idx % 2 === 1 ? "bg-slate-50/50" : ""} ${!c.is_read ? "bg-sky-50/60" : ""}`}>
+                      <td className="px-6 py-4 font-medium text-slate-900">
+                        {!c.is_read && (
+                          <span className="inline-block h-2 w-2 rounded-full bg-sky-500 mr-2 align-middle" aria-label="Unread" title="Unread"></span>
+                        )}
+                        {c.name}
+                      </td>
                       <td className="px-6 py-4 text-slate-500">{c.email}</td>
                       <td className="px-6 py-4">{c.subject}</td>
                       <td className="px-6 py-4 text-slate-400 whitespace-nowrap">{formatDate(c.created_at)}</td>
                       <td className="px-6 py-4">
-                        <button onClick={() => setSelected(c)}
-                          className="text-brand hover:underline text-sm font-medium">View</button>
+                        <span className="flex items-center gap-3">
+                          <button onClick={() => openSubmission(c)}
+                            className="text-brand hover:underline text-sm font-medium">View</button>
+                          {c.replied_at && (
+                            <span className="text-xs text-emerald-600 font-medium" title={`Replied ${formatDate(c.replied_at)}`}>
+                              <i className="fas fa-check mr-1" aria-hidden="true"></i>Replied
+                            </span>
+                          )}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -2972,7 +3019,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
       </div>
 
       {/* View modal using shared Modal */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-lg">
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-2xl">
         {selected && (
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -2988,14 +3035,56 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
               </div>
               <div>
                 <p className="text-xs text-slate-400 mb-1">Message</p>
-                <p className="text-slate-700 bg-slate-50 rounded-lg p-4 leading-relaxed">{selected.message}</p>
+                <p className="text-slate-700 bg-slate-50 rounded-lg p-4 leading-relaxed whitespace-pre-wrap">{selected.message}</p>
+              </div>
+
+              {/* Reply section. Single-reply per submission for v1 — once
+                  sent, the textarea becomes a read-only display of what
+                  was sent so there's no accidental re-send. Customer
+                  replies land in the resort gmail (reply-to header). */}
+              <div>
+                <p className="text-xs text-slate-400 mb-1">
+                  {selected.replied_at ? "Your reply" : "Reply"}
+                </p>
+                {selected.replied_at ? (
+                  <>
+                    <p className="text-slate-700 bg-emerald-50 ring-1 ring-emerald-200 rounded-lg p-4 leading-relaxed whitespace-pre-wrap">
+                      {selected.reply_body}
+                    </p>
+                    <p className="text-xs text-emerald-700 mt-1.5">
+                      <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>
+                      Sent {formatDate(selected.replied_at)}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <textarea
+                      value={replyBody}
+                      onChange={(e) => setReplyBody(e.target.value)}
+                      rows={6}
+                      maxLength={10000}
+                      placeholder={`Hi ${selected.name}, thanks for reaching out...`}
+                      className="w-full bg-white border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 resize-y"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Sent from the resort. Customer's reply will land in the resort gmail.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
             <div className="flex justify-end mt-5 gap-2">
-              <a href={`mailto:${selected.email}?subject=Re: ${encodeURIComponent(selected.subject)}`}
-                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm">
-                <i className="fas fa-reply" aria-hidden="true"></i> Reply via Email
-              </a>
+              {!selected.replied_at && (
+                <button
+                  onClick={handleSendReply}
+                  disabled={sending || !replyBody.trim()}
+                  className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {sending
+                    ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Sending...</>
+                    : <><i className="fas fa-paper-plane" aria-hidden="true"></i> Send Reply</>}
+                </button>
+              )}
               <button onClick={() => setSelected(null)}
                 className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Close</button>
             </div>

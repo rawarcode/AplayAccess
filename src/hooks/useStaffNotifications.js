@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getAdminMessages, getAdminReviews } from '../lib/adminApi';
+import { getAdminMessages, getAdminReviews, getAdminContacts } from '../lib/adminApi';
 import { getFdBookings } from '../lib/frontdeskApi';
 import { localDateStr } from '../lib/format';
 import { playMessageChime } from '../lib/notificationSound';
@@ -50,6 +50,7 @@ const DEFAULT_PATHS = {
   arrivals:         '/owner/transactions?status=Confirmed',
   soonCheckouts:    '/owner/transactions?status=Checked+In',
   overdueCheckouts: '/owner/transactions?status=Checked+In',
+  contacts:         '/owner/content?tab=contact',
 };
 
 // Pending bookings are transient — they auto-cancel after 5 minutes
@@ -61,6 +62,7 @@ export function useStaffNotifications(paths = {}) {
   const p = { ...DEFAULT_PATHS, ...paths };
   const [counts, setCounts] = useState({
     unreadMessages:   0,
+    unreadContacts:   0,
     todayArrivals:    0,
     arrivedToday:     0,
     currentlyInHouse: 0,
@@ -80,17 +82,20 @@ export function useStaffNotifications(paths = {}) {
   const poll = useCallback(async () => {
     const today = todayStr();
 
-    const [msgRes, bkRes, rvRes] = await Promise.allSettled([
+    const [msgRes, bkRes, rvRes, ctRes] = await Promise.allSettled([
       getAdminMessages(),
       getFdBookings(),
       getAdminReviews(),
+      getAdminContacts(),
     ]);
 
-    const threads  = msgRes.status === 'fulfilled' ? (msgRes.value?.data?.data  ?? []) : [];
-    const bookings = bkRes.status  === 'fulfilled' ? (bkRes.value  ?? [])             : [];
-    const reviews  = rvRes.status  === 'fulfilled' ? (rvRes.value?.data?.data ?? rvRes.value?.data ?? []) : [];
+    const threads   = msgRes.status === 'fulfilled' ? (msgRes.value?.data?.data  ?? []) : [];
+    const bookings  = bkRes.status  === 'fulfilled' ? (bkRes.value  ?? [])             : [];
+    const reviews   = rvRes.status  === 'fulfilled' ? (rvRes.value?.data?.data ?? rvRes.value?.data ?? []) : [];
+    const contacts  = ctRes.status  === 'fulfilled' ? (ctRes.value?.data?.data  ?? []) : [];
 
     const unreadMessages  = threads.filter(t => !t.is_read).length;
+    const unreadContacts  = contacts.filter(c => !c.is_read).length;
     // todayArrivals = Confirmed bookings still pending check-in for today.
     // Drops as guests get checked in (count goes to zero when work is
     // done — the operational signal). arrivedToday is the companion
@@ -164,7 +169,7 @@ export function useStaffNotifications(paths = {}) {
     }
     prevUnreadMessagesRef.current = unreadMessages;
 
-    setCounts({ unreadMessages, todayArrivals, arrivedToday, currentlyInHouse, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
+    setCounts({ unreadMessages, unreadContacts, todayArrivals, arrivedToday, currentlyInHouse, newReviews, pendingReviews, soonCheckouts, overdueCheckouts });
 
     const next = [];
     if (unreadMessages > 0)
@@ -172,6 +177,12 @@ export function useStaffNotifications(paths = {}) {
         id: 'msgs', icon: 'fa-envelope', color: 'blue',
         label: `${unreadMessages} unread message${unreadMessages !== 1 ? 's' : ''}`,
         path: p.messages,
+      });
+    if (unreadContacts > 0 && p.contacts)
+      next.push({
+        id: 'contacts', icon: 'fa-envelope-open-text', color: 'blue',
+        label: `${unreadContacts} new contact submission${unreadContacts !== 1 ? 's' : ''}`,
+        path: p.contacts,
       });
     if (todayArrivals > 0)
       next.push({
@@ -220,7 +231,7 @@ export function useStaffNotifications(paths = {}) {
     return () => clearInterval(id);
   }, [poll]);
 
-  const total = counts.unreadMessages + counts.todayArrivals + counts.newReviews + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
+  const total = counts.unreadMessages + counts.unreadContacts + counts.todayArrivals + counts.newReviews + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
 
   return { counts, items, total, refresh: poll };
 }
