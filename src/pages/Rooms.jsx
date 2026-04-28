@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useContent } from "../context/ContentContext.jsx";
@@ -121,6 +121,10 @@ export default function Rooms() {
   const [loading,      setLoading]      = useState(true);
   const [loadError,    setLoadError]    = useState(false);
   const [selectedId,   setSelectedId]   = useState(null);
+  // Where the user was scrolled when they opened a detail view —
+  // restored on back so they land on the card they clicked instead
+  // of the top of the page.
+  const returnScrollY = useRef(0);
   const [activeTab,    setActiveTab]    = useState("all");
 
   const [bookingOpen,  setBookingOpen]  = useState(false);
@@ -223,19 +227,16 @@ export default function Rooms() {
   );
 
   function openDetails(id) {
-    // No scroll — the detail view takes the grid's slot in the layout,
-    // so keeping the user's current scroll position is less disorienting
-    // than yanking them back to the hero. Feedback: the previous
-    // smooth-scroll-to-top felt like the page "ran away" on click.
+    returnScrollY.current = window.scrollY;
     setSelectedId(id);
   }
 
   function backToGrid() {
+    const y = returnScrollY.current;
     setSelectedId(null);
-    // Grid-top scroll on the way back is useful — user gets a fresh
-    // view of all rooms rather than landing mid-list at whatever
-    // scroll position the detail view happened to leave them in.
-    window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: y, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    });
   }
 
   // Map a booking-list row → BookingModal's resumeBooking prop shape.
