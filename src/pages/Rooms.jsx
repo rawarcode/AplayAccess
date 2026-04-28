@@ -125,6 +125,11 @@ export default function Rooms() {
   // restored on back so they land on the card they clicked instead
   // of the top of the page.
   const returnScrollY = useRef(0);
+  // Top of the detail view, scrolled into view on open so the user
+  // actually sees the room they clicked (the detail content is
+  // shorter than the grid, so without this the preserved scroll
+  // position lands past the page bottom).
+  const detailTopRef = useRef(null);
   const [activeTab,    setActiveTab]    = useState("all");
 
   const [bookingOpen,  setBookingOpen]  = useState(false);
@@ -229,6 +234,12 @@ export default function Rooms() {
   function openDetails(id) {
     returnScrollY.current = window.scrollY;
     setSelectedId(id);
+    requestAnimationFrame(() => {
+      const el = detailTopRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top + window.scrollY - 16;
+      window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+    });
   }
 
   function backToGrid() {
@@ -571,7 +582,7 @@ export default function Rooms() {
             </div>
           ) : (
             /* ── DETAILS ── */
-            <div className="mt-2 animate-hero-fade-in [animation-delay:0.1s] opacity-0">
+            <div ref={detailTopRef} className="mt-2 animate-hero-fade-in [animation-delay:0.1s] opacity-0">
               {/* Same treatment as the grid's back link — text-only,
                   not a prominent pill. */}
               <button onClick={backToGrid}
