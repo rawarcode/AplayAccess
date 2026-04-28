@@ -15,7 +15,7 @@ const inputBase =
   "w-full pl-10 pr-10 py-2 border rounded-xl border-slate-200 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:border-sky-400 text-sm placeholder:text-slate-300 transition";
 
 export default function EditProfile() {
-  const { user, login, logout } = useAuth();
+  const { user, login, logout, clearPersistedAuth } = useAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
   const [toast, showToast, clearToast, toastType] = useToast();
@@ -233,6 +233,10 @@ export default function EditProfile() {
     setDeleting(true);
     try {
       await deleteAccount();
+      // Wipe persisted auth right now so a refresh during the
+      // celebration window doesn't boot the dashboard from cached
+      // localStorage with a deleted account.
+      clearPersistedAuth();
       // Swap the modal body to a success celebration for 2.5s so the
       // user actually sees confirmation that their account was deleted
       // before logout() redirects them out of the dashboard.

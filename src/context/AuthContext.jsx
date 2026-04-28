@@ -153,6 +153,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(TOKEN_KEY);
   }
 
+  // Wipe persisted auth without touching React state — used by the
+  // delete-account flow so a refresh during the 2.5s celebration UI
+  // doesn't reboot the dashboard from cached localStorage.
+  function clearPersistedAuth() {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(TOKEN_KEY);
+  }
+
   const value = useMemo(
     () => ({
       user,
@@ -164,6 +172,7 @@ export function AuthProvider({ children }) {
       login, // existing usage
       refreshUser,
       logout,
+      clearPersistedAuth,
       setUser, // optional
     }),
     [user, booting]
