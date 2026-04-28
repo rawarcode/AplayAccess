@@ -235,10 +235,10 @@ export default function Rooms() {
     returnScrollY.current = window.scrollY;
     setSelectedId(id);
     requestAnimationFrame(() => {
-      const el = detailTopRef.current;
-      if (!el) return;
-      const top = el.getBoundingClientRect().top + window.scrollY - 16;
-      window.scrollTo({ top, behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
+      detailTopRef.current?.scrollIntoView({
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+        block: 'start',
+      });
     });
   }
 
@@ -582,7 +582,7 @@ export default function Rooms() {
             </div>
           ) : (
             /* ── DETAILS ── */
-            <div ref={detailTopRef} className="mt-2 animate-hero-fade-in [animation-delay:0.1s] opacity-0">
+            <div ref={detailTopRef} className="mt-2 scroll-mt-24 animate-hero-fade-in [animation-delay:0.1s] opacity-0">
               {/* Same treatment as the grid's back link — text-only,
                   not a prominent pill. */}
               <button onClick={backToGrid}
