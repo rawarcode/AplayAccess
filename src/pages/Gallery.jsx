@@ -8,6 +8,7 @@ import { RESORT_ID } from "../lib/config.js";
 import LightboxModal from "../components/modals/LightboxModal.jsx";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { Helmet } from "react-helmet-async";
+import { usePagination, PaginationBar } from "../lib/pagination.jsx";
 
 const GALLERY_HERO_DEFAULTS = {
   background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
@@ -87,6 +88,14 @@ export default function Gallery() {
     return items.filter((g) => (g.category || "").toLowerCase() === activeCat.toLowerCase());
   }, [items, activeCat]);
 
+  // Pagination — 12 photos/page is dense enough to fill the
+  // auto-fill grid on a typical desktop without overwhelming mobile.
+  // Lightbox iterates over the CURRENT page's set, so prev/next stays
+  // in the user's mental "this page" context; advancing past the
+  // last image on a page closes the lightbox and the user paginates
+  // explicitly to see more.
+  const { setPage, paginated, totalPages, safePage, info } = usePagination(filteredItems, 12);
+
   useLockBodyScroll(open);
 
   function openAt(i) {
@@ -101,13 +110,15 @@ export default function Gallery() {
   }, []);
 
   const next = useCallback(() => {
-    setIndex((i) => Math.min(filteredItems.length - 1, i + 1));
-  }, [filteredItems.length]);
+    setIndex((i) => Math.min(paginated.length - 1, i + 1));
+  }, [paginated.length]);
 
-  // Reset index when filter changes
+  // Reset lightbox index AND pagination when the filter changes —
+  // page 5 of "All" doesn't exist for "Beach" with fewer photos.
   useEffect(() => {
     setIndex(0);
-  }, [activeCat]);
+    setPage(1);
+  }, [activeCat, setPage]);
 
   // keyboard navigation
   useEffect(() => {
@@ -240,9 +251,10 @@ export default function Gallery() {
               )}
             </div>
           ) : (
-            /* Gallery grid with stagger animation */
+            <>
+            {/* Gallery grid with stagger animation */}
             <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(280px,1fr))]">
-              {filteredItems.map((g, i) => (
+              {paginated.map((g, i) => (
                 <button
                   key={`${g.alt}-${i}`}
                   type="button"
@@ -277,13 +289,23 @@ export default function Gallery() {
                     {g.caption && <p className="text-white text-sm font-medium leading-snug">{g.caption}</p>}
                     <p className="text-white/60 text-xs mt-1">Click to enlarge</p>
                   </div>
-                  {/* Number badge */}
+                  {/* Number badge — shows the photo's position on the
+                      current page (i + 1 of paginated.length). The
+                      total filtered count appears in the section
+                      header above ("N photos"). */}
                   <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                    {i + 1} / {filteredItems.length}
+                    {i + 1} / {paginated.length}
                   </div>
                 </button>
               ))}
             </div>
+            <PaginationBar
+              safePage={safePage}
+              totalPages={totalPages}
+              onPageChange={setPage}
+              info={info}
+            />
+            </>
           )}
 
           <div className="mt-12 text-center">
@@ -301,7 +323,7 @@ export default function Gallery() {
       <LightboxModal
         open={open}
         onClose={close}
-        items={filteredItems}
+        items={paginated}
         index={index}
         onPrev={prev}
         onNext={next}
