@@ -63,6 +63,9 @@ export default function ChatWidget() {
   // polls that return MORE server messages fire the chime.
   const hasFetchedOnceRef     = useRef(false);
   const prevServerMsgCountRef = useRef(0);
+  // Whether we've already injected the welcome bubble for this
+  // session. Reset on logout so a fresh login gets the greeting.
+  const welcomed = useRef(false);
 
   // Load keywords once
   useEffect(() => {
@@ -131,6 +134,18 @@ export default function ChatWidget() {
     }
   }, [user, open]);
 
+  // Wipe widget state on logout so the next user (or the
+  // logged-out view) doesn't see the prior session's history.
+  useEffect(() => {
+    if (user) return;
+    setMessages([]);
+    setUnreadCount(0);
+    threadIdRef.current = null;
+    hasFetchedOnceRef.current = false;
+    prevServerMsgCountRef.current = 0;
+    welcomed.current = false;
+  }, [user]);
+
   // Initial thread load on login
   useEffect(() => {
     if (!user) return;
@@ -158,7 +173,6 @@ export default function ChatWidget() {
   // Welcome bubble — only for users who have no thread yet (otherwise
   // their conversation history sits on top and a stock greeting above
   // it is noise).
-  const welcomed = useRef(false);
   useEffect(() => {
     if (!open || welcomed.current) return;
     const hasServerMessages = messages.some(m => String(m.id).startsWith('m-'));
