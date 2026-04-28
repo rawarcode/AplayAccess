@@ -21,15 +21,7 @@ const ROOMS_HERO_DEFAULTS = {
   subtitle: "Discover the perfect room for your stay at Aplaya Beach Resort.",
 };
 
-// Category-aware fallback when a room has no uploaded image and no
-// match in the local seed data. A generic indoor room for cottages
-// and pavilions looked wrong, so each category gets its own.
-const FALLBACK_IMG_BY_CATEGORY = {
-  room:     "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80",
-  cottage:  "https://images.unsplash.com/photo-1540541338287-41700207dee6?auto=format&fit=crop&w=1600&q=80",
-  pavilion: "https://images.unsplash.com/photo-1551918120-9739cb430c6d?auto=format&fit=crop&w=1600&q=80",
-};
-const FALLBACK_IMG = FALLBACK_IMG_BY_CATEGORY.room;
+const FALLBACK_IMG = "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80";
 
 function formatPHP(n) {
   const v = Number(n || 0);
@@ -41,11 +33,9 @@ function enrichRoom(room) {
   const features = (room.features || []).map(f =>
     typeof f === "string" ? { text: f, icon: "fa-check" } : f
   );
-  const category = getRoomCategory(room);
-  const fallback = FALLBACK_IMG_BY_CATEGORY[category] || FALLBACK_IMG;
   return {
     ...room,
-    img: room.image || local?.img || fallback,
+    img: room.image || local?.img || FALLBACK_IMG,
     features,
   };
 }
