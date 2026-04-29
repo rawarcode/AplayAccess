@@ -160,6 +160,8 @@ export default function GuestDashboard() {
         (data ?? []).map(r => ({
           id:             r?.id             ?? null,
           name:                  r?.name           ?? "Room",
+          // Catalog photo for the BookingModal room-picker card.
+          image:                 r?.image ?? null,
           day_rate:              Number(r?.day_rate       ?? 0),
           overnight_rate:        Number(r?.overnight_rate ?? 0),
           rate_24hr:             Number(r?.rate_24hr      ?? 0),

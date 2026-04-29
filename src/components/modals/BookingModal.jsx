@@ -86,6 +86,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
     ? (rooms.find(r => r.name === selectedRoom)?.id ?? "")
     : "";
   const [roomId,   setRoomId]   = useState(initialRoomId);
+  // Unavailable rooms in the picker collapse to a "Show N booked"
+  // toggle so the visible card list stays focused on what the guest
+  // can actually pick. Click reveals them as dimmed-disabled cards.
+  const [showUnavailable, setShowUnavailable] = useState(false);
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
@@ -903,7 +907,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   rooms that could be unavailable for the slot the user
                   eventually chooses. */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label id="booking-room-picker-label" className="block text-sm font-medium text-gray-700 mb-2">
                   Room / Cottage <span className="text-red-600" aria-hidden="true">*</span>
                   {!visitDate ? (
                     <span className="ml-2 text-xs text-gray-400 font-normal">Pick a date first</span>
@@ -913,106 +917,202 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     </span>
                   )}
                 </label>
-                <select
-                  value={roomId}
-                  onChange={(e) => { setRoomId(e.target.value); setPromoResult(null); setPromoInput(""); }}
-                  required
-                  disabled={!visitDate}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
-                >
-                  <option value="">Select Room / Cottage / Pavilion</option>
-                  {(() => {
-                    // Tent rooms are walk-in only (backend rejects tent
-                    // bookings from this endpoint with "Tent pitching is
-                    // available for walk-in only"), so filter them out of
-                    // the public picker entirely.
-                    //
-                    // Unavailable rooms are NOT filtered out — they render
-                    // at the bottom of the list in a dedicated optgroup
-                    // with disabled=true. Users can see the room exists
-                    // (useful context: "Rohan is booked for that night,
-                    // try a different date") but can't pick it. Previous
-                    // behavior of hiding them made the picker's length
-                    // jump around unpredictably as availability loaded.
-                    const nonTent = rooms.filter(r => r.category !== 'tent');
-                    const isAvailable = r =>
-                      availability === null || availability?.[String(r.id)] === true;
+                {!visitDate ? (
+                  <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-400">
+                    <i className="fas fa-calendar-alt mr-1.5"></i>
+                    Pick a date above to see available rooms.
+                  </div>
+                ) : (() => {
+                  // Tent rooms are walk-in only (backend rejects tent
+                  // bookings from this endpoint), so filter them out of
+                  // the public picker. Unavailable rooms are NOT filtered
+                  // out; they render in a collapsed group at the bottom.
+                  const nonTent = rooms.filter(r => r.category !== 'tent');
+                  const isAvailable = r =>
+                    availability === null || availability?.[String(r.id)] === true;
+                  const available   = nonTent.filter(isAvailable);
+                  const unavailable = nonTent.filter(r => !isAvailable(r));
 
-                    const available   = nonTent.filter(isAvailable);
-                    const unavailable = nonTent.filter(r => !isAvailable(r));
+                  const getCategory = r => {
+                    if (r.category) return r.category;
+                    const n = (r.name || "").toLowerCase();
+                    if (n.includes("cottage"))  return "cottage";
+                    if (n.includes("pavilion")) return "pavilion";
+                    return "room";
+                  };
+                  const rateFor = (r) => {
+                    if (bookingType === '24hr' || bookingType === '24hr-pm') return r.rate_24hr;
+                    if (bookingType === 'night') return r.overnight_rate;
+                    return r.day_rate;
+                  };
+                  const fmtRate = (v) => `₱${Number(v ?? 0).toLocaleString('en-PH')}`;
+                  // Per-category visual cues. Selected card overrides
+                  // with blue (matches the rest of the modal accent).
+                  const CATEGORY_META = {
+                    room:     { icon: "fa-bed",            label: "Rooms",     accent: "sky"     },
+                    cottage:  { icon: "fa-umbrella-beach", label: "Cottages",  accent: "emerald" },
+                    pavilion: { icon: "fa-archway",        label: "Pavilions", accent: "indigo"  },
+                  };
+                  const ACCENT_BG    = { sky: "bg-sky-100 text-sky-700", emerald: "bg-emerald-100 text-emerald-700", indigo: "bg-indigo-100 text-indigo-700" };
+                  const ACCENT_PRICE = { sky: "text-sky-700", emerald: "text-emerald-700", indigo: "text-indigo-700" };
 
-                    const getCategory = r => {
-                      if (r.category) return r.category;
-                      const n = (r.name || "").toLowerCase();
-                      if (n.includes("cottage"))  return "cottage";
-                      if (n.includes("pavilion")) return "pavilion";
-                      return "room";
-                    };
-                    // Rate label for the currently-selected booking type so
-                    // the dropdown answers "how much does this cost me?"
-                    // without the user leaving the select. bookingType is
-                    // always set by the time this renders — it defaults to
-                    // "day" on mount and the sub-toggle flips it to
-                    // night/24hr/24hr-pm.
-                    const rateFor = (r) => {
-                      if (bookingType === '24hr' || bookingType === '24hr-pm') return r.rate_24hr;
-                      if (bookingType === 'night') return r.overnight_rate;
-                      return r.day_rate;
-                    };
-                    const fmtRate = (v) => `\u20B1${Number(v ?? 0).toLocaleString('en-PH')}`;
-                    const groups = [
-                      { key: "room",     label: "\uD83D\uDECF\uFE0F  Rooms"     },
-                      { key: "cottage",  label: "\u26F1\uFE0F  Cottages"  },
-                      { key: "pavilion", label: "\uD83C\uDFDB\uFE0F  Pavilions" },
-                    ];
-                    const availableNodes = groups.map(g => {
-                      const items = available.filter(r => getCategory(r) === g.key);
-                      if (!items.length) return null;
-                      return (
-                        <optgroup key={g.key} label={g.label}>
-                          {items.map(r => (
-                            <option key={r.id} value={r.id}>
-                              {r.name}
-                              {r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
-                              {` \u2014 ${fmtRate(rateFor(r))}`}
-                            </option>
-                          ))}
-                        </optgroup>
-                      );
-                    });
-                    // Single unavailable group at the bottom — don't
-                    // sub-group by category, because the point is
-                    // "these are out" not "these are small-cottage
-                    // variants of out." Each option is disabled so
-                    // the user can see but not pick.
-                    const unavailableNode = unavailable.length > 0 ? (
-                      <optgroup key="unavailable" label={"\u26D4  Unavailable for this slot"}>
-                        {unavailable.map(r => (
-                          <option key={r.id} value={r.id} disabled>
+                  const groupOrder = ["room", "cottage", "pavilion"];
+                  const availableFlat = groupOrder.flatMap(k => available.filter(r => getCategory(r) === k));
+
+                  const onSelect = (r) => {
+                    if (!isAvailable(r)) return;
+                    setRoomId(String(r.id));
+                    setPromoResult(null);
+                    setPromoInput("");
+                  };
+
+                  const onKeyDown = (e) => {
+                    if (!availableFlat.length) return;
+                    if (!['ArrowUp','ArrowDown','Home','End'].includes(e.key)) return;
+                    e.preventDefault();
+                    const i = availableFlat.findIndex(r => String(r.id) === String(roomId));
+                    let next = i;
+                    if (e.key === 'ArrowDown')      next = i < 0 ? 0 : Math.min(availableFlat.length - 1, i + 1);
+                    else if (e.key === 'ArrowUp')   next = i < 0 ? 0 : Math.max(0, i - 1);
+                    else if (e.key === 'Home')      next = 0;
+                    else if (e.key === 'End')       next = availableFlat.length - 1;
+                    const target = availableFlat[next];
+                    if (target) {
+                      setRoomId(String(target.id));
+                      setPromoResult(null);
+                      setPromoInput("");
+                      requestAnimationFrame(() => {
+                        document.getElementById(`room-card-${target.id}`)?.focus();
+                      });
+                    }
+                  };
+
+                  const renderCard = (r, { disabled = false } = {}) => {
+                    const cat = getCategory(r);
+                    const meta = CATEGORY_META[cat] ?? CATEGORY_META.room;
+                    const selected = String(roomId) === String(r.id);
+                    const price = rateFor(r);
+                    const typeWord = bookingType === 'night' ? 'overnight' : (bookingType === '24hr' || bookingType === '24hr-pm') ? '24 hours' : 'day visit';
+                    const perWord  = bookingType === 'night' ? 'night' : (bookingType === '24hr' || bookingType === '24hr-pm') ? '24 hrs' : 'day';
+                    return (
+                      <button
+                        key={r.id}
+                        id={`room-card-${r.id}`}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        aria-disabled={disabled || undefined}
+                        aria-label={`${r.name}, ${r.capacity_label || `up to ${r.capacity} guests`}, ${disabled ? 'booked for this slot' : `${fmtRate(price)} for ${typeWord}`}`}
+                        tabIndex={disabled ? -1 : (selected || (!roomId && availableFlat[0]?.id === r.id) ? 0 : -1)}
+                        onClick={() => onSelect(r)}
+                        disabled={disabled}
+                        className={`w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+                          disabled
+                            ? "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
+                            : selected
+                              ? "bg-blue-50 border-blue-500 ring-2 ring-blue-200 shadow-sm"
+                              : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
+                        }`}
+                      >
+                        <div className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex items-center justify-center ${
+                          r.image ? "" : ACCENT_BG[meta.accent]
+                        } ${disabled ? "grayscale" : ""}`}>
+                          {r.image ? (
+                            <img src={r.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+                          ) : (
+                            <i className={`fas ${meta.icon} text-xl`} aria-hidden="true"></i>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`font-semibold text-sm sm:text-base truncate ${disabled ? "text-gray-500" : "text-gray-900"}`}>
                             {r.name}
-                            {r.capacity_label ? ` \u2014 ${r.capacity_label}` : ""}
-                            {" \u2014 booked"}
-                          </option>
-                        ))}
-                      </optgroup>
-                    ) : null;
-                    return <>{availableNodes}{unavailableNode}</>;
-                  })()}
-                </select>
-                {/* Capacity label + availability badge */}
-                {selectedRoomObj && (
-                  <p className="mt-1.5 text-xs text-gray-500 flex items-center gap-1">
-                    <i className="fas fa-users text-[10px]"></i>
-                    Recommended: {selectedRoomObj.capacity_label ?? `Up to ${selectedRoomObj.capacity} guests`}
-                    {availability !== null && roomId && (
-                      availability[String(roomId)] === false
-                        ? <span className="ml-2 text-red-600"><i className="fas fa-times-circle mr-0.5"></i>Not available</span>
-                        : availability[String(roomId)] === true
-                          ? <span className="ml-2 text-green-600"><i className="fas fa-check-circle mr-0.5"></i>Available</span>
-                          : null
-                    )}
-                  </p>
-                )}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                            <i className="fas fa-users text-[10px]" aria-hidden="true"></i>
+                            {r.capacity_label || `Up to ${r.capacity} guests`}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          {disabled ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-700">
+                              <i className="fas fa-ban text-[9px]"></i>
+                              Booked
+                            </span>
+                          ) : (
+                            <>
+                              <p className={`text-base sm:text-lg font-extrabold tabular-nums leading-tight ${selected ? "text-blue-700" : ACCENT_PRICE[meta.accent]}`}>
+                                {fmtRate(price)}
+                              </p>
+                              <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">
+                                /{perWord}
+                              </p>
+                            </>
+                          )}
+                        </div>
+                        {selected && (
+                          <i className="fas fa-check-circle text-blue-500 text-lg ml-1 shrink-0" aria-hidden="true"></i>
+                        )}
+                      </button>
+                    );
+                  };
+                  return (
+                    <div
+                      role="radiogroup"
+                      aria-labelledby="booking-room-picker-label"
+                      onKeyDown={onKeyDown}
+                      className="space-y-4 max-h-[420px] overflow-y-auto pr-1"
+                    >
+                      {groupOrder.map(catKey => {
+                        const items = available.filter(r => getCategory(r) === catKey);
+                        if (!items.length) return null;
+                        const meta = CATEGORY_META[catKey];
+                        return (
+                          <section key={catKey}>
+                            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                              <i className={`fas ${meta.icon} text-[11px] ${ACCENT_PRICE[meta.accent]}`} aria-hidden="true"></i>
+                              {meta.label}
+                              <span className="text-gray-400 font-normal normal-case tracking-normal">
+                                ({items.length})
+                              </span>
+                            </h4>
+                            <div className="space-y-2">
+                              {items.map(r => renderCard(r))}
+                            </div>
+                          </section>
+                        );
+                      })}
+
+                      {available.length === 0 && (
+                        <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center text-sm text-amber-700">
+                          <i className="fas fa-exclamation-triangle mr-1.5"></i>
+                          All rooms are booked for this slot. Try a different date or time.
+                        </div>
+                      )}
+
+                      {unavailable.length > 0 && (
+                        <section>
+                          <button
+                            type="button"
+                            onClick={() => setShowUnavailable(s => !s)}
+                            aria-expanded={showUnavailable}
+                            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold uppercase tracking-wider text-gray-500"
+                          >
+                            <span className="flex items-center gap-2">
+                              <i className="fas fa-ban text-rose-400 text-[11px]" aria-hidden="true"></i>
+                              {showUnavailable ? "Hide" : "Show"} {unavailable.length} booked
+                            </span>
+                            <i className={`fas fa-chevron-${showUnavailable ? 'up' : 'down'} text-[10px]`} aria-hidden="true"></i>
+                          </button>
+                          {showUnavailable && (
+                            <div className="space-y-2 mt-2">
+                              {unavailable.map(r => renderCard(r, { disabled: true }))}
+                            </div>
+                          )}
+                        </section>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Optional add-ons for this room — only renders when the
