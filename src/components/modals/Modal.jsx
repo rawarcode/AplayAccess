@@ -54,14 +54,26 @@ export default function Modal({ open, onClose, maxWidth = "max-w-lg", children }
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] overflow-y-auto">
+    // Backdrop is the outer fixed-position container itself — bg-black/60
+    // applied directly here guarantees coverage of the entire viewport
+    // regardless of inner-div quirks. Previously the backdrop was a
+    // separate <div className="absolute inset-0 ..."> nested inside an
+    // unpositioned flex wrapper, which on some browsers (and tall-modal
+    // scroll states) left a visible white strip below the modal because
+    // the backdrop's containing block wasn't always the viewport.
+    // Click-to-close moves up to the outer, so the dialog needs a
+    // stopPropagation to keep clicks inside it from bubbling out.
+    <div
+      className="fixed inset-0 z-[9999] overflow-y-auto bg-black/60"
+      onClick={onClose}
+    >
       <div className="min-h-screen flex items-center justify-center px-4 py-10">
-        <div className="absolute inset-0 bg-black/60" onClick={onClose} />
         <div
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
           tabIndex={-1}
+          onClick={(e) => e.stopPropagation()}
           className={`relative w-full ${maxWidth} bg-white rounded-xl shadow-2xl animate-hero-fade-in opacity-0`}
         >
           {children}
