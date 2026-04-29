@@ -187,9 +187,14 @@ export default function Rooms() {
   // category — hotel-site convention, and it matches the Small → Medium
   // → Large Cottage naming users already expect.
   const roomCards = useMemo(() => {
+    // Hide rooms flagged as occupied / maintenance / out-of-service
+    // from the public listing — they aren't bookable anyway, so
+    // merchandising them here misleads guests. Backend already
+    // applies the same filter; this is defense-in-depth.
+    const visible = roomsApi.filter(r => !r.availability_status || r.availability_status === "available");
     const list = activeTab === "all"
-      ? roomsApi
-      : roomsApi.filter(r => getRoomCategory(r) === activeTab);
+      ? visible
+      : visible.filter(r => getRoomCategory(r) === activeTab);
     return [...list].sort((a, b) => Number(a.capacity ?? 0) - Number(b.capacity ?? 0));
   }, [roomsApi, activeTab]);
 

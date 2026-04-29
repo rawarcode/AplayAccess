@@ -298,10 +298,16 @@ export default function Resort() {
     bookingOpen || loginOpen || signupOpen || guestWarningOpen || successOpen || contactAlert.open || lightboxIdx !== null;
   useLockBodyScroll(anyOverlayOpen);
 
-  // UI cards
+  // UI cards. Filter mirrors bookingRooms below — a room flagged as
+  // occupied / maintenance / out-of-service shouldn't be merchandised
+  // on the public page (the booking modal already hides it). Backend
+  // already filters at /api/resorts/{id}/rooms; this is belt-and-
+  // braces for the local fallback path and any future client cache.
   const roomCards = useMemo(() => {
     const base = roomsApi.length ? roomsApi : roomsFallback;
-    return base.map(buildRoomCard);
+    return base
+      .filter(r => !r?.availability_status || r?.availability_status === "available")
+      .map(buildRoomCard);
   }, [roomsApi]);
 
   const bookingRooms = useMemo(() => {
