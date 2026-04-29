@@ -58,12 +58,23 @@ export default function Dashboard() {
     // 11:50 PM yesterday doesn't disappear from the dashboard at 12:01 AM.
     const now = new Date();
     const todayBookings = bookings.filter(b => {
+      // Cancelled is never "today's business" regardless of date —
+      // a cancelled walk-in for today shouldn't inflate the Walk-ins
+      // count, and a cancelled overnight booking shouldn't appear in
+      // any of the derived per-status arrays.
+      if (b.status === 'Cancelled') return false;
       if (b.checkIn?.slice(0, 10) === today) return true;
       if (b.status === 'Checked In') return true;
       if (b.status === 'Completed' && b.checkedOutAt?.slice(0, 10) === today) return true;
-      if (b.status === 'Confirmed' && b.checkOut) {
+      if (b.status === 'Confirmed' && b.checkOut && b.checkIn) {
+        const ci = new Date(String(b.checkIn).replace(' ', 'T'));
         const co = new Date(String(b.checkOut).replace(' ', 'T'));
-        if (!isNaN(co.getTime()) && co > now) return true;
+        // Only Confirmed bookings whose stay window has STARTED count
+        // toward today's view. Without ci <= now, a Confirmed booking
+        // for tomorrow (checkOut tomorrow evening > now, checkIn
+        // tomorrow > now) would slip through and inflate the
+        // "Arriving Today" KPI a day early.
+        if (!isNaN(co.getTime()) && !isNaN(ci.getTime()) && co > now && ci <= now) return true;
       }
       return false;
     });
