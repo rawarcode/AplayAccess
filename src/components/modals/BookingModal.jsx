@@ -1061,17 +1061,35 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   // the card but clamps so the popover stays inside
                   // the viewport (popover height ~280px, so half =
                   // 140px + 16px breathing room).
+                  // Anchor the popover next to the THUMBNAIL, not the
+                  // entire card. Card is full-width inside the modal, so
+                  // anchoring to its right edge put the popover ~320px
+                  // away from the image — visually disconnected. Now we
+                  // compute the thumbnail's position from the card rect
+                  // (it sits at left:p-3=12px, vertically centered, and
+                  // is 64px wide on md+ where the popover is rendered)
+                  // and anchor the popover just past the thumbnail's
+                  // right edge so it reads as "this image, expanded".
+                  // Auto-flips to the left of the thumbnail if there's
+                  // not enough room on the right (rare given the modal
+                  // sits centered, but covers narrow viewports).
                   const positionPreview = (e, r, disabled) => {
                     if (!r.image || disabled) return;
-                    const rect = e.currentTarget.getBoundingClientRect();
+                    const card = e.currentTarget.getBoundingClientRect();
                     const POPOVER_W = 320;
                     const HALF_H = 140;
                     const PAD = 16;
-                    const GAP = 12;
-                    const wantRight = rect.right + GAP + POPOVER_W + 8 < window.innerWidth;
-                    const left = wantRight ? rect.right + GAP : rect.left - GAP - POPOVER_W;
-                    const rawTop = rect.top + rect.height / 2;
-                    const top = Math.max(HALF_H + PAD, Math.min(window.innerHeight - HALF_H - PAD, rawTop));
+                    const GAP = 8;
+                    const CARD_PAD = 12;   // p-3 padding on the card
+                    const THUMB_W = 64;    // sm:w-16 (64px) — md+ size
+
+                    const thumbLeft  = card.left + CARD_PAD;
+                    const thumbRight = thumbLeft + THUMB_W;
+                    const thumbCenterY = card.top + card.height / 2;
+
+                    const wantRight = thumbRight + GAP + POPOVER_W + PAD < window.innerWidth;
+                    const left = wantRight ? thumbRight + GAP : thumbLeft - GAP - POPOVER_W;
+                    const top = Math.max(HALF_H + PAD, Math.min(window.innerHeight - HALF_H - PAD, thumbCenterY));
                     setPreviewRoom(r);
                     setPreviewPos({ top, left });
                   };
