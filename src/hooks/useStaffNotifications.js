@@ -117,11 +117,15 @@ export function useStaffNotifications(paths = {}) {
       const ci = new Date(String(b.checkIn).replace(' ', 'T'));
       const co = new Date(String(b.checkOut).replace(' ', 'T'));
       if (isNaN(ci.getTime()) || isNaN(co.getTime())) continue;
-      // Manual /checkin has no time guard — staff can check a guest in
-      // before their scheduled check_in (e.g. early arrival accommodation).
-      // Without this, a Checked-In booking with check_in in the future
-      // would falsely appear in currentlyInHouse / soon / overdue, even
-      // though the guest's stay window hasn't opened yet.
+      // Same-day early check-in is allowed (Night booking at 6 PM can
+      // be checked in at 4 PM for early-arrival accommodation), but
+      // the booking's check_in time may still be in the future when
+      // we observe it here. Cross-day early check-in is blocked
+      // server-side, so the only "future check_in but Checked In"
+      // case is same-day early. Either way, treating it as in-house
+      // before the stay window opens would falsely inflate
+      // currentlyInHouse / soon / overdue, so we skip until the
+      // window has actually started.
       if (ci.getTime() > now.getTime()) continue;
       const msUntil = co.getTime() - now.getTime();
       if (msUntil <= 0)                              overdueCheckouts++;
