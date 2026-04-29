@@ -1006,7 +1006,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         tabIndex={disabled ? -1 : (selected || (!roomId && availableFlat[0]?.id === r.id) ? 0 : -1)}
                         onClick={() => onSelect(r)}
                         disabled={disabled}
-                        className={`w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+                        className={`group w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
                           disabled
                             ? "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
                             : selected
@@ -1014,13 +1014,21 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                               : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
                         }`}
                       >
+                        {/* Thumbnail. overflow-hidden + group-hover scale
+                            on the inner img gives a smooth ken-burns
+                            zoom on card hover (disabled cards skip it). */}
                         <div className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex items-center justify-center ${
                           r.image ? "" : ACCENT_BG[meta.accent]
                         } ${disabled ? "grayscale" : ""}`}>
                           {r.image ? (
-                            <img src={r.image} alt="" className="w-full h-full object-cover" loading="lazy" />
+                            <img
+                              src={r.image}
+                              alt=""
+                              loading="lazy"
+                              className={`w-full h-full object-cover transition-transform duration-500 ease-out ${disabled ? "" : "group-hover:scale-110"}`}
+                            />
                           ) : (
-                            <i className={`fas ${meta.icon} text-xl`} aria-hidden="true"></i>
+                            <i className={`fas ${meta.icon} text-xl transition-transform duration-300 ${disabled ? "" : "group-hover:scale-110"}`} aria-hidden="true"></i>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
