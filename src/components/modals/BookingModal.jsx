@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Modal from "./Modal.jsx";
 import { createBooking, createGuestBooking, cancelBooking, cancelGuestBooking, createGuestPaymentLink, getGuestPaymentStatus, guestConfirmPayment } from "../../lib/bookingApi.js";
 import { createPaymentLink, getPaymentStatus } from "../../lib/paymentApi.js";
@@ -716,11 +717,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
   return (
     <Modal open={open} onClose={onClose} maxWidth="max-w-2xl">
-      {/* Hover/focus preview popover for the room picker. Position is
-          fixed so it escapes the picker's overflow-y-auto clipping;
-          coords are taken from the hovered card's bounding rect.
-          Hidden on small screens — mouse-only by design. */}
-      {previewRoom && previewPos && previewRoom.image && (
+      {/* Hover/focus preview popover. Portaled directly to document.body
+          so position:fixed is anchored to the viewport. Without the
+          portal, the Modal dialog wrapper has animate-hero-fade-in
+          (which uses transform: translateY) and any ancestor with a
+          transform becomes the containing block for fixed-positioned
+          descendants — so the popover would render relative to the
+          dialog instead of the viewport and get clipped by the modal
+          bounds. Hidden on small screens — mouse-only by design. */}
+      {previewRoom && previewPos && previewRoom.image && createPortal(
         <div
           style={{ position: 'fixed', top: previewPos.top, left: previewPos.left, transform: 'translateY(-50%)' }}
           className="hidden md:block z-[10000] pointer-events-none"
@@ -740,7 +745,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
@@ -993,6 +999,28 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   const groupOrder = ["room", "cottage", "pavilion"];
                   const availableFlat = groupOrder.flatMap(k => available.filter(r => getCategory(r) === k));
 
+                  // Compute popover position from a card's bounding
+                  // rect. Defaults to the right of the card with a 12px
+                  // gap; flips to the left when there isn't 320px of
+                  // viewport room on the right. Vertically centers on
+                  // the card but clamps so the popover stays inside
+                  // the viewport (popover height ~280px, so half =
+                  // 140px + 16px breathing room).
+                  const positionPreview = (e, r, disabled) => {
+                    if (!r.image || disabled) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const POPOVER_W = 320;
+                    const HALF_H = 140;
+                    const PAD = 16;
+                    const GAP = 12;
+                    const wantRight = rect.right + GAP + POPOVER_W + 8 < window.innerWidth;
+                    const left = wantRight ? rect.right + GAP : rect.left - GAP - POPOVER_W;
+                    const rawTop = rect.top + rect.height / 2;
+                    const top = Math.max(HALF_H + PAD, Math.min(window.innerHeight - HALF_H - PAD, rawTop));
+                    setPreviewRoom(r);
+                    setPreviewPos({ top, left });
+                  };
+
                   const onSelect = (r) => {
                     if (!isAvailable(r)) return;
                     setRoomId(String(r.id));
@@ -1039,37 +1067,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         aria-label={`${r.name}, ${r.capacity_label || `up to ${r.capacity} guests`}, ${disabled ? 'booked for this slot' : `${fmtRate(price)} for ${typeWord}`}`}
                         tabIndex={disabled ? -1 : (selected || (!roomId && availableFlat[0]?.id === r.id) ? 0 : -1)}
                         onClick={() => onSelect(r)}
-                        onMouseEnter={(e) => {
-                          if (!r.image || disabled) return;
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setPreviewRoom(r);
-                          // Position to the right of the card by
-                          // default; if there's not enough room (the
-                          // modal extends close to the right edge), flip
-                          // to the left side. Vertically centered.
-                          const popoverWidth = 320;
-                          const gap = 12;
-                          const wantRight = rect.right + gap + popoverWidth + 8 < window.innerWidth;
-                          setPreviewPos({
-                            top: rect.top + rect.height / 2,
-                            left: wantRight ? rect.right + gap : rect.left - gap - popoverWidth,
-                          });
-                        }}
+                        onMouseEnter={(e) => positionPreview(e, r, disabled)}
                         onMouseLeave={() => { setPreviewRoom(null); setPreviewPos(null); }}
-                        onFocus={(e) => {
-                          // Mirror mouseenter behavior for keyboard
-                          // users — popover follows focus too.
-                          if (!r.image || disabled) return;
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const popoverWidth = 320;
-                          const gap = 12;
-                          const wantRight = rect.right + gap + popoverWidth + 8 < window.innerWidth;
-                          setPreviewRoom(r);
-                          setPreviewPos({
-                            top: rect.top + rect.height / 2,
-                            left: wantRight ? rect.right + gap : rect.left - gap - popoverWidth,
-                          });
-                        }}
+                        onFocus={(e) => positionPreview(e, r, disabled)}
                         onBlur={() => { setPreviewRoom(null); setPreviewPos(null); }}
                         disabled={disabled}
                         className={`w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
