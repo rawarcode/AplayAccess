@@ -976,9 +976,24 @@ export default function Resort() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {roomCards.slice(0, 3).map((r) => (
+                // Whole card is clickable — navigates to /rooms?room=<id>
+                // which Rooms.jsx auto-opens as the detail view. The
+                // inner Book Now button stops propagation so it still
+                // opens BookingModal instead of navigating away.
                 <div
                   key={r.id ?? r.name}
-                  className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ring-1 ring-slate-200 hover:ring-sky-400/50"
+                  role={r.id ? "button" : undefined}
+                  tabIndex={r.id ? 0 : undefined}
+                  onClick={() => { if (r.id) navigate(`/rooms?room=${r.id}`); }}
+                  onKeyDown={(e) => {
+                    if (!r.id) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate(`/rooms?room=${r.id}`);
+                    }
+                  }}
+                  className="group relative bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl ring-1 ring-slate-200 hover:ring-sky-400/50 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                  aria-label={r.id ? `View details for ${r.name}` : undefined}
                 >
                   <div className="relative overflow-hidden">
                     <img src={r.img} alt={r.name} className="w-full h-56 object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
@@ -1031,7 +1046,7 @@ export default function Resort() {
                       )}
                     </div>
                     <button
-                      onClick={() => requestBooking(r.name)}
+                      onClick={(e) => { e.stopPropagation(); requestBooking(r.name); }}
                       className="w-full bg-sky-600 hover:bg-sky-700 text-white py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md transition-all"
                     >
                       Book Now

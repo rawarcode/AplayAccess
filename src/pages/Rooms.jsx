@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useContent } from "../context/ContentContext.jsx";
 import { getResortRooms } from "../lib/resortApi.js";
@@ -131,6 +131,13 @@ export default function Rooms() {
   // position lands past the page bottom).
   const detailTopRef = useRef(null);
   const [activeTab,    setActiveTab]    = useState("all");
+  // Deep-link support: /rooms?room=<id> auto-opens the matching detail
+  // view once roomsApi finishes loading. Used by the Resort page's room
+  // cards (and any external link) to land directly on a room. We only
+  // honor the param while it's present and the room exists; clicking
+  // Back-to-grid clears selectedId without rewriting the URL (it stays
+  // ?room=<id> until the user navigates away — harmless).
+  const [searchParams] = useSearchParams();
 
   const [bookingOpen,  setBookingOpen]  = useState(false);
   const [loginOpen,    setLoginOpen]    = useState(false);
@@ -182,6 +189,25 @@ export default function Rooms() {
   }
 
   useEffect(() => { load(); }, []);
+
+  // Auto-open the detail view when ?room=<id> is in the URL and the
+  // matching room exists in the loaded data. Runs whenever roomsApi or
+  // the query param changes; guarded so we don't fight a user who
+  // already pressed Back-to-grid (we only set when nothing is selected).
+  useEffect(() => {
+    const wantId = Number(searchParams.get("room"));
+    if (!wantId || selectedId !== null || roomsApi.length === 0) return;
+    if (roomsApi.some(r => r.id === wantId)) {
+      setSelectedId(wantId);
+      requestAnimationFrame(() => {
+        detailTopRef.current?.scrollIntoView({
+          behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+          block: 'start',
+        });
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomsApi, searchParams]);
 
   // Filter + sort for the current tab. Capacity-ascending within every
   // category — hotel-site convention, and it matches the Small → Medium
