@@ -91,6 +91,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // toggle so the visible card list stays focused on what the guest
   // can actually pick. Click reveals them as dimmed-disabled cards.
   const [showUnavailable, setShowUnavailable] = useState(false);
+  // Picker category filter — defaults to 'all' showing every kind of
+  // room. Chips above the picker let the guest narrow to just rooms,
+  // cottages, or pavilions. Empty categories don't render a chip.
+  const [pickerFilter, setPickerFilter] = useState('all');
   // Hover preview — when the user mouses over a room card with an
   // uploaded image, a fixed-positioned popover shows the image at a
   // larger size next to the card. Fixed positioning escapes the
@@ -1038,7 +1042,17 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   const ACCENT_PRICE = { sky: "text-sky-700", emerald: "text-emerald-700", indigo: "text-indigo-700" };
 
                   const groupOrder = ["room", "cottage", "pavilion"];
-                  const availableFlat = groupOrder.flatMap(k => available.filter(r => getCategory(r) === k));
+                  // Filter pipeline derives the visible subset from the
+                  // active picker chip. 'all' = no filter; otherwise we
+                  // narrow to a single category. availableFlat (used by
+                  // the keyboard nav handler) MUST track the filtered
+                  // list — otherwise arrow keys would move focus to a
+                  // card that's currently hidden.
+                  const passesFilter = (r) => pickerFilter === 'all' || getCategory(r) === pickerFilter;
+                  const filteredAvailable   = available.filter(passesFilter);
+                  const filteredUnavailable = unavailable.filter(passesFilter);
+                  const visibleGroups = pickerFilter === 'all' ? groupOrder : [pickerFilter];
+                  const availableFlat = visibleGroups.flatMap(k => filteredAvailable.filter(r => getCategory(r) === k));
 
                   // Compute popover position from a card's bounding
                   // rect. Defaults to the right of the card with a 12px
@@ -1120,6 +1134,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         onBlur={() => { setPreviewRoom(null); setPreviewPos(null); }}
                         disabled={disabled}
                         className={`w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+                          // Extra right padding on mobile reserves a
+                          // 44px column for the absolutely-positioned
+                          // eye icon button below — keeps the eye from
+                          // sitting on top of the price text. md+ wipes
+                          // the extra padding since the eye is hidden
+                          // on those breakpoints.
+                          !disabled && r.image ? "max-md:pr-14" : ""
+                        } ${
                           disabled
                             ? "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
                             : selected
@@ -1194,62 +1216,115 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       </div>
                     );
                   };
-                  return (
-                    <div
-                      role="radiogroup"
-                      aria-labelledby="booking-room-picker-label"
-                      onKeyDown={onKeyDown}
-                      className="space-y-4 max-h-[420px] overflow-y-auto pr-1"
-                    >
-                      {groupOrder.map(catKey => {
-                        const items = available.filter(r => getCategory(r) === catKey);
-                        if (!items.length) return null;
-                        const meta = CATEGORY_META[catKey];
-                        return (
-                          <section key={catKey}>
-                            <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
-                              <i className={`fas ${meta.icon} text-[11px] ${ACCENT_PRICE[meta.accent]}`} aria-hidden="true"></i>
-                              {meta.label}
-                              <span className="text-gray-400 font-normal normal-case tracking-normal">
-                                ({items.length})
-                              </span>
-                            </h4>
-                            <div className="space-y-2">
-                              {items.map(r => renderCard(r))}
-                            </div>
-                          </section>
-                        );
-                      })}
+                  // Chip-count source: FULL non-tent set so the user
+                  // sees the inventory size even when some are booked;
+                  // the booked ones still show under the collapsed group.
+                  const chipCounts = {
+                    all: nonTent.length,
+                    room:     nonTent.filter(r => getCategory(r) === 'room').length,
+                    cottage:  nonTent.filter(r => getCategory(r) === 'cottage').length,
+                    pavilion: nonTent.filter(r => getCategory(r) === 'pavilion').length,
+                  };
+                  const chipDefs = [
+                    { key: 'all',      icon: 'fa-th-large',          label: 'All'       },
+                    { key: 'room',     icon: 'fa-bed',               label: 'Rooms'     },
+                    { key: 'cottage',  icon: 'fa-umbrella-beach',    label: 'Cottages'  },
+                    { key: 'pavilion', icon: 'fa-archway',           label: 'Pavilions' },
+                  ];
+                  // Hide chips for empty categories, but always keep
+                  // 'all' since it's the default reset.
+                  const visibleChips = chipDefs.filter(c => c.key === 'all' || chipCounts[c.key] > 0);
 
-                      {available.length === 0 && (
-                        <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center text-sm text-amber-700">
-                          <i className="fas fa-exclamation-triangle mr-1.5"></i>
-                          All rooms are booked for this slot. Try a different date or time.
+                  return (
+                    <>
+                      {/* Filter chips. Only render when there's more than
+                          one viable category — a resort with only rooms
+                          doesn't need a filter. */}
+                      {visibleChips.length > 2 && (
+                        <div className="flex flex-wrap gap-2 mb-3" role="tablist" aria-label="Filter rooms by category">
+                          {visibleChips.map(c => {
+                            const active = pickerFilter === c.key;
+                            return (
+                              <button
+                                key={c.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={active}
+                                onClick={() => setPickerFilter(c.key)}
+                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                                  active
+                                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                <i className={`fas ${c.icon} text-[10px]`} aria-hidden="true"></i>
+                                {c.label}
+                                <span className={`text-[10px] tabular-nums ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                                  ({chipCounts[c.key]})
+                                </span>
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
+                      <div
+                        role="radiogroup"
+                        aria-labelledby="booking-room-picker-label"
+                        onKeyDown={onKeyDown}
+                        className="space-y-4 max-h-[420px] overflow-y-auto pr-1"
+                      >
+                        {visibleGroups.map(catKey => {
+                          const items = filteredAvailable.filter(r => getCategory(r) === catKey);
+                          if (!items.length) return null;
+                          const meta = CATEGORY_META[catKey];
+                          return (
+                            <section key={catKey}>
+                              <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                                <i className={`fas ${meta.icon} text-[11px] ${ACCENT_PRICE[meta.accent]}`} aria-hidden="true"></i>
+                                {meta.label}
+                                <span className="text-gray-400 font-normal normal-case tracking-normal">
+                                  ({items.length})
+                                </span>
+                              </h4>
+                              <div className="space-y-2">
+                                {items.map(r => renderCard(r))}
+                              </div>
+                            </section>
+                          );
+                        })}
 
-                      {unavailable.length > 0 && (
-                        <section>
-                          <button
-                            type="button"
-                            onClick={() => setShowUnavailable(s => !s)}
-                            aria-expanded={showUnavailable}
-                            className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold uppercase tracking-wider text-gray-500"
-                          >
-                            <span className="flex items-center gap-2">
-                              <i className="fas fa-ban text-rose-400 text-[11px]" aria-hidden="true"></i>
-                              {showUnavailable ? "Hide" : "Show"} {unavailable.length} booked
-                            </span>
-                            <i className={`fas fa-chevron-${showUnavailable ? 'up' : 'down'} text-[10px]`} aria-hidden="true"></i>
-                          </button>
-                          {showUnavailable && (
-                            <div className="space-y-2 mt-2">
-                              {unavailable.map(r => renderCard(r, { disabled: true }))}
-                            </div>
-                          )}
-                        </section>
-                      )}
-                    </div>
+                        {filteredAvailable.length === 0 && (
+                          <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 px-4 py-6 text-center text-sm text-amber-700">
+                            <i className="fas fa-exclamation-triangle mr-1.5"></i>
+                            {pickerFilter === 'all'
+                              ? 'All rooms are booked for this slot. Try a different date or time.'
+                              : `No ${(CATEGORY_META[pickerFilter]?.label ?? 'options').toLowerCase()} available for this slot.`}
+                          </div>
+                        )}
+
+                        {filteredUnavailable.length > 0 && (
+                          <section>
+                            <button
+                              type="button"
+                              onClick={() => setShowUnavailable(s => !s)}
+                              aria-expanded={showUnavailable}
+                              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold uppercase tracking-wider text-gray-500"
+                            >
+                              <span className="flex items-center gap-2">
+                                <i className="fas fa-ban text-rose-400 text-[11px]" aria-hidden="true"></i>
+                                {showUnavailable ? "Hide" : "Show"} {filteredUnavailable.length} booked
+                              </span>
+                              <i className={`fas fa-chevron-${showUnavailable ? 'up' : 'down'} text-[10px]`} aria-hidden="true"></i>
+                            </button>
+                            {showUnavailable && (
+                              <div className="space-y-2 mt-2">
+                                {filteredUnavailable.map(r => renderCard(r, { disabled: true }))}
+                              </div>
+                            )}
+                          </section>
+                        )}
+                      </div>
+                    </>
                   );
                 })()}
               </div>
