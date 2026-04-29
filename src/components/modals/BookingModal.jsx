@@ -90,6 +90,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // toggle so the visible card list stays focused on what the guest
   // can actually pick. Click reveals them as dimmed-disabled cards.
   const [showUnavailable, setShowUnavailable] = useState(false);
+  // Hover preview — when the user mouses over a room card with an
+  // uploaded image, a fixed-positioned popover shows the image at a
+  // larger size next to the card. Fixed positioning escapes the
+  // picker's overflow-y-auto clipping. Skipped for touch devices
+  // (mouseenter doesn't reliably fire there) and for cards without
+  // an image (icon fallback alone isn't worth a popover).
+  const [previewRoom, setPreviewRoom] = useState(null);
+  const [previewPos,  setPreviewPos]  = useState(null);
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
@@ -708,6 +716,32 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
 
   return (
     <Modal open={open} onClose={onClose} maxWidth="max-w-2xl">
+      {/* Hover/focus preview popover for the room picker. Position is
+          fixed so it escapes the picker's overflow-y-auto clipping;
+          coords are taken from the hovered card's bounding rect.
+          Hidden on small screens — mouse-only by design. */}
+      {previewRoom && previewPos && previewRoom.image && (
+        <div
+          style={{ position: 'fixed', top: previewPos.top, left: previewPos.left, transform: 'translateY(-50%)' }}
+          className="hidden md:block z-[10000] pointer-events-none"
+          aria-hidden="true"
+        >
+          <div className="bg-white rounded-xl shadow-2xl ring-1 ring-slate-200 p-2 w-[320px]">
+            <img
+              src={previewRoom.image}
+              alt=""
+              className="w-full h-56 object-cover rounded-lg"
+            />
+            <div className="px-1 pt-2 pb-1">
+              <p className="text-sm font-semibold text-slate-900 truncate">{previewRoom.name}</p>
+              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                <i className="fas fa-users text-[10px]"></i>
+                {previewRoom.capacity_label || `Up to ${previewRoom.capacity} guests`}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-2xl font-bold text-gray-900">
@@ -1005,8 +1039,40 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                         aria-label={`${r.name}, ${r.capacity_label || `up to ${r.capacity} guests`}, ${disabled ? 'booked for this slot' : `${fmtRate(price)} for ${typeWord}`}`}
                         tabIndex={disabled ? -1 : (selected || (!roomId && availableFlat[0]?.id === r.id) ? 0 : -1)}
                         onClick={() => onSelect(r)}
+                        onMouseEnter={(e) => {
+                          if (!r.image || disabled) return;
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setPreviewRoom(r);
+                          // Position to the right of the card by
+                          // default; if there's not enough room (the
+                          // modal extends close to the right edge), flip
+                          // to the left side. Vertically centered.
+                          const popoverWidth = 320;
+                          const gap = 12;
+                          const wantRight = rect.right + gap + popoverWidth + 8 < window.innerWidth;
+                          setPreviewPos({
+                            top: rect.top + rect.height / 2,
+                            left: wantRight ? rect.right + gap : rect.left - gap - popoverWidth,
+                          });
+                        }}
+                        onMouseLeave={() => { setPreviewRoom(null); setPreviewPos(null); }}
+                        onFocus={(e) => {
+                          // Mirror mouseenter behavior for keyboard
+                          // users — popover follows focus too.
+                          if (!r.image || disabled) return;
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const popoverWidth = 320;
+                          const gap = 12;
+                          const wantRight = rect.right + gap + popoverWidth + 8 < window.innerWidth;
+                          setPreviewRoom(r);
+                          setPreviewPos({
+                            top: rect.top + rect.height / 2,
+                            left: wantRight ? rect.right + gap : rect.left - gap - popoverWidth,
+                          });
+                        }}
+                        onBlur={() => { setPreviewRoom(null); setPreviewPos(null); }}
                         disabled={disabled}
-                        className={`group w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
+                        className={`w-full text-left flex items-center gap-3 rounded-xl border-2 p-3 transition-all ${
                           disabled
                             ? "bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed"
                             : selected
@@ -1014,9 +1080,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                               : "bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm cursor-pointer"
                         }`}
                       >
-                        {/* Thumbnail. overflow-hidden + group-hover scale
-                            on the inner img gives a smooth ken-burns
-                            zoom on card hover (disabled cards skip it). */}
+                        {/* Thumbnail. Hover/focus opens the larger
+                            preview popover at the modal root via the
+                            previewRoom state — see onMouseEnter
+                            handler above. */}
                         <div className={`shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden flex items-center justify-center ${
                           r.image ? "" : ACCENT_BG[meta.accent]
                         } ${disabled ? "grayscale" : ""}`}>
@@ -1025,10 +1092,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                               src={r.image}
                               alt=""
                               loading="lazy"
-                              className={`w-full h-full object-cover transition-transform duration-500 ease-out ${disabled ? "" : "group-hover:scale-110"}`}
+                              className="w-full h-full object-cover"
                             />
                           ) : (
-                            <i className={`fas ${meta.icon} text-xl transition-transform duration-300 ${disabled ? "" : "group-hover:scale-110"}`} aria-hidden="true"></i>
+                            <i className={`fas ${meta.icon} text-xl`} aria-hidden="true"></i>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
