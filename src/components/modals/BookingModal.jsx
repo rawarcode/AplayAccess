@@ -99,6 +99,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // an image (icon fallback alone isn't worth a popover).
   const [previewRoom, setPreviewRoom] = useState(null);
   const [previewPos,  setPreviewPos]  = useState(null);
+  // Mobile equivalent of the desktop hover preview — tap the eye
+  // icon on a card to open a fullscreen image lightbox. Touch
+  // devices don't fire mouseenter reliably, so the explicit-tap
+  // pattern gives mobile users their own way to see the room.
+  const [lightboxRoom, setLightboxRoom] = useState(null);
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
@@ -748,6 +753,42 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
         </div>,
         document.body
       )}
+      {/* Fullscreen image lightbox — opened by the mobile eye icon.
+          Portaled to body so it sits above the modal. Tap backdrop or
+          close button to dismiss. */}
+      {lightboxRoom && lightboxRoom.image && createPortal(
+        <div
+          className="fixed inset-0 z-[10001] bg-black/85 flex items-center justify-center p-4"
+          onClick={() => setLightboxRoom(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Photo of ${lightboxRoom.name}`}
+        >
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setLightboxRoom(null); }}
+            aria-label="Close photo preview"
+            className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white text-xl"
+          >
+            <i className="fas fa-times" aria-hidden="true"></i>
+          </button>
+          <div className="max-w-3xl w-full" onClick={(e) => e.stopPropagation()}>
+            <img
+              src={lightboxRoom.image}
+              alt={lightboxRoom.name}
+              className="w-full max-h-[75vh] object-contain rounded-lg shadow-2xl"
+            />
+            <div className="mt-3 text-white">
+              <p className="text-lg font-bold">{lightboxRoom.name}</p>
+              <p className="text-sm text-white/80 mt-0.5 flex items-center gap-1.5">
+                <i className="fas fa-users text-xs"></i>
+                {lightboxRoom.capacity_label || `Up to ${lightboxRoom.capacity} guests`}
+              </p>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-2xl font-bold text-gray-900">
@@ -1057,8 +1098,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     const typeWord = bookingType === 'night' ? 'overnight' : (bookingType === '24hr' || bookingType === '24hr-pm') ? '24 hours' : 'day visit';
                     const perWord  = bookingType === 'night' ? 'night' : (bookingType === '24hr' || bookingType === '24hr-pm') ? '24 hrs' : 'day';
                     return (
+                      // Wrapping div so the eye-icon "see photo" button
+                      // can sit as a sibling of the card button (HTML
+                      // forbids nesting buttons). The eye is mobile-only
+                      // (md:hidden) — desktop already gets the hover
+                      // popover. Bottom-right corner so it doesn't
+                      // overlap the price.
+                      <div key={r.id} className="relative">
                       <button
-                        key={r.id}
                         id={`room-card-${r.id}`}
                         type="button"
                         role="radio"
@@ -1128,6 +1175,23 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                           <i className="fas fa-check-circle text-blue-500 text-lg ml-1 shrink-0" aria-hidden="true"></i>
                         )}
                       </button>
+                      {/* Mobile-only "see photo" eye button — opens a
+                          fullscreen lightbox of the room image. Sits
+                          outside the card <button> as a sibling because
+                          HTML doesn't allow nesting buttons. Skipped
+                          for cards without an image and for booked
+                          (disabled) cards. */}
+                      {!disabled && r.image && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); setLightboxRoom(r); }}
+                          aria-label={`View ${r.name} photo`}
+                          className="md:hidden absolute right-2.5 bottom-2.5 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/95 ring-1 ring-slate-300 shadow-sm text-slate-600 hover:text-slate-900 hover:bg-white"
+                        >
+                          <i className="fas fa-eye text-sm" aria-hidden="true"></i>
+                        </button>
+                      )}
+                      </div>
                     );
                   };
                   return (
