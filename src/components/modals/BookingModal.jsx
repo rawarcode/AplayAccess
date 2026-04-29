@@ -859,8 +859,26 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     );
                   })}
                 </div>
-                {/* Rate shown below */}
-                {roomId && <p className="mt-1 text-xs text-gray-500 text-center">{formatPHP(baseRate)} / {bookingType === "night" ? "night" : is24hr ? "24 hrs" : "day"}</p>}
+                {/* Rate shown below — pill-styled so the live rate is
+                    legible at a glance instead of disappearing as gray
+                    fine print. Accent color tracks the active booking
+                    type so the eye lands here right after the click. */}
+                {roomId && (
+                  <div className="mt-2 flex justify-center">
+                    <span className={`inline-flex items-baseline gap-1.5 px-3 py-1 rounded-full text-base font-bold tabular-nums shadow-sm ${
+                      bookingType === "night"
+                        ? "bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200"
+                        : is24hr
+                          ? "bg-amber-50 text-amber-700 ring-1 ring-amber-200"
+                          : "bg-sky-50 text-sky-700 ring-1 ring-sky-200"
+                    }`}>
+                      {formatPHP(baseRate)}
+                      <span className="text-[11px] font-medium opacity-70">
+                        / {bookingType === "night" ? "night" : is24hr ? "24 hrs" : "day"}
+                      </span>
+                    </span>
+                  </div>
+                )}
 
                 {/* 24hr: pick any on-the-hour start time */}
                 {is24hr && (
@@ -1165,10 +1183,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "reservation" ? "text-blue-600" : "text-gray-500"}`}>
                       <i className="fas fa-bookmark mr-1"></i>Reserve Only
                     </span>
-                    <span className={`text-base font-bold ${paymentOption === "reservation" ? "text-blue-700" : "text-gray-700"}`}>
-                      {formatPHP(reservationFee)} now
+                    <span className={`text-xl font-extrabold tabular-nums leading-none ${paymentOption === "reservation" ? "text-blue-700" : "text-gray-800"}`}>
+                      {formatPHP(reservationFee)}
+                      <span className="text-xs font-medium opacity-70 ml-1">now</span>
                     </span>
-                    <span className="text-xs text-gray-500 mt-0.5">
+                    <span className="text-xs text-gray-500 mt-1">
                       Pay {formatPHP(Math.max(discountedTotal - reservationFee, 0))} at check-in
                     </span>
                   </button>
@@ -1184,10 +1203,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "full" ? "text-emerald-600" : "text-gray-500"}`}>
                       <i className="fas fa-check-circle mr-1"></i>Pay in Full
                     </span>
-                    <span className={`text-base font-bold ${paymentOption === "full" ? "text-emerald-700" : "text-gray-700"}`}>
-                      {formatPHP(discountedTotal)} now
+                    <span className={`text-xl font-extrabold tabular-nums leading-none ${paymentOption === "full" ? "text-emerald-700" : "text-gray-800"}`}>
+                      {formatPHP(discountedTotal)}
+                      <span className="text-xs font-medium opacity-70 ml-1">now</span>
                     </span>
-                    <span className="text-xs text-gray-500 mt-0.5">
+                    <span className="text-xs text-gray-500 mt-1">
                       ₱0 balance · fully paid
                     </span>
                   </button>
@@ -1251,9 +1271,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   </span>
                   <span>{formatPHP(estimatedEntrance)}<span className="text-[10px] text-amber-600 ml-1">est.</span></span>
                 </div>
-                <div className="flex justify-between mt-1 text-sm font-semibold">
-                  <span className="text-gray-800">Estimated Grand Total:</span>
-                  <span className="text-gray-900">{formatPHP(grandEstimate)}</span>
+                <div className="flex justify-between items-baseline mt-2 pt-2 border-t-2 border-blue-300">
+                  <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Estimated Grand Total</span>
+                  <span className="text-2xl font-extrabold tabular-nums text-blue-800">{formatPHP(grandEstimate)}</span>
                 </div>
                 <p className="mt-1 text-[11px] text-gray-500">
                   Entrance fee scales with the actual number of guests at check-in.
@@ -1265,11 +1285,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     appeared as a single-line fine-print note. */}
                 <div className="border-t border-blue-200 pt-2 mt-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 mb-1.5">Payment Schedule</p>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-gray-700 font-medium">
                       {paymentOption === "full" ? "Pay Online Now (full room)" : `Pay Online Now (${pricing.reservation_fee_pct}% reservation)`}
                     </span>
-                    <span className="text-blue-700 font-bold">{formatPHP(amountDue)}</span>
+                    <span className="text-lg font-extrabold tabular-nums text-blue-700">{formatPHP(amountDue)}</span>
                   </div>
                   {balanceDue > 0 && (
                     <div className="flex justify-between text-sm mt-1">
