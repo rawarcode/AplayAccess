@@ -843,12 +843,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     return (
                       <button key={opt.key} type="button" disabled={opt.disabled}
                         aria-pressed={active}
+                        aria-label={`${opt.label} (${opt.time})`}
                         onClick={() => { if (!opt.disabled) { setBookingType(opt.key); setPromoResult(null); setPromoInput(""); } }}
-                        className={`flex-1 flex items-center justify-center gap-1.5 py-3 md:py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
+                        className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 md:py-2 border-2 rounded-lg text-sm font-medium transition-colors ${
                           active ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         } ${opt.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                        <i className={`fas ${opt.icon} text-xs`} aria-hidden="true"></i>
-                        {opt.label}
+                        <span className="flex items-center gap-1.5 leading-none">
+                          <i className={`fas ${opt.icon} text-xs`} aria-hidden="true"></i>
+                          {opt.label}
+                        </span>
+                        <span className={`text-[10px] tabular-nums leading-none ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+                          {opt.time}
+                        </span>
                       </button>
                     );
                   })}
