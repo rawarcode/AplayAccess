@@ -202,6 +202,14 @@ export default function GuestDashboard() {
     let pendingCount = 0;
     let nextStay    = null;
 
+    // Terminal statuses — Cancelled and Completed/Checked Out are never
+    // "upcoming" regardless of check_in date. Otherwise a cancelled
+    // booking with a future date would inflate the Upcoming Bookings
+    // count + appear in the upcoming list as a stale ghost row, and
+    // a cancelled future booking would also be picked as nextStay,
+    // making the "Next Stay 1d away" card lie to the guest.
+    const TERMINAL_STATUSES = new Set(["Cancelled", "Completed", "Checked Out"]);
+
     for (const b of bookings) {
       const ci = new Date(b.checkIn.replace(" ", "T"));
       if (b.status === "Pending") pendingCount += 1;
@@ -209,7 +217,8 @@ export default function GuestDashboard() {
       // Total spent = money actually collected (paid_amount, backend source of truth).
       if (b.status === "Completed") totalSpent += Number(b.paidAmount ?? b.total ?? 0);
 
-      if (ci >= now) {
+      const isUpcoming = ci >= now && !TERMINAL_STATUSES.has(b.status);
+      if (isUpcoming) {
         upcoming.push(b);
         if (!nextStay || ci < new Date(nextStay.checkIn.replace(" ", "T"))) nextStay = b;
       } else {
