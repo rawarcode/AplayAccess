@@ -348,8 +348,25 @@ export default function Rooms() {
   // Closure captures openDetails / requestBooking so we don't need prop
   // plumbing for a one-file helper.
   const renderRoomCard = (r) => (
+    // Whole card is clickable — opens the detail view. The inner
+    // Details and Book Now buttons stop propagation so they keep
+    // their distinct behaviors (Details opens detail view too —
+    // intentional fallback for keyboard users; Book Now opens the
+    // booking modal). cursor-pointer + focus-visible ring for
+    // mouse + keyboard affordance.
     <div key={r.id ?? r.name}
-      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-300 transition-[transform,box-shadow,--tw-ring-color]">
+      role={r.id ? "button" : undefined}
+      tabIndex={r.id ? 0 : undefined}
+      onClick={() => { if (r.id) openDetails(r.id); }}
+      onKeyDown={(e) => {
+        if (!r.id) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          openDetails(r.id);
+        }
+      }}
+      aria-label={r.id ? `View details for ${r.name}` : undefined}
+      className="group relative bg-white rounded-2xl overflow-hidden shadow-sm duration-300 hover:-translate-y-1 hover:shadow-xl flex flex-col ring-1 ring-slate-200 hover:ring-sky-300 transition-[transform,box-shadow,--tw-ring-color] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
       <div className="relative overflow-hidden shrink-0">
         <img src={r.img}
           srcSet={unsplashSrcSet(r.img)}
@@ -420,11 +437,11 @@ export default function Rooms() {
           );
         })()}
         <div className="flex gap-2">
-          <button onClick={() => openDetails(r.id)}
+          <button onClick={(e) => { e.stopPropagation(); openDetails(r.id); }}
             className="flex-1 border border-sky-200 text-sky-600 hover:border-sky-400 hover:bg-sky-50 px-3 py-2.5 rounded-xl text-sm font-semibold min-h-[44px] transition-colors focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
             Details
           </button>
-          <button onClick={() => requestBooking(r.name)}
+          <button onClick={(e) => { e.stopPropagation(); requestBooking(r.name); }}
             className="flex-1 bg-sky-600 hover:bg-sky-700 text-white px-3 py-2.5 rounded-xl text-sm font-semibold shadow hover:shadow-md min-h-[44px] transition-[background-color,box-shadow] focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1">
             Book Now
           </button>
