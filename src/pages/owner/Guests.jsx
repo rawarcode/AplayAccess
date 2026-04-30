@@ -1,18 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Modal from "../../components/modals/Modal.jsx";
+import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
-import { getAdminGuests } from "../../lib/adminApi";
+import { getAdminGuests, updateAdminUser } from "../../lib/adminApi";
 import useDebounce from "../../hooks/useDebounce.js";
 import { fmtGuestEmail } from "../../lib/format.js";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 const PAGE_SIZE = 10;
 
 export default function AdminGuests() {
   const [toast, showToast, clearToast, toastType] = useToast();
+  const { user: currentUser } = useAuth();
+  // Only owner can flip a guest's auth flag — backend
+  // Admin\UserController::update rejects admin callers attempting to
+  // touch non-front_desk targets, so we hide the toggle UI for admin
+  // to avoid serving them a button that always 403s.
+  const canToggle = currentUser?.role === "owner";
 
   /* ── data ── */
   const [guests, setGuests] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Holds the guest currently in the toggle-active confirmation
+  // dialog. Activating is non-destructive; deactivating locks the
+  // user out, so both flows go through the dialog for consistency
+  // with the Staff tab pattern.
+  const [confirmToggle, setConfirmToggle] = useState(null);
+  const [togglingId, setTogglingId] = useState(null);
 
   /* ── modals ── */
   const [viewGuest, setViewGuest] = useState(null);
@@ -96,6 +110,27 @@ export default function AdminGuests() {
   async function copyEmail(email) {
     try { await navigator.clipboard.writeText(email); showToast("Email copied!", "success"); }
     catch { showToast("Failed to copy.", "error"); }
+  }
+
+  // Flip a guest's auth flag via PATCH /api/admin/users/{id}. Backend
+  // already supports this for owner callers (admin gets 403). Optimistic
+  // update on success — the focus-refetch effect above will reconcile
+  // anyway if the API response disagrees with our local guess.
+  async function handleToggleActive(g) {
+    if (!g) return;
+    setTogglingId(g.id);
+    try {
+      await updateAdminUser(g.id, { is_active: !g.is_active });
+      const next = !g.is_active;
+      setGuests((list) => list.map((x) => (x.id === g.id ? { ...x, is_active: next } : x)));
+      if (viewGuest?.id === g.id) setViewGuest((v) => ({ ...v, is_active: next }));
+      showToast(`${g.name} ${next ? "activated" : "deactivated"}.`, "success");
+    } catch (err) {
+      showToast(err?.response?.data?.message || `Failed to ${g.is_active ? "deactivate" : "activate"} ${g.name}.`, "error");
+    } finally {
+      setTogglingId(null);
+      setConfirmToggle(null);
+    }
   }
 
   function handleSort(key) {
@@ -369,6 +404,21 @@ export default function AdminGuests() {
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                             <i className="fas fa-eye text-xs" aria-hidden="true"></i>
                           </button>
+                          {canToggle && (
+                            <button
+                              onClick={() => setConfirmToggle(g)}
+                              disabled={togglingId === g.id}
+                              title={g.is_active ? `Deactivate ${g.name}` : `Activate ${g.name}`}
+                              aria-label={g.is_active ? `Deactivate ${g.name}` : `Activate ${g.name}`}
+                              className={`h-8 w-8 rounded-lg flex items-center justify-center transition disabled:opacity-50 ${
+                                g.is_active
+                                  ? "hover:bg-rose-50 text-rose-500 hover:text-rose-700"
+                                  : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800"
+                              }`}
+                            >
+                              <i className={`fas ${g.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -460,6 +510,20 @@ export default function AdminGuests() {
                           className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                           <i className="fas fa-eye text-xs" aria-hidden="true"></i>
                         </button>
+                        {canToggle && (
+                          <button
+                            onClick={() => setConfirmToggle(g)}
+                            disabled={togglingId === g.id}
+                            aria-label={g.is_active ? `Deactivate ${g.name}` : `Activate ${g.name}`}
+                            className={`h-10 w-10 rounded-lg flex items-center justify-center transition disabled:opacity-50 ${
+                              g.is_active
+                                ? "hover:bg-rose-50 text-rose-500 hover:text-rose-700"
+                                : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800"
+                            }`}
+                          >
+                            <i className={`fas ${g.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </li>
@@ -616,7 +680,7 @@ export default function AdminGuests() {
                 </div>
               </div>
             </div>
-            <div className="px-6 pb-6 flex justify-end gap-2">
+            <div className="px-6 pb-6 flex justify-end gap-2 flex-wrap">
               <button onClick={() => setViewGuest(null)}
                 className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">Close</button>
               {!/@removed\.local$/i.test(viewGuest.email ?? '') && (
@@ -625,12 +689,44 @@ export default function AdminGuests() {
                   <i className="fas fa-envelope mr-1.5 text-xs" aria-hidden="true"></i>Copy Email
                 </button>
               )}
+              {/* Owner-only toggle. Anonymized accounts (deleted_*@removed.local)
+                  intentionally don't get this button — reactivating a
+                  ghost record after self-delete would conflict with the
+                  account-delete flow's anonymization contract. */}
+              {canToggle && !/@removed\.local$/i.test(viewGuest.email ?? '') && (
+                <button
+                  onClick={() => setConfirmToggle(viewGuest)}
+                  disabled={togglingId === viewGuest.id}
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50 ${
+                    viewGuest.is_active
+                      ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
+                      : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200"
+                  }`}
+                >
+                  <i className={`fas ${viewGuest.is_active ? "fa-toggle-off" : "fa-toggle-on"} mr-1.5 text-xs`} aria-hidden="true"></i>
+                  {viewGuest.is_active ? "Deactivate" : "Activate"}
+                </button>
+              )}
             </div>
           </div>
         )}
       </Modal>
 
       <Toast message={toast} type={toastType} onClose={clearToast} />
+
+      <ConfirmDialog
+        open={!!confirmToggle}
+        title={confirmToggle?.is_active ? "Deactivate Guest" : "Activate Guest"}
+        message={
+          confirmToggle?.is_active
+            ? <><strong>{confirmToggle?.name}</strong> will be locked out of their account until reactivated. Existing bookings stay intact.</>
+            : <>Restore login access for <strong>{confirmToggle?.name}</strong>?</>
+        }
+        confirmLabel={confirmToggle?.is_active ? "Deactivate" : "Activate"}
+        variant={confirmToggle?.is_active ? "warning" : "info"}
+        onConfirm={() => handleToggleActive(confirmToggle)}
+        onCancel={() => setConfirmToggle(null)}
+      />
     </div>
   );
 }
