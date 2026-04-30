@@ -42,6 +42,25 @@ export default function AdminGuests() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Refetch on tab focus + visibilitychange so a deactivation done in
+  // another tab/window (e.g., owner toggling the user via the Staff
+  // tab, or the user self-deleting their account) propagates here
+  // without requiring a manual page refresh. Without this, the
+  // Active/Disabled badge can disagree with live login behavior for
+  // however long the operator stays on the page.
+  useEffect(() => {
+    function refresh() {
+      if (document.visibilityState !== 'visible') return;
+      load();
+    }
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [load]);
+
   /* ── filter + sort + paginate ── */
   const filtered = guests.filter((g) => {
     if (filterStatus === "active" && !g.is_active) return false;
@@ -144,7 +163,7 @@ export default function AdminGuests() {
           {[
             { key: "all", label: "All" },
             { key: "active", label: "Active" },
-            { key: "inactive", label: "Inactive" },
+            { key: "inactive", label: "Disabled" },
           ].map((f) => (
             <button key={f.key} onClick={() => setFilterStatus(f.key)}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition ${
@@ -310,13 +329,35 @@ export default function AdminGuests() {
                       <td className="px-6 py-4 text-slate-400 text-xs hidden lg:table-cell whitespace-nowrap">{g.joined || "\u2014"}</td>
                       <td className="px-6 py-4 text-slate-400 text-xs hidden lg:table-cell whitespace-nowrap">{g.last_booking || "\u2014"}</td>
                       <td className="px-6 py-4">
-                        <span title={g.is_active ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          g.is_active ? "bg-success-bg text-success-fg" : "bg-slate-100 text-slate-600"
-                        }`}>
-                          <span className={`h-2 w-2 rounded-full ${g.is_active ? "bg-success-ring" : "bg-slate-400"}`} />
-                          {g.is_active ? "Active" : "Inactive"}
-                        </span>
+                        {/* Two distinct signals stacked. The Active /
+                            Disabled badge tracks the auth flag — same
+                            meaning as on the Staff tab and matches what
+                            login enforces. The Recent / Stale pill
+                            below tracks the engagement heuristic
+                            separately so marketing-style "do they still
+                            book here?" info is preserved without
+                            misleading a reader into thinking 'Inactive
+                            engagement' = 'cannot log in'. */}
+                        <div className="flex flex-col items-start gap-1">
+                          <span
+                            title={g.is_active ? "Account can log in" : "Account is deactivated and cannot log in"}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                              g.is_active ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg"
+                            }`}
+                          >
+                            <span className={`h-2 w-2 rounded-full ${g.is_active ? "bg-success-ring" : "bg-danger-ring"}`} />
+                            {g.is_active ? "Active" : "Disabled"}
+                          </span>
+                          <span
+                            title={g.is_engaged ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
+                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ${
+                              g.is_engaged ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            <i className={`fas ${g.is_engaged ? "fa-clock" : "fa-hourglass-half"} text-[8px]`} aria-hidden="true"></i>
+                            {g.is_engaged ? "Recent" : "Stale"}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
@@ -361,15 +402,26 @@ export default function AdminGuests() {
                           <p className="text-xs text-slate-500 truncate">{fmtGuestEmail(g.email)}</p>
                           {g.phone && <p className="text-xs text-slate-400 truncate mt-0.5">{g.phone}</p>}
                         </div>
-                        <span
-                          title={g.is_active ? 'Booked within the last 6 months or new account' : 'No bookings in 6+ months'}
-                          className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
-                            g.is_active ? 'bg-success-bg text-success-fg' : 'bg-slate-100 text-slate-600'
-                          }`}
-                        >
-                          <span className={`h-2 w-2 rounded-full ${g.is_active ? 'bg-success-ring' : 'bg-slate-400'}`} aria-hidden="true" />
-                          {g.is_active ? 'Active' : 'Inactive'}
-                        </span>
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span
+                            title={g.is_active ? 'Account can log in' : 'Account is deactivated and cannot log in'}
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold ${
+                              g.is_active ? 'bg-success-bg text-success-fg' : 'bg-danger-bg text-danger-fg'
+                            }`}
+                          >
+                            <span className={`h-2 w-2 rounded-full ${g.is_active ? 'bg-success-ring' : 'bg-danger-ring'}`} aria-hidden="true" />
+                            {g.is_active ? 'Active' : 'Disabled'}
+                          </span>
+                          <span
+                            title={g.is_engaged ? 'Booked within the last 6 months or new account' : 'No bookings in 6+ months'}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ${
+                              g.is_engaged ? 'bg-sky-50 text-sky-700' : 'bg-slate-100 text-slate-500'
+                            }`}
+                          >
+                            <i className={`fas ${g.is_engaged ? 'fa-clock' : 'fa-hourglass-half'} text-[8px]`} aria-hidden="true"></i>
+                            {g.is_engaged ? 'Recent' : 'Stale'}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Stats — 2x2 grid (Bookings, Spent, Joined,
@@ -483,12 +535,19 @@ export default function AdminGuests() {
                   <p className="font-bold text-slate-900 text-lg truncate">{viewGuest.name}</p>
                   <p className="text-sm text-slate-500 truncate">{fmtGuestEmail(viewGuest.email)}</p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                    <span title={viewGuest.is_active ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
+                    <span title={viewGuest.is_active ? "Account can log in" : "Account is deactivated and cannot log in"}
                       className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
-                      viewGuest.is_active ? "bg-success-bg text-success-fg" : "bg-slate-100 text-slate-500"
+                      viewGuest.is_active ? "bg-success-bg text-success-fg" : "bg-danger-bg text-danger-fg"
                     }`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${viewGuest.is_active ? "bg-success-ring" : "bg-slate-400"}`}></span>
-                      {viewGuest.is_active ? "Active" : "Inactive"}
+                      <span className={`h-1.5 w-1.5 rounded-full ${viewGuest.is_active ? "bg-success-ring" : "bg-danger-ring"}`}></span>
+                      {viewGuest.is_active ? "Active" : "Disabled"}
+                    </span>
+                    <span title={viewGuest.is_engaged ? "Booked within the last 6 months or new account" : "No bookings in 6+ months"}
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium uppercase tracking-wide ${
+                      viewGuest.is_engaged ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-500"
+                    }`}>
+                      <i className={`fas ${viewGuest.is_engaged ? "fa-clock" : "fa-hourglass-half"} text-[8px]`} aria-hidden="true"></i>
+                      {viewGuest.is_engaged ? "Recent" : "Stale"}
                     </span>
                     {viewGuest.joined && (
                       <span className="text-[10px] text-slate-400">
