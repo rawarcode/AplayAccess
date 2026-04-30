@@ -404,7 +404,7 @@ export default function AdminGuests() {
                             className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                             <i className="fas fa-eye text-xs" aria-hidden="true"></i>
                           </button>
-                          {canToggle && (
+                          {canToggle && !/@removed\.local$/i.test(g.email ?? '') && (
                             <button
                               onClick={() => setConfirmToggle(g)}
                               disabled={togglingId === g.id}
@@ -510,7 +510,7 @@ export default function AdminGuests() {
                           className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
                           <i className="fas fa-eye text-xs" aria-hidden="true"></i>
                         </button>
-                        {canToggle && (
+                        {canToggle && !/@removed\.local$/i.test(g.email ?? '') && (
                           <button
                             onClick={() => setConfirmToggle(g)}
                             disabled={togglingId === g.id}
