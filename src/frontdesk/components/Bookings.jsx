@@ -346,7 +346,13 @@ export default function Bookings({ embedded = false }) {
         syncBooking(bookingId, { status: 'Cancelled' });
       }
       refreshNotifications?.();
-    } catch { showToast('Failed to update booking.'); }
+    } catch (err) {
+      // Surface the backend's specific 422 message — checkin's
+      // cross-day guard, checkout's outstanding-balance block, the
+      // unpaid-Pending check on confirm, etc. Falling back to a
+      // generic string only when nothing actionable came down.
+      showToast(err?.response?.data?.message ?? err?.response?.data?.error ?? 'Failed to update booking.', 'error');
+    }
     finally { setActionLoading(null); }
   }
 

@@ -53,9 +53,19 @@ export default function Toast({ message, type = "error", onClose, action }) {
   const s = TOAST_STYLES[type] || TOAST_STYLES.error;
 
   return (
+    // z-[10001] sits ABOVE every modal in the app — Modal.jsx and the
+    // BookingModal hover/lightbox portals all use z-[9999]/[10000], so
+    // with the toast at the same level (the previous z-[9999]) the
+    // later-rendered modal dim ended up covering the toast and the
+    // staff member never saw error messages thrown from inside a
+    // modal action (cross-day check-in, etc).
+    //
+    // Mobile width: top-4 + horizontal mx-4 + max-w-sm makes the toast
+    // hug the screen edges on small viewports while still centering
+    // around the right side on desktop via right-4 + left-auto.
     <div
-      className={`fixed top-4 right-4 z-[9999] flex items-center gap-3 ${s.bg} text-white px-5 py-3.5 rounded-xl shadow-2xl max-w-sm transition-all duration-300 ${
-        visible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"
+      className={`fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[10001] flex items-center gap-3 ${s.bg} text-white px-5 py-3.5 rounded-xl shadow-2xl sm:max-w-sm sm:ml-auto transition-all duration-300 ${
+        visible ? "translate-x-0 opacity-100" : "sm:translate-x-full opacity-0"
       }`}
       role="alert"
     >
