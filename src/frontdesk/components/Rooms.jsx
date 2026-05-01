@@ -224,7 +224,7 @@ function VacantModal({ room, bookings = [], onClose, onWalkIn }) {
     .sort((a, b) => a.r.ci - b.r.ci)[0];
 
   return (
-    <Modal open onClose={onClose} title={room.name} maxWidth="max-w-sm">
+    <Modal open onClose={onClose} label={`Room ${room.name} — vacant`} maxWidth="max-w-sm">
       <div className="bg-emerald-500 rounded-lg p-4 mb-4 flex items-center gap-3">
         <span className="inline-flex items-center gap-1.5 text-xs font-bold tracking-widest uppercase px-2 py-1 rounded-full bg-black/25 text-white">
           <i className="fas fa-check-circle text-xs"></i> VACANT
@@ -423,7 +423,7 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
   const total = occupied.length + incoming.length;
 
   return (
-    <Modal open onClose={onClose} title={room.name} maxWidth="max-w-lg">
+    <Modal open onClose={onClose} label={`Room ${room.name} — booking details`} maxWidth="max-w-lg">
       {/* Header strip with counts */}
       <div className="bg-slate-50 rounded-lg p-3 mb-4 flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">

@@ -198,7 +198,7 @@ export default function Dashboard() {
               const interactive = !!card.href;
               const cardCls = [
                 'bg-white rounded-xl shadow p-5 flex items-center transition-colors',
-                interactive ? 'cursor-pointer hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1' : '',
+                interactive ? 'cursor-pointer hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1' : '',
                 card.urgent ? 'ring-2 ring-rose-200' : '',
               ].join(' ');
 

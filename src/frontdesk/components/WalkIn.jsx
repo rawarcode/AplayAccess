@@ -464,7 +464,7 @@ export default function WalkIn({ embedded = false }) {
         const shortStay = remainingHrs !== null && remainingHrs > 0 && remainingHrs < 4;
 
         return (
-          <Modal open onClose={() => setConfirmOpen(false)} maxWidth="max-w-lg">
+          <Modal open onClose={() => setConfirmOpen(false)} maxWidth="max-w-lg" label="Confirm walk-in booking">
             <div className="overflow-hidden">
 
               {/* Header */}
@@ -679,7 +679,7 @@ export default function WalkIn({ embedded = false }) {
 
       {/* ── New Walk-in Modal ── */}
       {formOpen && (
-        <Modal open onClose={() => { setFormOpen(false); setFormError(''); }} maxWidth="max-w-xl">
+        <Modal open onClose={() => { setFormOpen(false); setFormError(''); }} maxWidth="max-w-xl" label="New walk-in booking">
           <div className="max-h-[90vh] overflow-hidden flex flex-col">
 
             {/* Header */}
@@ -698,8 +698,8 @@ export default function WalkIn({ embedded = false }) {
 
             <div id="walkin-scroll" className="overflow-y-auto flex-1 p-6">
               {formError && (
-                <div className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm flex items-center gap-2">
-                  <i className="fas fa-exclamation-circle"></i>{formError}
+                <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-sm flex items-center gap-2">
+                  <i className="fas fa-exclamation-circle" aria-hidden="true"></i>{formError}
                 </div>
               )}
 
@@ -1248,8 +1248,8 @@ export default function WalkIn({ embedded = false }) {
           consolidated Bookings page now. */}
       <main className="p-6">
         {error && (
-          <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded text-sm">
-            <i className="fas fa-exclamation-circle mr-2"></i>{error}
+          <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded text-sm">
+            <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>{error}
           </div>
         )}
         <div className="bg-white rounded-lg shadow p-10 text-center text-slate-400">

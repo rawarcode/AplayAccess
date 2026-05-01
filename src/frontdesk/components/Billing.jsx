@@ -664,7 +664,7 @@ export default function Billing({ embedded = false }) {
                 <h3 id="collect-title" className="text-lg font-semibold">Collect Payment — {billing.id}</h3>
                 <button
                   onClick={() => setBilling(null)}
-                  className="inline-flex w-8 h-8 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                  className="inline-flex w-11 h-11 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                   aria-label="Close collect payment dialog"
                 >
                   <i className="fas fa-times" aria-hidden="true"></i>
@@ -755,11 +755,11 @@ export default function Billing({ embedded = false }) {
 
               <div className="flex justify-end gap-3">
                 <button onClick={() => setBilling(null)}
-                  className="min-h-[40px] px-4 py-2 border rounded text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-1">
+                  className="min-h-[40px] px-4 py-2 border rounded text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1">
                   Cancel
                 </button>
                 <button onClick={handleCollect} disabled={paying}
-                  className="inline-flex items-center gap-1 min-h-[40px] px-4 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1">
+                  className="inline-flex items-center gap-1 min-h-[40px] px-4 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus:ring-offset-1">
                   <i className="fas fa-check" aria-hidden="true"></i>
                   {paying ? 'Processing...' : `Collect ${fmtMoney(billingOutstanding)}`}
                 </button>
@@ -805,8 +805,8 @@ export default function Billing({ embedded = false }) {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded text-sm">
-            <i className="fas fa-exclamation-circle mr-2"></i>{error}
+          <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded text-sm">
+            <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>{error}
           </div>
         )}
 
@@ -831,8 +831,8 @@ export default function Billing({ embedded = false }) {
                 const overdue = b.status === 'Checked In' && b.checkOut
                   && new Date(String(b.checkOut).replace(' ', 'T')) < new Date();
                 const cardCls = overdue
-                  ? 'flex items-center gap-3 p-4 border border-rose-300 rounded-lg bg-rose-50 cursor-pointer hover:bg-rose-100 transition focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-1'
-                  : 'flex items-center gap-3 p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-1';
+                  ? 'flex items-center gap-3 p-4 border border-rose-300 rounded-lg bg-rose-50 cursor-pointer hover:bg-rose-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1'
+                  : 'flex items-center gap-3 p-4 border rounded-lg bg-sky-50 cursor-pointer hover:bg-sky-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1';
                 return (
                   <li key={b.bookingId}>
                     {/* role="button" + keydown handler turns the card into
@@ -884,7 +884,7 @@ export default function Billing({ embedded = false }) {
                           onClick={(e) => { e.stopPropagation(); openCollect(b); }}
                           onKeyDown={(e) => e.stopPropagation()}
                           aria-label={`Collect ${fmtMoney(toCollect)} for ${b.id}`}
-                          className="mt-2 inline-flex items-center gap-1 min-h-[40px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-1"
+                          className="mt-2 inline-flex items-center gap-1 min-h-[40px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus:ring-offset-1"
                         >
                           <i className="fas fa-hand-holding-usd" aria-hidden="true"></i>Collect
                         </button>
@@ -1025,7 +1025,7 @@ export default function Billing({ embedded = false }) {
                               <button
                                 onClick={() => openCollect(b)}
                                 aria-label={`Collect payment for ${b.id}`}
-                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
                               </button>
@@ -1163,7 +1163,7 @@ export default function Billing({ embedded = false }) {
                           <button
                             onClick={() => openCollect(b)}
                             aria-label={`Collect payment for ${b.id}`}
-                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                           >
                             <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
                           </button>
@@ -1268,7 +1268,7 @@ export default function Billing({ embedded = false }) {
               </div>
               <button
                 onClick={() => setSearchPanelOpen(false)}
-                className="inline-flex w-8 h-8 items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                className="inline-flex w-11 h-11 items-center justify-center rounded text-slate-600 hover:bg-slate-200 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                 aria-label="Close search past billings panel"
               >
                 <i className="fas fa-times" aria-hidden="true"></i>

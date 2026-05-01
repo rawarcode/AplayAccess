@@ -605,8 +605,8 @@ export default function Bookings({ embedded = false }) {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded text-sm">
-              <i className="fas fa-exclamation-circle mr-2"></i>{error}
+            <div role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded text-sm">
+              <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>{error}
             </div>
           )}
 
@@ -782,14 +782,14 @@ export default function Bookings({ embedded = false }) {
                           <div className="flex items-center gap-1">
                             <button onClick={() => setViewBooking(b)}
                               title="View details" aria-label={`View details for ${b.id}`}
-                              className="inline-flex w-9 h-9 items-center justify-center rounded text-sky-600 hover:bg-sky-50 hover:text-sky-800">
+                              className="inline-flex w-11 h-11 items-center justify-center rounded text-sky-700 hover:bg-sky-50 hover:text-sky-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                               <i className="fas fa-eye" aria-hidden="true"></i>
                             </button>
                             {b.status === 'Pending' && Number(b.paidAmount ?? 0) > 0 && (
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'confirm', booking: b })}
                                 disabled={actionLoading === b.bookingId}
                                 title="Confirm" aria-label={`Confirm booking ${b.id}`}
-                                className="inline-flex w-9 h-9 items-center justify-center rounded text-sky-600 hover:bg-sky-50 hover:text-sky-800 disabled:opacity-40">
+                                className="inline-flex w-11 h-11 items-center justify-center rounded text-sky-700 hover:bg-sky-50 hover:text-sky-800 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                                 <i className="fas fa-check" aria-hidden="true"></i>
                               </button>
                             )}
@@ -797,7 +797,7 @@ export default function Bookings({ embedded = false }) {
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'checkin', booking: b })}
                                 disabled={actionLoading === b.bookingId}
                                 title="Check In" aria-label={`Check in guest for ${b.id}`}
-                                className="inline-flex w-9 h-9 items-center justify-center rounded text-purple-600 hover:bg-purple-50 hover:text-purple-800 disabled:opacity-40">
+                                className="inline-flex w-11 h-11 items-center justify-center rounded text-purple-700 hover:bg-purple-50 hover:text-purple-800 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-500">
                                 <i className="fas fa-door-open" aria-hidden="true"></i>
                               </button>
                             )}
@@ -805,7 +805,7 @@ export default function Bookings({ embedded = false }) {
                               <>
                                 <span title="Go to Billing to collect payment &amp; complete"
                                   aria-label="Billing handles payment collection for checked-in guests"
-                                  className="inline-flex w-9 h-9 items-center justify-center text-emerald-500 cursor-default opacity-60">
+                                  className="inline-flex w-11 h-11 items-center justify-center text-emerald-600 cursor-default opacity-60">
                                   <i className="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                                 </span>
                                 {/* Transfer hidden on overdue rows — staff
@@ -828,7 +828,7 @@ export default function Bookings({ embedded = false }) {
                               <button onClick={() => setConfirmState({ bookingId: b.bookingId, action: 'cancel', booking: b })}
                                 disabled={actionLoading === b.bookingId}
                                 title="Cancel" aria-label={`Cancel booking ${b.id}`}
-                                className="inline-flex w-9 h-9 items-center justify-center rounded text-rose-600 hover:bg-rose-50 hover:text-rose-800 disabled:opacity-40">
+                                className="inline-flex w-11 h-11 items-center justify-center rounded text-rose-700 hover:bg-rose-50 hover:text-rose-800 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
                                 <i className="fas fa-ban" aria-hidden="true"></i>
                               </button>
                             )}

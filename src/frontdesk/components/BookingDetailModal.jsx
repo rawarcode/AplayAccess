@@ -873,8 +873,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           onClick={handleUpdateAmenity}
                           disabled={amenityLoading}
                           aria-label={`Save quantity change for ${a.name}`}
-                          className="w-8 h-8 inline-flex items-center justify-center rounded text-emerald-600 hover:bg-emerald-50 disabled:opacity-40"
+                          className="w-11 h-11 inline-flex items-center justify-center rounded text-emerald-700 hover:bg-emerald-50 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                           title="Save"
+                          type="button"
                         >
                           <i className="fas fa-check" aria-hidden="true"></i>
                         </button>
@@ -882,8 +883,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           onClick={() => setEditingAmenity(null)}
                           disabled={amenityLoading}
                           aria-label="Cancel qty change"
-                          className="w-8 h-8 inline-flex items-center justify-center rounded text-slate-500 hover:bg-slate-100 disabled:opacity-40"
+                          className="w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:bg-slate-100 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                           title="Cancel"
+                          type="button"
                         >
                           <i className="fas fa-times" aria-hidden="true"></i>
                         </button>
@@ -922,8 +924,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                               setEditingAmenity({ id: a.id, qty: a.qty || 1, max: maxQty });
                             }}
                             disabled={amenityLoading}
-                            className="w-8 h-8 inline-flex items-center justify-center rounded text-slate-400 hover:bg-slate-200 hover:text-slate-700 text-xs disabled:opacity-40"
+                            className="w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:bg-slate-200 hover:text-slate-800 text-xs disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
                             title={`Edit ${a.name} quantity`}
+                            type="button"
                             aria-label={`Edit ${a.name} quantity`}
                           >
                             <i className="fas fa-pen" aria-hidden="true"></i>
@@ -933,8 +936,9 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                           <button
                             onClick={() => setPendingAction({ type: 'remove-amenity', amenityId: a.id, amenityName: a.name, amenityTotal: a.total })}
                             disabled={amenityLoading}
-                            className="w-8 h-8 inline-flex items-center justify-center rounded text-rose-400 hover:bg-rose-50 hover:text-rose-600 text-xs disabled:opacity-40"
+                            className="w-11 h-11 inline-flex items-center justify-center rounded text-rose-600 hover:bg-rose-50 hover:text-rose-800 text-xs disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                             title={`Remove ${a.name}`}
+                            type="button"
                             aria-label={`Remove ${a.name}`}
                           >
                             <i className="fas fa-times" aria-hidden="true"></i>

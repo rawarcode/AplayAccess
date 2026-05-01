@@ -7,6 +7,7 @@ import NotificationContext from '../../../context/NotificationContext.jsx';
 import NotificationBell from '../../../components/ui/NotificationBell.jsx';
 import Avatar from '../../../components/ui/Avatar.jsx';
 import useLockBodyScroll from '../../../hooks/useLockBodyScroll.js';
+import useFocusTrap from '../../../hooks/useFocusTrap.js';
 import StaffChatWidget from '../../../components/StaffChatWidget.jsx';
 
 const PAGE_TITLES = {
@@ -37,6 +38,11 @@ export default function Sidebar({ children, showTopBar = true }) {
 
   useLockBodyScroll(mobileOpen);
 
+  // Focus trap for the mobile drawer — Tab cycles inside while open,
+  // restores focus to the trigger on close. Without this, keyboard
+  // users could leak Tab back to the page underneath the open drawer.
+  const mobileDrawerRef = useFocusTrap(mobileOpen);
+
   useEffect(() => {
     function handleClick(e) {
       if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
@@ -48,12 +54,16 @@ export default function Sidebar({ children, showTopBar = true }) {
   // Close mobile sidebar on route change
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
-  // Escape key closes mobile sidebar
+  // Escape key closes mobile sidebar OR profile dropdown.
   useEffect(() => {
-    function onKey(e) { if (e.key === 'Escape' && mobileOpen) setMobileOpen(false); }
+    function onKey(e) {
+      if (e.key !== 'Escape') return;
+      if (profileOpen) { setProfileOpen(false); return; }
+      if (mobileOpen)  { setMobileOpen(false); return; }
+    }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [mobileOpen]);
+  }, [mobileOpen, profileOpen]);
 
   const { counts, items: notifItems, total: notifTotal, refresh: notifRefresh } = useStaffNotifications({
     messages:           '/frontdesk/messages',
@@ -107,7 +117,8 @@ export default function Sidebar({ children, showTopBar = true }) {
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-expanded={!collapsed}
-            className="text-white hover:bg-brand-hover p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand/50 shrink-0"
+            type="button"
+            className="text-white hover:bg-brand-hover w-11 h-11 inline-flex items-center justify-center rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 shrink-0"
           >
             <i className={`fas ${collapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`} aria-hidden="true"></i>
           </button>
@@ -127,7 +138,8 @@ export default function Sidebar({ children, showTopBar = true }) {
                   <Link
                     to={item.path}
                     onClick={mobile ? () => setMobileOpen(false) : undefined}
-                    className={`flex items-center p-2 rounded transition ${
+                    aria-current={isActive(item.path) ? 'page' : undefined}
+                    className={`flex items-center p-2 min-h-11 rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
                       isActive(item.path)
                         ? 'bg-brand-hover text-white'
                         : 'text-blue-100 hover:bg-brand-hover hover:text-white'
@@ -169,7 +181,7 @@ export default function Sidebar({ children, showTopBar = true }) {
                 key={n.id}
                 to={n.path}
                 onClick={mobile ? () => setMobileOpen(false) : undefined}
-                className="flex items-center gap-2 text-xs text-blue-100 hover:text-white transition-colors"
+                className="flex items-center gap-2 py-1.5 -my-0.5 px-1 -mx-1 rounded text-xs text-blue-100 hover:text-white hover:bg-brand-hover/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 <i className={`fas ${n.icon} w-3.5 text-center shrink-0`}></i>
                 <span className="truncate">{n.label}</span>
@@ -185,7 +197,8 @@ export default function Sidebar({ children, showTopBar = true }) {
           {(!collapsed || mobile) && <p className="uppercase text-xs font-semibold text-blue-200 mb-2 px-2">Switch Portal</p>}
           <button
             onClick={() => switchPortal('/owner', 'Switching to Owner Portal...')}
-            className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
+            type="button"
+            className="flex items-center w-full p-2 min-h-11 text-blue-100 hover:bg-brand-hover rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             title="Switch to Owner Portal"
           >
             <i className="fas fa-crown mr-3 w-5 text-center"></i>
@@ -204,9 +217,10 @@ export default function Sidebar({ children, showTopBar = true }) {
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
+          type="button"
+          className="flex items-center w-full p-2 min-h-11 text-blue-100 hover:bg-brand-hover rounded transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
-          <i className="fas fa-sign-out-alt mr-3 w-5 text-center"></i>
+          <i className="fas fa-sign-out-alt mr-3 w-5 text-center" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
         </button>
       </div>
@@ -227,15 +241,21 @@ export default function Sidebar({ children, showTopBar = true }) {
         <div className="fixed inset-0 z-40 md:hidden" onClick={() => setMobileOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
           <div
-            className="absolute inset-y-0 left-0 w-72 bg-brand text-white flex flex-col shadow-xl"
+            ref={mobileDrawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Frontdesk navigation"
+            tabIndex={-1}
+            className="absolute inset-y-0 left-0 w-72 bg-brand text-white flex flex-col shadow-xl focus:outline-none"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               onClick={() => setMobileOpen(false)}
-              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10"
+              type="button"
+              className="absolute top-3 right-3 w-11 h-11 inline-flex items-center justify-center text-blue-200 hover:text-white hover:bg-white/10 rounded-md z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               aria-label="Close sidebar"
             >
-              <i className="fas fa-times text-lg"></i>
+              <i className="fas fa-times text-lg" aria-hidden="true"></i>
             </button>
             {sidebarContent(true)}
           </div>
@@ -250,8 +270,10 @@ export default function Sidebar({ children, showTopBar = true }) {
       {!showTopBar && !mobileOpen && (
         <button
           onClick={() => setMobileOpen(true)}
-          className="md:hidden fixed top-3 left-3 z-30 flex items-center justify-center w-10 h-10 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/50"
+          type="button"
+          className="md:hidden fixed top-3 left-3 z-30 flex items-center justify-center w-11 h-11 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
           aria-label="Open menu"
+          aria-expanded={mobileOpen}
         >
           <i className="fas fa-bars" aria-hidden="true"></i>
         </button>
@@ -265,10 +287,12 @@ export default function Sidebar({ children, showTopBar = true }) {
               {/* Mobile hamburger */}
               <button
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                type="button"
+                className="md:hidden w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 aria-label="Open menu"
+                aria-expanded={mobileOpen}
               >
-                <i className="fas fa-bars text-xl"></i>
+                <i className="fas fa-bars text-xl" aria-hidden="true"></i>
               </button>
               <h1 className="text-xl font-bold text-gray-800">
                 {PAGE_TITLES[location.pathname] ?? 'Front Desk'}
@@ -279,7 +303,11 @@ export default function Sidebar({ children, showTopBar = true }) {
               <div className="relative" ref={profileRef}>
                 <button
                   onClick={() => setProfileOpen(o => !o)}
-                  className="flex items-center gap-2 text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={profileOpen}
+                  aria-label={`Profile menu — ${userName}`}
+                  className="flex items-center gap-2 px-2 py-1.5 min-h-11 rounded-md text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
                 >
                   <Avatar
                     src={user?.avatar}
@@ -291,16 +319,17 @@ export default function Sidebar({ children, showTopBar = true }) {
                   <i className="fas fa-chevron-down text-xs text-gray-400"></i>
                 </button>
                 {profileOpen && (
-                  <div className="absolute right-0 top-11 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                  <div className="absolute right-0 top-12 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
                     <div className="p-3 border-b border-gray-100">
                       <p className="font-medium text-gray-900 text-sm">{userName}</p>
-                      <p className="text-xs text-gray-500">{userEmail}</p>
+                      <p className="text-xs text-gray-600">{userEmail}</p>
                     </div>
                     <button
                       onClick={() => { setProfileOpen(false); handleLogout(); }}
-                      className="p-3 flex items-center w-full text-left hover:bg-gray-50 text-red-500 text-sm"
+                      type="button"
+                      className="p-3 min-h-11 flex items-center w-full text-left hover:bg-gray-50 text-red-700 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-red-500"
                     >
-                      <i className="fas fa-sign-out-alt mr-3"></i>Logout
+                      <i className="fas fa-sign-out-alt mr-3" aria-hidden="true"></i>Logout
                     </button>
                   </div>
                 )}
