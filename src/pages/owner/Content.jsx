@@ -822,21 +822,21 @@ function HomeResortEditor({ content, onSave }) {
                   <p className="text-xs font-semibold text-slate-600">
                     Card {idx + 1}{card.name ? ` — ${card.name}` : ''}
                   </p>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <button type="button" onClick={() => moveCard(idx, -1)} disabled={idx === 0}
-                      title="Move up"
-                      className="h-8 w-8 rounded hover:bg-slate-100 disabled:opacity-30 text-slate-500 transition">
-                      <i className="fas fa-arrow-up text-xs" aria-hidden="true"></i>
+                      title={`Move card ${idx + 1} up`} aria-label={`Move card ${idx + 1} up`}
+                      className="h-11 w-11 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                      <i className="fas fa-arrow-up text-sm" aria-hidden="true"></i>
                     </button>
                     <button type="button" onClick={() => moveCard(idx, 1)} disabled={idx === form.cards.length - 1}
-                      title="Move down"
-                      className="h-8 w-8 rounded hover:bg-slate-100 disabled:opacity-30 text-slate-500 transition">
-                      <i className="fas fa-arrow-down text-xs" aria-hidden="true"></i>
+                      title={`Move card ${idx + 1} down`} aria-label={`Move card ${idx + 1} down`}
+                      className="h-11 w-11 rounded-lg hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed text-slate-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                      <i className="fas fa-arrow-down text-sm" aria-hidden="true"></i>
                     </button>
                     <button type="button" onClick={() => confirmRemoveCard(idx)}
-                      title="Remove card"
-                      className="h-8 w-8 rounded hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition">
-                      <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                      title={`Remove card ${idx + 1}`} aria-label={`Remove card ${idx + 1}`}
+                      className="h-11 w-11 rounded-lg hover:bg-rose-50 text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                      <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -3591,19 +3591,22 @@ function SitePreviewModal({ open, onClose }) {
 
         {/* Refresh */}
         <button
+          type="button"
           onClick={() => setKey(k => k + 1)}
           title="Refresh preview"
-          className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition"
+          aria-label="Refresh preview"
+          className="w-11 h-11 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
         >
           <i className="fas fa-rotate-right text-sm" aria-hidden="true"></i>
         </button>
 
         {/* Close */}
         <button
+          type="button"
           onClick={onClose}
-          className="w-11 h-11 rounded-lg hover:bg-white/10 flex items-center justify-center transition"
+          className="w-11 h-11 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/80 hover:text-white transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-800"
           title="Close preview"
-          aria-label="Close"
+          aria-label="Close preview"
         >
           <i className="fas fa-times" aria-hidden="true"></i>
         </button>

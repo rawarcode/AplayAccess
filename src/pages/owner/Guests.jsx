@@ -451,14 +451,14 @@ export default function AdminGuests() {
                           button. setViewGuest is also fired by the
                           whole-card click, but the explicit button is
                           the more discoverable affordance. */}
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => copyEmail(g.email)} aria-label={`Copy email for ${g.name}`}
-                          className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                          <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" onClick={() => copyEmail(g.email)} aria-label={`Copy email for ${g.name}`}
+                          className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                          <i className="fas fa-envelope text-sm" aria-hidden="true"></i>
                         </button>
-                        <button onClick={() => setViewGuest(g)} aria-label={`View ${g.name}`}
-                          className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                          <i className="fas fa-eye text-xs" aria-hidden="true"></i>
+                        <button type="button" onClick={() => setViewGuest(g)} aria-label={`View ${g.name}`}
+                          className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                          <i className="fas fa-eye text-sm" aria-hidden="true"></i>
                         </button>
                       </div>
                     </div>

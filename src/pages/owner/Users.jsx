@@ -861,29 +861,29 @@ export default function OwnerUsers() {
                           <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${ROLE_COLORS[u.role] || 'bg-slate-100 text-slate-700'}`}>
                             {ROLE_LABELS[u.role] || u.role}
                           </span>
-                          <div className="flex items-center gap-1">
-                            <button onClick={() => copyEmail(u.email)} aria-label={`Copy email for ${u.name}`}
-                              className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                              <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                          <div className="flex items-center gap-2">
+                            <button type="button" onClick={() => copyEmail(u.email)} aria-label={`Copy email for ${u.name}`}
+                              className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                              <i className="fas fa-envelope text-sm" aria-hidden="true"></i>
                             </button>
                             {canEdit(u) && (
-                              <button onClick={() => openEdit(u)} aria-label={`Edit ${u.name}`}
-                                className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                                <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                              <button type="button" onClick={() => openEdit(u)} aria-label={`Edit ${u.name}`}
+                                className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                                <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                               </button>
                             )}
                             {canToggleActive(u) && (
-                              <button onClick={() => setConfirmToggle(u)} aria-label={u.is_active ? `Deactivate ${u.name}` : `Activate ${u.name}`}
-                                className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
-                                  ? 'hover:bg-warning-bg text-warning-fg'
-                                  : 'hover:bg-success-bg text-success-fg'}`}>
-                                <i className={`fas ${u.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-xs`} aria-hidden="true"></i>
+                              <button type="button" onClick={() => setConfirmToggle(u)} aria-label={u.is_active ? `Deactivate ${u.name}` : `Activate ${u.name}`}
+                                className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${u.is_active
+                                  ? 'hover:bg-warning-bg text-warning-fg focus-visible:ring-amber-500'
+                                  : 'hover:bg-success-bg text-success-fg focus-visible:ring-emerald-500'}`}>
+                                <i className={`fas ${u.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-sm`} aria-hidden="true"></i>
                               </button>
                             )}
                             {canDelete(u) && (
-                              <button onClick={() => setConfirmDelete(u)} aria-label={`Delete ${u.name}`}
-                                className="h-10 w-10 rounded-lg hover:bg-danger-bg text-danger-fg flex items-center justify-center transition">
-                                <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                              <button type="button" onClick={() => setConfirmDelete(u)} aria-label={`Delete ${u.name}`}
+                                className="h-11 w-11 rounded-lg hover:bg-danger-bg text-danger-fg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                                <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                               </button>
                             )}
                           </div>

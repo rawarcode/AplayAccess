@@ -1217,9 +1217,9 @@ export default function AdminMessages() {
                       {active.sender_messaging_blocked ? 'Restore' : 'Restrict'}
                     </button>
                   )}
-                  <button onClick={() => setDeleteTarget(active)} title="Delete thread"
-                    className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                    <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                  <button type="button" onClick={() => setDeleteTarget(active)} title="Delete thread" aria-label="Delete thread"
+                    className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                    <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                   </button>
                 </div>
               </div>

@@ -671,27 +671,28 @@ export default function AdminAddons() {
                       </div>
 
                       {/* Action cluster — same four buttons as desktop. */}
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                        <button onClick={() => openEdit(item)} aria-label={`Edit ${item.name || 'add-on'}`}
-                          className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                          <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <button type="button" onClick={() => openEdit(item)} aria-label={`Edit ${item.name || 'add-on'}`}
+                          className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                          <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                         </button>
-                        <button onClick={() => openDuplicate(item)} aria-label={`Duplicate ${item.name || 'add-on'}`}
-                          className="h-10 w-10 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                          <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                        <button type="button" onClick={() => openDuplicate(item)} aria-label={`Duplicate ${item.name || 'add-on'}`}
+                          className="h-11 w-11 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-600 hover:text-violet-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                          <i className="fas fa-copy text-sm" aria-hidden="true"></i>
                         </button>
                         <button
+                          type="button"
                           onClick={() => toggleActive(item)}
                           aria-label={item.is_active ? `Deactivate ${item.name || 'add-on'}` : `Activate ${item.name || 'add-on'}`}
-                          className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${item.is_active
-                            ? 'hover:bg-amber-50 text-amber-500 hover:text-amber-700'
-                            : 'hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700'}`}
+                          className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${item.is_active
+                            ? 'hover:bg-amber-50 text-amber-600 hover:text-amber-800 focus-visible:ring-amber-500'
+                            : 'hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800 focus-visible:ring-emerald-500'}`}
                         >
-                          <i className={`fas ${item.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-xs`} aria-hidden="true"></i>
+                          <i className={`fas ${item.is_active ? 'fa-toggle-off' : 'fa-toggle-on'} text-sm`} aria-hidden="true"></i>
                         </button>
-                        <button onClick={() => setConfirmDelete(item)} aria-label={`Delete ${item.name || 'add-on'}`}
-                          className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                          <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                        <button type="button" onClick={() => setConfirmDelete(item)} aria-label={`Delete ${item.name || 'add-on'}`}
+                          className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                          <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                         </button>
                       </div>
                     </div>

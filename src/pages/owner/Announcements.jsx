@@ -803,17 +803,17 @@ export default function AdminAnnouncements() {
                             <span className={`w-2 h-2 rounded-full ${item.is_active ? 'bg-success-ring' : 'bg-slate-400'}`} aria-hidden="true" />
                             {item.is_active ? 'Active' : 'Inactive'}
                           </button>
-                          <button onClick={() => openEdit(item)} aria-label={`Edit ${item.title}`}
-                            className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => openEdit(item)} aria-label={`Edit ${item.title}`}
+                            className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => openDuplicate(item)} aria-label={`Duplicate ${item.title}`}
-                            className="h-10 w-10 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => openDuplicate(item)} aria-label={`Duplicate ${item.title}`}
+                            className="h-11 w-11 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-600 hover:text-violet-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-copy text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => setConfirmDelete(item)} aria-label={`Delete ${item.title}`}
-                            className="h-10 w-10 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setConfirmDelete(item)} aria-label={`Delete ${item.title}`}
+                            className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                           </button>
                         </div>
                       </div>

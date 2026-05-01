@@ -1607,7 +1607,7 @@ export default function AdminRooms() {
                                     onClick={() => setAddonRelation(cat.id, opt.key)}
                                     aria-pressed={active}
                                     aria-label={`Set ${cat.name} relation to ${opt.label}`}
-                                    className={`min-h-9 px-3 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                                    className={`min-h-11 px-4 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
                                       active
                                         ? opt.key === 'package'  ? 'bg-emerald-600 text-white focus-visible:ring-emerald-500' :
                                           opt.key === 'optional' ? 'bg-sky-600 text-white focus-visible:ring-sky-500' :
@@ -1632,7 +1632,7 @@ export default function AdminRooms() {
                                 value={row?.price ?? ''}
                                 disabled={!relation}
                                 onChange={e => setAddonField(cat.id, 'price', e.target.value)}
-                                className="w-24 min-h-9 px-2 py-1.5 text-sm tabular-nums border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                className="w-24 min-h-11 px-3 py-2 text-sm tabular-nums border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                 aria-label={`${cat.name} price for this room`}
                               />
                               <span className="text-xs text-slate-600">×</span>
@@ -1644,7 +1644,7 @@ export default function AdminRooms() {
                                 value={row?.qty ?? ''}
                                 disabled={!relation}
                                 onChange={e => setAddonField(cat.id, 'qty', e.target.value)}
-                                className="w-16 min-h-9 px-2 py-1.5 text-sm tabular-nums border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                className="w-16 min-h-11 px-3 py-2 text-sm tabular-nums border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                 aria-label={`${cat.name} qty for this room`}
                               />
                             </div>
