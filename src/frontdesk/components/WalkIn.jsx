@@ -831,15 +831,15 @@ export default function WalkIn({ embedded = false }) {
 
               {/* Actions */}
               <div className="px-6 py-4 border-t border-slate-100 flex gap-3">
-                <button onClick={() => setConfirmOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">
-                  <i className="fas fa-arrow-left mr-2"></i>Back
+                <button type="button" onClick={() => setConfirmOpen(false)}
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2.5 border border-slate-300 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                  <i className="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back
                 </button>
-                <button onClick={handleConfirmCreate} disabled={submitting || (shortStay && !shortStayAck)}
-                  className="flex-1 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                <button type="button" onClick={handleConfirmCreate} disabled={submitting || (shortStay && !shortStayAck)}
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white rounded-lg text-sm font-bold gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                   {submitting
-                    ? <><i className="fas fa-spinner fa-spin"></i> Creating...</>
-                    : <><i className="fas fa-check"></i> Confirm Booking</>}
+                    ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Creating...</>
+                    : <><i className="fas fa-check" aria-hidden="true"></i> Confirm Booking</>}
                 </button>
               </div>
             </div>

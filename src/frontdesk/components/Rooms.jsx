@@ -786,8 +786,13 @@ export default function FDRooms({ embedded = false }) {
               Last updated: {lastRefresh.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true })}
               <span className="ml-2 text-slate-300">· Auto-refreshes every 10s</span>
             </p>
-            <button onClick={load} className="flex items-center gap-2 px-4 py-2 bg-sky-600 text-white rounded-lg text-sm hover:bg-sky-700">
-              <i className="fas fa-sync-alt"></i> Refresh
+            <button
+              type="button"
+              onClick={load}
+              aria-label="Refresh room status"
+              className="inline-flex items-center gap-2 min-h-11 px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+            >
+              <i className="fas fa-sync-alt" aria-hidden="true"></i> Refresh
             </button>
           </div>
 

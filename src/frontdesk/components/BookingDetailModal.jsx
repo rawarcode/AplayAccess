@@ -731,16 +731,19 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     type="text"
                     value={promoInput}
                     onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleApplyPromo(); } }}
                     placeholder="Enter promo code"
                     aria-label="Promo code"
-                    className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-400 font-mono uppercase"
+                    className="flex-1 min-h-11 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono uppercase"
                   />
                   <button
+                    type="button"
                     onClick={handleApplyPromo}
                     disabled={promoLoading || !promoInput.trim()}
-                    className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white text-sm rounded-lg disabled:opacity-50"
+                    aria-label="Apply promo code"
+                    className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-lg disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                   >
-                    {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
+                    {promoLoading ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : 'Apply'}
                   </button>
                 </div>
                 {promoError && <p className="text-xs text-rose-500 mt-1">{promoError}</p>}
@@ -1181,11 +1184,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                       );
                     })()}
                     <div className="flex gap-2 justify-end pt-1">
-                      <button onClick={() => setAddingAmenity(null)}
-                        className="px-3 py-1.5 border border-slate-200 rounded text-xs font-medium text-slate-600 hover:bg-white">Cancel</button>
-                      <button onClick={handleAddAmenity} disabled={amenityLoading || isAttached(addingAmenity.name)}
+                      <button type="button" onClick={() => setAddingAmenity(null)}
+                        className="inline-flex items-center justify-center min-h-11 px-4 py-2 border border-slate-300 rounded text-xs font-medium text-slate-700 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">Cancel</button>
+                      <button type="button" onClick={handleAddAmenity} disabled={amenityLoading || isAttached(addingAmenity.name)}
                         title={isAttached(addingAmenity.name) ? 'Already on this booking.' : undefined}
-                        className="px-4 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-40">
+                        className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                         {amenityLoading ? 'Adding…' : 'Add'}
                       </button>
                     </div>
