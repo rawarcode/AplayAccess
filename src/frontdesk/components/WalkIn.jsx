@@ -6,8 +6,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
 import { api } from '../../lib/api';
-import { getFdRooms, createWalkInBooking, addonAvailabilityForSlot } from '../../lib/frontdeskApi';
-import { validatePromo } from '../../lib/adminApi';
+import { getFdRooms, getFdBookings, createWalkInBooking, addonAvailabilityForSlot } from '../../lib/frontdeskApi';
+import { validatePromo, getAdminGuests } from '../../lib/adminApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import Modal from '../../components/modals/Modal';
 import { fmtMoney, localDateStr } from '../../lib/format';
@@ -29,6 +29,26 @@ function formatHourLabel(h) {
   const suffix = h < 12 ? 'AM' : 'PM';
   const twelve = h % 12 === 0 ? 12 : h % 12;
   return `${twelve}:00 ${suffix}`;
+}
+
+// Strip a phone string down to digits only — used as the dedup key
+// when merging walk-in guests (special_requests) with registered
+// users so "+63 908 191 4721" and "09081914721" hash to the same
+// entry instead of producing two suggestion rows.
+function phoneKey(p) {
+  return String(p ?? '').replace(/\D/g, '');
+}
+
+// Walk-in details parser — same shape as Bookings.jsx parseWalkIn.
+// Gated on backend-attributed `source` so a guest can't forge a
+// fake walk-in identity by typing "Walk-in:" into special_requests.
+function parseWalkInGuest(b) {
+  if (b?.source !== 'walk-in') return null;
+  if (!b.specialRequests?.startsWith('Walk-in:')) return null;
+  const name  = (b.specialRequests.match(/^Walk-in:\s*([^,]+)/) || [])[1]?.trim() || b.guest;
+  const phone = (b.specialRequests.match(/Phone:\s*([^,]+)/) || [])[1]?.trim() || '';
+  const email = (b.specialRequests.match(/Email:\s*([^,]+)/) || [])[1]?.trim() || '';
+  return { name, phone: phone === '—' ? '' : phone, email: email === '—' ? '' : email };
 }
 
 const EMPTY_FORM = {
@@ -64,6 +84,136 @@ export default function WalkIn({ embedded = false }) {
   const [wiStep, setWiStep]               = useState(1);
   const [showWiNotes, setShowWiNotes]     = useState(false);
   const [toast, showToast, clearToast, toastType] = useToast();
+
+  // ── Returning-guest lookup ─────────────────────────────────────────────
+  // Lets staff find an existing customer (registered account OR past
+  // walk-in) and pre-fill name / phone / email so we don't create
+  // duplicate "Maria Santos" / "M Santos" / "Maria S" records that look
+  // like different people in Guest Records. When the matched guest has
+  // an email or phone the backend resolves to an existing User and the
+  // walk-in shows up in the guest's My Bookings on next login.
+  const [knownGuests,           setKnownGuests]           = useState([]);
+  const [guestSearch,           setGuestSearch]           = useState('');
+  const [guestSearchOpen,       setGuestSearchOpen]       = useState(false);
+  const [highlightedGuestIdx,   setHighlightedGuestIdx]   = useState(0);
+  const [selectedReturningGuest, setSelectedReturningGuest] = useState(null);
+  const guestSearchRef = useRef(null);
+
+  // Fetch the merged guest set on mount. Two sources combined:
+  //   1. /api/admin/guests — every user with role='guest' (covers
+  //      anyone who has booked online or whose walk-in had an email,
+  //      since the backend creates a User in that case).
+  //   2. /api/admin/bookings — pulls walk-in entries whose
+  //      special_requests carries the typed details, picking up the
+  //      anonymous (no-email) walk-ins that don't surface in (1).
+  // Dedup by digits-only phone; email-only matches collapse onto
+  // their phone-keyed sibling on next mount when staff supplies the
+  // phone. Sorted by lastVisit desc so the most recent returning
+  // guest surfaces at the top of suggestions.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([getAdminGuests(), getFdBookings()])
+      .then(([gRes, bRes]) => {
+        if (cancelled) return;
+        const map = new Map();
+        if (gRes.status === 'fulfilled') {
+          for (const g of gRes.value?.data?.data ?? []) {
+            const key = phoneKey(g.phone) || `email:${(g.email || '').toLowerCase()}`;
+            if (!key || key === 'email:') continue;
+            map.set(key, {
+              name:      g.name || '',
+              email:     g.email || '',
+              phone:     g.phone && g.phone !== '—' ? g.phone : '',
+              visits:    Number(g.total_bookings || 0),
+              lastVisit: g.last_booking || g.joined || '',
+              source:    'account',
+            });
+          }
+        }
+        if (bRes.status === 'fulfilled') {
+          for (const b of bRes.value ?? []) {
+            const wi = parseWalkInGuest(b);
+            if (!wi) continue;
+            const key = phoneKey(wi.phone) || `email:${(wi.email || '').toLowerCase()}`;
+            if (!key || key === 'email:') continue;
+            const existing = map.get(key);
+            const lastVisit = b.checkIn || b.createdAt || '';
+            if (existing) {
+              if (lastVisit > (existing.lastVisit || '')) existing.lastVisit = lastVisit;
+              if (existing.source === 'walkin') existing.visits += 1;
+            } else {
+              map.set(key, {
+                name:      wi.name,
+                email:     wi.email,
+                phone:     wi.phone,
+                visits:    1,
+                lastVisit,
+                source:    'walkin',
+              });
+            }
+          }
+        }
+        const list = [...map.values()].sort(
+          (a, b) => String(b.lastVisit).localeCompare(String(a.lastVisit))
+        );
+        setKnownGuests(list);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const guestMatches = useMemo(() => {
+    const q = guestSearch.trim().toLowerCase();
+    if (q.length < 2) return [];
+    const qDigits = q.replace(/\D/g, '');
+    const matches = knownGuests.filter(g =>
+      g.name.toLowerCase().includes(q) ||
+      (qDigits && phoneKey(g.phone).includes(qDigits)) ||
+      (g.email && g.email.toLowerCase().includes(q))
+    );
+    return matches.slice(0, 8);
+  }, [knownGuests, guestSearch]);
+
+  // Reset the highlight whenever the suggestion list changes so we
+  // don't index past the end after a query narrows the matches.
+  useEffect(() => { setHighlightedGuestIdx(0); }, [guestMatches.length]);
+
+  // Click-outside dismisses the dropdown.
+  useEffect(() => {
+    if (!guestSearchOpen) return;
+    function onDown(e) {
+      if (guestSearchRef.current && !guestSearchRef.current.contains(e.target)) {
+        setGuestSearchOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [guestSearchOpen]);
+
+  function pickReturningGuest(g) {
+    setForm(f => ({ ...f, fullName: g.name, phone: g.phone, email: g.email || '' }));
+    setSelectedReturningGuest(g);
+    setGuestSearch('');
+    setGuestSearchOpen(false);
+  }
+  function clearReturningGuest() {
+    setSelectedReturningGuest(null);
+  }
+  function handleGuestSearchKeyDown(e) {
+    if (!guestSearchOpen || guestMatches.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlightedGuestIdx(i => (i + 1) % guestMatches.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlightedGuestIdx(i => (i - 1 + guestMatches.length) % guestMatches.length);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      pickReturningGuest(guestMatches[highlightedGuestIdx]);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      setGuestSearchOpen(false);
+    }
+  }
 
   // Promo code
   const [addons,       setAddons]        = useState([]);   // from API
@@ -731,24 +881,137 @@ export default function WalkIn({ embedded = false }) {
                   <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Guest Information</span>
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
+
+                {/* ── Returning-guest lookup ─────────────────────────────
+                     Search across past customers (registered accounts +
+                     prior walk-ins). Picking a match pre-fills the three
+                     fields below. ARIA: combobox pattern (input owns the
+                     listbox, aria-activedescendant points at the
+                     highlighted option). aria-live="polite" on the count
+                     line so screen-reader users hear the suggestion total
+                     update as they type. */}
+                <div ref={guestSearchRef} className="mb-4 relative">
+                  <label htmlFor="wi-guest-search" className="block text-xs font-medium text-slate-700 mb-1">
+                    Returning guest? <span className="text-slate-500 font-normal">— search by name, phone, or email</span>
+                  </label>
+                  <div className="relative">
+                    <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs" aria-hidden="true"></i>
+                    <input
+                      id="wi-guest-search"
+                      type="search"
+                      value={guestSearch}
+                      onChange={e => { setGuestSearch(e.target.value); setGuestSearchOpen(true); }}
+                      onFocus={() => guestSearch.trim().length >= 2 && setGuestSearchOpen(true)}
+                      onKeyDown={handleGuestSearchKeyDown}
+                      placeholder="Type at least 2 characters…"
+                      autoComplete="off"
+                      role="combobox"
+                      aria-expanded={guestSearchOpen && guestMatches.length > 0}
+                      aria-controls="wi-guest-suggestions"
+                      aria-autocomplete="list"
+                      aria-activedescendant={
+                        guestSearchOpen && guestMatches.length > 0
+                          ? `wi-guest-opt-${highlightedGuestIdx}` : undefined
+                      }
+                      className="w-full border border-slate-200 rounded-xl pl-9 pr-9 py-2.5 min-h-11 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400"
+                    />
+                    {guestSearch && (
+                      <button
+                        type="button"
+                        onClick={() => { setGuestSearch(''); setGuestSearchOpen(false); }}
+                        aria-label="Clear search"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 inline-flex items-center justify-center rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                      >
+                        <i className="fas fa-times text-xs" aria-hidden="true"></i>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Suggestions popover */}
+                  {guestSearchOpen && guestSearch.trim().length >= 2 && (
+                    <>
+                      {guestMatches.length > 0 ? (
+                        <ul
+                          id="wi-guest-suggestions"
+                          role="listbox"
+                          aria-label="Returning guest suggestions"
+                          className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto"
+                        >
+                          {guestMatches.map((g, i) => (
+                            <li key={`${phoneKey(g.phone) || g.email || g.name}-${i}`} role="presentation">
+                              <button
+                                id={`wi-guest-opt-${i}`}
+                                type="button"
+                                role="option"
+                                aria-selected={i === highlightedGuestIdx}
+                                onMouseEnter={() => setHighlightedGuestIdx(i)}
+                                onClick={() => pickReturningGuest(g)}
+                                className={`w-full text-left px-3 py-2.5 min-h-11 flex items-baseline justify-between gap-3 border-b border-slate-100 last:border-b-0 transition-colors focus:outline-none ${
+                                  i === highlightedGuestIdx ? 'bg-sky-50' : 'hover:bg-slate-50'
+                                }`}
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-medium text-slate-800 truncate">{g.name}</p>
+                                  <p className="text-xs text-slate-600 truncate">
+                                    {g.phone || <span className="italic text-slate-500">no phone</span>}
+                                    {g.email && ` · ${g.email}`}
+                                  </p>
+                                </div>
+                                <span className="text-[10px] text-slate-600 shrink-0 tabular-nums whitespace-nowrap">
+                                  {g.visits} {g.visits === 1 ? 'visit' : 'visits'}
+                                  {g.source === 'account' && (
+                                    <span className="ml-1.5 inline-flex items-center px-1.5 py-0.5 rounded-full bg-sky-100 text-sky-700 text-[9px] font-semibold">account</span>
+                                  )}
+                                </span>
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg px-3 py-3 text-xs text-slate-600">
+                          <i className="fas fa-circle-info mr-1.5 text-slate-400" aria-hidden="true"></i>
+                          No matches — fill in the form below to register a new guest.
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* SR-only live region for suggestion count */}
+                  <p className="sr-only" aria-live="polite">
+                    {guestSearchOpen && guestSearch.trim().length >= 2
+                      ? `${guestMatches.length} matching ${guestMatches.length === 1 ? 'guest' : 'guests'}.`
+                      : ''}
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
                   <div className="col-span-2">
-                    <label htmlFor="wi-fullname" className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
+                    <label htmlFor="wi-fullname" className="block text-xs font-medium text-slate-700 mb-1">
+                      Full Name *
+                      {selectedReturningGuest && (
+                        <span className="ml-2 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5 normal-case tracking-normal">
+                          <i className="fas fa-check-circle" aria-hidden="true"></i>
+                          Returning guest
+                          {selectedReturningGuest.source === 'account' && ' · linked to account'}
+                          <button type="button" onClick={clearReturningGuest} className="ml-1 underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded">Clear</button>
+                        </span>
+                      )}
+                    </label>
                     <input id="wi-fullname" type="text" value={form.fullName}
-                      onChange={e => setField('fullName', e.target.value)}
+                      onChange={e => { setField('fullName', e.target.value); if (selectedReturningGuest) clearReturningGuest(); }}
                       placeholder="e.g. Juan dela Cruz Jr."
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" required />
                   </div>
                   <div>
                     <label htmlFor="wi-phone" className="block text-xs font-medium text-slate-700 mb-1">Phone *</label>
                     <input id="wi-phone" type="tel" value={form.phone}
-                      onChange={e => setField('phone', e.target.value)}
+                      onChange={e => { setField('phone', e.target.value); if (selectedReturningGuest) clearReturningGuest(); }}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="+639XXXXXXXXX" required />
                   </div>
                   <div>
                     <label htmlFor="wi-email" className="block text-xs font-medium text-slate-700 mb-1">Email</label>
                     <input id="wi-email" type="email" value={form.email}
-                      onChange={e => setField('email', e.target.value)}
+                      onChange={e => { setField('email', e.target.value); if (selectedReturningGuest) clearReturningGuest(); }}
                       className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" />
                   </div>
                 </div>
