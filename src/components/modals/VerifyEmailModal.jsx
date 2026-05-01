@@ -131,7 +131,7 @@ export default function VerifyEmailModal({ open, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
       onMouseDown={e => e.target === e.currentTarget && !loading && onClose?.()}
     >
       <div
@@ -149,7 +149,7 @@ export default function VerifyEmailModal({ open, onClose }) {
               <i className="fas fa-check text-emerald-600 text-4xl" aria-hidden="true"></i>
             </div>
             <h3 className="text-2xl font-bold text-emerald-700 mb-2">Email Verified!</h3>
-            <p className="text-sm text-slate-500">You're all set — all booking features are now unlocked.</p>
+            <p className="text-sm text-slate-600">You're all set — all booking features are now unlocked.</p>
           </div>
         ) : (
         <>
@@ -163,7 +163,8 @@ export default function VerifyEmailModal({ open, onClose }) {
           <button
             onClick={onClose}
             disabled={loading}
-            className="text-slate-400 hover:text-slate-600 disabled:opacity-50 p-2 -mr-2 rounded-lg hover:bg-slate-100"
+            type="button"
+            className="w-11 h-11 inline-flex items-center justify-center -mr-2 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             aria-label="Close"
           >
             <i className="fas fa-times" aria-hidden="true" />
@@ -171,8 +172,8 @@ export default function VerifyEmailModal({ open, onClose }) {
         </div>
 
         <div className="p-6 text-center">
-          <p className="text-sm text-slate-500 mb-6">
-            We sent a 6-digit code to <strong className="text-slate-700">{user?.email || 'your email'}</strong>.
+          <p className="text-sm text-slate-600 mb-6">
+            We sent a 6-digit code to <strong className="text-slate-800">{user?.email || 'your email'}</strong>.
             Enter it below to verify your account.
           </p>
 
@@ -223,14 +224,14 @@ export default function VerifyEmailModal({ open, onClose }) {
             </button>
           </form>
 
-          <div className="mt-6 text-sm text-slate-500">
+          <div className="mt-6 text-sm text-slate-600">
             Didn't receive the code?{' '}
             <button
               type="button"
               onClick={handleResend}
               disabled={resending || cooldown > 0}
               aria-label={cooldown > 0 ? `Resend code — available in ${cooldown} seconds` : 'Resend code'}
-              className="font-medium text-sky-600 hover:text-sky-700 disabled:text-slate-400 disabled:cursor-not-allowed transition"
+              className="font-medium text-sky-700 hover:text-sky-800 disabled:text-slate-400 disabled:cursor-not-allowed transition rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               {cooldown > 0
                 ? `Resend in ${cooldown}s`
@@ -238,7 +239,7 @@ export default function VerifyEmailModal({ open, onClose }) {
             </button>
           </div>
 
-          <p className="mt-3 text-xs text-slate-400">Code expires in 15 minutes.</p>
+          <p className="mt-3 text-xs text-slate-500">Code expires in 15 minutes.</p>
         </div>
         </>
         )}

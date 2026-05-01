@@ -50,16 +50,16 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
 
   return (
     <>
-    <Modal open={open} onClose={handleClose} maxWidth="max-w-lg">
+    <Modal open={open} onClose={handleClose} maxWidth="max-w-lg" labelledBy="success-modal-title">
       <div className="p-6">
         {/* Header */}
         <div className="flex items-start gap-4 mb-5">
           <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-            <i className="fas fa-check text-green-600 text-xl"></i>
+            <i className="fas fa-check text-green-600 text-xl" aria-hidden="true"></i>
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Booking Successful!</h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <h3 id="success-modal-title" className="text-lg font-semibold text-gray-900">Booking Successful!</h3>
+            <p className="text-sm text-gray-600 mt-0.5">
               Thank you for choosing Aplaya Beach Resort.
             </p>
           </div>
@@ -131,38 +131,41 @@ export default function SuccessModal({ open, onClose, booking = null, guestMode 
               <button
                 onClick={handleDownloadReceipt}
                 disabled={downloading || !guestToken}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition"
+                type="button"
+                className="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-2.5 min-h-11 px-4 rounded-lg text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 {downloading
-                  ? <><i className="fas fa-spinner fa-spin"></i> Downloading...</>
-                  : <><i className="fas fa-file-pdf"></i> Download Confirmation (PDF)</>}
+                  ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Downloading...</>
+                  : <><i className="fas fa-file-pdf" aria-hidden="true"></i> Download Confirmation (PDF)</>}
               </button>
               <button
                 onClick={handleClose}
-                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg text-sm transition"
+                type="button"
+                className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 min-h-11 px-4 rounded-lg text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <i className="fas fa-times mr-1"></i>Close
+                <i className="fas fa-times mr-1" aria-hidden="true"></i>Close
               </button>
             </div>
           </>
         ) : (
           <>
-            <p className="text-xs text-gray-500 mb-4">
+            <p className="text-xs text-gray-600 mb-4">
               You can view and manage your booking anytime from your dashboard.
             </p>
             <div className="flex gap-3">
               <Link
                 to="/dashboard/bookings"
                 onClick={handleClose}
-                className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-4 rounded-lg text-sm transition flex items-center justify-center gap-2"
+                className="flex-1 text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 min-h-11 px-4 rounded-lg text-sm transition inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                <i className="fas fa-calendar-check"></i>View My Bookings
+                <i className="fas fa-calendar-check" aria-hidden="true"></i>View My Bookings
               </Link>
               <button
                 onClick={handleClose}
-                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 px-4 rounded-lg text-sm transition"
+                type="button"
+                className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 min-h-11 px-4 rounded-lg text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                <i className="fas fa-times mr-1"></i>Close
+                <i className="fas fa-times mr-1" aria-hidden="true"></i>Close
               </button>
             </div>
           </>

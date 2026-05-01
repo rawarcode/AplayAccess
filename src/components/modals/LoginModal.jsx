@@ -3,8 +3,21 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { useGoogleLogin } from "@react-oauth/google";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
 
 export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup }) {
+  // Focus trap + initial-focus + return-focus on close. SignupModal
+  // already had Escape; LoginModal didn't. Both now share the same
+  // dialog mechanics as the Modal-based screens.
+  const dialogRef = useFocusTrap(open);
+
+  // Escape-to-close.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) { if (e.key === "Escape") onClose?.(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
   const { user, loginWithEmail, loginWithGoogle } = useAuth();
 
   const [email, setEmail] = useState("");
@@ -67,18 +80,26 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Sign in">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl animate-hero-fade-in opacity-0">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="login-modal-title"
+        tabIndex={-1}
+        className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl animate-hero-fade-in opacity-0 focus:outline-none"
+      >
         <div className="flex items-center justify-between px-5 py-4 border-b">
-          <h2 className="text-lg font-semibold text-slate-900">Login to Your Account</h2>
+          <h2 id="login-modal-title" className="text-lg font-semibold text-slate-900">Login to Your Account</h2>
           <button
             onClick={onClose}
-            className="rounded-md px-2 py-1 text-slate-500 hover:bg-slate-100"
+            type="button"
+            className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             aria-label="Close login modal"
           >
-            <i className="fas fa-times"></i>
+            <i className="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -123,10 +144,10 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 inline-flex items-center justify-center rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   aria-label={showPassword ? "Hide password" : "Show password"}
                 >
-                  <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                  <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true"></i>
                 </button>
               </div>
             </div>
@@ -135,7 +156,7 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
               <Link
                 to="/forgot-password"
                 onClick={onClose}
-                className="text-xs text-sky-600 hover:text-sky-700 hover:underline transition"
+                className="text-xs text-sky-700 hover:text-sky-800 hover:underline transition rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 Forgot password?
               </Link>
@@ -143,7 +164,7 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
 
             <button
               disabled={submitting}
-              className="w-full rounded-md bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium py-2.5 transition"
+              className="w-full rounded-md bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium py-2.5 min-h-11 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
               type="submit"
             >
               {submitting ? "Logging in..." : "Login"}
@@ -166,7 +187,7 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
             type="button"
             onClick={() => googleLogin()}
             disabled={submitting}
-            className="w-full inline-flex items-center justify-center gap-3 py-2.5 px-4 rounded-md border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+            className="w-full inline-flex items-center justify-center gap-3 py-2.5 min-h-11 px-4 rounded-md border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.44c-.29 1.48-1.14 2.73-2.4 3.58v3h3.88c2.28-2.1 3.57-5.18 3.57-8.82z"/>
@@ -179,12 +200,12 @@ export default function LoginModal({ open, onClose, onLoginSuccess, onOpenSignup
 
           {/* Sign Up link */}
           {onOpenSignup && (
-            <p className="text-center text-sm text-slate-500">
+            <p className="text-center text-sm text-slate-600">
               Don&apos;t have an account?{" "}
               <button
                 type="button"
                 onClick={onOpenSignup}
-                className="font-semibold text-sky-600 hover:underline"
+                className="font-semibold text-sky-700 hover:underline rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 Sign Up
               </button>

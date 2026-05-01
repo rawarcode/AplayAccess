@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-export default function Modal({ open, onClose, maxWidth = "max-w-lg", children }) {
+export default function Modal({ open, onClose, maxWidth = "max-w-lg", labelledBy, label, children }) {
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -72,6 +72,8 @@ export default function Modal({ open, onClose, maxWidth = "max-w-lg", children }
           ref={dialogRef}
           role="dialog"
           aria-modal="true"
+          aria-labelledby={labelledBy}
+          aria-label={!labelledBy ? label : undefined}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
           className={`relative w-full ${maxWidth} bg-white rounded-xl shadow-2xl animate-hero-fade-in opacity-0`}

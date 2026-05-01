@@ -139,17 +139,34 @@ export default function Gallery() {
         <meta name="description" content="View photos and videos of Aplaya Beach Resort — beach, rooms, amenities, dining, and events." />
       </Helmet>
 
-      {/* HERO */}
-      <section
-        className="relative h-[60vh] flex items-center justify-center text-center overflow-hidden"
-        style={{
-          backgroundImage:
-            `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${galleryHero.background}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
+      {/* HERO — real <img> + srcSet so mobile doesn't pay the full
+          desktop image weight. Same pattern Home/Resort use after
+          their hero refactors. Dark overlay sits above the image. */}
+      <section className="relative h-[60vh] flex items-center justify-center text-center overflow-hidden bg-slate-900">
+        {(() => {
+          const url = galleryHero.background;
+          const isUnsplash = typeof url === "string" && url.includes("images.unsplash.com");
+          const srcSet = isUnsplash
+            ? [640, 1024, 1600].map(w =>
+                `${url.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+              ).join(", ")
+            : undefined;
+          return (
+            <img
+              src={url}
+              srcSet={srcSet}
+              sizes="100vw"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover"
+              fetchPriority="high"
+              loading="eager"
+              decoding="async"
+            />
+          );
+        })()}
+        <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
+
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
           <h1 className="text-3xl md:text-5xl font-bold mb-4 animate-hero-fade-in [animation-delay:0.2s] opacity-0">
             {galleryHero.title}
@@ -188,7 +205,9 @@ export default function Gallery() {
 
           {/* Section header */}
           <div className="text-center mb-8 animate-hero-fade-in [animation-delay:0.1s] opacity-0">
-            <span className="text-4xl mb-3 block">📸</span>
+            <span className="inline-flex h-12 w-12 rounded-full bg-white/10 text-sky-300 items-center justify-center mb-3" aria-hidden="true">
+              <i className="fas fa-images text-xl" aria-hidden="true"></i>
+            </span>
             <h2 className="text-3xl font-bold text-white mb-2">Browse the Gallery</h2>
             <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
             <span className="inline-block bg-white/10 text-slate-300 text-sm px-4 py-1 rounded-full">
@@ -206,11 +225,12 @@ export default function Gallery() {
                   <button
                     key={cat}
                     type="button"
+                    aria-pressed={activeCat === cat}
                     onClick={() => setActiveCat(cat)}
-                    className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all duration-200
+                    className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-11 rounded-full text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900
                       ${activeCat === cat
                         ? "bg-sky-600 text-white shadow-lg shadow-sky-500/30"
-                        : "bg-white/10 text-slate-300 hover:bg-white/20"
+                        : "bg-white/10 text-slate-200 hover:bg-white/20"
                       }`}
                   >
                     <i className={`fas ${icon} text-xs`} aria-hidden="true" />
@@ -244,7 +264,8 @@ export default function Gallery() {
               {activeCat !== "all" && (
                 <button
                   onClick={() => setActiveCat("all")}
-                  className="text-sky-400 hover:text-sky-300 text-sm font-medium transition"
+                  type="button"
+                  className="text-sky-300 hover:text-sky-200 text-sm font-medium transition rounded px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                 >
                   View all photos →
                 </button>
@@ -284,18 +305,27 @@ export default function Gallery() {
                       loading="lazy"
                     />
                   )}
-                  {/* Hover overlay with caption */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
-                    {g.caption && <p className="text-white text-sm font-medium leading-snug">{g.caption}</p>}
-                    <p className="text-white/60 text-xs mt-1">Click to enlarge</p>
-                  </div>
-                  {/* Number badge — shows the photo's position on the
-                      current page (i + 1 of paginated.length). The
-                      total filtered count appears in the section
-                      header above ("N photos"). */}
-                  <div className="absolute top-3 right-3 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                  {/* Persistent expand badge — top-right. Always
+                      visible so touch users see the tile is tappable;
+                      desktop users get the same affordance without
+                      depending on hover. */}
+                  <span className="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-black/55 text-white shadow-md ring-1 ring-white/20" aria-hidden="true">
+                    <i className="fas fa-expand text-xs"></i>
+                  </span>
+                  {/* Caption strip — also persistent on touch; on
+                      desktop the gradient deepens on hover for the
+                      "leans in" effect we had before. */}
+                  {g.caption && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 transition-opacity duration-300 group-hover:from-black/85 group-hover:via-black/40">
+                      <p className="text-white text-sm font-medium leading-snug">{g.caption}</p>
+                    </div>
+                  )}
+                  {/* Page-position counter — small chip top-left, also
+                      persistent so touch users can orient themselves
+                      within the current page. */}
+                  <span className="absolute top-3 left-3 bg-black/55 text-white text-xs px-2 py-0.5 rounded-full" aria-hidden="true">
                     {i + 1} / {paginated.length}
-                  </div>
+                  </span>
                 </button>
               ))}
             </div>

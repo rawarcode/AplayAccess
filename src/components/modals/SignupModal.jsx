@@ -6,8 +6,12 @@ import Toast, { useToast } from "../ui/Toast.jsx";
 import { registerRequest } from "../../lib/authApi.js";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { api, primeCsrf } from "../../lib/api.js";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
 
 export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) {
+  // Focus trap matches LoginModal — both auth modals now share the
+  // same dialog mechanics as Modal.jsx-based screens.
+  const dialogRef = useFocusTrap(open);
   const { user, loginWithGoogle, refreshUser } = useAuth();
   const [toast, showToast, clearToast, toastType] = useToast();
 
@@ -151,22 +155,30 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
 
   return (
     <>
-      <div className="fixed inset-0 z-[60] flex items-center justify-center" role="dialog" aria-modal="true" aria-label="Sign up">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-        <div className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl animate-hero-fade-in opacity-0 max-h-[90vh] overflow-y-auto">
+        <div
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="signup-modal-title"
+          tabIndex={-1}
+          className="relative w-[92vw] max-w-lg rounded-xl bg-white shadow-xl animate-hero-fade-in opacity-0 max-h-[90vh] overflow-y-auto focus:outline-none"
+        >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b sticky top-0 bg-white rounded-t-xl z-10">
             <div className="flex items-center gap-2">
-              <i className="fas fa-umbrella-beach text-xl text-blue-600"></i>
-              <h2 className="text-lg font-semibold text-gray-900">Create Your Account</h2>
+              <i className="fas fa-umbrella-beach text-xl text-blue-600" aria-hidden="true"></i>
+              <h2 id="signup-modal-title" className="text-lg font-semibold text-gray-900">Create Your Account</h2>
             </div>
             <button
               onClick={onClose}
-              className="rounded-md px-2 py-1 text-gray-500 hover:bg-gray-100"
+              type="button"
+              className="w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               aria-label="Close signup modal"
             >
-              <i className="fas fa-times"></i>
+              <i className="fas fa-times" aria-hidden="true"></i>
             </button>
           </div>
 
@@ -247,10 +259,10 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 inline-flex items-center justify-center rounded text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true"></i>
                   </button>
                 </div>
                 <PasswordRequirements value={form.password} />
@@ -273,10 +285,10 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
                   <button
                     type="button"
                     onClick={() => setShowConfirm((s) => !s)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 inline-flex items-center justify-center rounded text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                     aria-label={showConfirm ? "Hide password" : "Show password"}
                   >
-                    <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true"></i>
                   </button>
                 </div>
                 {form.confirmPassword.length > 0 && form.confirmPassword !== form.password && (
@@ -317,13 +329,22 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
               {/* Submit — disabled until the password passes all five
                   strength rules AND matches the confirm field. The
                   checklist above the button tells the user exactly what's
-                  missing. */}
+                  missing for the password; if Terms is the ONLY thing
+                  outstanding, surface a hint right under the button so
+                  the user isn't staring at a dead button wondering
+                  why. */}
               <button
                 disabled={submitting || !passwordStrong || form.password !== form.confirmPassword || !form.terms}
-                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 transition"
+                className="w-full rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 min-h-11 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
                 {submitting ? "Creating account..." : "Sign Up"}
               </button>
+              {!submitting && passwordStrong && form.password === form.confirmPassword && form.password.length > 0 && !form.terms && (
+                <p className="text-xs text-amber-700 -mt-1 flex items-center gap-1.5">
+                  <i className="fas fa-info-circle" aria-hidden="true"></i>
+                  Tick the Terms &amp; Conditions checkbox above to enable Sign Up.
+                </p>
+              )}
             </form>
 
             {/* Divider */}
@@ -339,7 +360,7 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
               type="button"
               onClick={() => googleLogin()}
               disabled={submitting}
-              className="w-full inline-flex items-center justify-center gap-3 py-2.5 px-4 rounded-md border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+              className="w-full inline-flex items-center justify-center gap-3 py-2.5 min-h-11 px-4 rounded-md border border-slate-200 bg-white text-slate-700 font-medium text-sm hover:bg-slate-50 hover:border-slate-300 transition disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.44c-.29 1.48-1.14 2.73-2.4 3.58v3h3.88c2.28-2.1 3.57-5.18 3.57-8.82z"/>
@@ -351,12 +372,12 @@ export default function SignupModal({ open, onClose, onSignedUp, onOpenLogin }) 
             </button>
 
             {/* Already have account */}
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-gray-600">
               Already have an account?{" "}
               <button
                 type="button"
                 onClick={() => { onOpenLogin ? onOpenLogin() : onClose?.(); }}
-                className="font-semibold text-blue-600 hover:underline"
+                className="font-semibold text-blue-700 hover:underline rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
                 Login instead
               </button>
