@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
+import Modal from '../../components/modals/Modal.jsx';
+import useFocusTrap from '../../hooks/useFocusTrap.js';
 import { getFdBookings, collectPayment, downloadStaffReceipt } from '../../lib/frontdeskApi';
 import { api } from '../../lib/api';
 import Toast, { useToast } from '../../components/ui/Toast';
@@ -357,19 +359,24 @@ export default function Billing({ embedded = false }) {
   const [pastSearched, setPastSearched] = useState(false);
   const [pastDownloading, setPastDownloading] = useState(null);
 
-  // Esc-to-close for the two custom dialogs on this page (Collect Payment
-  // modal and Search Past side panel). Matches platform convention and the
-  // behavior already baked into the shared <Modal> component used elsewhere.
+  // Esc-to-close for the search-past side panel. The Collect Payment
+  // modal now uses the shared <Modal> component which handles Escape
+  // internally — only the side panel still needs this wiring.
   useEffect(() => {
-    if (!billing && !searchPanelOpen) return;
+    if (!searchPanelOpen) return;
     const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      if (billing)         setBilling(null);
-      else if (searchPanelOpen) setSearchPanelOpen(false);
+      if (e.key === 'Escape') setSearchPanelOpen(false);
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [billing, searchPanelOpen]);
+  }, [searchPanelOpen]);
+
+  // Focus trap for the search-past side panel. Side panels are
+  // dialogs structurally (modal=true, blocks page interaction via
+  // backdrop), so they need the same Tab containment as a centered
+  // Modal. Modal would force-center the panel and break the
+  // slide-out design, so the trap is wired directly here.
+  const searchPanelRef = useFocusTrap(searchPanelOpen);
 
   async function runPastSearch(e) {
     if (e) e.preventDefault();
@@ -656,10 +663,9 @@ export default function Billing({ embedded = false }) {
       />
 
       {/* ── Payment Collection Modal ── */}
-      {billing && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="collect-title">
-          <div className="bg-white rounded-lg w-full max-w-md">
-            <div className="p-6">
+      <Modal open={!!billing} onClose={() => setBilling(null)} maxWidth="max-w-md" labelledBy="collect-title">
+        {billing && (
+          <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 id="collect-title" className="text-lg font-semibold">Collect Payment — {billing.id}</h3>
                 <button
@@ -755,19 +761,20 @@ export default function Billing({ embedded = false }) {
 
               <div className="flex justify-end gap-3">
                 <button onClick={() => setBilling(null)}
-                  className="min-h-[40px] px-4 py-2 border rounded text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1">
+                  type="button"
+                  className="min-h-11 px-4 py-2.5 border border-slate-200 rounded text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-1">
                   Cancel
                 </button>
                 <button onClick={handleCollect} disabled={paying}
-                  className="inline-flex items-center gap-1 min-h-[40px] px-4 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1">
+                  type="button"
+                  className="inline-flex items-center gap-1 min-h-11 px-4 py-2.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1">
                   <i className="fas fa-check" aria-hidden="true"></i>
                   {paying ? 'Processing...' : `Collect ${fmtMoney(billingOutstanding)}`}
                 </button>
               </div>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── Main ── */}
       <main className="p-6">
@@ -1251,10 +1258,12 @@ export default function Billing({ embedded = false }) {
         <>
           <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setSearchPanelOpen(false)} />
           <aside
+            ref={searchPanelRef}
             role="dialog"
             aria-modal="true"
             aria-labelledby="past-search-title"
-            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200"
+            tabIndex={-1}
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl flex flex-col z-50 border-l border-slate-200 focus:outline-none"
           >
             <div className="px-5 py-4 border-b border-slate-200 flex items-center gap-3 bg-slate-50">
               <div className="flex-1">

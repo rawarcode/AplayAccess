@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
+import Modal from '../../components/modals/Modal.jsx';
 import Toast, { useToast } from '../../components/ui/Toast';
 import PaymentPill from '../../components/ui/PaymentPill';
 import BookingDetailModal from './BookingDetailModal';
@@ -387,20 +388,25 @@ export default function Bookings({ embedded = false }) {
       <Helmet><title>Bookings — Frontdesk</title></Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} />
       {/* ── Quick-Action Confirmation Modal ── */}
-      {confirmState && (() => {
-        const cfg = CONFIRM_CONFIG[confirmState.action];
-        const b   = confirmState.booking;
-        const wi  = parseWalkIn(b);
-        const guest = wi ? wi.name : b.guest;
-        return (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-label="Confirm action">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-              <div className={`rounded-t-2xl px-6 py-4 flex items-center gap-3 ${{confirm:'bg-sky-600',checkin:'bg-violet-600',checkout:'bg-emerald-600',cancel:'bg-rose-600'}[confirmState.action]}`}>
-                <i className={`fas ${cfg.icon} text-white text-lg`}></i>
-                <h3 className="text-white font-semibold text-base">{cfg.label}</h3>
+      <Modal
+        open={!!confirmState}
+        onClose={() => setConfirmState(null)}
+        maxWidth="max-w-sm"
+        labelledBy="bookings-confirm-title"
+      >
+        {confirmState && (() => {
+          const cfg = CONFIRM_CONFIG[confirmState.action];
+          const b   = confirmState.booking;
+          const wi  = parseWalkIn(b);
+          const guest = wi ? wi.name : b.guest;
+          return (
+            <>
+              <div className={`rounded-t-xl px-6 py-4 flex items-center gap-3 ${{confirm:'bg-sky-600',checkin:'bg-violet-600',checkout:'bg-emerald-600',cancel:'bg-rose-600'}[confirmState.action]}`}>
+                <i className={`fas ${cfg.icon} text-white text-lg`} aria-hidden="true"></i>
+                <h3 id="bookings-confirm-title" className="text-white font-semibold text-base">{cfg.label}</h3>
               </div>
               <div className="px-6 py-5 space-y-4">
-                <p className="text-sm text-slate-600">{cfg.desc}</p>
+                <p className="text-sm text-slate-700">{cfg.desc}</p>
                 <div className="bg-slate-50 rounded-xl divide-y divide-slate-100 text-sm">
                   {[
                     ['Booking ID', b.id],
@@ -414,7 +420,7 @@ export default function Bookings({ embedded = false }) {
                     ['Total',      fmtMoney(Number(b.total ?? 0) + calcEntrance(b, entranceRates))],
                   ].map(([label, val]) => (
                     <div key={label} className="flex justify-between px-4 py-2">
-                      <span className="text-slate-500">{label}</span>
+                      <span className="text-slate-600">{label}</span>
                       <span className="font-medium text-slate-800">{val}</span>
                     </div>
                   ))}
@@ -422,20 +428,28 @@ export default function Bookings({ embedded = false }) {
               </div>
               <div className="px-6 pb-5 flex justify-end gap-3">
                 <button onClick={() => setConfirmState(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50">
+                  type="button"
+                  className="px-4 py-2.5 min-h-11 rounded-xl border border-slate-200 text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
                   Cancel
                 </button>
                 <button onClick={execConfirm}
-                  className={`px-4 py-2 rounded-xl text-sm text-white font-medium ${COLOR_BTN[cfg.color]}`}>
+                  type="button"
+                  className={`px-4 py-2.5 min-h-11 rounded-xl text-sm text-white font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${COLOR_BTN[cfg.color]}`}>
                   {cfg.label}
                 </button>
               </div>
-            </div>
-          </div>
-        );
-      })()}
+            </>
+          );
+        })()}
+      </Modal>
 
       {/* ── Transfer Room Modal ── */}
+      <Modal
+        open={!!transferBooking}
+        onClose={() => { setTransferBooking(null); setTransferRoomId(''); }}
+        maxWidth="max-w-md"
+        labelledBy="bookings-transfer-title"
+      >
       {transferBooking && (() => {
         const parseDT = (s) => new Date(String(s ?? '').replace(' ', 'T'));
         const transferStart = parseDT(transferBooking.checkIn);
@@ -460,54 +474,52 @@ export default function Bookings({ embedded = false }) {
           return taken < qty;
         });
         return (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Transfer room">
-            <div className="bg-white rounded-lg w-full max-w-md">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
-                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    type="button"
-                    className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close"><i className="fas fa-times" aria-hidden="true"></i></button>
-                </div>
-                <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
-                  <p className="font-medium text-slate-800">{parseWalkIn(transferBooking)?.name ?? transferBooking.guest}</p>
-                  <p className="text-slate-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
-                </div>
-                <div className="mb-5">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Transfer to Room</label>
-                  {availableRooms.length === 0 ? (
-                    <p className="text-sm text-rose-600">No other rooms are available for this time slot.</p>
-                  ) : (
-                    <select value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
-                      aria-label="Transfer to room"
-                      className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
-                      <option value="">Select a room...</option>
-                      {availableRooms.map(r => {
-                        const qty   = Number(r.quantity ?? 1);
-                        const taken = overlapCounts.get(r.id) ?? 0;
-                        const free  = Math.max(0, qty - taken);
-                        const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
-                        return (
-                          <option key={r.id} value={r.id}>{r.name}{suffix}</option>
-                        );
-                      })}
-                    </select>
-                  )}
-                </div>
-                <div className="flex justify-end gap-3">
-                  <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="px-4 py-2 border rounded text-sm text-slate-700">Cancel</button>
-                  <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded text-sm hover:bg-indigo-700 disabled:opacity-60">
-                    <i className="fas fa-exchange-alt mr-1"></i>
-                    {transferring ? 'Transferring...' : 'Transfer'}
-                  </button>
-                </div>
-              </div>
+          <div className="p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 id="bookings-transfer-title" className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
+              <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
+                type="button"
+                className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close"><i className="fas fa-times" aria-hidden="true"></i></button>
+            </div>
+            <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
+              <p className="font-medium text-slate-800">{parseWalkIn(transferBooking)?.name ?? transferBooking.guest}</p>
+              <p className="text-slate-600">Currently in: <span className="font-semibold">{transferBooking.roomType}</span></p>
+            </div>
+            <div className="mb-5">
+              <label htmlFor="bookings-transfer-room" className="block text-sm font-medium text-slate-700 mb-2">Transfer to Room</label>
+              {availableRooms.length === 0 ? (
+                <p role="alert" className="text-sm text-rose-700">No other rooms are available for this time slot.</p>
+              ) : (
+                <select id="bookings-transfer-room" value={transferRoomId} onChange={e => setTransferRoomId(e.target.value)}
+                  className="w-full border border-slate-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400">
+                  <option value="">Select a room...</option>
+                  {availableRooms.map(r => {
+                    const qty   = Number(r.quantity ?? 1);
+                    const taken = overlapCounts.get(r.id) ?? 0;
+                    const free  = Math.max(0, qty - taken);
+                    const suffix = qty > 1 ? ` — ${free} of ${qty} free` : '';
+                    return (
+                      <option key={r.id} value={r.id}>{r.name}{suffix}</option>
+                    );
+                  })}
+                </select>
+              )}
+            </div>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
+                type="button"
+                className="px-4 py-2.5 min-h-11 border border-slate-200 rounded-md text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Cancel</button>
+              <button onClick={handleTransfer} disabled={!transferRoomId || transferring || availableRooms.length === 0}
+                type="button"
+                className="px-4 py-2.5 min-h-11 bg-indigo-600 text-white rounded-md text-sm hover:bg-indigo-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
+                <i className="fas fa-exchange-alt mr-1" aria-hidden="true"></i>
+                {transferring ? 'Transferring...' : 'Transfer'}
+              </button>
             </div>
           </div>
         );
       })()}
+      </Modal>
 
       {/* ── View Booking Modal ── */}
       {viewBooking && (

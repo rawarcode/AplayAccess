@@ -1,6 +1,7 @@
 // src/frontdesk/components/BookingDetailModal.jsx
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Modal from '../../components/modals/Modal.jsx';
 import {
   updateBookingStatus, checkInBooking, checkOutBooking,
   addAmenity, updateAmenity, removeAmenity, downloadStaffReceipt, updateBookingGuests,
@@ -225,6 +226,15 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   // backend's upgrade-only re-pricing in Admin\BookingController.
   const [transferConfirmOpen, setTransferConfirmOpen] = useState(false);
   const transferDialogRef = useFocusTrap(transferConfirmOpen);
+
+  // Focus traps for the two inner dialogs that the parent Modal
+  // can't manage (they're portaled to body at z-[99998+], above
+  // the parent Modal's z-[9999]). Without these, Tab would leak
+  // from the inner dialog back into the parent BookingDetailModal
+  // content underneath.
+  const pendingActionRef = useFocusTrap(!!pendingAction);
+  const transferPickerRef = useFocusTrap(transferOpen);
+
 
   // Escape closes the transfer confirm dialog (ignored while the
   // transfer API call is in flight so the dialog can't vanish mid-save).
@@ -559,12 +569,16 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   const cfg   = pendingAction ? ACTION_CONFIG[pendingAction.type] : null;
   const clr   = cfg ? COLOR[cfg.color] : null;
 
+  // Block close while a confirmation dialog is open inside — we
+  // don't want the user to bail out of "Confirm check-in" by
+  // clicking the backdrop and accidentally closing the parent
+  // modal too. Both dialogs swallow Escape via their own focus
+  // ownership; this guard handles backdrop clicks.
+  const handleClose = () => { if (!pendingAction) onClose(); };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-         role="dialog" aria-modal="true" aria-label="Booking details"
-         onMouseDown={e => e.target === e.currentTarget && !pendingAction && onClose()}>
-      <div className="bg-white rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
+    <Modal open onClose={handleClose} maxWidth="max-w-lg" label={`Booking ${booking.id}`}>
+      <div className="p-6">
 
           {/* ── Confirmation Dialog (portaled, renders above this modal) ── */}
           {pendingAction && cfg && createPortal(
@@ -574,7 +588,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               onMouseDown={e => e.target === e.currentTarget && !actionLoading && setPendingAction(null)}
             >
               <div className="absolute inset-0 bg-black/50" />
-              <div className={`relative w-full max-w-sm rounded-xl border p-4 shadow-2xl ${clr.banner} animate-hero-fade-in opacity-0`}>
+              <div ref={pendingActionRef} tabIndex={-1} className={`relative w-full max-w-sm rounded-xl border p-4 shadow-2xl focus:outline-none ${clr.banner} animate-hero-fade-in opacity-0`}>
                 <div className="flex items-start gap-3 mb-3">
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${clr.btn} text-white`}>
                     <i className={`fas ${cfg.icon} text-sm`}></i>
@@ -1165,10 +1179,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
               onMouseDown={e => e.target === e.currentTarget && !transferring && !transferConfirmOpen && (setTransferOpen(false), setTransferRoomId(''))}
             >
               <div className="absolute inset-0 bg-black/50" />
-              <div className="relative w-full max-w-sm rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-2xl animate-hero-fade-in opacity-0">
+              <div ref={transferPickerRef} tabIndex={-1} className="relative w-full max-w-sm rounded-xl border border-violet-200 bg-violet-50 p-4 shadow-2xl animate-hero-fade-in opacity-0 focus:outline-none">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center shrink-0">
-                  <i className="fas fa-exchange-alt text-white text-xs"></i>
+                  <i className="fas fa-exchange-alt text-white text-xs" aria-hidden="true"></i>
                 </div>
                 <div>
                   <p className="font-semibold text-sm text-violet-900">Transfer to Another Room</p>
@@ -1414,11 +1428,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </button>
               )}
               <button onClick={onClose}
-                className="px-3 py-2 border rounded text-sm text-slate-700">Close</button>
+                type="button"
+                className="px-3 py-2.5 min-h-11 border border-slate-200 rounded text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">Close</button>
             </div>
           )}
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }

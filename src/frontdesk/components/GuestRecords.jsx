@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Sidebar from './Layout/Sidebar';
+import Modal from '../../components/modals/Modal.jsx';
 import { getFdBookings } from '../../lib/frontdeskApi';
 import Toast, { useToast } from '../../components/ui/Toast';
 import { fmtDate, fmtMoney, fmtGuestEmail } from '../../lib/format';
@@ -166,12 +167,11 @@ export default function GuestRecords({ embedded = false }) {
     <Shell>
       <Helmet><title>Guest Records — Frontdesk</title></Helmet>
       {/* ── View Guest Modal ── */}
-      {viewGuest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-label="Guest history">
-          <div className="bg-white rounded-lg w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+      <Modal open={!!viewGuest} onClose={() => setViewGuest(null)} maxWidth="max-w-xl" labelledBy="guest-history-title">
+        {viewGuest && (
+          <div className="p-6">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Visit History — {viewGuest.name}</h3>
+                <h3 id="guest-history-title" className="text-lg font-semibold">Visit History — {viewGuest.name}</h3>
                 <button onClick={() => setViewGuest(null)} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close">
                   <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
@@ -286,14 +286,14 @@ export default function GuestRecords({ embedded = false }) {
 
               <div className="flex justify-end mt-4">
                 <button onClick={() => setViewGuest(null)}
-                  className="px-4 py-2 border rounded text-sm text-slate-700">
+                  type="button"
+                  className="px-4 py-2.5 min-h-11 border border-slate-200 rounded-md text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                   Close
                 </button>
               </div>
-            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* ── Main ── */}
       <main className="p-6">
