@@ -466,7 +466,8 @@ export default function Bookings({ embedded = false }) {
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-lg font-semibold">Transfer Guest — {transferBooking.id}</h3>
                   <button onClick={() => { setTransferBooking(null); setTransferRoomId(''); }}
-                    className="text-slate-500 hover:text-slate-700" aria-label="Close"><i className="fas fa-times"></i></button>
+                    type="button"
+                    className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close"><i className="fas fa-times" aria-hidden="true"></i></button>
                 </div>
                 <div className="p-4 bg-slate-50 rounded mb-4 text-sm">
                   <p className="font-medium text-slate-800">{parseWalkIn(transferBooking)?.name ?? transferBooking.guest}</p>
@@ -542,7 +543,7 @@ export default function Bookings({ embedded = false }) {
             <button
               type="button"
               onClick={() => navigate(walkinPath)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm min-h-[40px] focus:outline-none focus:ring-2 focus:ring-sky-400 focus:ring-offset-2"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold shadow-sm min-h-11 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
             >
               <i className="fas fa-plus" aria-hidden="true"></i>New Walk-in
             </button>
@@ -620,7 +621,7 @@ export default function Bookings({ embedded = false }) {
                   <thead className="bg-slate-50">
                     <tr>
                       {['ID', 'Guest', 'Room', 'Visit Time', 'Guests', 'Payment', 'Status'].map(h => (
-                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">{h}</th>
+                        <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -697,7 +698,7 @@ export default function Bookings({ embedded = false }) {
                 </thead>
                 <tbody className="bg-white divide-y divide-slate-200">
                   {filtered.length === 0 ? (
-                    <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-400">No bookings found.</td></tr>
+                    <tr><td colSpan={8} className="px-4 py-10 text-center text-slate-600">No bookings found.</td></tr>
                   ) : paginated.map(b => {
                     const wi       = parseWalkIn(b);
                     const isWalkIn = b.source === 'walk-in';
@@ -735,7 +736,7 @@ export default function Bookings({ embedded = false }) {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setViewBooking(b); }}
-                            className="font-mono text-slate-600 hover:text-sky-700 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                            className="font-mono text-slate-700 hover:text-sky-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded px-1"
                             aria-label={`View booking ${b.id} for ${guestLabel}`}
                           >
                             {b.id}
@@ -864,7 +865,7 @@ export default function Bookings({ embedded = false }) {
                 buttons would re-create the same "everything crushed"
                 problem the desktop table has on phone widths. */}
             {filtered.length === 0 ? (
-              <div className="md:hidden px-4 py-10 text-center text-slate-400">
+              <div className="md:hidden px-4 py-10 text-center text-slate-600">
                 No bookings found.
               </div>
             ) : (
@@ -880,7 +881,7 @@ export default function Bookings({ embedded = false }) {
                   // overrides walk-in tint; both override the default
                   // sky border for online bookings.
                   const cardCls = [
-                    'w-full text-left rounded-xl border-l-4 border bg-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-sky-400',
+                    'w-full text-left rounded-xl border-l-4 border bg-white shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500',
                     overdue
                       ? 'border-l-rose-500 border-rose-200 bg-rose-50 hover:bg-rose-100'
                       : isWalkIn
@@ -921,18 +922,18 @@ export default function Bookings({ embedded = false }) {
                         {/* Body — Room + Stay label/value pair */}
                         <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                           <div className="min-w-0">
-                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room</p>
+                            <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Room</p>
                             <p className="text-sm text-slate-700 mt-0.5 truncate">{b.roomType}</p>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Stay</p>
+                            <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Stay</p>
                             <p className="text-sm text-slate-700 mt-0.5">
                               {fmtDateTime(b.checkIn)}
                               <span className="block text-xs text-slate-400">→ {fmtTime(b.checkOut)}</span>
                             </p>
                           </div>
                           <div className="min-w-0">
-                            <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                            <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Guests</p>
                             <p className="text-sm text-slate-700 mt-0.5">{b.guests}</p>
                           </div>
                           {(showSourcePill || overdue) && (

@@ -652,7 +652,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           {/* Header */}
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Booking — {booking.id}</h3>
-            <button onClick={onClose} className="text-slate-500 hover:text-slate-700" aria-label="Close">
+            <button onClick={onClose} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close">
               <i className="fas fa-times"></i>
             </button>
           </div>
@@ -815,7 +815,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
           <div className="mb-4">
             <p className="text-xs font-semibold text-slate-500 uppercase mb-2">Add-ons</p>
             {(booking.amenities?.length ?? 0) === 0 ? (
-              <p className="text-xs text-slate-400 mb-2">No add-ons added.</p>
+              <p className="text-xs text-slate-600 mb-2">No add-ons added.</p>
             ) : (
               <div className="space-y-1 mb-2">
                 {booking.amenities.map(a => {
@@ -1132,7 +1132,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   </div>
                 </div>
               ) : noneLeft ? (
-                <p className="text-xs text-slate-400 italic">
+                <p className="text-xs text-slate-600 italic">
                   {pickable.length === 0
                     ? 'All add-ons are already on this booking. Use the pencil icon above to change a quantity, or the × to remove.'
                     : 'All available add-ons are sold out for this booking window.'}
@@ -1146,7 +1146,7 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     const first = selectable[0];
                     setAddingAmenity({ id: first.id, name: first.name, qty: 1, unit_price: first.price, per_booking: first.per_booking, max_qty: first.max_qty, icon: first.icon });
                   }}
-                  className="text-xs text-sky-600 hover:text-sky-800 flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                  className="text-xs text-sky-700 hover:text-sky-800 inline-flex items-center gap-1 px-1 py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded"
                 >
                   <i className="fas fa-plus-circle" aria-hidden="true"></i> Add add-on
                 </button>

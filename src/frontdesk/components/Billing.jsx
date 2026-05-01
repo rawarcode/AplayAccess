@@ -110,7 +110,7 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
             <h3 className="text-lg font-bold text-slate-800">Billing Detail</h3>
             <p className="text-xs text-slate-400">{b.id}</p>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-xl" aria-label="Close">
+          <button onClick={onClose} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 text-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close">
             <i className="fas fa-times"></i>
           </button>
         </div>

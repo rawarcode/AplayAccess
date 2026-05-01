@@ -172,8 +172,8 @@ export default function GuestRecords({ embedded = false }) {
             <div className="p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold">Visit History — {viewGuest.name}</h3>
-                <button onClick={() => setViewGuest(null)} className="text-slate-500 hover:text-slate-700" aria-label="Close">
-                  <i className="fas fa-times"></i>
+                <button onClick={() => setViewGuest(null)} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close">
+                  <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 
@@ -256,15 +256,15 @@ export default function GuestRecords({ embedded = false }) {
                     </div>
                     <div className="grid grid-cols-3 gap-2 mt-2 pt-2 border-t border-slate-100 text-xs">
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Date</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Date</p>
                         <p className="text-slate-700 mt-0.5">{fmtDate(v.checkIn)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Guests</p>
                         <p className="text-slate-700 mt-0.5">{v.guests}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Amount</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Amount</p>
                         <p className="text-slate-800 font-medium mt-0.5">{fmtMoney(v.total)}</p>
                       </div>
                     </div>
@@ -327,7 +327,7 @@ export default function GuestRecords({ embedded = false }) {
                 <thead className="bg-slate-50">
                   <tr>
                     {['Guest', 'Contact', 'Total Visits', 'Completed', 'Last Visit', 'Total Spend', 'Actions'].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-400 uppercase">{h}</th>
+                      <th key={h} className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -433,7 +433,7 @@ export default function GuestRecords({ embedded = false }) {
                 <tbody className="divide-y divide-slate-200">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-10 text-center text-slate-400">No guests found.</td>
+                      <td colSpan={7} className="px-4 py-10 text-center text-slate-600">No guests found.</td>
                     </tr>
                   ) : paginated.map((g) => (
                     <tr
@@ -441,7 +441,7 @@ export default function GuestRecords({ embedded = false }) {
                       role="button"
                       tabIndex={0}
                       aria-label={`View history for ${g.name}`}
-                      className="hover:bg-slate-50 cursor-pointer focus:outline-none focus:bg-sky-50 focus:ring-2 focus:ring-inset focus:ring-sky-400"
+                      className="hover:bg-slate-50 cursor-pointer focus:outline-none focus-visible:bg-sky-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500"
                       onClick={() => setViewGuest(g)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
@@ -483,7 +483,7 @@ export default function GuestRecords({ embedded = false }) {
                 desktop) collapses into the chevron affordance and an
                 aria-label on the card. */}
             {filtered.length === 0 ? (
-              <div className="md:hidden px-4 py-10 text-center text-slate-400">
+              <div className="md:hidden px-4 py-10 text-center text-slate-600">
                 No guests found.
               </div>
             ) : (
@@ -493,7 +493,7 @@ export default function GuestRecords({ embedded = false }) {
                     <button
                       type="button"
                       onClick={() => setViewGuest(g)}
-                      className="w-full text-left rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:bg-slate-50 transition focus:outline-none focus:ring-2 focus:ring-sky-400"
+                      className="w-full text-left rounded-xl border border-slate-200 bg-white shadow-sm p-4 hover:bg-slate-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                       aria-label={`View history for ${g.name}`}
                     >
                       {/* Top — avatar + name + chevron */}
@@ -512,18 +512,18 @@ export default function GuestRecords({ embedded = false }) {
                       {/* Stats — 2x2 grid */}
                       <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                         <div>
-                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Visits</p>
+                          <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Visits</p>
                           <p className="text-sm text-slate-700 mt-0.5">
                             {g.totalVisits}
                             <span className="text-emerald-700 font-medium"> · {g.completedVisits} done</span>
                           </p>
                         </div>
                         <div>
-                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Last Visit</p>
+                          <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Last Visit</p>
                           <p className="text-sm text-slate-700 mt-0.5">{fmtDate(g.lastVisit)}</p>
                         </div>
                         <div className="col-span-2">
-                          <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Total Spend</p>
+                          <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Total Spend</p>
                           <p className="text-sm font-semibold text-slate-800 mt-0.5">{fmtMoney(g.totalSpend)}</p>
                         </div>
                       </div>

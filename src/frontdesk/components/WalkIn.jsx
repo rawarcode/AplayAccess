@@ -476,7 +476,7 @@ export default function WalkIn({ embedded = false }) {
                     <p className="text-sky-200 text-xs">Review all details before confirming</p>
                   </div>
                 </div>
-                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white" aria-label="Close">
+                <button onClick={() => setConfirmOpen(false)} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-white/80 hover:text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Close">
                   <i className="fas fa-times"></i>
                 </button>
               </div>
@@ -691,7 +691,7 @@ export default function WalkIn({ embedded = false }) {
                   <p className="text-sky-200 text-xs">Fill in guest and booking details</p>
                 </div>
               </div>
-              <button onClick={() => { setFormOpen(false); setFormError(''); closeWizard(); }} className="text-white/70 hover:text-white" aria-label="Close">
+              <button onClick={() => { setFormOpen(false); setFormError(''); closeWizard(); }} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-white/80 hover:text-white hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Close">
                 <i className="fas fa-times"></i>
               </button>
             </div>
