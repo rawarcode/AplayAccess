@@ -52,6 +52,11 @@ const DEFAULT_CONTENT = {
   // intentionally omitted (no longer accepted — only GCash + cash).
   home_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    // Still-frame fallback for video heroes — used when the
+    // visitor prefers reduced motion (a11y) and as the buffering
+    // frame on slow connections. Only meaningful when background
+    // is a video; the editor surfaces the picker conditionally.
+    poster:     "",
     title:      "Aplaya Beach Resort",
     subtitle:   "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.",
     ctaText:    "See rooms & rates",
@@ -601,6 +606,45 @@ function HomeHeroEditor({ content, onSave }) {
               </div>
             </div>
           </div>
+
+          {/* Poster picker — only meaningful when the background is
+              a video. Two reasons to set it:
+                1. Visitors with prefers-reduced-motion get the still
+                   instead of the autoplay video (the page would
+                   otherwise render a broken image element pointing
+                   at the video URL).
+                2. It's the frame the browser shows while the video
+                   is buffering on slow connections.
+              Hidden when background is an image — there's no video
+              to fall back from. */}
+          {isVideoUrl(form.background) && (
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+                Poster Image <span className="text-slate-400 normal-case tracking-normal">(fallback for reduced motion)</span>
+              </label>
+              <div className="flex items-start gap-4">
+                <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                  {form.poster ? (
+                    <img src={form.poster} alt="Poster" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="text-center"><i className="fas fa-image text-slate-300 text-lg" aria-hidden="true"></i><p className="text-[9px] text-slate-300 mt-0.5">No poster</p></div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <MediaPicker
+                    value={form.poster || ""}
+                    onChange={url => setForm(p => ({ ...p, poster: url }))}
+                    previousUrl={content.poster}
+                    folder="hero"
+                    accept="image/*"
+                    label="Choose Poster"
+                  />
+                  <p className="text-[10px] text-slate-400">A still frame from your video, or any representative image. Skipped: visitors who can't see the video get only a dark hero.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Title" value={form.title} onChange={f("title")} />
             <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />

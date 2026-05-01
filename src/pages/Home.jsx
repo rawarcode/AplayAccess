@@ -33,6 +33,14 @@ const HOME_DEFAULTS = {
     // 1600px is enough for full-bleed desktop given the 50% dark
     // overlay; previous 2073px was wasteful on every viewport.
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80",
+    // Optional still-frame fallback used when `background` is a
+    // video AND the visitor prefers-reduced-motion. Without this,
+    // the reduced-motion branch would point an <img> at a video
+    // URL and render broken. Empty by default — when the owner
+    // uploads a video hero through the CMS, the editor prompts
+    // for a poster image; if they skip it, we render only the
+    // dark overlay (no image element) so nothing breaks.
+    poster:   "",
     title:    "Aplaya Beach Resort",
     subtitle: "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.",
     ctaText:  "See rooms & rates",
@@ -226,23 +234,31 @@ export default function Home() {
       <Helmet>
         <title>Aplaya Beach Resort — Book Your Stay</title>
         <meta name="description" content="Book rooms at Aplaya Beach Resort Cavite. Day visits, night stays, and 24-hour beach getaway packages." />
-        {!isVideoUrl(hero.background) && (
-          // Responsive preload. For Unsplash URLs (the default and most
-          // owner overrides), advertise an imagesrcset so modern browsers
-          // preload only the width that matches the viewport. Other URLs
-          // fall back to the plain href.
-          hero.background.includes('images.unsplash.com')
+        {(() => {
+          // Pick what to preload as the LCP image. Three cases:
+          //   (a) hero.background is an image  → preload it
+          //       (Unsplash gets an imagesrcset for responsive width).
+          //   (b) hero.background is a video + hero.poster set
+          //       → preload the poster (it's the LCP for reduced-motion
+          //       users AND the visible frame before the video buffers).
+          //   (c) hero.background is a video, no poster set → nothing
+          //       to preload as image.
+          const bgIsVideo = isVideoUrl(hero.background);
+          const lcpImage  = bgIsVideo ? (hero.poster || "") : hero.background;
+          if (!lcpImage) return null;
+          const isUnsplash = lcpImage.includes('images.unsplash.com');
+          return isUnsplash
             ? <link
                 rel="preload"
                 as="image"
-                href={hero.background}
+                href={lcpImage}
                 imageSrcSet={[640, 1024, 1600].map(w =>
-                  `${hero.background.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                  `${lcpImage.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
                 ).join(', ')}
                 imageSizes="100vw"
               />
-            : <link rel="preload" as="image" href={hero.background} />
-        )}
+            : <link rel="preload" as="image" href={lcpImage} />;
+        })()}
       </Helmet>
 
       {/* ============================================================ */}
@@ -258,31 +274,40 @@ export default function Home() {
               or fighting with CSS.
           The dark overlay that used to live in the linear-gradient is
           now its own absolutely-positioned div for the same reason. */}
-      <section className="min-h-screen flex items-center justify-center text-center relative overflow-hidden">
-        {isVideoUrl(hero.background) && !reducedMotion ? (
-          <video
-            src={hero.background}
-            autoPlay muted loop playsInline
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        ) : (() => {
-          // Image variant — covers (a) hero is an image URL, and
-          // (b) hero is a video URL but the user prefers reduced
-          // motion (so we fall back to a still-frame image at the
-          // same URL; for video CMS overrides this means the
-          // browser will skip the playable parts and treat it as a
-          // static asset, which is acceptable). The Unsplash
-          // srcset matches the Helmet preload's imageSrcSet.
-          const isUnsplash = typeof hero.background === 'string' && hero.background.includes('images.unsplash.com');
+      <section className="min-h-screen flex items-center justify-center text-center relative overflow-hidden bg-slate-900">
+        {(() => {
+          const bgIsVideo = isVideoUrl(hero.background);
+          // Reduced-motion + video + poster → still image.
+          // Reduced-motion + video + no poster → nothing
+          // (the section's slate-900 bg + dark overlay keep the
+          // hero text legible; better than a broken <img> pointed
+          // at a video file).
+          // Otherwise: video plays (with poster as buffering
+          // frame if available), or background image renders
+          // with srcset as before.
+          if (bgIsVideo && !reducedMotion) {
+            return (
+              <video
+                src={hero.background}
+                poster={hero.poster || undefined}
+                autoPlay muted loop playsInline
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            );
+          }
+          // Choose the still-image source for this branch.
+          const stillSrc = bgIsVideo ? hero.poster : hero.background;
+          if (!stillSrc) return null;
+          const isUnsplash = typeof stillSrc === 'string' && stillSrc.includes('images.unsplash.com');
           const srcSet = isUnsplash
             ? [640, 1024, 1600].map(w =>
-                `${hero.background.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                `${stillSrc.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
               ).join(', ')
             : undefined;
           return (
             <img
-              src={hero.background}
+              src={stillSrc}
               srcSet={srcSet}
               sizes="100vw"
               alt=""
