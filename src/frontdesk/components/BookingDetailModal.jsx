@@ -346,10 +346,15 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
   }
 
   async function handleUpdateGuests() {
-    if (guestCount === booking.guests) { setGuestEdit(false); return; }
+    // Clamp here too in case Save was clicked while the input was
+    // mid-edit (empty string or fractional) and onBlur hasn't fired.
+    const parsed = parseInt(guestCount, 10);
+    const safe   = Number.isNaN(parsed) || parsed < 1 ? 1 : parsed;
+    if (safe !== guestCount) setGuestCount(safe);
+    if (safe === booking.guests) { setGuestEdit(false); return; }
     setGuestLoading(true);
     try {
-      const res = await updateBookingGuests(booking.bookingId, guestCount);
+      const res = await updateBookingGuests(booking.bookingId, safe);
       // Pull the full formatted booking from the response so entranceFee,
       // paidAmount, fullyPaid, and outstanding all reflect the backend's
       // recomputation (otherwise the billing breakdown stays stale).
@@ -789,7 +794,41 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         <button type="button" onClick={() => setGuestCount(g => Math.max(1, g - 1))}
                           aria-label="Decrease guest count"
                           className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">−</button>
-                        <span className="w-8 text-center font-bold text-lg text-amber-900" aria-live="polite" aria-label={`Guest count ${guestCount}`}>{guestCount}</span>
+                        {/* Typeable count — staff can either step with ± or
+                            tab into the input and type. type="number" gives
+                            mobile staff the numeric keyboard (Apple HIG +
+                            Material input-type-keyboard guideline). Validate
+                            on blur (Material inline-validation: don't yell
+                            on every keystroke) — snap empty/<1 back to 1
+                            so handleUpdateGuests never POSTs an invalid
+                            value. Width fits 3 digits comfortably. */}
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={1}
+                          step={1}
+                          value={guestCount}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            // Allow transient empty while typing — clamp on blur.
+                            if (v === '') { setGuestCount(''); return; }
+                            const n = parseInt(v, 10);
+                            if (!Number.isNaN(n)) setGuestCount(n);
+                          }}
+                          onBlur={() => {
+                            const n = parseInt(guestCount, 10);
+                            setGuestCount(Number.isNaN(n) || n < 1 ? 1 : n);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              e.currentTarget.blur();
+                              handleUpdateGuests();
+                            }
+                          }}
+                          aria-label="Number of guests"
+                          className="h-11 w-16 text-center font-bold text-lg text-amber-900 bg-white border border-amber-300 rounded-lg tabular-nums focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
                         <button type="button" onClick={() => setGuestCount(g => g + 1)}
                           aria-label="Increase guest count"
                           className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">+</button>
