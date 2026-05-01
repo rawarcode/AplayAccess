@@ -3,25 +3,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { useContent } from "../context/ContentContext.jsx";
-
-// Live read of prefers-reduced-motion. Subscribes so OS-level toggles
-// take effect immediately (without a page refresh) — useful when the
-// hero is a video that should stop autoplaying the moment the user
-// flips reduce-motion in system settings.
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return false;
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    const onChange = (e) => setReduced(e.matches);
-    mq.addEventListener?.('change', onChange);
-    return () => mq.removeEventListener?.('change', onChange);
-  }, []);
-  return reduced;
-}
+import usePrefersReducedMotion from "../hooks/usePrefersReducedMotion.js";
 
 // Defaults are deliberately specific, not aspirational. They describe
 // what Aplaya actually offers (rates, location, booking model) so the

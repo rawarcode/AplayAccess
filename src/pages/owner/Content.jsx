@@ -126,6 +126,10 @@ const DEFAULT_CONTENT = {
   // pool, no luxury accommodations, marketing shouldn't claim them.
   resort_hero: {
     background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80",
+    // Still-frame fallback used when `background` is a video and
+    // the visitor prefers reduced motion. See HOME_DEFAULTS.hero
+    // notes — same a11y contract.
+    poster:     "",
     title:      "Aplaya Beach Resort",
     subtitle:   "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.",
     ctaText:    "See rooms & rates",
@@ -135,6 +139,8 @@ const DEFAULT_CONTENT = {
     paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.",
     paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.",
     image:      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
+    // Poster still for video about-image (same role as hero.poster).
+    imagePoster: "",
   },
   resort_rooms: {
     sectionTitle:    "Rooms, cottages, and pavilions",
@@ -1312,6 +1318,38 @@ function ResortHeroEditor({ content, onSave }) {
               </div>
             </div>
           </div>
+
+          {/* Poster picker — only when background is a video. See
+              HomeHeroEditor for the full rationale; same a11y
+              contract on the public Resort page. */}
+          {isVideoUrl(form.background) && (
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+                Poster Image <span className="text-slate-400 normal-case tracking-normal">(fallback for reduced motion)</span>
+              </label>
+              <div className="flex items-start gap-4">
+                <div className="h-20 w-32 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                  {form.poster ? (
+                    <img src={form.poster} alt="Poster" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="text-center"><i className="fas fa-image text-slate-300 text-lg" aria-hidden="true"></i><p className="text-[9px] text-slate-300 mt-0.5">No poster</p></div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <MediaPicker
+                    value={form.poster || ""}
+                    onChange={url => setForm(p => ({ ...p, poster: url }))}
+                    previousUrl={content.poster}
+                    folder="hero"
+                    accept="image/*"
+                    label="Choose Poster"
+                  />
+                  <p className="text-[10px] text-slate-400">A still frame from your video, or any representative image. Skipped: visitors who can't see the video get only a dark hero.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Title" value={form.title} onChange={f("title")} />
             <Field label="Subtitle" value={form.subtitle} onChange={f("subtitle")} rows={2} />
@@ -1391,6 +1429,38 @@ function ResortAboutEditor({ content, onSave }) {
               </div>
             </div>
           </div>
+
+          {/* Poster picker for the about-section video — same a11y
+              fallback contract as hero.poster. Only shown when the
+              section media is a video. */}
+          {isVideoUrl(form.image) && (
+            <div>
+              <label className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-2">
+                Poster Image <span className="text-slate-400 normal-case tracking-normal">(fallback for reduced motion)</span>
+              </label>
+              <div className="flex items-start gap-4">
+                <div className="h-20 w-28 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center shrink-0 overflow-hidden">
+                  {form.imagePoster ? (
+                    <img src={form.imagePoster} alt="Poster" className="h-full w-full object-cover" onError={e => { e.target.style.display = "none"; }} loading="lazy" decoding="async" />
+                  ) : (
+                    <div className="text-center"><i className="fas fa-image text-slate-300 text-lg" aria-hidden="true"></i><p className="text-[9px] text-slate-300 mt-0.5">No poster</p></div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <MediaPicker
+                    value={form.imagePoster || ""}
+                    onChange={url => setForm(p => ({ ...p, imagePoster: url }))}
+                    previousUrl={content.imagePoster}
+                    folder="hero"
+                    accept="image/*"
+                    label="Choose Poster"
+                  />
+                  <p className="text-[10px] text-slate-400">Still frame visitors see when reduced-motion is on.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* About preview */}
           <div className="mt-2 p-4 bg-slate-50 rounded-xl border border-slate-100">
             <p className="text-[10px] text-slate-400 uppercase tracking-wide mb-3 font-medium">Live Preview</p>

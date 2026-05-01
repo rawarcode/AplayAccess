@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useContent } from "../context/ContentContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import usePrefersReducedMotion from "../hooks/usePrefersReducedMotion.js";
 import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { getAnnouncements } from "../lib/resortApi.js";
@@ -149,8 +150,8 @@ function WaveDivider({ flip = false, color = "#ffffff" }) {
 // CLAUDE.md hazard note: editing one without the other creates a
 // "live site shows X, builder pre-fills Y" mismatch.
 const DEFAULT_PC = {
-  hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", title: "Aplaya Beach Resort", subtitle: "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.", ctaText: "See rooms & rates" },
-  about:      { title: "About the resort", paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.", paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", rating: "4.9" },
+  hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", poster: "", title: "Aplaya Beach Resort", subtitle: "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.", ctaText: "See rooms & rates" },
+  about:      { title: "About the resort", paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.", paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", imagePoster: "", rating: "4.9" },
   rooms:      { sectionTitle: "Rooms, cottages, and pavilions", sectionSubtitle: "Pick what fits your group size and the kind of trip you're planning." },
   contact:    { address: "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110", phone: "+63 908 191 4721", email: "aplayabeachresortph@gmail.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus", osm_url: "https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971" },
   reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
@@ -236,6 +237,7 @@ export default function Resort() {
   const { user, login } = useAuth();
   const isLoggedIn = !!user;
   const siteContent = useContent();
+  const reducedMotion = usePrefersReducedMotion();
   const [toast, showToast, clearToast, toastType, toastAction] = useToast();
 
   const location = useLocation();
@@ -642,34 +644,88 @@ export default function Resort() {
       <Helmet>
         <title>Aplaya Beach Resort Cavite — Rooms, Amenities & Reviews</title>
         <meta name="description" content="Explore rooms, amenities, gallery, and guest reviews at Aplaya Beach Resort in Cavite, Philippines." />
-        {!isVideoUrl(pc.hero.background) && (
-          <link rel="preload" as="image" href={pc.hero.background} />
-        )}
+        {(() => {
+          // Preload the LCP hero image. If the hero is a video,
+          // preload its poster (the still that reduced-motion
+          // users see and that buffers in for everyone else); if
+          // there's no poster, nothing image-shaped to preload.
+          // Unsplash gets imageSrcSet so mobile preloads a smaller
+          // file than desktop.
+          const bgIsVideo = isVideoUrl(pc.hero.background);
+          const lcpImage  = bgIsVideo ? (pc.hero.poster || "") : pc.hero.background;
+          if (!lcpImage) return null;
+          const isUnsplash = typeof lcpImage === "string" && lcpImage.includes("images.unsplash.com");
+          return isUnsplash
+            ? <link
+                rel="preload"
+                as="image"
+                href={lcpImage}
+                imageSrcSet={[640, 1024, 1600].map(w =>
+                  `${lcpImage.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                ).join(", ")}
+                imageSizes="100vw"
+              />
+            : <link rel="preload" as="image" href={lcpImage} />;
+        })()}
       </Helmet>
       <Toast message={toast} type={toastType} onClose={clearToast} action={toastAction} />
       <div className="pt-16">
-        {/* HERO */}
+        {/* HERO
+             Hero media is a real <img> or <video> layer (not a CSS
+             background-image) so:
+               * srcSet can match the Helmet preload's imageSrcSet
+                 — discovery hint and actual fetch agree on width;
+               * reduced-motion users get the still poster instead
+                 of the autoplay video, with no broken <img> at a
+                 video URL when no poster is set;
+               * the dark overlay is its own absolute layer instead
+                 of being baked into a linear-gradient. */}
         <section
           id="home"
-          className="min-h-screen flex items-center justify-center text-center relative overflow-hidden"
-          style={isVideoUrl(pc.hero.background) ? {} : {
-            backgroundImage: `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${pc.hero.background}')`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
+          className="min-h-screen flex items-center justify-center text-center relative overflow-hidden bg-slate-900"
         >
-          {/* Video background */}
-          {isVideoUrl(pc.hero.background) && (
-            <>
-              <video
-                src={pc.hero.background}
-                autoPlay muted loop playsInline
+          {(() => {
+            const bgIsVideo = isVideoUrl(pc.hero.background);
+            if (bgIsVideo && !reducedMotion) {
+              return (
+                <video
+                  src={pc.hero.background}
+                  poster={pc.hero.poster || undefined}
+                  autoPlay muted loop playsInline
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              );
+            }
+            // Still-image branch — image hero OR (video hero +
+            // reduced-motion). When the hero is a video and the
+            // owner hasn't set a poster, render no image (the
+            // slate-900 section bg + dark overlay keep the text
+            // readable; better than a broken image element).
+            const stillSrc = bgIsVideo ? pc.hero.poster : pc.hero.background;
+            if (!stillSrc) return null;
+            const isUnsplash = typeof stillSrc === "string" && stillSrc.includes("images.unsplash.com");
+            const srcSet = isUnsplash
+              ? [640, 1024, 1600].map(w =>
+                  `${stillSrc.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                ).join(", ")
+              : undefined;
+            return (
+              <img
+                src={stillSrc}
+                srcSet={srcSet}
+                sizes="100vw"
+                alt=""
+                aria-hidden="true"
                 className="absolute inset-0 w-full h-full object-cover"
+                fetchPriority="high"
+                loading="eager"
+                decoding="async"
               />
-              <div className="absolute inset-0 bg-black/50" />
-            </>
-          )}
+            );
+          })()}
+          {/* Dark overlay for legibility */}
+          <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
           <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
             <h1 className="text-4xl md:text-6xl font-bold mb-6 animate-hero-fade-in [animation-delay:0.2s] opacity-0">{pc.hero.title}</h1>
@@ -678,7 +734,8 @@ export default function Resort() {
             <div className="flex flex-col sm:flex-row justify-center gap-4 animate-hero-fade-in [animation-delay:1s] opacity-0">
               <button
                 onClick={() => requestBooking("")}
-                className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl text-lg font-medium transition shadow-lg hover:shadow-xl"
+                className="bg-sky-600 hover:bg-sky-700 text-white px-6 py-3 rounded-xl text-lg font-medium transition shadow-lg hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700"
+                type="button"
               >
                 {pc.hero.ctaText}
               </button>
@@ -686,14 +743,15 @@ export default function Resort() {
               {isLoggedIn ? (
                 <Link
                   to="/dashboard"
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium transition"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700"
                 >
                   My Dashboard →
                 </Link>
               ) : (
                 <button
                   onClick={() => setLoginOpen(true)}
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium transition"
+                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-3 rounded-md text-lg font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700"
+                  type="button"
                 >
                   Login
                 </button>
@@ -707,12 +765,14 @@ export default function Resort() {
             ) : null}
           </div>
 
-          {/* Scroll-down cue — section is now always rendered below, so
-              the scroll target is unconditional. */}
+          {/* Scroll-down cue — pulse animation is dropped under
+               reduced-motion; the chevron remains visible (still
+               affords scroll-down) but stops bouncing. */}
           <button
             onClick={() => document.getElementById("announcements")?.scrollIntoView({ behavior: "smooth" })}
-            className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition animate-pulse"
+            className={`absolute bottom-8 left-1/2 -translate-x-1/2 z-10 text-white/70 hover:text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700 rounded-full p-1 ${reducedMotion ? "" : "animate-pulse"}`}
             aria-label="Scroll down"
+            type="button"
           >
             <i className="fas fa-chevron-down text-2xl" aria-hidden="true" />
           </button>
@@ -734,11 +794,14 @@ export default function Resort() {
             {/* Section header */}
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-10">
               <div>
-                <h2 className="text-3xl font-bold text-slate-900 mb-1">
-                  📢 What's New
+                <h2 className="text-3xl font-bold text-slate-900 mb-1 flex items-center gap-2">
+                  <span className="inline-flex h-9 w-9 rounded-full bg-sky-100 text-sky-600 items-center justify-center" aria-hidden="true">
+                    <i className="fas fa-bullhorn text-base" aria-hidden="true"></i>
+                  </span>
+                  What's New
                 </h2>
                 <div className="w-12 h-1.5 rounded-full bg-sky-400 mb-2" />
-                <p className="text-slate-500 text-sm">Latest updates, events & promos</p>
+                <p className="text-slate-600 text-sm">Latest updates, events &amp; promos</p>
               </div>
               {/* See-all link only makes sense when there's something to browse */}
               {announcements?.length > 0 && (
@@ -944,21 +1007,43 @@ export default function Resort() {
 
               <div className="lg:w-1/2 relative">
                 <div className="absolute -inset-4 bg-sky-100 rounded-3xl rotate-2 opacity-40" />
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                  {isVideoUrl(pc.about.image) ? (
-                    <video
-                      src={pc.about.image}
-                      autoPlay muted loop playsInline
-                      className="w-full h-auto"
-                    />
-                  ) : (
-                    <img
-                      src={pc.about.image}
-                      alt="Resort View"
-                      className="w-full h-auto"
-                      loading="lazy"
-                    />
-                  )}
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-slate-100">
+                  {(() => {
+                    // About media can be a video. Same reduced-motion
+                    // contract as the hero: when the visitor opts out
+                    // of motion, render the still poster (or fall
+                    // back to the catalog image if pc.about.image
+                    // isn't actually a video). When the about media
+                    // is a video AND no imagePoster is set, render
+                    // a neutral placeholder rather than a broken img.
+                    const isVid = isVideoUrl(pc.about.image);
+                    if (isVid && !reducedMotion) {
+                      return (
+                        <video
+                          src={pc.about.image}
+                          poster={pc.about.imagePoster || undefined}
+                          autoPlay muted loop playsInline
+                          className="w-full h-auto"
+                        />
+                      );
+                    }
+                    const stillSrc = isVid ? pc.about.imagePoster : pc.about.image;
+                    if (!stillSrc) {
+                      return (
+                        <div className="w-full aspect-[4/3] flex items-center justify-center text-slate-300">
+                          <i className="fas fa-image text-4xl" aria-hidden="true" />
+                        </div>
+                      );
+                    }
+                    return (
+                      <img
+                        src={stillSrc}
+                        alt="Resort View"
+                        className="w-full h-auto"
+                        loading="lazy"
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -974,7 +1059,7 @@ export default function Resort() {
               </span>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">{pc.rooms.sectionTitle}</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto">{pc.rooms.sectionSubtitle}</p>
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto">{pc.rooms.sectionSubtitle}</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -1086,7 +1171,7 @@ export default function Resort() {
               </span>
               <h2 className="text-3xl font-bold text-slate-900 mb-2">Resort Amenities</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
-              <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+              <p className="text-lg text-slate-600 max-w-2xl mx-auto">
                 Everything you need for a perfect vacation experience.
               </p>
             </div>
@@ -1224,15 +1309,17 @@ export default function Resort() {
               <div className="relative">
                 <button
                   onClick={() => scrollRef.current?.scrollBy({ left: -340, behavior: "smooth" })}
-                  className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="absolute -left-2 md:-left-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                   aria-label="Previous review"
+                  type="button"
                 >
                   <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
                 </button>
                 <button
                   onClick={() => scrollRef.current?.scrollBy({ left: 340, behavior: "smooth" })}
-                  className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus:ring-2 focus:ring-white/50"
+                  className="absolute -right-2 md:-right-6 top-1/2 -translate-y-1/2 z-10 w-11 h-11 rounded-full bg-slate-900/50 hover:bg-slate-900/70 ring-1 ring-white/20 flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                   aria-label="Next review"
+                  type="button"
                 >
                   <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
                 </button>
@@ -1271,10 +1358,12 @@ export default function Resort() {
         <section id="gallery" className="py-24 bg-slate-900">
           <div ref={galleryRef} className="reveal-section max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-14">
-              <span className="text-4xl mb-3 block">📸</span>
+              <span className="inline-flex h-12 w-12 rounded-full bg-white/10 text-sky-300 items-center justify-center mb-3" aria-hidden="true">
+                <i className="fas fa-images text-xl" aria-hidden="true"></i>
+              </span>
               <h2 className="text-3xl font-bold text-white mb-2">Gallery</h2>
               <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
-              <p className="text-lg text-slate-400 max-w-2xl mx-auto">Take a visual journey through our beautiful resort.</p>
+              <p className="text-lg text-slate-300 max-w-2xl mx-auto">Take a visual journey through our beautiful resort.</p>
             </div>
 
             {galleryDisplay === null ? (
@@ -1327,7 +1416,7 @@ export default function Resort() {
             {/* Compact header — tight spacing, no decorative emoji */}
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-1.5">Get in touch</h2>
-              <p className="text-sm text-slate-500">Questions or help planning your stay? We'd love to hear from you.</p>
+              <p className="text-sm text-slate-600">Questions or help planning your stay? We'd love to hear from you.</p>
             </div>
 
             {/* Two columns: stacked on mobile, side-by-side on desktop.
@@ -1492,7 +1581,7 @@ export default function Resort() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 truncate">{pc.newsletter.title || 'Stay in the loop'}</p>
-                      <p className="text-xs text-slate-500">Occasional updates on offers &amp; events. Unsubscribe anytime.</p>
+                      <p className="text-xs text-slate-600">Occasional updates on offers &amp; events. Unsubscribe anytime.</p>
                     </div>
                   </div>
 
