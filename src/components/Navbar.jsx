@@ -52,18 +52,23 @@ export default function Navbar() {
 
   return (
     <nav className="fixed w-full z-40 bg-white shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 h-16 flex justify-between items-center gap-2">
         {/* Logo — routes to / (Home). Convention is that the brand
             lockup always takes users back to the site root; previously
             this pointed at /resort, which made clicking the logo a
             no-op when the user was already on the resort page and
-            hid the Home route entirely. */}
-        <Link to="/" className="flex items-center gap-2">
+            hid the Home route entirely.
+            min-w-0 + flex-1 lets the brand text shrink/truncate on
+            narrow viewports instead of pushing Book Now + hamburger
+            off-screen. The brand text drops from text-xl to text-base
+            below md to free more space, and the logo image gets a
+            shrink-0 so the icon never collapses to 0px. */}
+        <Link to="/" className="flex items-center gap-2 min-w-0 flex-1 md:flex-none" aria-label={`${brand.siteName} home`}>
           {brand.logoImage
-            ? <img src={brand.logoImage} alt={brand.siteName} className="h-8 w-auto object-contain" loading="eager" decoding="async" />
-            : <span className="text-2xl">🏖️</span>
+            ? <img src={brand.logoImage} alt="" className="h-8 w-auto object-contain shrink-0" loading="eager" decoding="async" />
+            : <span className="text-2xl shrink-0" aria-hidden="true">🏖️</span>
           }
-          <span className="text-xl font-bold text-sky-600">{brand.siteName}</span>
+          <span className="text-base md:text-xl font-bold text-sky-600 truncate">{brand.siteName}</span>
         </Link>
 
         {/* Desktop Navigation */}

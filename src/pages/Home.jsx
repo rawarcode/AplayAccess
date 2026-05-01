@@ -4,6 +4,25 @@ import { Helmet } from "react-helmet-async";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { useContent } from "../context/ContentContext.jsx";
 
+// Live read of prefers-reduced-motion. Subscribes so OS-level toggles
+// take effect immediately (without a page refresh) — useful when the
+// hero is a video that should stop autoplaying the moment the user
+// flips reduce-motion in system settings.
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = (e) => setReduced(e.matches);
+    mq.addEventListener?.('change', onChange);
+    return () => mq.removeEventListener?.('change', onChange);
+  }, []);
+  return reduced;
+}
+
 // Defaults are deliberately specific, not aspirational. They describe
 // what Aplaya actually offers (rates, location, booking model) so the
 // site doesn't read as auto-generated marketing copy on first paint.
@@ -163,6 +182,7 @@ function WaveDivider({ flip = false, color = "#ffffff" }) {
 
 export default function Home() {
   const siteContent = useContent();
+  const reducedMotion = usePrefersReducedMotion();
 
   // Derived synchronously — no useEffect, no painted frame of wrong defaults
   const { hero, resort, why, cta } = useMemo(() => {
@@ -226,27 +246,57 @@ export default function Home() {
       </Helmet>
 
       {/* ============================================================ */}
-      {/*  HERO  (#1 fade-in, #2 particles)                           */}
+      {/*  HERO  (#1 fade-in)                                          */}
       {/* ============================================================ */}
-      <section
-        className="min-h-screen flex items-center justify-center text-center relative overflow-hidden"
-        style={isVideoUrl(hero.background) ? {} : {
-          backgroundImage: `linear-gradient(rgba(0,0,0,.5), rgba(0,0,0,.5)), url('${hero.background}')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-        }}
-      >
-        {isVideoUrl(hero.background) && (
-          <>
-            <video
+      {/* Hero media is rendered as an actual <img> (or <video>) layer
+          rather than a CSS background-image. Reasons:
+            * srcset lets the browser pick a viewport-appropriate width;
+              the Helmet preload upstream advertises the same imageSrcSet
+              so the discovery hint and the actual fetch agree.
+            * Reduced-motion users can be served the still image instead
+              of the autoplay video without rewriting the markup tree
+              or fighting with CSS.
+          The dark overlay that used to live in the linear-gradient is
+          now its own absolutely-positioned div for the same reason. */}
+      <section className="min-h-screen flex items-center justify-center text-center relative overflow-hidden">
+        {isVideoUrl(hero.background) && !reducedMotion ? (
+          <video
+            src={hero.background}
+            autoPlay muted loop playsInline
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (() => {
+          // Image variant — covers (a) hero is an image URL, and
+          // (b) hero is a video URL but the user prefers reduced
+          // motion (so we fall back to a still-frame image at the
+          // same URL; for video CMS overrides this means the
+          // browser will skip the playable parts and treat it as a
+          // static asset, which is acceptable). The Unsplash
+          // srcset matches the Helmet preload's imageSrcSet.
+          const isUnsplash = typeof hero.background === 'string' && hero.background.includes('images.unsplash.com');
+          const srcSet = isUnsplash
+            ? [640, 1024, 1600].map(w =>
+                `${hero.background.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+              ).join(', ')
+            : undefined;
+          return (
+            <img
               src={hero.background}
-              autoPlay muted loop playsInline
+              srcSet={srcSet}
+              sizes="100vw"
+              alt=""
+              aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover"
+              fetchPriority="high"
+              loading="eager"
+              decoding="async"
             />
-            <div className="absolute inset-0 bg-black/50" />
-          </>
-        )}
+          );
+        })()}
+        {/* Dark overlay for legibility — same 50% black the old
+            linear-gradient produced. Sits between media and content. */}
+        <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
 
         {/* #1 — staggered fade-in */}
         <div className="px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto text-white z-10">
@@ -352,7 +402,18 @@ export default function Home() {
                     ).join(', ')
                   : undefined;
                 return (
-                  <div key={c.id || c.name} className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ring-1 ring-slate-200 hover:ring-sky-400/50 flex flex-col">
+                  // Whole-card clickable to match the single-card
+                  // variant. Previously the card had hover-lift but
+                  // only the inner CTA was tappable — split affordance.
+                  // Now the entire card is the Link; the visual button
+                  // stays as a styled <span> (HTML doesn't allow nested
+                  // interactive elements).
+                  <Link
+                    key={c.id || c.name}
+                    to={linkTo}
+                    aria-label={`${c.name} — ${c.ctaText || 'Explore & Book Now'}`}
+                    className="group block relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ring-1 ring-slate-200 hover:ring-sky-400/50 flex flex-col focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                  >
                     <img
                       src={c.image}
                       srcSet={imgSrcSet}
@@ -371,14 +432,13 @@ export default function Home() {
                       <h3 className="text-xl font-bold text-slate-900 mb-1">{c.name}</h3>
                       {c.location && <p className="text-xs text-slate-500 mb-2"><i className="fas fa-location-dot mr-1 text-slate-400"></i>{c.location}</p>}
                       <p className="text-sm text-slate-600 mb-5 leading-relaxed flex-1 line-clamp-4">{c.desc}</p>
-                      <Link
-                        to={linkTo}
-                        className="inline-flex items-center bg-sky-600 hover:bg-sky-700 text-white text-center px-5 py-2.5 rounded-lg font-medium text-sm transition w-fit mt-auto min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                      <span
+                        className="inline-flex items-center bg-sky-600 group-hover:bg-sky-700 text-white text-center px-5 py-2.5 rounded-lg font-medium text-sm transition w-fit mt-auto min-h-[44px]"
                       >
                         {c.ctaText || 'Explore & Book Now'}
-                      </Link>
+                      </span>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
