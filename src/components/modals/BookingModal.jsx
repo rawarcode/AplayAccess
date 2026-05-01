@@ -108,6 +108,26 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   // devices don't fire mouseenter reliably, so the explicit-tap
   // pattern gives mobile users their own way to see the room.
   const [lightboxRoom, setLightboxRoom] = useState(null);
+  // Focus trap + initial focus + return focus for the photo lightbox.
+  // Can't reuse Modal here because it's nested inside the parent
+  // BookingModal, which already owns the window-level Escape listener;
+  // we add our own capture-phase Escape below that calls
+  // stopPropagation so only the photo closes — not the booking flow.
+  const lightboxDialogRef = useFocusTrap(!!lightboxRoom);
+  useEffect(() => {
+    if (!lightboxRoom) return;
+    function onKey(e) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setLightboxRoom(null);
+      }
+    }
+    // Capture phase + stopPropagation: runs before Modal.jsx's own
+    // window listener and prevents the parent BookingModal from also
+    // seeing the Escape event.
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [lightboxRoom]);
   const [specialRequests, setSpecialRequests] = useState("");
   const [submitting,   setSubmitting]   = useState(false);
   const [error,        setError]        = useState("");
@@ -725,7 +745,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
   }
 
   return (
-    <Modal open={open} onClose={onClose} maxWidth="max-w-2xl">
+    <Modal open={open} onClose={onClose} maxWidth="max-w-2xl" labelledBy="booking-modal-title">
       {/* Hover/focus preview popover. Portaled directly to document.body
           so position:fixed is anchored to the viewport. Without the
           portal, the Modal dialog wrapper has animate-hero-fade-in
@@ -762,11 +782,13 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           close button to dismiss. */}
       {lightboxRoom && lightboxRoom.image && createPortal(
         <div
+          ref={lightboxDialogRef}
           className="fixed inset-0 z-[10001] bg-black/85 flex items-center justify-center p-4"
           onClick={() => setLightboxRoom(null)}
           role="dialog"
           aria-modal="true"
           aria-label={`Photo of ${lightboxRoom.name}`}
+          tabIndex={-1}
         >
           <button
             type="button"
@@ -795,7 +817,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
       )}
       <div className="p-6" ref={modalRef}>
         <div className="flex items-center justify-between mb-5">
-          <h3 className="text-2xl font-bold text-gray-900">
+          <h3 id="booking-modal-title" className="text-2xl font-bold text-gray-900">
             {isResume ? 'Continue Pending Booking' : 'Book Your Visit at Aplaya'}
             {!isResume && guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
           </h3>
@@ -1260,15 +1282,21 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                           one viable category — a resort with only rooms
                           doesn't need a filter. */}
                       {visibleChips.length > 2 && (
-                        <div className="flex flex-wrap gap-2 mb-3" role="tablist" aria-label="Filter rooms by category">
+                        // role="group" + aria-pressed — these are
+                        // toggle filter chips, not WAI-ARIA tabs (no
+                        // tabpanel relationship, no arrow-key
+                        // navigation between them, just buttons that
+                        // change a filter state). The earlier
+                        // tablist/tab markup misled screen readers
+                        // about the interaction model.
+                        <div className="flex flex-wrap gap-2 mb-3" role="group" aria-label="Filter rooms by category">
                           {visibleChips.map(c => {
                             const active = pickerFilter === c.key;
                             return (
                               <button
                                 key={c.key}
                                 type="button"
-                                role="tab"
-                                aria-selected={active}
+                                aria-pressed={active}
                                 onClick={() => setPickerFilter(c.key)}
                                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-xs font-semibold border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
                                   active
@@ -1511,50 +1539,62 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 {promoError && <p role="alert" className="mt-1 text-xs text-red-700"><i className="fas fa-times-circle mr-1" aria-hidden="true"></i>{promoError}</p>}
               </div>
 
-              {/* Payment option selector */}
+              {/* Payment option selector — exposed as a radiogroup
+                  with two role="radio" buttons. They're a binary
+                  mutually-exclusive choice, so radio semantics let
+                  screen readers describe state as "selected" + give
+                  arrow-key nav between options.
+                  Pay-in-Full subtitle corrected: previously claimed
+                  "₱0 balance · fully paid", which conflicted with
+                  the entrance-fee-at-gate rule documented in the
+                  later summary. New copy makes the split explicit. */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <i className="fas fa-wallet mr-1 text-blue-500"></i>Payment Option
-                </label>
-                <div className="grid grid-cols-2 gap-3">
+                <p id="bm-payment-option-label" className="block text-sm font-medium text-gray-700 mb-2">
+                  <i className="fas fa-wallet mr-1 text-blue-500" aria-hidden="true"></i>Payment Option
+                </p>
+                <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-labelledby="bm-payment-option-label">
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={paymentOption === "reservation"}
                     onClick={() => setPaymentOption("reservation")}
-                    className={`flex flex-col items-start p-3 border-2 rounded-xl transition-colors text-left ${
+                    className={`flex flex-col items-start p-3 min-h-11 border-2 rounded-xl transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 ${
                       paymentOption === "reservation"
                         ? "border-blue-500 bg-blue-50"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "reservation" ? "text-blue-600" : "text-gray-500"}`}>
-                      <i className="fas fa-bookmark mr-1"></i>Reserve Only
+                    <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "reservation" ? "text-blue-700" : "text-gray-700"}`}>
+                      <i className="fas fa-bookmark mr-1" aria-hidden="true"></i>Reserve Only
                     </span>
                     <span className={`text-xl font-extrabold tabular-nums leading-none ${paymentOption === "reservation" ? "text-blue-700" : "text-gray-800"}`}>
                       {formatPHP(reservationFee)}
                       <span className="text-xs font-medium opacity-70 ml-1">now</span>
                     </span>
-                    <span className="text-xs text-gray-500 mt-1">
+                    <span className="text-xs text-gray-700 mt-1">
                       Pay {formatPHP(Math.max(discountedTotal - reservationFee, 0))} at check-in
                     </span>
                   </button>
                   <button
                     type="button"
+                    role="radio"
+                    aria-checked={paymentOption === "full"}
                     onClick={() => setPaymentOption("full")}
-                    className={`flex flex-col items-start p-3 border-2 rounded-xl transition-colors text-left ${
+                    className={`flex flex-col items-start p-3 min-h-11 border-2 rounded-xl transition-colors text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 ${
                       paymentOption === "full"
                         ? "border-emerald-500 bg-emerald-50"
                         : "border-gray-200 hover:border-gray-300"
                     }`}
                   >
-                    <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "full" ? "text-emerald-600" : "text-gray-500"}`}>
-                      <i className="fas fa-check-circle mr-1"></i>Pay in Full
+                    <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${paymentOption === "full" ? "text-emerald-700" : "text-gray-700"}`}>
+                      <i className="fas fa-check-circle mr-1" aria-hidden="true"></i>Pay in Full
                     </span>
                     <span className={`text-xl font-extrabold tabular-nums leading-none ${paymentOption === "full" ? "text-emerald-700" : "text-gray-800"}`}>
                       {formatPHP(discountedTotal)}
                       <span className="text-xs font-medium opacity-70 ml-1">now</span>
                     </span>
-                    <span className="text-xs text-gray-500 mt-1">
-                      ₱0 balance · fully paid
+                    <span className="text-xs text-gray-700 mt-1">
+                      Room paid online · entrance fee at gate
                     </span>
                   </button>
                 </div>
