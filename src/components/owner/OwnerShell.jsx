@@ -487,7 +487,7 @@ export default function OwnerShell() {
               <h3 className="text-xl font-bold text-gray-800">
                 <i className="fas fa-user-cog mr-2 text-brand" aria-hidden="true"></i>Account Settings
               </h3>
-              <button onClick={closeSettings} className="text-gray-400 hover:text-gray-600 transition" aria-label="Close">
+              <button type="button" onClick={closeSettings} className="inline-flex items-center justify-center h-11 w-11 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label="Close Account Settings">
                 <i className="fas fa-times text-lg" aria-hidden="true"></i>
               </button>
             </div>
@@ -508,12 +508,13 @@ export default function OwnerShell() {
                         type="button"
                         onClick={onPickAvatar}
                         disabled={uploadingAvatar}
-                        className="absolute -bottom-1 -right-1 bg-brand text-white rounded-full w-7 h-7 flex items-center justify-center border-2 border-white hover:bg-brand-dark disabled:opacity-60"
+                        aria-label="Change profile photo"
+                        className="absolute -bottom-1 -right-1 bg-brand text-white rounded-full h-9 w-9 flex items-center justify-center border-2 border-white hover:bg-brand-dark disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                         title="Change photo"
                       >
                         {uploadingAvatar
-                          ? <i className="fas fa-spinner fa-spin text-[11px]" aria-hidden="true"></i>
-                          : <i className="fas fa-camera text-[11px]" aria-hidden="true"></i>}
+                          ? <i className="fas fa-spinner fa-spin text-xs" aria-hidden="true"></i>
+                          : <i className="fas fa-camera text-xs" aria-hidden="true"></i>}
                       </button>
                       <input
                         ref={avatarFileRef}
@@ -532,8 +533,9 @@ export default function OwnerShell() {
                 </div>
                 {!isEditing && (
                   <button
+                    type="button"
                     onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "", avatar: user?.avatar || "" }); setIsEditing(true); }}
-                    className="px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark transition"
+                    className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-brand text-white rounded text-sm font-medium hover:bg-brand-dark transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                   >
                     <i className="fas fa-edit mr-2" aria-hidden="true"></i>Edit
                   </button>
@@ -643,16 +645,18 @@ export default function OwnerShell() {
                 {isEditing ? (
                   <>
                     <button
+                      type="button"
                       onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                      className="inline-flex items-center justify-center min-h-11 px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
                       disabled={saving}
                     >
                       Cancel
                     </button>
                     <button
+                      type="button"
                       onClick={saveSettings}
                       disabled={saving}
-                      className="px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 flex items-center gap-2"
+                      className="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                     >
                       {saving ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : <i className="fas fa-save" aria-hidden="true"></i>}
                       {saving ? "Saving..." : "Save Changes"}
@@ -660,8 +664,9 @@ export default function OwnerShell() {
                   </>
                 ) : (
                   <button
+                    type="button"
                     onClick={closeSettings}
-                    className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                    className="inline-flex items-center justify-center min-h-11 px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
                   >
                     Close
                   </button>

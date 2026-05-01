@@ -705,18 +705,18 @@ export default function AdminAnnouncements() {
 
                       {/* Actions */}
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => openEdit(item)} title="Edit"
-                            className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                        <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => openEdit(item)} title={`Edit ${item.title}`} aria-label={`Edit ${item.title}`}
+                            className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => openDuplicate(item)} title="Duplicate"
-                            className="h-8 w-8 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => openDuplicate(item)} title={`Duplicate ${item.title}`} aria-label={`Duplicate ${item.title}`}
+                            className="h-11 w-11 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-600 hover:text-violet-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-copy text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => setConfirmDelete(item)} title="Delete"
-                            className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setConfirmDelete(item)} title={`Delete ${item.title}`} aria-label={`Delete ${item.title}`}
+                            className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -872,7 +872,7 @@ export default function AdminAnnouncements() {
       </div>
 
       {/* ── View Detail Modal ── */}
-      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-lg">
+      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-lg" label={viewItem ? `Announcement — ${viewItem.title}` : 'Announcement details'}>
         {viewItem && (
           <div>
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -1007,7 +1007,7 @@ export default function AdminAnnouncements() {
       />
 
       {/* ── Create / Edit Modal ── */}
-      <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-2xl">
+      <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-2xl" label={editing ? `Edit announcement — ${editing.title}` : 'Create new announcement'}>
         {editing && (
           <form onSubmit={requestSave}>
             {/* Header */}
@@ -1166,9 +1166,9 @@ export default function AdminAnnouncements() {
             {/* Footer */}
             <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
               <button type="button" onClick={guardedCloseModal}
-                className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
+                className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">Cancel</button>
               <button type="submit" disabled={saving}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
+                className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2">
                 {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>{editing.id ? "Save Changes" : "Create"}</>}
               </button>
             </div>

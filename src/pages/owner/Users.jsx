@@ -773,29 +773,29 @@ export default function OwnerUsers() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => copyEmail(u.email)} aria-label={`Copy email for ${u.name}`}
-                            className="h-10 w-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                            <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                        <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => copyEmail(u.email)} aria-label={`Copy email for ${u.name}`}
+                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                            <i className="fas fa-envelope text-sm" aria-hidden="true"></i>
                           </button>
                           {canEdit(u) && (
-                            <button onClick={() => openEdit(u)} aria-label={`Edit ${u.name}`}
-                              className="h-10 w-10 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                              <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                            <button type="button" onClick={() => openEdit(u)} aria-label={`Edit ${u.name}`}
+                              className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                              <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                             </button>
                           )}
                           {canToggleActive(u) && (
-                            <button onClick={() => setConfirmToggle(u)} aria-label={u.is_active ? `Deactivate ${u.name}` : `Activate ${u.name}`}
-                              className={`h-10 w-10 rounded-lg flex items-center justify-center transition ${u.is_active
-                                ? "hover:bg-warning-bg text-warning-fg"
-                                : "hover:bg-success-bg text-success-fg"}`}>
-                              <i className={`fas ${u.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
+                            <button type="button" onClick={() => setConfirmToggle(u)} aria-label={u.is_active ? `Deactivate ${u.name}` : `Activate ${u.name}`}
+                              className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${u.is_active
+                                ? "hover:bg-warning-bg text-warning-fg focus-visible:ring-amber-500"
+                                : "hover:bg-success-bg text-success-fg focus-visible:ring-emerald-500"}`}>
+                              <i className={`fas ${u.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-sm`} aria-hidden="true"></i>
                             </button>
                           )}
                           {canDelete(u) && (
-                            <button onClick={() => setConfirmDelete(u)} aria-label={`Delete ${u.name}`}
-                              className="h-10 w-10 rounded-lg hover:bg-danger-bg text-danger-fg flex items-center justify-center transition">
-                              <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                            <button type="button" onClick={() => setConfirmDelete(u)} aria-label={`Delete ${u.name}`}
+                              className="h-11 w-11 rounded-lg hover:bg-danger-bg text-danger-fg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                              <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                             </button>
                           )}
                         </div>
@@ -944,7 +944,7 @@ export default function OwnerUsers() {
       </div>
 
       {/* ── View User Modal ── */}
-      <Modal open={!!viewUser} onClose={() => setViewUser(null)} maxWidth="max-w-md">
+      <Modal open={!!viewUser} onClose={() => setViewUser(null)} maxWidth="max-w-md" label={viewUser ? `User details — ${viewUser.name}` : 'User details'}>
         {viewUser && (
           <div>
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -1103,7 +1103,7 @@ export default function OwnerUsers() {
       />
 
       {/* ── Edit / Create Modal ── */}
-      <Modal open={modalOpen} onClose={guardedCloseModal}>
+      <Modal open={modalOpen} onClose={guardedCloseModal} label={editing && editing.id ? `Edit user — ${editing.name}` : 'Add new user'}>
         {editing && (
           <form onSubmit={requestSaveUser}>
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -1268,7 +1268,7 @@ export default function OwnerUsers() {
 
             <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
               <button type="button" onClick={guardedCloseModal}
-                className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
+                className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">Cancel</button>
               {/* Save is disabled when the password field is in an invalid
                   state: required-and-missing on create, OR non-empty and
                   not passing all strength rules (applies to both create
@@ -1279,7 +1279,7 @@ export default function OwnerUsers() {
                 || (!editing?.id && !checkPasswordStrength(editing?.password))
                 || ((editing?.password ?? "").length > 0 && !checkPasswordStrength(editing?.password))
               }
-                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition">
+                className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                 {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>Save User</>}
               </button>
             </div>

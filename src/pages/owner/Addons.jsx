@@ -580,26 +580,26 @@ export default function AdminAddons() {
                         </span>
                       </td>
                       <td className="px-6 py-4" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => openEdit(item)} title="Edit"
-                            className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                        <div className="flex items-center gap-2">
+                          <button type="button" onClick={() => openEdit(item)} title={`Edit ${item.name}`} aria-label={`Edit ${item.name}`}
+                            className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => openDuplicate(item)} title="Duplicate"
-                            className="h-8 w-8 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => openDuplicate(item)} title={`Duplicate ${item.name}`} aria-label={`Duplicate ${item.name}`}
+                            className="h-11 w-11 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-600 hover:text-violet-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-copy text-sm" aria-hidden="true"></i>
                           </button>
-                          <button
-                            onClick={() => toggleActive(item)} title={item.is_active ? "Deactivate" : "Activate"}
-                            className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${item.is_active
-                              ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
-                              : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}
+                          <button type="button"
+                            onClick={() => toggleActive(item)} title={item.is_active ? `Deactivate ${item.name}` : `Activate ${item.name}`} aria-label={item.is_active ? `Deactivate ${item.name}` : `Activate ${item.name}`}
+                            className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${item.is_active
+                              ? "hover:bg-amber-50 text-amber-600 hover:text-amber-800 focus-visible:ring-amber-500"
+                              : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800 focus-visible:ring-emerald-500"}`}
                           >
-                            <i className={`fas ${item.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
+                            <i className={`fas ${item.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-sm`} aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => setConfirmDelete(item)} title="Delete"
-                            className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setConfirmDelete(item)} title={`Delete ${item.name}`} aria-label={`Delete ${item.name}`}
+                            className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -737,7 +737,7 @@ export default function AdminAddons() {
       </div>
 
       {/* ── #8 View Detail Modal — colored stat cards ── */}
-      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-sm">
+      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-sm" label={viewItem ? `Add-on details — ${viewItem.name}` : 'Add-on details'}>
         {viewItem && (
           <div>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
@@ -747,7 +747,7 @@ export default function AdminAddons() {
                 </span>
                 {viewItem.name || <span className="italic text-slate-400">Unnamed</span>}
               </h3>
-              <button onClick={() => setViewItem(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition" aria-label="Close">
+              <button type="button" onClick={() => setViewItem(null)} className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2" aria-label="Close">
                 <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
@@ -870,7 +870,7 @@ export default function AdminAddons() {
       />
 
       {/* ── Create / Edit Modal ── */}
-      <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-xl">
+      <Modal open={modalOpen} onClose={guardedCloseModal} maxWidth="max-w-xl" label={editing ? `Edit add-on — ${editing.name}` : 'Add new add-on'}>
         <form onSubmit={requestSaveAddon}>
           {/* Header */}
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -1025,9 +1025,9 @@ export default function AdminAddons() {
           {/* Footer */}
           <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
             <button type="button" onClick={guardedCloseModal}
-              className="px-5 py-2.5 text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 text-sm font-medium transition">Cancel</button>
+              className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">Cancel</button>
             <button type="submit" disabled={saving}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition">
+              className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-semibold disabled:opacity-60 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
               {saving ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Saving...</> : <><i className="fas fa-check mr-2" aria-hidden="true"></i>{editing?.id ? "Save Changes" : "Create Add-on"}</>}
             </button>
           </div>

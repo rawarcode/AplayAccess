@@ -360,14 +360,14 @@ export default function AdminGuests() {
                         </div>
                       </td>
                       <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => copyEmail(g.email)} title="Copy email"
-                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                            <i className="fas fa-envelope text-xs" aria-hidden="true"></i>
+                        <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => copyEmail(g.email)} title={`Copy ${g.name}'s email`} aria-label={`Copy ${g.name}'s email`}
+                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                            <i className="fas fa-envelope text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => setViewGuest(g)} title="View"
-                            className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-eye text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setViewGuest(g)} title={`View ${g.name}'s details`} aria-label={`View ${g.name}'s details`}
+                            className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-eye text-sm" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -510,7 +510,7 @@ export default function AdminGuests() {
       </div>
 
       {/* ── View Guest Modal ── */}
-      <Modal open={!!viewGuest} onClose={() => setViewGuest(null)} maxWidth="max-w-md">
+      <Modal open={!!viewGuest} onClose={() => setViewGuest(null)} maxWidth="max-w-md" label={viewGuest ? `Guest details — ${viewGuest.name}` : 'Guest details'}>
         {viewGuest && (
           <div>
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">

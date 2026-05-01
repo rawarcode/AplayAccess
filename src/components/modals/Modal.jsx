@@ -3,7 +3,13 @@ import { createPortal } from "react-dom";
 
 const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
 
-export default function Modal({ open, onClose, maxWidth = "max-w-lg", labelledBy, label, children }) {
+export default function Modal({ open, onClose, maxWidth = "max-w-lg", labelledBy, label, title, children }) {
+  // `title` is an alias for `label` — both Owner and Admin shells were
+  // already passing `title="Account Settings"` from before label/labelledBy
+  // existed. Treat it as a fallback so those callers keep working without
+  // the dialog being silently nameless to screen readers (WCAG 4.1.2 +
+  // ARIA 1.2 dialog naming).
+  const accessibleName = labelledBy ? undefined : (label ?? title);
   const dialogRef = useRef(null);
   const previousFocusRef = useRef(null);
 
@@ -73,7 +79,7 @@ export default function Modal({ open, onClose, maxWidth = "max-w-lg", labelledBy
           role="dialog"
           aria-modal="true"
           aria-labelledby={labelledBy}
-          aria-label={!labelledBy ? label : undefined}
+          aria-label={accessibleName}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
           className={`relative w-full ${maxWidth} bg-white rounded-xl shadow-2xl animate-hero-fade-in opacity-0`}

@@ -1775,7 +1775,7 @@ function ResortAmenitiesEditor() {
       </div>
 
       {/* Delete confirmation modal */}
-      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} label="Confirm delete">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -2796,7 +2796,7 @@ function GalleryTab({ imageCount, setImageCount }) {
       )}
 
       {/* Delete modal */}
-      <Modal open={!!deleteId} onClose={() => setDeleteId(null)}>
+      <Modal open={!!deleteId} onClose={() => setDeleteId(null)} label="Confirm delete">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
@@ -2836,7 +2836,7 @@ function GalleryTab({ imageCount, setImageCount }) {
       </Modal>
 
       {/* Move image modal */}
-      <Modal open={!!movingImage} onClose={() => setMovingImage(null)} maxWidth="max-w-sm">
+      <Modal open={!!movingImage} onClose={() => setMovingImage(null)} maxWidth="max-w-sm" label="Move image">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
@@ -2867,7 +2867,7 @@ function GalleryTab({ imageCount, setImageCount }) {
       </Modal>
 
       {/* Image preview modal */}
-      <Modal open={!!previewImg} onClose={() => setPreviewImg(null)} maxWidth="max-w-3xl">
+      <Modal open={!!previewImg} onClose={() => setPreviewImg(null)} maxWidth="max-w-3xl" label="Image preview">
         {previewImg && (
           <div className="relative">
             {isVideoUrl(previewImg.image_url) ? (
@@ -3133,7 +3133,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
       </div>
 
       {/* View modal using shared Modal */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-2xl">
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-2xl" label={selected ? `Contact submission — ${selected.subject || selected.name}` : 'Contact submission'}>
         {selected && (
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
@@ -3517,7 +3517,7 @@ function ReviewsTab({ content, onSave, reviewCount, setReviewCount }) {
       </div>
 
       {/* Delete confirmation modal */}
-      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} label="Confirm delete">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
