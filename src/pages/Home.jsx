@@ -258,7 +258,7 @@ export default function Home() {
           </p>
           <Link
             to="/resort"
-            className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-lg font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl animate-hero-fade-in [animation-delay:1s] opacity-0"
+            className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-lg font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl animate-hero-fade-in [animation-delay:1s] opacity-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-900"
           >
             {hero.ctaText}
           </Link>
@@ -267,7 +267,7 @@ export default function Home() {
         {/* Scroll indicator */}
         <button
           onClick={() => document.getElementById("resorts-section")?.scrollIntoView({ behavior: "smooth" })}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 h-11 w-11 flex items-center justify-center text-white/70 hover:text-white transition animate-pulse"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 h-11 w-11 flex items-center justify-center text-white/70 hover:text-white transition animate-pulse focus:outline-none focus-visible:ring-2 focus-visible:ring-white rounded-full"
           aria-label="Scroll to next section"
         >
           <i className="fas fa-chevron-down text-2xl" aria-hidden="true"></i>
@@ -300,10 +300,22 @@ export default function Home() {
             (() => {
               const c = resort.cards[0];
               const linkTo = c.link || '/resort';
+              const imgSrcSet = c.image?.includes('images.unsplash.com')
+                ? [640, 1024, 1280].map(w =>
+                    `${c.image.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                  ).join(', ')
+                : undefined;
               return (
-                <div className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50">
+                <Link
+                  to={linkTo}
+                  aria-label={`${c.name} — ${c.ctaText || 'Explore & Book Now'}`}
+                  className="group block relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 md:flex ring-1 ring-slate-200 hover:ring-sky-400/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                >
                   <img
                     src={c.image}
+                    srcSet={imgSrcSet}
+                    sizes="(min-width: 768px) 50vw, 100vw"
+                    width="1280" height="720"
                     alt={c.name}
                     className="w-full md:w-1/2 h-72 md:h-auto object-cover"
                     loading="lazy"
@@ -317,24 +329,35 @@ export default function Home() {
                     <h3 className="text-2xl font-bold text-slate-900 mb-1">{c.name}</h3>
                     {c.location && <p className="text-sm text-slate-500 mb-3"><i className="fas fa-location-dot mr-1.5 text-slate-400"></i>{c.location}</p>}
                     <p className="text-slate-600 mb-6 leading-relaxed">{c.desc}</p>
-                    <Link
-                      to={linkTo}
-                      className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
+                    {/* Visual button stays as the explicit affordance —
+                        whole card is now the clickable surface so a
+                        span (not a nested Link, which is invalid HTML)
+                        styled to match keeps the design unchanged. */}
+                    <span
+                      className="inline-block bg-sky-600 group-hover:bg-sky-700 text-white text-center px-6 py-3 rounded-lg font-medium transition w-fit"
                     >
                       {c.ctaText || 'Explore & Book Now'}
-                    </Link>
+                    </span>
                   </div>
-                </div>
+                </Link>
               );
             })()
           ) : (
             <div className={`grid gap-6 ${resort.cards.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-2 lg:grid-cols-3'}`}>
               {resort.cards.map((c) => {
                 const linkTo = c.link || '/resort';
+                const imgSrcSet = c.image?.includes('images.unsplash.com')
+                  ? [400, 800, 1280].map(w =>
+                      `${c.image.replace(/([?&])w=\d+/, `$1w=${w}`)} ${w}w`
+                    ).join(', ')
+                  : undefined;
                 return (
                   <div key={c.id || c.name} className="relative bg-white rounded-2xl overflow-hidden shadow-lg hover:-translate-y-1 hover:shadow-2xl transition-all duration-300 ring-1 ring-slate-200 hover:ring-sky-400/50 flex flex-col">
                     <img
                       src={c.image}
+                      srcSet={imgSrcSet}
+                      sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                      width="800" height="450"
                       alt={c.name}
                       className="w-full h-48 object-cover"
                       loading="lazy"
@@ -350,7 +373,7 @@ export default function Home() {
                       <p className="text-sm text-slate-600 mb-5 leading-relaxed flex-1 line-clamp-4">{c.desc}</p>
                       <Link
                         to={linkTo}
-                        className="inline-block bg-sky-600 hover:bg-sky-700 text-white text-center px-5 py-2.5 rounded-lg font-medium text-sm transition w-fit mt-auto"
+                        className="inline-flex items-center bg-sky-600 hover:bg-sky-700 text-white text-center px-5 py-2.5 rounded-lg font-medium text-sm transition w-fit mt-auto min-h-[44px] focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                       >
                         {c.ctaText || 'Explore & Book Now'}
                       </Link>
@@ -377,7 +400,7 @@ export default function Home() {
             </span>
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{why.sectionTitle}</h2>
             <div className="w-16 h-1.5 rounded-full bg-sky-400 mx-auto mb-4" />
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
               {why.sectionSubtitle}
             </p>
           </div>
@@ -400,16 +423,21 @@ export default function Home() {
             return (
               <div className={`grid grid-cols-1 sm:grid-cols-2 ${colsClass} gap-6 justify-items-center max-w-6xl mx-auto`}>
                 {why.features.map((f, i) => (
+              // Informational card — no hover-lift / hover-shadow.
+              // The card is content, not a link, so a "rises on hover"
+              // affordance falsely signals interactivity. The icon
+              // chip color shift on hover stays as a subtle warmth
+              // cue without implying tappability.
               <div
                 key={f.title}
-                className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center border border-slate-100"
+                className="group bg-white rounded-2xl p-6 shadow-md text-center border border-slate-100"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
                 <div className="w-14 h-14 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-600 group-hover:text-white transition-colors duration-300">
                   <i className={`fas ${f.icon.startsWith("fa-") ? f.icon : `fa-${f.icon}`} text-xl`} aria-hidden="true"></i>
                 </div>
                 <h3 className="text-base font-bold text-slate-900 mb-2">{f.title}</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                <p className="text-sm text-slate-600 leading-relaxed">{f.desc}</p>
               </div>
             ))}
               </div>
@@ -435,13 +463,13 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               to="/resort"
-              className="inline-block bg-white text-sky-700 hover:bg-sky-50 font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl"
+              className="inline-block bg-white text-sky-700 hover:bg-sky-50 font-semibold px-8 py-3 rounded-lg transition shadow-lg hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700"
             >
               {cta.buttonText}
             </Link>
             <Link
               to="/resort#rooms"
-              className="inline-block bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-lg transition border border-white/20"
+              className="inline-block bg-white/10 hover:bg-white/20 text-white font-semibold px-8 py-3 rounded-lg transition border border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700"
             >
               View Rooms
             </Link>

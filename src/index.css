@@ -114,3 +114,21 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+/* Reduced-motion fallback — users with prefers-reduced-motion set
+   would otherwise see hero / reveal sections stuck at opacity:0 in
+   browsers that fully suppress CSS animations. Skip the animation
+   and reveal the content immediately so the page is never invisible
+   for vestibular-disorder users. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-fade-in,
+  .animate-slide-in-right {
+    animation: none;
+    opacity: 1;
+  }
+  .reveal-section {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
