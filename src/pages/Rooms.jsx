@@ -581,9 +581,10 @@ export default function Rooms() {
                   <button
                     onClick={() => setActiveTab("all")}
                     type="button"
-                    className="text-sky-700 hover:text-sky-800 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded px-2 py-1"
+                    className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-11 rounded-lg text-sm font-semibold bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                   >
-                    View all accommodations →
+                    View all accommodations
+                    <i className="fas fa-arrow-right text-xs" aria-hidden="true"></i>
                   </button>
                 </div>
               ) : activeTab === "all" ? (

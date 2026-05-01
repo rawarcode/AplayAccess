@@ -265,9 +265,10 @@ export default function Gallery() {
                 <button
                   onClick={() => setActiveCat("all")}
                   type="button"
-                  className="text-sky-300 hover:text-sky-200 text-sm font-medium transition rounded px-2 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+                  className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 min-h-11 rounded-lg text-sm font-semibold bg-white/10 text-sky-200 hover:bg-white/20 hover:text-sky-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900"
                 >
-                  View all photos →
+                  View all photos
+                  <i className="fas fa-arrow-right text-xs" aria-hidden="true"></i>
                 </button>
               )}
             </div>
