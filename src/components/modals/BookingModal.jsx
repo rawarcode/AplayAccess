@@ -772,7 +772,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             type="button"
             onClick={(e) => { e.stopPropagation(); setLightboxRoom(null); }}
             aria-label="Close photo preview"
-            className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white text-xl"
+            className="absolute top-4 right-4 w-11 h-11 inline-flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white text-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             <i className="fas fa-times" aria-hidden="true"></i>
           </button>
@@ -799,12 +799,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             {isResume ? 'Continue Pending Booking' : 'Book Your Visit at Aplaya'}
             {!isResume && guestMode && <span className="ml-2 text-sm font-normal text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">Guest</span>}
           </h3>
-          <button onClick={onClose} className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-gray-600" aria-label="Close booking modal"><i className="fas fa-times"></i></button>
+          <button onClick={onClose} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" aria-label="Close booking modal"><i className="fas fa-times" aria-hidden="true"></i></button>
         </div>
 
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
-            <i className="fas fa-exclamation-circle mt-0.5 shrink-0"></i>
+          <div role="alert" aria-live="assertive" className="mb-4 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700 flex items-start gap-2">
+            <i className="fas fa-exclamation-circle mt-0.5 shrink-0" aria-hidden="true"></i>
             <span>{error}</span>
           </div>
         )}
@@ -839,7 +839,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
                 <div>
                   <label htmlFor="bm-guest-email" className="block text-sm font-medium text-gray-700 mb-1">
-                    Email address <span className="text-gray-400 font-normal">— for your receipt and booking link</span>{' '}
+                    Email address <span className="text-gray-600 font-normal">— for your receipt and booking link</span>{' '}
                     <span className="text-red-600" aria-hidden="true">*</span>
                   </label>
                   <input
@@ -854,7 +854,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
                 <div>
                   <label htmlFor="bm-guest-phone" className="block text-sm font-medium text-gray-700 mb-1">
-                    Phone Number <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                    Phone Number <span className="text-gray-600 font-normal text-xs">(optional)</span>
                   </label>
                   <input
                     id="bm-guest-phone"
@@ -877,11 +877,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               <React.Fragment key={s.num}>
                 {i > 0 && <div className={`flex-1 h-px ${step >= s.num ? 'bg-blue-400' : 'bg-gray-200'}`} />}
                 <button type="button" onClick={() => s.num < step && setStep(s.num)}
-                  className={`flex items-center gap-1.5 text-sm font-medium ${
-                    step === s.num ? 'text-blue-700' : step > s.num ? 'text-blue-500 cursor-pointer' : 'text-gray-400'
+                  disabled={s.num >= step}
+                  className={`flex items-center gap-1.5 text-sm font-medium rounded ${
+                    step === s.num ? 'text-blue-700' : step > s.num ? 'text-blue-700 cursor-pointer' : 'text-gray-600'
                   }`}>
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                    step >= s.num ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+                    step >= s.num ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'
                   }`}>{step > s.num ? '\u2713' : s.num}</span>
                   {s.label}
                 </button>
@@ -919,7 +920,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <label className="block text-sm font-medium text-gray-700 mb-2" id="booking-type-label">
                   Booking Type <span className="text-red-600" aria-hidden="true">*</span>
                   {!visitDate && (
-                    <span className="ml-2 text-xs text-gray-400 font-normal">Pick a date first</span>
+                    <span className="ml-2 text-xs text-gray-600 font-normal">Pick a date first</span>
                   )}
                 </label>
                 <div className="flex gap-2" role="group" aria-labelledby="booking-type-label">
@@ -941,7 +942,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                           <i className={`fas ${opt.icon} text-xs`} aria-hidden="true"></i>
                           {opt.label}
                         </span>
-                        <span className={`text-[10px] tabular-nums leading-none ${active ? 'text-blue-600' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] tabular-nums leading-none ${active ? 'text-blue-700' : 'text-gray-600'}`}>
                           {opt.time}
                         </span>
                       </button>
@@ -995,16 +996,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 <label id="booking-room-picker-label" className="block text-sm font-medium text-gray-700 mb-2">
                   Room / Cottage <span className="text-red-600" aria-hidden="true">*</span>
                   {!visitDate ? (
-                    <span className="ml-2 text-xs text-gray-400 font-normal">Pick a date first</span>
+                    <span className="ml-2 text-xs text-gray-600 font-normal">Pick a date first</span>
                   ) : availChecking && (
-                    <span className="ml-2 text-xs text-gray-400 font-normal">
-                      <i className="fas fa-spinner fa-spin mr-1"></i>Checking…
+                    <span className="ml-2 text-xs text-gray-600 font-normal">
+                      <i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Checking…
                     </span>
                   )}
                 </label>
                 {!visitDate ? (
-                  <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-400">
-                    <i className="fas fa-calendar-alt mr-1.5"></i>
+                  <div className="rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-600">
+                    <i className="fas fa-calendar-alt mr-1.5" aria-hidden="true"></i>
                     Pick a date above to see available rooms.
                   </div>
                 ) : (() => {
@@ -1205,7 +1206,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                               <p className={`text-base sm:text-lg font-extrabold tabular-nums leading-tight ${selected ? "text-blue-700" : ACCENT_PRICE[meta.accent]}`}>
                                 {fmtRate(price)}
                               </p>
-                              <p className="text-[10px] uppercase tracking-wide text-gray-400 mt-0.5">
+                              <p className="text-[10px] uppercase tracking-wide text-gray-600 mt-0.5">
                                 /{perWord}
                               </p>
                             </>
@@ -1226,7 +1227,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                           type="button"
                           onClick={(e) => { e.stopPropagation(); setLightboxRoom(r); }}
                           aria-label={`View ${r.name} photo`}
-                          className="md:hidden absolute right-2.5 bottom-2.5 z-10 w-9 h-9 flex items-center justify-center rounded-full bg-white/95 ring-1 ring-slate-300 shadow-sm text-slate-600 hover:text-slate-900 hover:bg-white"
+                          className="md:hidden absolute right-1.5 bottom-1.5 z-10 w-11 h-11 inline-flex items-center justify-center rounded-full bg-white/95 ring-1 ring-slate-300 shadow-sm text-slate-700 hover:text-slate-900 hover:bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                         >
                           <i className="fas fa-eye text-sm" aria-hidden="true"></i>
                         </button>
@@ -1269,7 +1270,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                                 role="tab"
                                 aria-selected={active}
                                 onClick={() => setPickerFilter(c.key)}
-                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                                className={`inline-flex items-center gap-1.5 px-3.5 py-2 min-h-11 rounded-full text-xs font-semibold border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1 ${
                                   active
                                     ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                                     : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
@@ -1277,7 +1278,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                               >
                                 <i className={`fas ${c.icon} text-[10px]`} aria-hidden="true"></i>
                                 {c.label}
-                                <span className={`text-[10px] tabular-nums ${active ? 'text-white/80' : 'text-gray-400'}`}>
+                                <span className={`text-[10px] tabular-nums ${active ? 'text-white/85' : 'text-gray-600'}`}>
                                   ({chipCounts[c.key]})
                                 </span>
                               </button>
@@ -1288,6 +1289,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       <div
                         role="radiogroup"
                         aria-labelledby="booking-room-picker-label"
+                        aria-required="true"
                         onKeyDown={onKeyDown}
                         className="space-y-4 max-h-[420px] overflow-y-auto pr-1"
                       >
@@ -1297,10 +1299,10 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                           const meta = CATEGORY_META[catKey];
                           return (
                             <section key={catKey}>
-                              <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-500 mb-2">
+                              <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
                                 <i className={`fas ${meta.icon} text-[11px] ${ACCENT_PRICE[meta.accent]}`} aria-hidden="true"></i>
                                 {meta.label}
-                                <span className="text-gray-400 font-normal normal-case tracking-normal">
+                                <span className="text-gray-600 font-normal normal-case tracking-normal">
                                   ({items.length})
                                 </span>
                               </h4>
@@ -1326,7 +1328,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                               type="button"
                               onClick={() => setShowUnavailable(s => !s)}
                               aria-expanded={showUnavailable}
-                              className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold uppercase tracking-wider text-gray-500"
+                              className="w-full inline-flex items-center justify-between gap-2 px-3 py-2.5 min-h-11 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold uppercase tracking-wider text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             >
                               <span className="flex items-center gap-2">
                                 <i className="fas fa-ban text-rose-400 text-[11px]" aria-hidden="true"></i>
@@ -1354,8 +1356,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               {optionalAddons.length > 0 && (
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <i className="fas fa-sparkles mr-1.5 text-amber-500"></i>
-                    Add-ons for this room <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                    <i className="fas fa-sparkles mr-1.5 text-amber-500" aria-hidden="true"></i>
+                    Add-ons for this room <span className="text-gray-600 font-normal text-xs">(optional)</span>
                   </label>
                   <div className="space-y-2">
                     {optionalAddons.map(a => {
@@ -1391,13 +1393,15 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                           <div className="flex items-center gap-1">
                             <button type="button"
                               disabled={qty === 0}
+                              aria-label={`Decrease ${a.name} quantity`}
                               onClick={() => setOptionalQtys(q => ({ ...q, [a.name]: Math.max(0, qty - 1) }))}
-                              className="w-8 h-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">−</button>
-                            <span className="w-8 text-center text-sm font-medium tabular-nums">{qty}</span>
+                              className="w-11 h-11 inline-flex items-center justify-center rounded border border-slate-200 text-slate-700 hover:bg-slate-100 text-base font-bold disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">−</button>
+                            <span className="w-8 text-center text-sm font-medium tabular-nums" aria-live="polite">{qty}</span>
                             <button type="button"
                               disabled={qty >= cap}
+                              aria-label={`Increase ${a.name} quantity`}
                               onClick={() => setOptionalQtys(q => ({ ...q, [a.name]: Math.min(cap, qty + 1) }))}
-                              className="w-8 h-8 rounded border border-slate-200 text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">+</button>
+                              className="w-11 h-11 inline-flex items-center justify-center rounded border border-slate-200 text-slate-700 hover:bg-slate-100 text-base font-bold disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">+</button>
                           </div>
                           {qty > 0 && (
                             <span className="text-xs font-semibold text-sky-700 tabular-nums">
@@ -1411,24 +1415,33 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
               )}
 
-              {/* Special requests — collapsed */}
+              {/* Special requests — collapsed.
+                   500-char cap matches the bookings.special_requests
+                   column comfortably; counter tells the user how
+                   much room they have left as they type. */}
               <div className="md:col-span-2">
                 {showRequests ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Special Requests <span className="text-gray-400 font-normal text-xs">(optional)</span>
+                    <label htmlFor="bm-special-requests" className="block text-sm font-medium text-gray-700 mb-1">
+                      Special Requests <span className="text-gray-600 font-normal text-xs">(optional)</span>
                     </label>
                     <textarea
+                      id="bm-special-requests"
                       rows={2}
+                      maxLength={500}
                       value={specialRequests}
                       onChange={(e) => setSpecialRequests(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="Any special requests?"
+                      aria-describedby="bm-special-requests-counter"
                     />
+                    <p id="bm-special-requests-counter" className="mt-1 text-[11px] text-gray-600 tabular-nums text-right">
+                      {specialRequests.length} / 500
+                    </p>
                   </div>
                 ) : (
-                  <button type="button" onClick={() => setShowRequests(true)} className="text-xs text-blue-600 hover:underline">
-                    <i className="fas fa-plus mr-1"></i>Add special requests
+                  <button type="button" onClick={() => setShowRequests(true)} className="inline-flex items-center gap-1.5 px-3 py-2 min-h-11 text-xs text-blue-700 hover:text-blue-800 hover:bg-blue-50 rounded-md font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <i className="fas fa-plus" aria-hidden="true"></i>Add special requests
                   </button>
                 )}
               </div>
@@ -1452,9 +1465,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     }
                     setStep(2);
                   }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 min-h-11 px-4 rounded-md inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
-                  Next <i className="fas fa-arrow-right"></i>
+                  Next <i className="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </div>
             </div>
@@ -1465,36 +1478,37 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
             <div className="space-y-4">
               {/* Promo code input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <i className="fas fa-tag mr-1 text-blue-500"></i>Promo Code <span className="text-gray-400 font-normal">(optional)</span>
+                <label htmlFor="bm-promo-code" className="block text-sm font-medium text-gray-700 mb-1">
+                  <i className="fas fa-tag mr-1 text-blue-500" aria-hidden="true"></i>Promo Code <span className="text-gray-600 font-normal">(optional)</span>
                 </label>
                 {promoResult ? (
                   <div className="flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-300 rounded-md">
-                    <i className="fas fa-check-circle text-green-600"></i>
+                    <i className="fas fa-check-circle text-green-700" aria-hidden="true"></i>
                     <span className="text-sm text-green-800 font-medium flex-1">{promoResult.message}</span>
-                    <button type="button" onClick={removePromo} className="text-xs text-gray-500 hover:text-red-600 underline">Remove</button>
+                    <button type="button" onClick={removePromo} className="inline-flex items-center px-2.5 py-1.5 min-h-9 text-xs text-gray-700 hover:text-red-700 hover:bg-red-50 rounded font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500">Remove</button>
                   </div>
                 ) : (
                   <div className="flex gap-2">
                     <input
+                      id="bm-promo-code"
                       type="text"
                       value={promoInput}
                       onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
                       onKeyDown={e => e.key === "Enter" && (e.preventDefault(), applyPromo())}
                       placeholder="Enter promo code"
-                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="flex-1 px-3 py-2 min-h-11 border border-gray-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <button
                       type="button"
                       onClick={applyPromo}
                       disabled={!promoInput.trim() || promoLoading}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md"
+                      className="px-4 py-2 min-h-11 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                     >
-                      {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : "Apply"}
+                      {promoLoading ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : "Apply"}
                     </button>
                   </div>
                 )}
-                {promoError && <p className="mt-1 text-xs text-red-600"><i className="fas fa-times-circle mr-1"></i>{promoError}</p>}
+                {promoError && <p role="alert" className="mt-1 text-xs text-red-700"><i className="fas fa-times-circle mr-1" aria-hidden="true"></i>{promoError}</p>}
               </div>
 
               {/* Payment option selector */}
@@ -1553,7 +1567,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   <span className="text-gray-600">
                     Room rate ({bookingType === "night" ? "Night" : is24hr ? "24 Hours" : "Day"}):
                   </span>
-                  <span className={`font-medium ${discount > 0 ? "line-through text-gray-400" : ""}`}>{formatPHP(baseRate)}</span>
+                  <span className={`font-medium tabular-nums ${discount > 0 ? "line-through text-gray-500" : ""}`}>{formatPHP(baseRate)}</span>
                 </div>
                 {discount > 0 && (
                   <>
@@ -1607,7 +1621,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   <span className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Estimated Grand Total</span>
                   <span className="text-2xl font-extrabold tabular-nums text-blue-800">{formatPHP(grandEstimate)}</span>
                 </div>
-                <p className="mt-1 text-[11px] text-gray-500">
+                <p className="mt-1 text-[11px] text-gray-600">
                   Entrance fee scales with the actual number of guests at check-in.
                 </p>
 
@@ -1678,16 +1692,16 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <button
                       type="button"
                       onClick={() => setStep(1)}
-                      className="flex-1 border border-amber-300 bg-white text-amber-900 hover:bg-amber-100 font-medium py-2.5 px-4 rounded-md text-sm"
+                      className="flex-1 border border-amber-300 bg-white text-amber-900 hover:bg-amber-100 font-medium py-2.5 min-h-11 px-4 rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
                     >
-                      <i className="fas fa-arrow-left mr-2"></i>Back
+                      <i className="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back
                     </button>
                     <button
                       type="button"
                       onClick={() => setVerifyOpen(true)}
-                      className="flex-[2] bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 px-4 rounded-md text-sm"
+                      className="flex-[2] bg-amber-600 hover:bg-amber-700 text-white font-medium py-2.5 min-h-11 px-4 rounded-md text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
                     >
-                      <i className="fas fa-envelope-open-text mr-2"></i>Verify Now
+                      <i className="fas fa-envelope-open-text mr-2" aria-hidden="true"></i>Verify Now
                     </button>
                   </div>
                 </div>
@@ -1699,19 +1713,19 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   <button
                     type="button"
                     onClick={() => setStep(1)}
-                    className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
+                    className="flex-1 border border-gray-300 text-gray-700 hover:bg-gray-50 font-medium py-3 min-h-11 px-4 rounded-md inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
-                    <i className="fas fa-arrow-left"></i> Back
+                    <i className="fas fa-arrow-left" aria-hidden="true"></i> Back
                   </button>
                   <button
                     type="button"
                     onClick={submit}
                     disabled={submitting}
-                    className="flex-[2] bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 px-4 rounded-md flex items-center justify-center gap-2"
+                    className="flex-[2] bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium py-3 min-h-11 px-4 rounded-md inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
                     {submitting
-                      ? <><i className="fas fa-spinner fa-spin"></i> Opening checkout window...</>
-                      : <><i className="fas fa-eye"></i> Review Booking</>}
+                      ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Opening checkout window...</>
+                      : <><i className="fas fa-eye" aria-hidden="true"></i> Review Booking</>}
                   </button>
                 </div>
               )}
@@ -1787,7 +1801,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   type="button"
                   onClick={handleCancelResume}
                   disabled={submitting}
-                  className="sm:flex-1 px-4 py-3 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium hover:bg-rose-50 disabled:opacity-60"
+                  className="sm:flex-1 px-4 py-3 min-h-11 border border-rose-200 text-rose-700 rounded-xl text-sm font-medium hover:bg-rose-50 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                 >
                   <i className="fas fa-ban mr-1.5" aria-hidden="true" />
                   Cancel Booking
@@ -1796,7 +1810,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   type="button"
                   onClick={handleResume}
                   disabled={submitting}
-                  className="sm:flex-[2] px-4 py-3 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60"
+                  className="sm:flex-[2] px-4 py-3 min-h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                 >
                   {submitting
                     ? <><i className="fas fa-spinner fa-spin mr-1.5" aria-hidden="true" />Opening payment…</>
@@ -1809,9 +1823,12 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           {/* Payment popup states — show regardless of step */}
           {paymentPopup && (
             paymentPopup.popup ? (
-              /* Popup is open — show waiting state with countdown */
-              <div className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
-                <i className="fas fa-spinner fa-spin text-blue-600 text-2xl"></i>
+              /* Popup is open — show waiting state with countdown.
+                 aria-live so screen-reader users hear "Waiting for
+                 payment…" instead of just having content silently
+                 swap in beneath their cursor. */
+              <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 py-4 bg-blue-50 border border-blue-200 rounded-md mt-4">
+                <i className="fas fa-spinner fa-spin text-blue-600 text-2xl" aria-hidden="true"></i>
                 <p className="text-sm font-medium text-blue-800">Waiting for payment in the checkout window…</p>
                 {timeLeft !== null && timeLeft <= PAYMENT_WARNING_SECONDS ? (
                   <div className="w-full max-w-sm mx-4 bg-red-50 border border-red-300 rounded-md px-3 py-2 flex items-center gap-3">
@@ -1823,24 +1840,24 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <button
                       type="button"
                       onClick={() => setTimeLeft(PAYMENT_WINDOW_SECONDS)}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 shrink-0"
+                      className="px-4 py-2.5 min-h-11 bg-red-600 text-white rounded-md text-xs font-semibold hover:bg-red-700 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
                     >
                       Keep
                     </button>
                   </div>
                 ) : timeLeft !== null && (
-                  <p className="text-xs font-semibold text-blue-600">
-                    <i className="fas fa-clock mr-1"></i>
+                  <p className="text-xs font-semibold text-blue-700 tabular-nums" aria-live="polite">
+                    <i className="fas fa-clock mr-1" aria-hidden="true"></i>
                     Expires in {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-center">
                   <button
                     type="button"
                     onClick={() => { try { paymentPopup.popup?.focus(); } catch { /* ignore */ } }}
-                    className="px-4 py-1.5 border border-blue-400 text-blue-700 rounded text-sm hover:bg-blue-100"
+                    className="px-4 py-2.5 min-h-11 border border-blue-400 text-blue-700 rounded-md text-sm font-medium hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                   >
-                    <i className="fas fa-external-link-alt mr-1"></i>Bring to front
+                    <i className="fas fa-external-link-alt mr-1" aria-hidden="true"></i>Bring to front
                   </button>
                   <button
                     type="button"
@@ -1855,7 +1872,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       }
                       setError("Booking cancelled.");
                     }}
-                    className="px-4 py-1.5 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"
+                    className="px-4 py-2.5 min-h-11 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
                     Cancel
                   </button>
@@ -1863,20 +1880,20 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               </div>
             ) : paymentPopup.verifying ? (
               /* Cancel URL received — verifying with PayMongo before giving up */
-              <div className="flex flex-col items-center gap-3 py-4 bg-yellow-50 border border-yellow-200 rounded-md mt-4">
-                <i className="fas fa-spinner fa-spin text-yellow-600 text-2xl"></i>
+              <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 py-4 bg-yellow-50 border border-yellow-200 rounded-md mt-4">
+                <i className="fas fa-spinner fa-spin text-yellow-600 text-2xl" aria-hidden="true"></i>
                 <p className="text-sm font-medium text-yellow-800">Verifying payment with PayMongo…</p>
-                <p className="text-xs text-gray-500">Please wait — do not close this window.</p>
+                <p className="text-xs text-gray-700">Please wait — do not close this window.</p>
               </div>
             ) : (
               /* Popup was closed — still verifying / offer to reopen */
-              <div className="flex flex-col items-center gap-3 py-4 bg-amber-50 border border-amber-200 rounded-md mt-4">
-                <i className="fas fa-spinner fa-spin text-amber-500 text-2xl"></i>
+              <div role="status" aria-live="polite" className="flex flex-col items-center gap-3 py-4 bg-amber-50 border border-amber-200 rounded-md mt-4">
+                <i className="fas fa-spinner fa-spin text-amber-600 text-2xl" aria-hidden="true"></i>
                 <p className="text-sm font-medium text-amber-800">Verifying payment…</p>
-                <p className="text-xs text-amber-700">If you completed payment, please wait. Otherwise, reopen the window.</p>
+                <p className="text-xs text-amber-800">If you completed payment, please wait. Otherwise, reopen the window.</p>
                 {timeLeft !== null && timeLeft <= PAYMENT_WARNING_SECONDS ? (
                   <div className="w-full max-w-sm mx-4 bg-red-50 border border-red-300 rounded-md px-3 py-2 flex items-center gap-3">
-                    <i className="fas fa-exclamation-triangle text-red-600"></i>
+                    <i className="fas fa-exclamation-triangle text-red-600" aria-hidden="true"></i>
                     <div className="flex-1 text-xs text-red-800">
                       <p className="font-semibold">Cancelling in {timeLeft}s</p>
                       <p>Still paying? Keep this booking open.</p>
@@ -1884,18 +1901,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <button
                       type="button"
                       onClick={() => setTimeLeft(PAYMENT_WINDOW_SECONDS)}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded text-xs font-semibold hover:bg-red-700 shrink-0"
+                      className="px-4 py-2.5 min-h-11 bg-red-600 text-white rounded-md text-xs font-semibold hover:bg-red-700 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2"
                     >
                       Keep
                     </button>
                   </div>
                 ) : timeLeft !== null && (
-                  <p className="text-xs font-semibold text-amber-600">
-                    <i className="fas fa-clock mr-1"></i>
+                  <p className="text-xs font-semibold text-amber-700 tabular-nums" aria-live="polite">
+                    <i className="fas fa-clock mr-1" aria-hidden="true"></i>
                     Time remaining: {String(Math.floor(timeLeft / 60)).padStart(2, "0")}:{String(timeLeft % 60).padStart(2, "0")}
                   </p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-center">
                   <button
                     type="button"
                     onClick={() => {
@@ -1914,9 +1931,9 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       }
                       setPaymentPopup({ bookingId, checkoutUrl, popup: newPopup });
                     }}
-                    className="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 font-medium"
+                    className="px-4 py-2.5 min-h-11 bg-blue-600 text-white rounded-md text-sm hover:bg-blue-700 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
                   >
-                    <i className="fas fa-redo mr-1"></i>Reopen Payment Window
+                    <i className="fas fa-redo mr-1" aria-hidden="true"></i>Reopen Payment Window
                   </button>
                   <button
                     type="button"
@@ -1930,7 +1947,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                       }
                       setError("Booking cancelled.");
                     }}
-                    className="px-4 py-1.5 border border-red-300 text-red-600 rounded text-sm hover:bg-red-50"
+                    className="px-4 py-2.5 min-h-11 border border-red-300 text-red-700 rounded-md text-sm font-medium hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
                   >
                     Cancel Booking
                   </button>
@@ -1940,9 +1957,27 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
           )}
         </div>
 
-        {/* ── Booking Confirmation ── */}
+        {/* ── Booking Confirmation ──
+             z-[60] sits BELOW the parent Modal's z-[9999], but works
+             because this overlay is a descendant in the DOM — its
+             stacking context is established inside the parent. The
+             intentional pairing keeps the confirm sheet visually
+             nested in the booking flow rather than detached at
+             document.body. The fullscreen lightbox (z-[10001]) and
+             desktop preview (z-[10000]) are the only siblings that
+             must outrank the parent itself. */}
         {confirmOpen && (() => {
           const hourLabel = formatHourLabel(checkInHour);
+          // Literal-class lookup tables for the booking-type badge —
+          // Tailwind v4 purges classes built from template literals,
+          // so `bg-${color}-100` won't survive the build for any
+          // non-default `color`. Listing the full classnames keeps
+          // every color reachable from the JIT pass.
+          const TYPE_BADGE_CLASS = {
+            blue:   "bg-blue-100 text-blue-800",
+            indigo: "bg-indigo-100 text-indigo-800",
+            purple: "bg-purple-100 text-purple-800",
+          };
           const typeInfo = {
             day:    { label: "Day Visit",  icon: "fa-sun",   color: "blue",   checkIn: "6:00 AM", checkOut: "6:00 PM (same day)" },
             night:  { label: "Night Stay",  icon: "fa-moon",  color: "indigo", checkIn: "6:00 PM", checkOut: "7:00 AM (next day)" },
@@ -1970,17 +2005,18 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <p className="text-blue-100 text-xs">Please review before proceeding to payment</p>
                   </div>
                 </div>
-                <button onClick={() => setConfirmOpen(false)} className="text-white/70 hover:text-white p-2 -mr-2 rounded-lg hover:bg-white/10" aria-label="Close">
+                <button onClick={() => setConfirmOpen(false)} type="button" className="w-11 h-11 inline-flex items-center justify-center -mr-2 text-white/80 hover:text-white rounded-md hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Close">
                   <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
 
               <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
 
-                {/* Booking Type Badge */}
+                {/* Booking Type Badge — uses the TYPE_BADGE_CLASS
+                    lookup defined above so JIT keeps purple-* available. */}
                 <div className="flex items-center gap-3">
-                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold bg-${typeInfo.color}-100 text-${typeInfo.color}-800`}>
-                    <i className={`fas ${typeInfo.icon}`}></i>
+                  <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${TYPE_BADGE_CLASS[typeInfo.color] ?? TYPE_BADGE_CLASS.blue}`}>
+                    <i className={`fas ${typeInfo.icon}`} aria-hidden="true"></i>
                     {typeInfo.label}
                   </span>
                 </div>
@@ -2024,7 +2060,7 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                   <p className="font-semibold text-blue-900 mb-1">Payment Breakdown</p>
                   <div className="flex justify-between text-gray-700">
                     <span>{rateLabel}</span>
-                    <span className={discount > 0 ? "line-through text-gray-400" : ""}>{formatPHP(baseRate)}</span>
+                    <span className={`tabular-nums ${discount > 0 ? "line-through text-gray-500" : ""}`}>{formatPHP(baseRate)}</span>
                   </div>
                   {discount > 0 && (
                     <>
@@ -2076,11 +2112,11 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                     <span>{paymentOption === "full" ? "Online Now (Room Only)" : "Reservation Fee (Pay Now)"}</span>
                     <span>{formatPHP(amountDue)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-600">
+                  <div className="flex justify-between text-gray-700">
                     <span>Still to pay at resort</span>
-                    <span className="font-medium text-gray-900">{formatPHP(resortBalance)}</span>
+                    <span className="font-medium text-gray-900 tabular-nums">{formatPHP(resortBalance)}</span>
                   </div>
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-gray-700">
                     {balanceDue > 0
                       ? <>Includes {formatPHP(balanceDue)} room balance + {formatPHP(estimatedEntrance)} gate entrance.</>
                       : <>Room is fully settled online; only the entrance fee remains at the gate.</>}
@@ -2102,8 +2138,8 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
                 </div>
 
                 {/* Payment note */}
-                <div className="flex items-start gap-2 text-xs text-gray-500 bg-gray-50 rounded-lg px-3 py-2">
-                  <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0"></i>
+                <div className="flex items-start gap-2 text-xs text-gray-700 bg-gray-50 rounded-lg px-3 py-2">
+                  <i className="fas fa-lock text-blue-500 mt-0.5 shrink-0" aria-hidden="true"></i>
                   <span>A <span className="font-medium">PayMongo</span> checkout window will open. You can pay via <span className="font-medium">GCash</span>.</span>
                 </div>
               </div>
@@ -2111,12 +2147,14 @@ export default function BookingModal({ open, onClose, selectedRoom, rooms, onBoo
               {/* Actions */}
               <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
                 <button onClick={() => setConfirmOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">
-                  <i className="fas fa-arrow-left mr-2"></i>Back
+                  type="button"
+                  className="flex-1 px-4 py-2.5 min-h-11 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+                  <i className="fas fa-arrow-left mr-2" aria-hidden="true"></i>Back
                 </button>
                 <button onClick={handleConfirm}
-                  className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold flex items-center justify-center gap-2">
-                  <i className="fas fa-lock"></i>
+                  type="button"
+                  className="flex-1 px-4 py-2.5 min-h-11 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2">
+                  <i className="fas fa-lock" aria-hidden="true"></i>
                   Confirm &amp; Pay {formatPHP(amountDue)}
                 </button>
               </div>
