@@ -465,6 +465,9 @@ export default function Rooms() {
           sizes="100vw"
           alt=""
           aria-hidden="true"
+          fetchPriority="high"
+          loading="eager"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-cover"
         />
         {/* Darkening overlay — separated from the image so the gradient
@@ -504,7 +507,7 @@ export default function Rooms() {
             <div className="flex items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-8">
               <i className="fas fa-exclamation-triangle text-amber-500" aria-hidden="true" />
               <span className="text-sm text-amber-700 flex-1">Showing cached room data — live data unavailable.</span>
-              <button onClick={load} className="text-sm font-medium text-amber-700 hover:text-amber-800 underline">Retry</button>
+              <button onClick={load} type="button" className="inline-flex items-center justify-center px-3 py-2 min-h-11 text-sm font-medium text-amber-800 hover:text-amber-900 hover:bg-amber-100 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><i className="fas fa-redo mr-1.5 text-[10px]" aria-hidden="true"></i>Retry</button>
             </div>
           )}
 

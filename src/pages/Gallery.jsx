@@ -199,7 +199,7 @@ export default function Gallery() {
             <div className="flex items-center gap-3 rounded-xl border border-amber-200/20 bg-amber-500/10 px-4 py-3 mb-8">
               <i className="fas fa-exclamation-triangle text-amber-400" aria-hidden="true" />
               <span className="text-sm text-amber-300 flex-1">Showing cached gallery — live data unavailable.</span>
-              <button onClick={load} className="text-sm font-medium text-amber-300 hover:text-amber-200 underline">Retry</button>
+              <button onClick={load} type="button" className="inline-flex items-center justify-center px-3 py-2 min-h-11 text-sm font-medium text-amber-200 hover:text-amber-100 hover:bg-amber-500/15 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"><i className="fas fa-redo mr-1.5 text-[10px]" aria-hidden="true"></i>Retry</button>
             </div>
           )}
 
