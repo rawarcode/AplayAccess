@@ -137,7 +137,7 @@ const DEFAULT_CONTENT = {
   resort_about: {
     title:      "About the resort",
     paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.",
-    paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.",
+    paragraph2: "Parking is included with every booking. The room rate is shown upfront online; a per-head entrance fee is collected at the gate when you arrive — you'll see both totals before you pay.",
     image:      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80",
     // Poster still for video about-image (same role as hero.poster).
     imagePoster: "",

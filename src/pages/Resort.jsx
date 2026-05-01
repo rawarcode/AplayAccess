@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useContent } from "../context/ContentContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
 import usePrefersReducedMotion from "../hooks/usePrefersReducedMotion.js";
+import useFocusTrap from "../hooks/useFocusTrap.js";
 import { api } from "../lib/api.js";
 import { isVideoUrl } from "../lib/uploadApi.js";
 import { getAnnouncements } from "../lib/resortApi.js";
@@ -45,17 +46,49 @@ function formatPHP(amount) {
   return `₱${n.toLocaleString()}`;
 }
 
+// Map an amenity name to a Font Awesome class. Returns a class name
+// (no leading "fas") so the renderer can compose `fas ${cls}` itself
+// or differentiate between brand vs solid sets later if needed.
 function amenityIcon(name = "") {
   const n = String(name).toLowerCase();
-  if (n.includes("wifi")) return "📶";
-  if (n.includes("pool")) return "🏊";
-  if (n.includes("parking")) return "🅿️";
-  if (n.includes("restaurant") || n.includes("dining") || n.includes("food")) return "🍽️";
-  if (n.includes("spa") || n.includes("massage")) return "💆";
-  if (n.includes("gym") || n.includes("fitness")) return "🏋️";
-  if (n.includes("shuttle") || n.includes("transport")) return "🚐";
-  if (n.includes("beach")) return "🏖️";
-  return "✨";
+  if (n.includes("wifi")) return "fa-wifi";
+  if (n.includes("pool")) return "fa-person-swimming";
+  if (n.includes("parking")) return "fa-square-parking";
+  if (n.includes("restaurant") || n.includes("dining") || n.includes("food")) return "fa-utensils";
+  if (n.includes("spa") || n.includes("massage")) return "fa-spa";
+  if (n.includes("gym") || n.includes("fitness")) return "fa-dumbbell";
+  if (n.includes("shuttle") || n.includes("transport")) return "fa-shuttle-van";
+  if (n.includes("beach")) return "fa-umbrella-beach";
+  if (n.includes("bar") || n.includes("drink")) return "fa-martini-glass-citrus";
+  if (n.includes("kitchen")) return "fa-kitchen-set";
+  if (n.includes("aircon") || n.includes("ac") || n.includes("air ")) return "fa-snowflake";
+  if (n.includes("tv")) return "fa-tv";
+  if (n.includes("kid") || n.includes("child") || n.includes("play")) return "fa-children";
+  return "fa-star";
+}
+
+// Render an amenity icon. Three cases handled:
+//   1. Falsy / empty → fall back to a neutral star FA.
+//   2. Looks like a Font Awesome class ("fa-…" or "fas fa-…") →
+//      render as <i className="fas fa-…">. This is what amenityIcon()
+//      returns and what new CMS pickers should write.
+//   3. Anything else → render the raw value (covers legacy emoji
+//      stored in the catalog before the FA migration; we don't want
+//      to silently blank existing data).
+function AmenityIcon({ icon, className = "" }) {
+  const v = (icon == null ? "" : String(icon)).trim();
+  if (!v) {
+    return <i className={`fas fa-star ${className}`} aria-hidden="true" />;
+  }
+  if (/^(fas?|far|fab|fa-solid|fa-regular|fa-brands)\s+fa-/.test(v)) {
+    // Already includes a style prefix.
+    return <i className={`${v} ${className}`} aria-hidden="true" />;
+  }
+  if (/^fa-[\w-]+$/.test(v)) {
+    return <i className={`fas ${v} ${className}`} aria-hidden="true" />;
+  }
+  // Legacy / opaque value (likely an emoji). Render as text node.
+  return <span aria-hidden="true">{v}</span>;
 }
 
 function buildRoomCard(room) {
@@ -151,7 +184,7 @@ function WaveDivider({ flip = false, color = "#ffffff" }) {
 // "live site shows X, builder pre-fills Y" mismatch.
 const DEFAULT_PC = {
   hero:       { background: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2073&q=80", poster: "", title: "Aplaya Beach Resort", subtitle: "Beachfront. Cottages, pavilions, rooms. Day, overnight, or 24-hour stays.", ctaText: "See rooms & rates" },
-  about:      { title: "About the resort", paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.", paragraph2: "Parking is included with every booking. Per-head entrance fees are folded into the room rate at booking, so the total you see is the total you pay.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", imagePoster: "", rating: "4.9" },
+  about:      { title: "About the resort", paragraph1: "Aplaya is a family-run beachfront resort in Naic, Cavite — about two hours south of Manila. We rent cottages, pavilions, and rooms by the day, the night, or the full 24 hours.", paragraph2: "Parking is included with every booking. The room rate is shown upfront online; a per-head entrance fee is collected at the gate when you arrive — you'll see both totals before you pay.", image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=2070&q=80", imagePoster: "", rating: "4.9" },
   rooms:      { sectionTitle: "Rooms, cottages, and pavilions", sectionSubtitle: "Pick what fits your group size and the kind of trip you're planning." },
   contact:    { address: "Purok 7 Sitio Pobres Brgy Munting Mapino, Naic, Philippines, 4110", phone: "+63 908 191 4721", email: "aplayabeachresortph@gmail.com", facebook: "", instagram: "", twitter: "", tiktok: "", map_url: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d287.5320944376759!2d120.7697092276209!3d14.33236877346086!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339629b5c29479cb%3A0xfcf314e028c916ae!2sAplaya%20Beach%20Resort!5e1!3m2!1sen!2sus!4v1775705477033!5m2!1sen!2sus", osm_url: "https://www.openstreetmap.org/export/embed.html?bbox=120.7687%2C14.3313%2C120.7707%2C14.3334&layer=mapnik&marker=14.33237%2C120.76971" },
   reviews:    { visible: true,  sectionTitle: "What Our Guests Say", sectionSubtitle: "Don't just take our word for it - hear from our satisfied guests." },
@@ -297,8 +330,16 @@ export default function Resort() {
   const [announcementModal, setAnnouncementModal] = useState(null); // selected item
 
   const anyOverlayOpen =
-    bookingOpen || loginOpen || signupOpen || guestWarningOpen || successOpen || contactAlert.open || lightboxIdx !== null;
+    bookingOpen || loginOpen || signupOpen || guestWarningOpen || successOpen ||
+    contactAlert.open || lightboxIdx !== null || !!resumingBooking;
   useLockBodyScroll(anyOverlayOpen);
+
+  // Lightbox focus trap — moves initial focus into the dialog (close
+  // button), keeps Tab cycling inside, and restores focus to the
+  // gallery card that opened it. Without this, keyboard users were
+  // technically "inside" an aria-modal dialog whose own keydown
+  // handler never fired (focus never entered the container).
+  const lightboxRef = useFocusTrap(lightboxIdx !== null);
 
   // UI cards. Filter mirrors bookingRooms below — a room flagged as
   // occupied / maintenance / out-of-service shouldn't be merchandised
@@ -998,7 +1039,7 @@ export default function Resort() {
                   <div className="flex flex-wrap gap-3">
                     {amenityCards.slice(0, 4).map((a) => (
                       <span key={a.title} className="inline-flex items-center gap-2 bg-slate-50 border border-slate-200 text-slate-700 text-sm px-3 py-1.5 rounded-full">
-                        {a.icon} {a.title}
+                        <AmenityIcon icon={a.icon} className="text-sky-600 text-xs" /> {a.title}
                       </span>
                     ))}
                   </div>
@@ -1199,8 +1240,8 @@ export default function Resort() {
                   >
                     <div className={`w-full h-2 ${accent}`} />
                     <div className="flex flex-col items-center px-5 py-6 flex-1">
-                      <div className={`w-16 h-16 rounded-2xl ${accent} flex items-center justify-center mb-4 shadow-md text-3xl group-hover:scale-110 transition-transform duration-300`}>
-                        {a.icon}
+                      <div className={`w-16 h-16 rounded-2xl ${accent} flex items-center justify-center mb-4 shadow-md text-white text-2xl group-hover:scale-110 transition-transform duration-300`}>
+                        <AmenityIcon icon={a.icon} />
                       </div>
                       <h3 className="text-base font-bold text-slate-800 leading-tight mb-1">{a.title}</h3>
                       {a.desc && <p className="text-xs text-slate-500 leading-snug">{a.desc}</p>}
@@ -1388,12 +1429,20 @@ export default function Resort() {
                       className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                       loading="lazy"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                      <div className="flex items-center justify-between w-full">
-                        {g.caption && <p className="text-white text-sm font-medium">{g.caption}</p>}
-                        <i className="fas fa-expand text-white/70 text-sm" aria-hidden="true"></i>
+                    {/* Persistent expand badge — top-right corner.
+                        Always visible (no hover gate) so touch users
+                        get an affordance that the tile is tappable. */}
+                    <span className="absolute top-3 right-3 inline-flex items-center justify-center w-8 h-8 rounded-full bg-black/55 text-white shadow-md ring-1 ring-white/20" aria-hidden="true">
+                      <i className="fas fa-expand text-xs"></i>
+                    </span>
+                    {/* Caption strip — also persistent on touch; on
+                        desktop the gradient deepens on hover for the
+                        same "leans in" effect we had before. */}
+                    {g.caption && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent p-3 transition-opacity duration-300 group-hover:from-black/85 group-hover:via-black/40">
+                        <p className="text-white text-sm font-medium leading-tight">{g.caption}</p>
                       </div>
-                    </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1723,10 +1772,12 @@ export default function Resort() {
       {/* Gallery Lightbox */}
       {lightboxIdx !== null && galleryDisplay?.[lightboxIdx] && (
         <div
+          ref={lightboxRef}
           role="dialog"
           aria-modal="true"
           aria-label="Image lightbox"
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          tabIndex={-1}
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 focus:outline-none"
           onClick={(e) => { if (e.target === e.currentTarget) setLightboxIdx(null); }}
           onKeyDown={(e) => {
             if (e.key === 'Escape') setLightboxIdx(null);
