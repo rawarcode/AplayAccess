@@ -1787,10 +1787,11 @@ export default function Resort() {
         >
           <button
             onClick={() => setLightboxIdx(null)}
-            className="absolute top-4 right-4 text-white/70 hover:text-white transition z-10"
+            className="absolute top-4 right-4 w-11 h-11 inline-flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
             aria-label="Close lightbox"
+            type="button"
           >
-            <i className="fas fa-times text-2xl" aria-hidden="true"></i>
+            <i className="fas fa-times text-xl" aria-hidden="true"></i>
           </button>
 
           {galleryDisplay.length > 1 && (
