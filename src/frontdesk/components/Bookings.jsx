@@ -831,7 +831,7 @@ export default function Bookings({ embedded = false }) {
                                     disabled={actionLoading === b.bookingId}
                                     title="Transfer to another room"
                                     aria-label={`Transfer ${b.id} to another room`}
-                                    className="inline-flex w-9 h-9 items-center justify-center rounded text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800 disabled:opacity-40">
+                                    className="inline-flex w-11 h-11 items-center justify-center rounded text-indigo-700 hover:bg-indigo-50 hover:text-indigo-800 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                                     <i className="fas fa-exchange-alt" aria-hidden="true"></i>
                                   </button>
                                 )}
@@ -854,7 +854,7 @@ export default function Bookings({ embedded = false }) {
                                 disabled={receiptLoadingId === b.bookingId}
                                 title="Download booking confirmation (PDF)"
                                 aria-label={`Download booking confirmation for ${b.id}`}
-                                className="inline-flex w-9 h-9 items-center justify-center rounded text-slate-500 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40">
+                                className="inline-flex w-11 h-11 items-center justify-center rounded text-slate-600 hover:bg-slate-100 hover:text-slate-800 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500">
                                 {receiptLoadingId === b.bookingId
                                   ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i>
                                   : <i className="fas fa-file-pdf" aria-hidden="true"></i>}

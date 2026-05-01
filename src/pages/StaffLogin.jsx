@@ -158,15 +158,15 @@ export default function StaffLogin() {
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-coastal-accent hover:text-brand transition"
+                className="absolute right-3 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-11 w-11 rounded-full text-coastal-accent hover:text-brand hover:bg-coastal-bg-alt transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true"></i>
               </button>
             </div>
 
             <div className="flex justify-end mb-6">
-              <Link to="/forgot-password" className="text-xs text-coastal-accent hover:text-brand transition">
+              <Link to="/forgot-password" className="text-xs text-coastal-accent hover:text-brand transition rounded px-1 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
                 Forgot password?
               </Link>
             </div>
@@ -174,9 +174,9 @@ export default function StaffLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-4 bg-brand text-white rounded-[60px] font-medium text-xl shadow-lg auth-cta-shadow flex items-center justify-center gap-3 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60"
+              className="w-full py-4 bg-brand text-white rounded-[60px] font-medium text-xl shadow-lg auth-cta-shadow flex items-center justify-center gap-3 transition-all hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
-              <i className="fas fa-arrow-right-to-bracket"></i>
+              <i className="fas fa-arrow-right-to-bracket" aria-hidden="true"></i>
               {loading ? 'signing in...' : 'log in'}
             </button>
           </form>
@@ -189,9 +189,9 @@ export default function StaffLogin() {
           <div className="mt-4 text-center">
             <Link
               to="/resort"
-              className="text-xs text-coastal-accent hover:text-brand transition"
+              className="inline-flex items-center text-xs text-coastal-accent hover:text-brand transition rounded px-2 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
-              <i className="fas fa-arrow-left mr-1"></i>
+              <i className="fas fa-arrow-left mr-1" aria-hidden="true"></i>
               Back to resort
             </Link>
           </div>

@@ -1362,13 +1362,15 @@ export default function WalkIn({ embedded = false }) {
                               <button type="button"
                                 disabled={qty === 0}
                                 onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.max(0, qty - 1) }))}
-                                className="w-11 h-11 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">−</button>
-                              <span className="w-8 text-center text-sm font-medium">{qty}</span>
+                                aria-label={`Decrease ${a.name} quantity`}
+                                className="w-11 h-11 rounded border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-bold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">−</button>
+                              <span className="w-8 text-center text-sm font-medium" aria-live="polite" aria-label={`${a.name} quantity ${qty}`}>{qty}</span>
                               <button type="button"
                                 disabled={atCap}
                                 onClick={() => setAddonQtys(q => ({ ...q, [a.id]: Math.min(cap, qty + 1) }))}
                                 title={atCap && remaining != null ? `Only ${remaining} left for this window.` : undefined}
-                                className="w-11 h-11 rounded border text-slate-600 hover:bg-slate-100 text-sm font-bold disabled:opacity-40">+</button>
+                                aria-label={`Increase ${a.name} quantity`}
+                                className="w-11 h-11 rounded border border-slate-300 text-slate-700 hover:bg-slate-100 text-sm font-bold disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">+</button>
                               {qty > 0 && (
                                 <span className="ml-auto text-xs font-medium text-sky-700">₱{(qty * a.price).toLocaleString()}</span>
                               )}
@@ -1387,9 +1389,16 @@ export default function WalkIn({ embedded = false }) {
                   </label>
                   {promoResult ? (
                     <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-md">
-                      <i className="fas fa-check-circle text-emerald-600"></i>
+                      <i className="fas fa-check-circle text-emerald-600" aria-hidden="true"></i>
                       <span className="text-sm text-emerald-800 font-medium flex-1">{promoResult.message}</span>
-                      <button type="button" onClick={removePromo} className="text-xs text-slate-500 hover:text-rose-600 underline">Remove</button>
+                      <button
+                        type="button"
+                        onClick={removePromo}
+                        aria-label="Remove promo code"
+                        className="inline-flex items-center min-h-9 px-2 py-1 rounded text-xs text-slate-600 hover:text-rose-700 hover:bg-white underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                      >
+                        Remove
+                      </button>
                     </div>
                   ) : (
                     <div className="flex gap-2">
@@ -1399,11 +1408,17 @@ export default function WalkIn({ embedded = false }) {
                         onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(''); }}
                         onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), applyPromo())}
                         placeholder="Enter promo code"
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:ring-2 focus:ring-sky-500"
+                        aria-label="Promo code"
+                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sky-500"
                       />
-                      <button type="button" onClick={applyPromo} disabled={!promoInput.trim() || promoLoading}
-                        className="px-3 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-sm font-medium rounded-md">
-                        {promoLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Apply'}
+                      <button
+                        type="button"
+                        onClick={applyPromo}
+                        disabled={!promoInput.trim() || promoLoading}
+                        aria-label="Apply promo code"
+                        className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white text-sm font-medium rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                      >
+                        {promoLoading ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : 'Apply'}
                       </button>
                     </div>
                   )}

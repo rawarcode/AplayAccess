@@ -195,7 +195,9 @@ export default function StaffChatWidget() {
         onClick={() => { if (wasDragged.current) return; setOpen(o => !o); }}
         {...dragHandlers}
         style={dragStyle}
-        className={`fixed bottom-6 right-6 z-[9989] h-14 w-14 rounded-full shadow-xl flex items-center justify-center transition-colors duration-300 cursor-grab active:cursor-grabbing ${
+        type="button"
+        aria-expanded={open}
+        className={`fixed bottom-6 right-6 z-[9989] h-14 w-14 rounded-full shadow-xl inline-flex items-center justify-center transition-colors duration-300 cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-violet-500 ${
           open
             ? 'bg-slate-700 hover:bg-slate-800'
             : 'bg-violet-600 hover:bg-violet-700'
@@ -240,10 +242,11 @@ export default function StaffChatWidget() {
             {selectedThreadId && (
               <button
                 onClick={() => setSelectedId(null)}
-                className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition"
+                type="button"
+                className="h-11 w-11 rounded-full bg-white/20 hover:bg-white/30 inline-flex items-center justify-center text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 aria-label="Back to thread list"
               >
-                <i className="fas fa-arrow-left text-sm"></i>
+                <i className="fas fa-arrow-left text-sm" aria-hidden="true"></i>
               </button>
             )}
             <div className="flex-1 min-w-0">
@@ -332,7 +335,8 @@ function ThreadList({ threads, onPick }) {
           <button
             key={t.id}
             onClick={() => onPick(t.id)}
-            className={`w-full text-left px-4 py-3 flex items-start gap-3 transition ${
+            type="button"
+            className={`w-full text-left px-4 py-3 min-h-11 flex items-start gap-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-violet-500 ${
               unread ? 'bg-violet-50 hover:bg-violet-100' : 'hover:bg-slate-50'
             }`}
           >
@@ -431,11 +435,12 @@ function ThreadDetail({ thread, reply, setReply, sending, sendError, onSend, onK
           <button
             onClick={onSend}
             disabled={!reply.trim() || sending}
-            className="h-10 w-10 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white flex items-center justify-center transition shrink-0"
+            type="button"
+            className="h-11 w-11 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:opacity-40 text-white inline-flex items-center justify-center transition shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
             aria-label="Send"
             title="Send"
           >
-            <i className={`fas ${sending ? 'fa-spinner fa-spin' : 'fa-paper-plane'} text-sm`}></i>
+            <i className={`fas ${sending ? 'fa-spinner fa-spin' : 'fa-paper-plane'} text-sm`} aria-hidden="true"></i>
           </button>
         </div>
       </div>

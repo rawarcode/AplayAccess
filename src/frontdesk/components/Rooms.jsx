@@ -316,7 +316,7 @@ function MultiUnitCard({ room, info, onOpen }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen?.(); } }}
-      className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2 cursor-pointer transition-all duration-200 hover:border-slate-300 hover:shadow-md hover:scale-[1.015]"
+      className="bg-white border border-slate-200 rounded-lg p-3 shadow-sm flex flex-col gap-2 cursor-pointer transition-all duration-200 hover:border-slate-300 hover:shadow-md hover:scale-[1.015] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
     >
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -552,6 +552,7 @@ function RoomCard({ room, info, onClick }) {
         border-2 rounded-lg p-3 flex flex-col gap-1.5
         shadow-sm cursor-pointer transition-all duration-200
         hover:opacity-90 hover:scale-[1.015]
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2
         ${info.status === 'occupied' && (info.urgency === 'soon' || info.urgency === 'overdue') ? 'animate-pulse' : ''}
       `}
     >
@@ -802,8 +803,10 @@ export default function FDRooms({ embedded = false }) {
             {FILTERS.map(f => (
               <button
                 key={f.key}
+                type="button"
                 onClick={() => setFilter(f.key)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all border-2 ${
+                aria-pressed={filter === f.key}
+                className={`inline-flex items-center min-h-11 px-4 py-1.5 rounded-full text-sm font-medium transition-all border-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2 ${
                   filter === f.key
                     ? `${f.color} border-transparent shadow`
                     : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'

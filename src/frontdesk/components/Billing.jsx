@@ -891,7 +891,7 @@ export default function Billing({ embedded = false }) {
                           onClick={(e) => { e.stopPropagation(); openCollect(b); }}
                           onKeyDown={(e) => e.stopPropagation()}
                           aria-label={`Collect ${fmtMoney(toCollect)} for ${b.id}`}
-                          className="mt-2 inline-flex items-center gap-1 min-h-[40px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                          className="mt-2 inline-flex items-center gap-1 min-h-11 px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                         >
                           <i className="fas fa-hand-holding-usd" aria-hidden="true"></i>Collect
                         </button>
@@ -1022,7 +1022,7 @@ export default function Billing({ embedded = false }) {
                         </td>
                         <td className="px-4 py-3"><StatusBadge status={b.status} /></td>
                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                          {/* Pills use min-h-[40px] so tap targets clear
+                          {/* Pills use min-h-11 so tap targets clear
                               the WCAG 2.5.8 AA floor (24px) with comfortable
                               margin for tablet/phone use. aria-labels name the
                               booking so title tooltips aren't the only
@@ -1032,20 +1032,20 @@ export default function Billing({ embedded = false }) {
                               <button
                                 onClick={() => openCollect(b)}
                                 aria-label={`Collect payment for ${b.id}`}
-                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                                className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                               >
                                 <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
                               </button>
                             )}
                             {b.status === 'Confirmed' && b.fullyPaid && (
-                              <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-emerald-700 font-medium">
+                              <span className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 text-xs text-emerald-700 font-medium">
                                 <i className="fas fa-check-circle" aria-hidden="true"></i>Paid — awaiting check-in
                               </span>
                             )}
                             {b.status === 'Pending' && (
                               <span
                                 aria-label="Awaiting payment clearance"
-                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
+                                className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
                               >
                                 <i className="fas fa-hourglass-half text-[11px]" aria-hidden="true"></i>Awaiting payment
                               </span>
@@ -1063,7 +1063,7 @@ export default function Billing({ embedded = false }) {
                               </button>
                             )}
                             {b.status === 'Cancelled' && (
-                              <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-rose-600">
+                              <span className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 text-xs text-rose-600">
                                 <i className="fas fa-ban" aria-hidden="true"></i>Cancelled
                               </span>
                             )}
@@ -1170,20 +1170,20 @@ export default function Billing({ embedded = false }) {
                           <button
                             onClick={() => openCollect(b)}
                             aria-label={`Collect payment for ${b.id}`}
-                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                            className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 bg-emerald-600 text-white rounded text-xs font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
                           >
                             <i className="fas fa-coins text-[11px]" aria-hidden="true"></i>Collect
                           </button>
                         )}
                         {b.status === 'Confirmed' && b.fullyPaid && (
-                          <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-emerald-700 font-medium">
+                          <span className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 text-xs text-emerald-700 font-medium">
                             <i className="fas fa-check-circle" aria-hidden="true"></i>Paid — awaiting check-in
                           </span>
                         )}
                         {b.status === 'Pending' && (
                           <span
                             aria-label="Awaiting payment clearance"
-                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
+                            className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 text-xs text-amber-700 bg-amber-50 rounded font-medium"
                           >
                             <i className="fas fa-hourglass-half text-[11px]" aria-hidden="true"></i>Awaiting payment
                           </span>
@@ -1201,7 +1201,7 @@ export default function Billing({ embedded = false }) {
                           </button>
                         )}
                         {b.status === 'Cancelled' && (
-                          <span className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 text-xs text-rose-600">
+                          <span className="inline-flex items-center gap-1 min-h-11 px-3 py-1.5 text-xs text-rose-600">
                             <i className="fas fa-ban" aria-hidden="true"></i>Cancelled
                           </span>
                         )}
@@ -1296,8 +1296,8 @@ export default function Billing({ embedded = false }) {
                 />
                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                 <button type="submit" disabled={!pastQuery.trim() || pastLoading}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1 bg-sky-600 text-white rounded-md text-xs font-medium hover:bg-sky-700 disabled:opacity-50">
-                  {pastLoading ? <i className="fas fa-spinner fa-spin"></i> : 'Search'}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-2 min-h-9 bg-sky-600 text-white rounded-md text-xs font-medium hover:bg-sky-700 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1">
+                  {pastLoading ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : 'Search'}
                 </button>
               </div>
               <p className="text-[11px] text-slate-400 mt-2">
