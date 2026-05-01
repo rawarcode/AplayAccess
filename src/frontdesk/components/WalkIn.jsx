@@ -115,9 +115,26 @@ export default function WalkIn({ embedded = false }) {
     Promise.allSettled([getAdminGuests(), getFdBookings()])
       .then(([gRes, bRes]) => {
         if (cancelled) return;
+        // Two layers of "deleted account" detection:
+        //  1. The users table row is anonymized — name='Deleted User',
+        //     email='deleted_{id}@removed.local'. Skip those entirely.
+        //  2. Past walk-in bookings linked to a deleted user_id may
+        //     still hold the pre-deletion PII in special_requests if
+        //     the backend scrub hasn't run on that row yet (legacy data
+        //     from before the ProfileController scrub was added). The
+        //     deletedUserIds set lets us drop those walk-in extracts
+        //     even when their special_requests still contains the
+        //     original name/phone/email.
+        const isDeletedRow = (g) => (g.name || '').trim().toLowerCase() === 'deleted user'
+          || /^deleted_\d+@removed\.local$/i.test(g.email || '');
+        const deletedUserIds = new Set();
         const map = new Map();
         if (gRes.status === 'fulfilled') {
           for (const g of gRes.value?.data?.data ?? []) {
+            if (isDeletedRow(g)) {
+              if (g.id != null) deletedUserIds.add(Number(g.id));
+              continue;
+            }
             const key = phoneKey(g.phone) || `email:${(g.email || '').toLowerCase()}`;
             if (!key || key === 'email:') continue;
             map.set(key, {
@@ -132,8 +149,13 @@ export default function WalkIn({ embedded = false }) {
         }
         if (bRes.status === 'fulfilled') {
           for (const b of bRes.value ?? []) {
+            // Skip walk-ins owned by a user whose account was deleted
+            // (covers legacy specialRequests rows that still hold PII).
+            if (b.userId != null && deletedUserIds.has(Number(b.userId))) continue;
             const wi = parseWalkInGuest(b);
             if (!wi) continue;
+            // Skip post-scrub rows whose parsed name is the placeholder.
+            if ((wi.name || '').trim().toLowerCase() === 'deleted user') continue;
             const key = phoneKey(wi.phone) || `email:${(wi.email || '').toLowerCase()}`;
             if (!key || key === 'email:') continue;
             const existing = map.get(key);
@@ -1485,7 +1507,7 @@ export default function WalkIn({ embedded = false }) {
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3 shrink-0 bg-white">
               {wiStep === 1 ? (<>
                 <button type="button" onClick={() => { setFormOpen(false); setFormError(''); closeWizard(); }}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                   Cancel
                 </button>
                 <button type="button"
@@ -1497,19 +1519,19 @@ export default function WalkIn({ embedded = false }) {
                     setWiStep(2);
                     document.getElementById('walkin-scroll')?.scrollTo(0, 0);
                   }}
-                  className="flex-1 px-4 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                  Next <i className="fas fa-arrow-right"></i>
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-sm font-bold gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
+                  Next <i className="fas fa-arrow-right" aria-hidden="true"></i>
                 </button>
               </>) : (<>
                 <button type="button" onClick={() => { setWiStep(1); document.getElementById('walkin-scroll')?.scrollTo(0, 0); }}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50">
-                  <i className="fas fa-arrow-left mr-1"></i>Back
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                  <i className="fas fa-arrow-left mr-1" aria-hidden="true"></i>Back
                 </button>
                 <button type="button"
                   onClick={handleCreate}
                   disabled={submitting}
-                  className="flex-1 px-4 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed">
-                  <i className="fas fa-eye"></i>
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-sm font-bold gap-2 disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
+                  <i className="fas fa-eye" aria-hidden="true"></i>
                   {submitting ? 'Creating...' : 'Review & Confirm'}
                 </button>
               </>)}

@@ -277,10 +277,11 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
         <div className="px-6 py-4 border-t bg-slate-50 flex gap-3">
           {b.status === 'Confirmed' && !b.fullyPaid && (
             <button
+              type="button"
               onClick={() => onCollect(b)}
-              className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition"
+              className="flex-1 inline-flex items-center justify-center min-h-11 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
             >
-              <i className="fas fa-hand-holding-usd mr-2"></i>Collect Payment
+              <i className="fas fa-hand-holding-usd mr-2" aria-hidden="true"></i>Collect Payment
             </button>
           )}
           {b.status === 'Confirmed' && b.fullyPaid && (
@@ -1360,9 +1361,10 @@ export default function Billing({ embedded = false }) {
                           </div>
                           <div className="mt-2 flex gap-2">
                             <button
+                              type="button"
                               onClick={() => { setSelected(b); setSearchPanelOpen(false); }}
-                              className="flex-1 px-2 py-1 border border-slate-200 rounded text-xs text-slate-700 hover:bg-slate-50">
-                              <i className="fas fa-eye mr-1"></i>View details
+                              className="flex-1 inline-flex items-center justify-center min-h-9 px-3 py-1.5 border border-slate-300 rounded text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                              <i className="fas fa-eye mr-1" aria-hidden="true"></i>View details
                             </button>
                             {/* Past booking search panel — skip the Receipt
                                 button for cancellations that never collected
@@ -1370,10 +1372,11 @@ export default function Billing({ embedded = false }) {
                                 generate receipts for those (422). */}
                             {!(b.status === 'Cancelled' && Number(b.paidAmount ?? 0) <= 0) && (
                               <button
+                                type="button"
                                 onClick={() => downloadPastReceipt(b.bookingId, b.id)}
                                 disabled={pastDownloading === b.bookingId}
-                                className="flex-1 px-2 py-1 bg-sky-600 text-white rounded text-xs hover:bg-sky-700 disabled:opacity-50">
-                                <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`}></i>
+                                className="flex-1 inline-flex items-center justify-center min-h-9 px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-medium hover:bg-sky-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                                <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`} aria-hidden="true"></i>
                                 Confirmation
                               </button>
                             )}

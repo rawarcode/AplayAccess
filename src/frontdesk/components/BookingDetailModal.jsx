@@ -786,24 +786,29 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     </div>
                     {guestEdit ? (
                       <div className="flex items-center gap-2">
-                        <button onClick={() => setGuestCount(g => Math.max(1, g - 1))}
-                          className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">−</button>
-                        <span className="w-8 text-center font-bold text-lg text-amber-900">{guestCount}</span>
-                        <button onClick={() => setGuestCount(g => g + 1)}
-                          className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800">+</button>
-                        <button onClick={handleUpdateGuests} disabled={guestLoading}
-                          className="ml-2 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 disabled:opacity-50">
+                        <button type="button" onClick={() => setGuestCount(g => Math.max(1, g - 1))}
+                          aria-label="Decrease guest count"
+                          className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">−</button>
+                        <span className="w-8 text-center font-bold text-lg text-amber-900" aria-live="polite" aria-label={`Guest count ${guestCount}`}>{guestCount}</span>
+                        <button type="button" onClick={() => setGuestCount(g => g + 1)}
+                          aria-label="Increase guest count"
+                          className="w-11 h-11 rounded-lg bg-white border border-amber-300 hover:bg-amber-100 text-base font-bold text-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">+</button>
+                        <button type="button" onClick={handleUpdateGuests} disabled={guestLoading}
+                          aria-label="Save guest count"
+                          className="ml-2 inline-flex items-center justify-center min-h-11 px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-bold hover:bg-amber-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">
                           {guestLoading ? '…' : 'Save'}
                         </button>
-                        <button onClick={() => { setGuestEdit(false); setGuestCount(booking.guests); }}
-                          className="px-2 py-1.5 bg-white border border-amber-300 text-amber-700 rounded-lg text-xs hover:bg-amber-100">✕</button>
+                        <button type="button" onClick={() => { setGuestEdit(false); setGuestCount(booking.guests); }}
+                          aria-label="Cancel guest count edit"
+                          className="inline-flex items-center justify-center min-h-11 w-11 bg-white border border-amber-300 text-amber-700 rounded-lg text-xs hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">✕</button>
                       </div>
                     ) : (
-                      <button onClick={() => { setGuestEdit(true); setGuestCount(booking.guests); }}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm font-medium text-amber-800 hover:bg-amber-100 transition">
+                      <button type="button" onClick={() => { setGuestEdit(true); setGuestCount(booking.guests); }}
+                        aria-label="Edit guest count"
+                        className="inline-flex items-center gap-2 min-h-11 px-3 py-1.5 bg-white border border-amber-300 rounded-lg text-sm font-medium text-amber-800 hover:bg-amber-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2">
                         <span className="font-bold text-lg">{booking.guests}</span>
                         <span className="text-xs">pax</span>
-                        <i className="fas fa-pen text-xs text-amber-500 ml-1"></i>
+                        <i className="fas fa-pen text-xs text-amber-500 ml-1" aria-hidden="true"></i>
                       </button>
                     )}
                   </div>
@@ -864,16 +869,18 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                         <span className="truncate flex-1">{a.name}</span>
                         <span className="text-xs text-slate-600">Qty:</span>
                         <button
+                          type="button"
                           onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.max(1, (e.qty || 1) - 1) }))}
-                          aria-label="Decrease quantity"
-                          className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50">−</button>
-                        <span className="w-6 text-center text-sm">{editingAmenity.qty}</span>
+                          aria-label={`Decrease ${a.name} quantity`}
+                          className="w-11 h-11 border border-slate-300 rounded text-sm bg-white hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">−</button>
+                        <span className="w-8 text-center text-sm tabular-nums" aria-live="polite">{editingAmenity.qty}</span>
                         <button
+                          type="button"
                           onClick={() => setEditingAmenity(e => ({ ...e, qty: Math.min(editCap, (e.qty || 1) + 1) }))}
-                          aria-label="Increase quantity"
+                          aria-label={`Increase ${a.name} quantity`}
                           disabled={atEditCap}
                           title={atEditCap ? `Pool limit reached — cap is ${editCap} for this booking window.` : undefined}
-                          className="w-8 h-8 border rounded text-sm bg-white hover:bg-slate-50 disabled:opacity-40">+</button>
+                          className="w-11 h-11 border border-slate-300 rounded text-sm bg-white hover:bg-slate-50 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">+</button>
                         <span className="text-xs font-medium text-sky-700 w-20 text-right">
                           {fmtMoney(liveTotal)}
                         </span>
@@ -1111,14 +1118,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                     {!addingAmenity.per_booking && (
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-slate-600">Qty</span>
-                        <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
-                          aria-label="Decrease quantity"
-                          className="w-9 h-9 border border-slate-200 rounded bg-white text-sm hover:bg-slate-100">−</button>
-                        <span className="w-8 text-center text-sm font-medium tabular-nums">{addingAmenity.qty}</span>
-                        <button onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(qtyCap, (a.qty || 1) + 1) }))}
-                          aria-label="Increase quantity"
+                        <button type="button" onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.max(1, (a.qty || 1) - 1) }))}
+                          aria-label={`Decrease ${addingAmenity.name} quantity`}
+                          className="w-11 h-11 border border-slate-300 rounded bg-white text-sm hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">−</button>
+                        <span className="w-8 text-center text-sm font-medium tabular-nums" aria-live="polite">{addingAmenity.qty}</span>
+                        <button type="button" onClick={() => setAddingAmenity(a => ({ ...a, qty: Math.min(qtyCap, (a.qty || 1) + 1) }))}
+                          aria-label={`Increase ${addingAmenity.name} quantity`}
                           disabled={(addingAmenity.qty || 1) >= qtyCap}
-                          className="w-9 h-9 border border-slate-200 rounded bg-white text-sm hover:bg-slate-100 disabled:opacity-40">+</button>
+                          className="w-11 h-11 border border-slate-300 rounded bg-white text-sm hover:bg-slate-100 disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">+</button>
                         <span className="ml-auto text-sm font-semibold text-sky-700 tabular-nums">
                           ₱{(Number(addingAmenity.qty || 1) * Number(addingAmenity.unit_price || 0)).toLocaleString()}
                         </span>
@@ -1382,10 +1389,10 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   check in. The backend enforces this too; this hides the
                   button so staff don't try the disallowed path. */}
               {booking.status === 'Confirmed' && !isExpiredPending(booking) && (
-                <button onClick={() => setPendingAction({ type: 'checkin' })}
+                <button type="button" onClick={() => setPendingAction({ type: 'checkin' })}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-violet-600 text-white rounded text-sm hover:bg-violet-700 disabled:opacity-50">
-                  <i className="fas fa-door-open mr-1"></i>Check In
+                  className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-violet-600 text-white rounded text-sm font-medium hover:bg-violet-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                  <i className="fas fa-door-open mr-1" aria-hidden="true"></i>Check In
                 </button>
               )}
               {/* Transfer hidden once a Checked In booking has gone
@@ -1395,24 +1402,24 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   accepts overdue bookings so an override via API is
                   possible if ever needed.) */}
               {booking.status === 'Checked In' && !transferOpen && !isOverdueCheckout(booking) && (
-                <button onClick={openTransfer}
+                <button type="button" onClick={openTransfer}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-violet-600 text-white rounded text-sm hover:bg-violet-700 disabled:opacity-50">
-                  <i className="fas fa-exchange-alt mr-1"></i>Transfer
+                  className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-violet-600 text-white rounded text-sm font-medium hover:bg-violet-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                  <i className="fas fa-exchange-alt mr-1" aria-hidden="true"></i>Transfer
                 </button>
               )}
               {booking.status === 'Checked In' && (
-                <button onClick={() => setPendingAction({ type: 'checkout' })}
+                <button type="button" onClick={() => setPendingAction({ type: 'checkout' })}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-emerald-600 text-white rounded text-sm hover:bg-emerald-700 disabled:opacity-50">
-                  <i className="fas fa-sign-out-alt mr-1"></i>Check Out
+                  className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-emerald-600 text-white rounded text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2">
+                  <i className="fas fa-sign-out-alt mr-1" aria-hidden="true"></i>Check Out
                 </button>
               )}
               {booking.status === 'Pending' && !isExpiredPending(booking) && (
-                <button onClick={() => setPendingAction({ type: 'cancel' })}
+                <button type="button" onClick={() => setPendingAction({ type: 'cancel' })}
                   disabled={actionLoading}
-                  className="px-3 py-2 bg-rose-600 text-white rounded text-sm hover:bg-rose-700 disabled:opacity-50">
-                  <i className="fas fa-times mr-1"></i>Cancel
+                  className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-rose-600 text-white rounded text-sm font-medium hover:bg-rose-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                  <i className="fas fa-times mr-1" aria-hidden="true"></i>Cancel
                 </button>
               )}
               {/* Receipt is available for any booking that has been paid to
@@ -1420,11 +1427,11 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                   so the PDF would be empty. Confirmed / Checked In /
                   Completed / Cancelled all have meaningful records. */}
               {booking.status !== 'Pending' && (
-                <button onClick={handleDownloadReceipt} disabled={receiptLoading}
-                  className="px-3 py-2 bg-sky-600 text-white rounded text-sm hover:bg-sky-700 disabled:opacity-50">
+                <button type="button" onClick={handleDownloadReceipt} disabled={receiptLoading}
+                  className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-sky-600 text-white rounded text-sm font-medium hover:bg-sky-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                   {receiptLoading
-                    ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
-                    : <><i className="fas fa-file-pdf mr-1"></i>Download Confirmation</>}
+                    ? <><i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Downloading...</>
+                    : <><i className="fas fa-file-pdf mr-1" aria-hidden="true"></i>Download Confirmation</>}
                 </button>
               )}
               <button onClick={onClose}
