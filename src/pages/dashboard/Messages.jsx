@@ -215,9 +215,10 @@ export default function Messages() {
             onClick={() => setMessageSoundMuted(!soundMuted)}
             title={soundMuted ? "Unmute message sound" : "Mute message sound"}
             aria-label={soundMuted ? "Unmute message sound" : "Mute message sound"}
-            className="h-9 w-9 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 hover:text-slate-700 transition"
+            aria-pressed={soundMuted}
+            className="h-11 w-11 rounded-lg hover:bg-slate-100 inline-flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
           >
-            <i className={`fas ${soundMuted ? "fa-volume-xmark" : "fa-volume-high"} text-sm`}></i>
+            <i className={`fas ${soundMuted ? "fa-volume-xmark" : "fa-volume-high"} text-sm`} aria-hidden="true"></i>
           </button>
         </div>
 
@@ -236,9 +237,9 @@ export default function Messages() {
           <button
             type="submit"
             disabled={!quickMsg.trim() || quickSending}
-            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition shrink-0"
+            className="inline-flex items-center gap-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-50 text-white px-5 py-2.5 min-h-11 rounded-xl text-sm font-medium transition shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
-            <i className={`fas ${quickSending ? "fa-spinner fa-spin" : "fa-paper-plane"} text-xs`}></i>
+            <i className={`fas ${quickSending ? "fa-spinner fa-spin" : "fa-paper-plane"} text-xs`} aria-hidden="true"></i>
             {quickSending ? "Sending..." : "Send"}
           </button>
         </form>
@@ -422,10 +423,11 @@ export default function Messages() {
                 <button
                   onClick={sendReply}
                   disabled={!current || sending || !reply.trim()}
-                  className="h-[42px] w-[42px] shrink-0 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white flex items-center justify-center transition"
+                  type="button"
+                  className="h-11 w-11 shrink-0 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white inline-flex items-center justify-center transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                   aria-label="Send reply"
                 >
-                  <i className={`fas ${sending ? "fa-spinner fa-spin" : "fa-paper-plane"}`}></i>
+                  <i className={`fas ${sending ? "fa-spinner fa-spin" : "fa-paper-plane"}`} aria-hidden="true"></i>
                 </button>
               </div>
             </div>

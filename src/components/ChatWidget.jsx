@@ -392,7 +392,7 @@ export default function ChatWidget() {
                     onClick={() => handleSend(k.keyword)}
                     disabled={sending}
                     type="button"
-                    className="px-3 py-2 min-h-9 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-medium rounded-full hover:bg-sky-100 hover:border-sky-300 transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                    className="px-3.5 py-2.5 min-h-11 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-medium rounded-full hover:bg-sky-100 hover:border-sky-300 transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     {k.keyword}
                   </button>

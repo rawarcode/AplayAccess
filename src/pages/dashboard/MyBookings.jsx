@@ -775,7 +775,7 @@ export default function MyBookings() {
       />
 
       {/* ── Cancel modal (shared Modal) ── */}
-      <Modal open={!!cancelling} onClose={() => setCancelling(null)} maxWidth="max-w-sm">
+      <Modal open={!!cancelling} onClose={() => setCancelling(null)} maxWidth="max-w-sm" label="Cancel booking">
         {cancelling && (
           <CancelModalContent booking={cancelling} reservationFeePct={reservationFeePct}
             onClose={() => setCancelling(null)} onConfirmed={handleCancelConfirmed} />
@@ -783,7 +783,7 @@ export default function MyBookings() {
       </Modal>
 
       {/* ── Review modal (shared Modal) ── */}
-      <Modal open={!!reviewing} onClose={() => setReviewing(null)} maxWidth="max-w-md">
+      <Modal open={!!reviewing} onClose={() => setReviewing(null)} maxWidth="max-w-md" label="Write a review">
         {reviewing && (
           <ReviewModalContent booking={reviewing}
             onClose={() => setReviewing(null)} onSubmitted={handleReviewSubmitted} />
@@ -791,7 +791,7 @@ export default function MyBookings() {
       </Modal>
 
       {/* ── Booking detail drawer (shared Modal) ── */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-md">
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-md" label="Booking details">
         {selected && (
           <>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

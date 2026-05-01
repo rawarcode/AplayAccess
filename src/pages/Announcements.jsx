@@ -182,7 +182,7 @@ export default function Announcements() {
       </main>
 
       {/* Full-detail modal */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-2xl">
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-2xl" label={selected?.title ? `Announcement: ${selected.title}` : "Announcement"}>
         {selected && (
           <>
             {/* Media */}

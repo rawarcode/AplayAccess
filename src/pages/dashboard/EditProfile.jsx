@@ -563,7 +563,7 @@ export default function EditProfile() {
           held for 2.5s — a dialog-level success card, not a toast, so
           the user can't miss it. Modal's onClose is disabled during
           that window too (the logout redirect will close it). */}
-      <Modal open={deleteOpen} onClose={() => { if (!deleted) { setDeleteOpen(false); setDeleteConfirmText(""); } }} maxWidth="max-w-md">
+      <Modal open={deleteOpen} onClose={() => { if (!deleted) { setDeleteOpen(false); setDeleteConfirmText(""); } }} maxWidth="max-w-md" label={deleted ? "Account deleted" : "Delete account confirmation"}>
         {deleted ? (
           <div className="p-8 text-center" role="status" aria-live="polite">
             <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-5 animate-pulse">
@@ -637,7 +637,7 @@ export default function EditProfile() {
       </Modal>
 
       {/* Item 4: Change Password modal using shared Modal */}
-      <Modal open={pwOpen} onClose={guardedPwClose} maxWidth="max-w-md">
+      <Modal open={pwOpen} onClose={guardedPwClose} maxWidth="max-w-md" label="Change password">
         <div className="flex items-center justify-between px-5 py-4 border-b">
           <h3 className="text-lg font-semibold text-slate-900">
             <i className="fas fa-lock mr-2 text-amber-600"></i>Change Password

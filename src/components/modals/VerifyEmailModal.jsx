@@ -216,7 +216,7 @@ export default function VerifyEmailModal({ open, onClose }) {
               type="submit"
               disabled={loading || code.join('').length !== 6}
               aria-busy={loading}
-              className="w-full py-3 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium rounded-lg transition inline-flex items-center justify-center gap-2"
+              className="w-full py-3 min-h-11 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 text-white font-medium rounded-lg transition inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
             >
               {loading
                 ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Verifying...</>

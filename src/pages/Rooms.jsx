@@ -176,7 +176,10 @@ export default function Rooms() {
     return () => { active = false; };
   }, [user]);
 
-  const anyOverlay = bookingOpen || loginOpen || guestWarningOpen || successOpen;
+  // resumingBooking opens a separate BookingModal mount below; without
+  // it in the overlay state, background scroll stays unlocked while
+  // the resume modal is up. Same fix we shipped on Resort.jsx.
+  const anyOverlay = bookingOpen || loginOpen || guestWarningOpen || successOpen || !!resumingBooking;
   useLockBodyScroll(anyOverlay);
 
   function load() {

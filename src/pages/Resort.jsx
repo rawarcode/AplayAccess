@@ -960,7 +960,7 @@ export default function Resort() {
         </section>
 
         {/* Announcement detail modal */}
-        <Modal open={!!announcementModal} onClose={() => setAnnouncementModal(null)} maxWidth="max-w-xl">
+        <Modal open={!!announcementModal} onClose={() => setAnnouncementModal(null)} maxWidth="max-w-xl" label={announcementModal?.title ? `Announcement: ${announcementModal.title}` : "Announcement"}>
           {announcementModal && (
             <>
               {announcementModal.media_url && (
