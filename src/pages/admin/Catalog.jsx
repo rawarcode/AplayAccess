@@ -192,7 +192,7 @@ function RoomsTab() {
         </div>
         <button onClick={() => load(true)} disabled={refreshing} type="button"
           aria-label="Refresh rooms list"
-          className="inline-flex items-center gap-2 h-10 px-4 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
+          className="inline-flex items-center gap-2 min-h-11 px-4 text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
           <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
@@ -222,10 +222,10 @@ function RoomsTab() {
           return (
             <button key={tab.key} type="button" onClick={() => setFilterCategory(tab.key)}
               aria-pressed={active}
-              className={`inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold border transition-all ${
+              className={`inline-flex items-center gap-2 min-h-11 px-4 rounded-xl text-sm font-semibold border transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                 active
-                  ? "bg-brand text-white border-brand shadow"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-brand hover:text-brand"
+                  ? "bg-brand text-white border-brand shadow focus-visible:ring-brand"
+                  : "bg-white text-slate-700 border-slate-300 hover:border-brand hover:text-brand focus-visible:ring-slate-400"
               }`}>
               <i className={`fas ${tab.icon} text-xs`} aria-hidden="true"></i>
               {tab.label}
@@ -344,21 +344,21 @@ function RoomsTab() {
               <span className="font-semibold text-slate-700">{filtered.length}</span> rooms
             </p>
             {/* WCAG 2.5.5 — 44×44 touch targets */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} type="button"
                 aria-label="Previous page"
-                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+                className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
               </button>
               {getPageNumbers(safePage, totalPages).map((n, i) =>
                 n === "..." ? (
-                  <span key={`d-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-xs text-slate-400" aria-hidden="true">…</span>
+                  <span key={`d-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-sm text-slate-500" aria-hidden="true">…</span>
                 ) : (
                   <button key={n} onClick={() => setPage(n)} type="button"
                     aria-label={`Page ${n}`}
                     aria-current={n === safePage ? "page" : undefined}
-                    className={`h-11 min-w-[2.75rem] rounded-lg text-xs font-semibold transition ${
-                      n === safePage ? "bg-brand text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    className={`h-11 min-w-[2.75rem] rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                      n === safePage ? "bg-brand text-white shadow-sm focus-visible:ring-brand" : "border border-slate-300 text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400"
                     }`}>
                     {n}
                   </button>
@@ -366,8 +366,8 @@ function RoomsTab() {
               )}
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages} type="button"
                 aria-label="Next page"
-                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+                className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
               </button>
             </div>
           </nav>
@@ -375,7 +375,7 @@ function RoomsTab() {
       </div>
 
       {/* View Room Modal */}
-      <Modal open={!!viewRoom} onClose={() => setViewRoom(null)} maxWidth="max-w-lg">
+      <Modal open={!!viewRoom} onClose={() => setViewRoom(null)} maxWidth="max-w-lg" label={viewRoom ? `Room details — ${viewRoom.name}` : 'Room details'}>
         {viewRoom && (() => {
           const avail = viewRoom.availability_status || "available";
           return (
@@ -568,7 +568,7 @@ function AddonsTab() {
         </div>
         <button onClick={() => load(true)} disabled={refreshing} type="button"
           aria-label="Refresh add-ons list"
-          className="inline-flex items-center gap-2 h-10 px-4 text-slate-500 hover:text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50">
+          className="inline-flex items-center gap-2 min-h-11 px-4 text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-xl text-sm font-medium transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
           <i className={`fas fa-sync-alt ${refreshing ? "fa-spin" : ""}`} aria-hidden="true"></i>
           <span>Refresh</span>
         </button>
@@ -584,7 +584,7 @@ function AddonsTab() {
           {searchTerm && (
             <button onClick={() => { setSearchTerm(""); searchRef.current?.focus(); }} type="button"
               aria-label="Clear search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition">
+              className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-11 w-11 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
               <i className="fas fa-times-circle text-sm" aria-hidden="true"></i>
             </button>
           )}
@@ -593,10 +593,10 @@ function AddonsTab() {
           {["all", "active", "inactive"].map((f) => (
             <button key={f} onClick={() => setFilterStatus(f)} type="button"
               aria-pressed={filterStatus === f}
-              className={`h-10 px-4 rounded-lg text-xs font-semibold capitalize transition ${
+              className={`inline-flex items-center justify-center min-h-11 px-4 rounded-lg text-xs font-semibold capitalize transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                 filterStatus === f
-                  ? "bg-brand text-white"
-                  : "bg-slate-50 text-slate-500 hover:bg-slate-100"
+                  ? "bg-brand text-white focus-visible:ring-brand"
+                  : "bg-slate-50 text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-400"
               }`}>
               {f === "all" ? "All" : f === "active" ? "Active" : "Inactive"}
             </button>
@@ -717,21 +717,21 @@ function AddonsTab() {
             <p className="text-sm text-slate-500">
               Showing {(safePage - 1) * PAGE_SIZE + 1}{"–"}{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1} type="button"
                 aria-label="Previous page"
-                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+                className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
               </button>
               {getPageNumbers(safePage, totalPages).map((n, i) =>
                 n === "..." ? (
-                  <span key={`d-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-xs text-slate-400" aria-hidden="true">…</span>
+                  <span key={`d-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-sm text-slate-500" aria-hidden="true">…</span>
                 ) : (
                   <button key={n} onClick={() => setPage(n)} type="button"
                     aria-label={`Page ${n}`}
                     aria-current={n === safePage ? "page" : undefined}
-                    className={`h-11 min-w-[2.75rem] rounded-lg text-xs font-semibold transition ${
-                      n === safePage ? "bg-brand text-white shadow-sm" : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                    className={`h-11 min-w-[2.75rem] rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                      n === safePage ? "bg-brand text-white shadow-sm focus-visible:ring-brand" : "border border-slate-300 text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400"
                     }`}>
                     {n}
                   </button>
@@ -739,8 +739,8 @@ function AddonsTab() {
               )}
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages} type="button"
                 aria-label="Next page"
-                className="h-11 w-11 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+                className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
               </button>
             </div>
           </nav>
@@ -748,7 +748,7 @@ function AddonsTab() {
       </div>
 
       {/* View Add-on Modal */}
-      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-sm">
+      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-sm" label={viewItem ? `Add-on details — ${viewItem.name}` : 'Add-on details'}>
         {viewItem && (
           <>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

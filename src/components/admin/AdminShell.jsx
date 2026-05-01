@@ -571,9 +571,10 @@ export default function AdminShell() {
                 <i className="fas fa-user-cog mr-2 text-brand" aria-hidden="true"></i>Account Settings
               </h3>
               <button
+                type="button"
                 onClick={closeSettings}
-                className="text-gray-400 hover:text-gray-600 transition h-11 w-11 flex items-center justify-center rounded-lg"
-                aria-label="Close"
+                className="inline-flex items-center justify-center h-11 w-11 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+                aria-label="Close Account Settings"
               >
                 <i className="fas fa-times text-lg" aria-hidden="true"></i>
               </button>
@@ -595,8 +596,9 @@ export default function AdminShell() {
                 </div>
                 {!isEditing && (
                   <button
+                    type="button"
                     onClick={() => { setEditProfile({ name: userName, email: userEmail, phone: user?.phone || "" }); setIsEditing(true); }}
-                    className="px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark transition"
+                    className="inline-flex items-center justify-center min-h-11 px-4 py-2 bg-brand text-white rounded text-sm font-medium hover:bg-brand-dark transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                   >
                     <i className="fas fa-edit mr-2" aria-hidden="true"></i>Edit
                   </button>
@@ -678,8 +680,7 @@ export default function AdminShell() {
                         <button
                           type="button"
                           onClick={() => setShowCurrent(!showCurrent)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          tabIndex={-1}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-11 w-11 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                           aria-label={showCurrent ? "Hide current password" : "Show current password"}
                         >
                           <i className={`fas ${showCurrent ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
@@ -700,8 +701,7 @@ export default function AdminShell() {
                         <button
                           type="button"
                           onClick={() => setShowNew(!showNew)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          tabIndex={-1}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-11 w-11 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                           aria-label={showNew ? "Hide new password" : "Show new password"}
                         >
                           <i className={`fas ${showNew ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
@@ -730,8 +730,7 @@ export default function AdminShell() {
                         <button
                           type="button"
                           onClick={() => setShowConfirm(!showConfirm)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          tabIndex={-1}
+                          className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center h-11 w-11 rounded-lg text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                           aria-label={showConfirm ? "Hide password confirmation" : "Show password confirmation"}
                         >
                           <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
@@ -786,16 +785,18 @@ export default function AdminShell() {
                 {isEditing ? (
                   <>
                     <button
+                      type="button"
                       onClick={() => setIsEditing(false)}
-                      className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                      className="inline-flex items-center justify-center min-h-11 px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
                       disabled={saving}
                     >
                       Cancel
                     </button>
                     <button
+                      type="button"
                       onClick={saveSettings}
                       disabled={saving}
-                      className="px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 flex items-center gap-2"
+                      className="inline-flex items-center justify-center min-h-11 px-4 py-2 rounded text-sm font-medium text-white bg-brand hover:bg-brand-dark transition disabled:opacity-50 gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                     >
                       {saving ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : <i className="fas fa-save" aria-hidden="true"></i>}
                       {saving ? "Saving..." : "Save Changes"}
@@ -803,8 +804,9 @@ export default function AdminShell() {
                   </>
                 ) : (
                   <button
+                    type="button"
                     onClick={closeSettings}
-                    className="px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition"
+                    className="inline-flex items-center justify-center min-h-11 px-4 py-2 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:ring-offset-2"
                   >
                     Close
                   </button>
