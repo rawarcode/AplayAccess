@@ -29,7 +29,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useNotifications } from '../context/NotificationContext.jsx';
 import {
@@ -63,6 +63,13 @@ function initials(name) {
 export default function StaffChatWidget() {
   const { user } = useAuth();
   const { refresh: refreshNotifications } = useNotifications();
+  const location = useLocation();
+  // Don't render the floating sidecar on the full Messages page — it
+  // overlaps the page's own reply composer (the violet bubble lands
+  // on top of the Send button) and serves no purpose there since
+  // every feature the widget has is also on the page itself.
+  // Matches /owner/messages, /admin/messages, /frontdesk/messages.
+  const onMessagesPage = /\/messages(\/|$)/.test(location.pathname);
 
   // Hooks run unconditionally even for guests — we just early-return
   // from render. React requires hook order to be stable, so we cannot
@@ -132,7 +139,7 @@ export default function StaffChatWidget() {
     }
   }, [selectedThreadId, open]);
 
-  if (!isStaff) return null;
+  if (!isStaff || onMessagesPage) return null;
 
   const selected = selectedThreadId
     ? threads.find(t => t.id === selectedThreadId) ?? null
