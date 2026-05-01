@@ -235,10 +235,11 @@ export default function AdminShell() {
         </div>
         {!mobile && (
           <button
+            type="button"
             onClick={() => setCollapsed(!collapsed)}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
-            className="text-white hover:bg-brand-hover p-2 rounded focus:outline-none focus:ring-2 focus:ring-brand/50"
+            className="inline-flex items-center justify-center h-11 w-11 text-white hover:bg-brand-hover rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand"
           >
             <i className={`fas ${collapsed ? "fa-chevron-right" : "fa-chevron-left"}`} aria-hidden="true"></i>
           </button>
@@ -258,8 +259,9 @@ export default function AdminShell() {
                   <li key={item.path} className="mb-2 relative">
                     <Link
                       to={item.path}
+                      aria-current={isActive(item.path) ? "page" : undefined}
                       onClick={mobile ? () => setMobileOpen(false) : undefined}
-                      className={`flex items-center p-2 rounded transition ${
+                      className={`flex items-center p-2 min-h-11 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand ${
                         isActive(item.path)
                           ? "bg-brand-hover text-white"
                           : "text-blue-100 hover:bg-brand-hover hover:text-white"
@@ -296,8 +298,9 @@ export default function AdminShell() {
                 <li key={item.path} className="mb-2 relative">
                   <Link
                     to={item.path}
+                    aria-current={isActive(item.path) ? "page" : undefined}
                     onClick={mobile ? () => setMobileOpen(false) : undefined}
-                    className={`flex items-center p-2 rounded transition ${
+                    className={`flex items-center p-2 min-h-11 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand ${
                       isActive(item.path)
                         ? "bg-brand-hover text-white"
                         : "text-blue-100 hover:bg-brand-hover hover:text-white"
@@ -334,8 +337,9 @@ export default function AdminShell() {
                 <li key={item.path} className="mb-2 relative">
                   <Link
                     to={item.path}
+                    aria-current={isActive(item.path) ? "page" : undefined}
                     onClick={mobile ? () => setMobileOpen(false) : undefined}
-                    className={`flex items-center p-2 rounded transition ${
+                    className={`flex items-center p-2 min-h-11 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand ${
                       isActive(item.path)
                         ? "bg-brand-hover text-white"
                         : "text-blue-100 hover:bg-brand-hover hover:text-white"
@@ -370,8 +374,9 @@ export default function AdminShell() {
               <li key={item.path} className="mb-2 relative">
                 <Link
                   to={item.path}
+                  aria-current={isActive(item.path) ? "page" : undefined}
                   onClick={mobile ? () => setMobileOpen(false) : undefined}
-                  className={`flex items-center p-2 rounded transition ${
+                  className={`flex items-center p-2 min-h-11 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand ${
                     isActive(item.path)
                       ? "bg-brand-hover text-white"
                       : "text-blue-100 hover:bg-brand-hover hover:text-white"
@@ -392,8 +397,9 @@ export default function AdminShell() {
               <li key={item.path} className="mb-2 relative">
                 <Link
                   to={item.path}
+                  aria-current={isActive(item.path) ? "page" : undefined}
                   onClick={mobile ? () => setMobileOpen(false) : undefined}
-                  className={`flex items-center p-2 rounded transition ${
+                  className={`flex items-center p-2 min-h-11 rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand ${
                     isActive(item.path)
                       ? "bg-brand-hover text-white"
                       : "text-blue-100 hover:bg-brand-hover hover:text-white"
@@ -423,9 +429,10 @@ export default function AdminShell() {
           </div>
         )}
         <button
+          type="button"
           onClick={handleLogout}
           aria-label={collapsed && !mobile ? "Logout" : undefined}
-          className="flex items-center w-full p-2 text-blue-100 hover:bg-brand-hover rounded transition"
+          className="flex items-center w-full p-2 min-h-11 text-blue-100 hover:bg-brand-hover hover:text-white rounded transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand"
         >
           <i className="fas fa-sign-out-alt mr-3 w-5 text-center" aria-hidden="true"></i>
           {(!collapsed || mobile) && <span className="text-sm">Logout</span>}
@@ -457,8 +464,9 @@ export default function AdminShell() {
             onClick={(e) => e.stopPropagation()}
           >
             <button
+              type="button"
               onClick={() => setMobileOpen(false)}
-              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10 h-11 w-11 flex items-center justify-center rounded-lg"
+              className="absolute top-3 right-3 text-blue-200 hover:text-white z-10 h-11 w-11 flex items-center justify-center rounded-lg hover:bg-brand-hover transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-brand"
               aria-label="Close sidebar"
             >
               <i className="fas fa-times text-lg" aria-hidden="true"></i>
@@ -480,9 +488,11 @@ export default function AdminShell() {
             <div className="flex items-center gap-3">
               {/* Mobile hamburger */}
               <button
+                type="button"
                 onClick={() => setMobileOpen(true)}
-                className="md:hidden text-gray-600 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-brand/50 h-11 w-11 flex items-center justify-center rounded-lg"
+                className="md:hidden text-gray-700 hover:text-gray-900 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 h-11 w-11 flex items-center justify-center rounded-lg transition"
                 aria-label="Open menu"
+                aria-expanded={mobileOpen}
               >
                 <i className="fas fa-bars text-xl" aria-hidden="true"></i>
               </button>
@@ -532,20 +542,22 @@ export default function AdminShell() {
                       </div>
                     </div>
                     <button
+                      type="button"
                       role="menuitem"
                       onClick={openSettings}
-                      className="p-3 flex items-center w-full text-left hover:bg-gray-50 border-b border-gray-100"
+                      className="p-3 min-h-11 flex items-center w-full text-left hover:bg-gray-50 border-b border-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-inset"
                     >
-                      <i className="fas fa-user-cog mr-3 text-gray-500" aria-hidden="true"></i>
-                      <span className="text-sm text-gray-700">Account Settings</span>
+                      <i className="fas fa-user-cog mr-3 text-gray-600" aria-hidden="true"></i>
+                      <span className="text-sm text-gray-800">Account Settings</span>
                     </button>
                     <button
+                      type="button"
                       role="menuitem"
                       onClick={handleLogout}
-                      className="p-3 flex items-center w-full text-left hover:bg-gray-50 text-red-500"
+                      className="p-3 min-h-11 flex items-center w-full text-left hover:bg-gray-50 text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-inset"
                     >
                       <i className="fas fa-sign-out-alt mr-3" aria-hidden="true"></i>
-                      <span className="text-sm">Logout</span>
+                      <span className="text-sm font-medium">Logout</span>
                     </button>
                   </div>
                 )}

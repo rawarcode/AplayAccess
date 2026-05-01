@@ -67,7 +67,7 @@ function KpiCard({ to, icon, label, value, tone = "neutral", sublabel }) {
   );
 
   return to ? (
-    <Link to={to} className="group block">{inner}</Link>
+    <Link to={to} className="group block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">{inner}</Link>
   ) : (
     <div>{inner}</div>
   );
@@ -309,7 +309,7 @@ export default function AdminDashboard() {
                   {a.to && a.cta && (
                     <Link
                       to={a.to}
-                      className="shrink-0 text-xs font-semibold text-brand hover:text-brand-dark underline underline-offset-2"
+                      className="shrink-0 inline-flex items-center min-h-9 px-2 py-1 rounded text-xs font-semibold text-brand hover:text-brand-dark underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                       aria-label={`${a.cta} — ${a.text}`}
                     >
                       {a.cta}
