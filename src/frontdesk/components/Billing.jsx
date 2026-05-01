@@ -297,12 +297,13 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
               and returns 422 if called directly. */}
           {b.status !== 'Pending' && !(b.status === 'Cancelled' && paidSoFar <= 0) && (
             <button
+              type="button"
               onClick={() => onDownloadReceipt(b.bookingId)}
               disabled={downloading === b.bookingId}
-              className={`py-2.5 ${b.status === 'Completed' ? 'flex-1' : 'px-4'} bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 disabled:opacity-60 transition`}
+              className={`inline-flex items-center justify-center min-h-11 py-2.5 ${b.status === 'Completed' ? 'flex-1' : 'px-4'} bg-sky-600 text-white rounded-lg text-sm font-medium hover:bg-sky-700 disabled:opacity-60 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2`}
               title="Download booking confirmation (PDF)"
             >
-              <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`}></i>
+              <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-2`} aria-hidden="true"></i>
               {downloading === b.bookingId
                 ? 'Preparing...'
                 : b.status === 'Completed' ? 'Download Confirmation' : 'Confirmation'}
@@ -319,8 +320,8 @@ function BillingDetailDrawer({ booking: b, onClose, onCollect, onDownloadReceipt
               <i className="fas fa-clock mr-1"></i>Awaiting guest payment confirmation
             </p>
           )}
-          <button onClick={onClose}
-            className="px-4 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-600 hover:bg-slate-100 transition">
+          <button type="button" onClick={onClose}
+            className="inline-flex items-center justify-center min-h-11 px-4 py-2.5 border border-slate-300 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
             Close
           </button>
         </div>
@@ -1297,7 +1298,7 @@ export default function Billing({ embedded = false }) {
                 />
                 <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                 <button type="submit" disabled={!pastQuery.trim() || pastLoading}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 px-3 py-2 min-h-9 bg-sky-600 text-white rounded-md text-xs font-medium hover:bg-sky-700 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1">
+                  className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex items-center justify-center min-h-11 px-4 py-2 bg-sky-600 text-white rounded-md text-xs font-medium hover:bg-sky-700 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1">
                   {pastLoading ? <i className="fas fa-spinner fa-spin" aria-hidden="true"></i> : 'Search'}
                 </button>
               </div>
@@ -1363,7 +1364,7 @@ export default function Billing({ embedded = false }) {
                             <button
                               type="button"
                               onClick={() => { setSelected(b); setSearchPanelOpen(false); }}
-                              className="flex-1 inline-flex items-center justify-center min-h-9 px-3 py-1.5 border border-slate-300 rounded text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                              className="flex-1 inline-flex items-center justify-center min-h-11 px-3 py-2 border border-slate-300 rounded text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                               <i className="fas fa-eye mr-1" aria-hidden="true"></i>View details
                             </button>
                             {/* Past booking search panel — skip the Receipt
@@ -1375,7 +1376,7 @@ export default function Billing({ embedded = false }) {
                                 type="button"
                                 onClick={() => downloadPastReceipt(b.bookingId, b.id)}
                                 disabled={pastDownloading === b.bookingId}
-                                className="flex-1 inline-flex items-center justify-center min-h-9 px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-medium hover:bg-sky-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                                className="flex-1 inline-flex items-center justify-center min-h-11 px-3 py-2 bg-sky-600 text-white rounded text-xs font-medium hover:bg-sky-700 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                                 <i className={`fas ${pastDownloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} mr-1`} aria-hidden="true"></i>
                                 Confirmation
                               </button>

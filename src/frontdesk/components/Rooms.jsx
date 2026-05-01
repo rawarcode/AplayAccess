@@ -268,14 +268,19 @@ function VacantModal({ room, bookings = [], onClose, onWalkIn }) {
 
       {/* Walk-in button */}
       <button
+        type="button"
         onClick={onWalkIn}
-        className="w-full mb-4 flex items-center justify-center gap-2 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg transition-colors"
+        className="w-full mb-4 inline-flex items-center justify-center gap-2 min-h-11 py-3 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
       >
-        <i className="fas fa-person-walking"></i>
+        <i className="fas fa-person-walking" aria-hidden="true"></i>
         Walk-in Booking for {room.name}
       </button>
 
-      <button onClick={onClose} className="mt-4 w-full py-2 border rounded text-sm text-slate-600 hover:bg-slate-50">
+      <button
+        type="button"
+        onClick={onClose}
+        className="mt-4 w-full inline-flex items-center justify-center min-h-11 py-2 border border-slate-300 rounded text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+      >
         Close
       </button>
     </Modal>
@@ -519,18 +524,23 @@ function MultiUnitModal({ room, info, bookings, slot, onClose, onWalkIn, onOpenB
       <div className="mt-4 flex flex-col gap-2">
         {info.vacant > 0 ? (
           <button
+            type="button"
             onClick={onWalkIn}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-sm"
+            className="w-full inline-flex items-center justify-center gap-2 min-h-11 py-2.5 bg-sky-600 hover:bg-sky-700 text-white font-semibold rounded-lg text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
-            <i className="fas fa-person-walking"></i>
+            <i className="fas fa-person-walking" aria-hidden="true"></i>
             Walk-in Booking for {room.name}
           </button>
         ) : (
           <div className="text-center text-rose-600 text-sm font-semibold py-2 bg-rose-50 rounded-lg">
-            <i className="fas fa-ban mr-1"></i>All units are booked for this slot.
+            <i className="fas fa-ban mr-1" aria-hidden="true"></i>All units are booked for this slot.
           </div>
         )}
-        <button onClick={onClose} className="w-full py-2 border rounded text-sm text-slate-600 hover:bg-slate-50">
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full inline-flex items-center justify-center min-h-11 py-2 border border-slate-300 rounded text-sm text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
+        >
           Close
         </button>
       </div>

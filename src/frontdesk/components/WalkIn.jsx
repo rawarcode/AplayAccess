@@ -942,7 +942,7 @@ export default function WalkIn({ embedded = false }) {
                         type="button"
                         onClick={() => { setGuestSearch(''); setGuestSearchOpen(false); }}
                         aria-label="Clear search"
-                        className="absolute right-1 top-1/2 -translate-y-1/2 w-9 h-9 inline-flex items-center justify-center rounded text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                       >
                         <i className="fas fa-times text-xs" aria-hidden="true"></i>
                       </button>
@@ -1417,7 +1417,7 @@ export default function WalkIn({ embedded = false }) {
                         type="button"
                         onClick={removePromo}
                         aria-label="Remove promo code"
-                        className="inline-flex items-center min-h-9 px-2 py-1 rounded text-xs text-slate-600 hover:text-rose-700 hover:bg-white underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                        className="inline-flex items-center justify-center min-h-11 px-3 py-2 rounded text-xs font-medium text-slate-700 hover:text-rose-700 hover:bg-white underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
                       >
                         Remove
                       </button>

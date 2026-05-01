@@ -139,10 +139,10 @@ const ACTION_CONFIG = {
 };
 
 const COLOR = {
-  sky:     { btn: 'bg-sky-600 hover:bg-sky-700',       banner: 'bg-sky-50 border-sky-200 text-sky-800'       },
-  violet:  { btn: 'bg-violet-600 hover:bg-violet-700', banner: 'bg-violet-50 border-violet-200 text-violet-800' },
-  emerald: { btn: 'bg-emerald-600 hover:bg-emerald-700', banner: 'bg-emerald-50 border-emerald-200 text-emerald-800' },
-  rose:    { btn: 'bg-rose-600 hover:bg-rose-700',     banner: 'bg-rose-50 border-rose-200 text-rose-800'    },
+  sky:     { btn: 'bg-sky-600 hover:bg-sky-700',         banner: 'bg-sky-50 border-sky-200 text-sky-800',         ring: 'focus-visible:ring-sky-500' },
+  violet:  { btn: 'bg-violet-600 hover:bg-violet-700',   banner: 'bg-violet-50 border-violet-200 text-violet-800', ring: 'focus-visible:ring-violet-500' },
+  emerald: { btn: 'bg-emerald-600 hover:bg-emerald-700', banner: 'bg-emerald-50 border-emerald-200 text-emerald-800', ring: 'focus-visible:ring-emerald-500' },
+  rose:    { btn: 'bg-rose-600 hover:bg-rose-700',       banner: 'bg-rose-50 border-rose-200 text-rose-800',       ring: 'focus-visible:ring-rose-500' },
 };
 
 /**
@@ -652,15 +652,15 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 </div>
 
                 <div className="flex gap-2">
-                  <button onClick={() => setPendingAction(null)} disabled={actionLoading}
-                    className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60">
+                  <button type="button" onClick={() => setPendingAction(null)} disabled={actionLoading}
+                    className="flex-1 inline-flex items-center justify-center min-h-11 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                     Cancel
                   </button>
-                  <button onClick={execAction} disabled={actionLoading}
-                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold text-white disabled:opacity-60 ${clr.btn}`}>
+                  <button type="button" onClick={execAction} disabled={actionLoading}
+                    className={`flex-1 inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-lg text-xs font-bold text-white disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${clr.btn} ${clr.ring ?? 'focus-visible:ring-slate-500'}`}>
                     {actionLoading
-                      ? <><i className="fas fa-spinner fa-spin mr-1"></i>Processing...</>
-                      : <><i className={`fas ${cfg.icon} mr-1`}></i>{cfg.label}</>}
+                      ? <><i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Processing...</>
+                      : <><i className={`fas ${cfg.icon} mr-1`} aria-hidden="true"></i>{cfg.label}</>}
                   </button>
                 </div>
               </div>
@@ -1301,14 +1301,14 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
                 );
               })()}
               <div className="flex gap-2">
-                <button onClick={() => { setTransferOpen(false); setTransferRoomId(''); }}
-                  className="flex-1 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50">
+                <button type="button" onClick={() => { setTransferOpen(false); setTransferRoomId(''); }}
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-3 py-2 border border-slate-300 bg-white rounded-lg text-xs font-medium text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                   Cancel
                 </button>
-                <button onClick={() => setTransferConfirmOpen(true)}
+                <button type="button" onClick={() => setTransferConfirmOpen(true)}
                   disabled={!transferRoomId || transferring || roomsLoading}
-                  className="flex-1 px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 disabled:opacity-60">
-                  <i className="fas fa-arrow-right mr-1"></i>Review Transfer
+                  className="flex-1 inline-flex items-center justify-center min-h-11 px-3 py-2 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                  <i className="fas fa-arrow-right mr-1" aria-hidden="true"></i>Review Transfer
                 </button>
               </div>
               </div>
@@ -1396,22 +1396,26 @@ export default function BookingDetailModal({ booking: initialBooking, onClose, o
 
                 <div className="px-5 py-4 border-t border-slate-100 flex gap-2">
                   <button
+                    type="button"
                     onClick={() => setTransferConfirmOpen(false)}
                     disabled={transferring}
-                    className="flex-1 px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+                    className="flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2 border border-slate-300 bg-white rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                   >
                     Back
                   </button>
                   <button
+                    type="button"
                     onClick={handleTransfer}
                     disabled={transferring}
-                    className={`flex-1 px-4 py-2 text-white rounded-lg text-sm font-bold disabled:opacity-60 ${
-                      transferPreview.isUpgrade ? 'bg-amber-600 hover:bg-amber-700' : 'bg-violet-600 hover:bg-violet-700'
+                    className={`flex-1 inline-flex items-center justify-center min-h-11 px-4 py-2 text-white rounded-lg text-sm font-bold disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                      transferPreview.isUpgrade
+                        ? 'bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500'
+                        : 'bg-violet-600 hover:bg-violet-700 focus-visible:ring-violet-500'
                     }`}
                   >
                     {transferring
-                      ? <><i className="fas fa-spinner fa-spin mr-1"></i>Transferring...</>
-                      : <><i className="fas fa-check mr-1"></i>Confirm Transfer</>}
+                      ? <><i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Transferring...</>
+                      : <><i className="fas fa-check mr-1" aria-hidden="true"></i>Confirm Transfer</>}
                   </button>
                 </div>
               </div>
