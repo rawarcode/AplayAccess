@@ -55,14 +55,14 @@ export default function PendingPaymentBanner() {
           <p className="text-sm font-semibold text-slate-900 truncate">
             Payment pending
           </p>
-          <p className="text-xs text-slate-500 truncate">
+          <p className="text-xs text-slate-600 truncate">
             {pending.resId ?? `Booking #${pending.bookingId}`}
             {pending.roomName ? ` · ${pending.roomName}` : ''}
           </p>
           <button
             type="button"
             onClick={handleResume}
-            className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700"
+            className="mt-2 inline-flex items-center gap-1.5 px-4 py-2.5 min-h-11 bg-amber-600 text-white rounded-lg text-xs font-semibold hover:bg-amber-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
           >
             <i className="fas fa-arrow-right-to-bracket" aria-hidden="true" />
             Resume payment
@@ -73,7 +73,7 @@ export default function PendingPaymentBanner() {
           onClick={clearPendingPayment}
           aria-label="Dismiss pending-payment reminder"
           title="Dismiss reminder (booking keeps its hold)"
-          className="text-slate-400 hover:text-slate-700 p-2 -m-1 rounded-lg hover:bg-slate-100 shrink-0"
+          className="w-11 h-11 inline-flex items-center justify-center text-slate-500 hover:text-slate-700 rounded-lg hover:bg-slate-100 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <i className="fas fa-times" aria-hidden="true" />
         </button>

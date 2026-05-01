@@ -53,8 +53,9 @@ function ReceiptBtn({ bookingId }) {
   }
   return (
     <button onClick={handle} disabled={busy}
-      className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-50">
-      <i className={`fas ${busy ? "fa-spinner fa-spin" : "fa-download"} text-[10px]`}></i>
+      type="button"
+      className="inline-flex items-center gap-1.5 px-2.5 py-2 min-h-11 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-md disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+      <i className={`fas ${busy ? "fa-spinner fa-spin" : "fa-download"} text-[10px]`} aria-hidden="true"></i>
       Confirmation
     </button>
   );
@@ -410,9 +411,14 @@ export default function GuestDashboard() {
                   <i className={`fas ${k.icon} ${k.iconColor} text-base`} aria-hidden="true"></i>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-slate-600 font-medium truncate">{k.label}</p>
+                  {/* No truncation — on narrow phones (≤375 px) the
+                      2-col KPI grid was hiding labels like "Upcoming
+                      Bookings" mid-word. Allowing wrap keeps the
+                      content readable; cards align by their flex
+                      container, not by uniform height. */}
+                  <p className="text-xs text-slate-600 font-medium leading-snug">{k.label}</p>
                   <p className="text-2xl font-bold text-slate-900 leading-tight tabular-nums">{k.value}</p>
-                  <p className={`text-xs mt-0.5 truncate ${k.subColor}`}>{k.sub}</p>
+                  <p className={`text-xs mt-0.5 leading-snug ${k.subColor}`}>{k.sub}</p>
                 </div>
               </div>
             </div>
@@ -522,8 +528,14 @@ export default function GuestDashboard() {
                 const onActivate = () => b.status === 'Pending'
                   ? setResuming(toResumeBooking(b))
                   : setSelected(b);
+                const isPending = b.status === 'Pending';
+                // Row is presentational \u2014 the explicit Details /
+                // Continue-payment button is the only interactive
+                // element. Avoids the nested-interactive ARIA pitfall
+                // and gives keyboard users a single, predictable
+                // tab stop with a \u226544 pt hit area.
                 return (
-                  <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
+                  <div key={b.id} className={`px-6 py-4 transition-colors ${isPending ? 'bg-amber-50/30' : ''}`}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
@@ -544,8 +556,8 @@ export default function GuestDashboard() {
                       <span className="text-slate-400" aria-hidden="true">{"\u2192"}</span>
                       <span>{fmtDateTime(b.checkOut)}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-slate-900 tabular-nums">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
                         {b.promoCode && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
@@ -558,9 +570,15 @@ export default function GuestDashboard() {
                           </span>
                         )}
                       </div>
-                      <span className={`text-xs font-medium ${b.status === 'Pending' ? 'text-amber-700' : 'text-sky-700'}`}>
-                        {b.status === 'Pending' ? 'Continue payment' : 'Details'} <i className="fas fa-chevron-right text-[9px] ml-0.5" aria-hidden="true"></i>
-                      </span>
+                      <button
+                        type="button"
+                        onClick={onActivate}
+                        aria-label={isPending ? `Continue payment for ${b.id}` : `View details for ${b.id}`}
+                        className={`inline-flex items-center gap-1 px-3 py-2 min-h-11 rounded-md text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 ${isPending ? 'bg-amber-100 text-amber-800 hover:bg-amber-200' : 'bg-sky-50 text-sky-700 hover:bg-sky-100'}`}
+                      >
+                        {isPending ? 'Continue payment' : 'Details'}
+                        <i className="fas fa-chevron-right text-[9px] ml-0.5" aria-hidden="true"></i>
+                      </button>
                     </div>
                   </div>
                 );
@@ -609,8 +627,13 @@ export default function GuestDashboard() {
                 const onActivate = () => b.status === 'Pending'
                   ? setResuming(toResumeBooking(b))
                   : setSelected(b);
+                // Like Upcoming, the row is presentational and the
+                // explicit "Details" / receipt / review buttons are
+                // the only interactive elements. The previous role=
+                // "button" wrapper held nested controls \u2014 invalid
+                // ARIA + ambiguous keyboard activation.
                 return (
-                <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
+                <div key={b.id} className={`px-6 py-4 transition-colors ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
@@ -624,31 +647,40 @@ export default function GuestDashboard() {
                     <span className="text-slate-400" aria-hidden="true">{"\u2192"}</span>
                     <span>{fmtDate(b.checkOut)}</span>
                   </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-bold text-slate-900 tabular-nums">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
                       {b.promoCode && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
                           <i className="fas fa-tag text-[9px]" aria-hidden="true"></i>{b.promoCode}
                         </span>
                       )}
+                      {b.status === "Completed" && b.hasReview && (
+                        <span className="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
+                          <i className="fas fa-star text-[10px]" aria-hidden="true"></i>
+                          {b.review?.rating}/5
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center gap-1 flex-wrap">
                       {b.status === "Completed" && (
                         <ReceiptBtn bookingId={b.bookingId} />
                       )}
                       {b.status === "Completed" && !b.hasReview && (
                         <Link to="/dashboard/bookings"
-                          className="inline-flex items-center gap-1 text-xs text-amber-600 hover:text-amber-700 font-medium">
-                          <i className="fas fa-star text-[10px]"></i>Review
+                          className="inline-flex items-center gap-1.5 px-2.5 py-2 min-h-11 rounded-md text-xs font-medium text-amber-700 hover:text-amber-800 hover:bg-amber-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">
+                          <i className="fas fa-star text-[10px]" aria-hidden="true"></i>Review
                         </Link>
                       )}
-                      {b.status === "Completed" && b.hasReview && (
-                        <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
-                          <i className="fas fa-star text-[10px]"></i>
-                          {b.review?.rating}/5
-                        </span>
-                      )}
+                      <button
+                        type="button"
+                        onClick={onActivate}
+                        aria-label={`View details for ${b.id}`}
+                        className="inline-flex items-center gap-1 px-3 py-2 min-h-11 rounded-md text-xs font-medium bg-sky-50 text-sky-700 hover:bg-sky-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
+                      >
+                        Details
+                        <i className="fas fa-chevron-right text-[9px] ml-0.5" aria-hidden="true"></i>
+                      </button>
                     </div>
                   </div>
                 </div>

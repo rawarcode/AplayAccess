@@ -95,6 +95,30 @@ function NotificationBell() {
   const dropRef                           = useRef(null);
   const navigate                          = useNavigate();
 
+  // Close-on-Escape + initial-focus on open. Treats the dropdown
+  // as a popover, not a WAI-ARIA menu — we don't implement
+  // arrow-key navigation between items, so role="menu" would
+  // mislead screen readers about the interaction model.
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e) {
+      if (e.key === "Escape") {
+        setOpen(false);
+        btnRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    // Defer focus to next tick so the dropdown has rendered.
+    const t = setTimeout(() => {
+      const first = dropRef.current?.querySelector("button, [href]");
+      first?.focus();
+    }, 0);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      clearTimeout(t);
+    };
+  }, [open]);
+
   // Load on mount, refresh every 20s while the tab is visible. Hidden
   // tabs pause; tab-return fires an immediate refresh so the user
   // sees up-to-date counts without waiting for the next interval.
@@ -167,7 +191,7 @@ function NotificationBell() {
         onClick={() => (open ? setOpen(false) : openDropdown())}
         className="relative w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-600 hover:text-blue-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 transition"
         aria-label="Notifications"
-        aria-haspopup="menu"
+        aria-haspopup="dialog"
         aria-expanded={open}
         type="button"
       >
@@ -190,14 +214,15 @@ function NotificationBell() {
             {unread > 0 && (
               <button
                 onClick={handleMarkAll}
-                className="text-xs text-blue-600 hover:underline"
+                type="button"
+                className="text-xs text-blue-700 hover:underline px-2 py-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               >
                 Mark all read
               </button>
             )}
           </div>
 
-          <div className="max-h-72 overflow-y-auto divide-y" role="menu">
+          <div className="max-h-72 overflow-y-auto divide-y">
             {notifications.length === 0 ? (
               <p className="px-4 py-6 text-sm text-gray-600 text-center">No notifications yet.</p>
             ) : (
@@ -205,11 +230,13 @@ function NotificationBell() {
                 // Render as a real button so screen readers announce
                 // it as a control and keyboard users can Enter/Space
                 // to activate. Was a click-only div previously, which
-                // bell-keyboard users couldn't reach.
+                // bell-keyboard users couldn't reach. We don't use
+                // role="menuitem" because we don't implement menu
+                // arrow-key navigation — this is a popover with a
+                // list of buttons, plain Tab traversal.
                 <button
                   key={n.id}
                   type="button"
-                  role="menuitem"
                   className={[
                     "w-full text-left px-4 py-3 flex gap-3 transition",
                     "hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500",
