@@ -272,7 +272,7 @@ export default function GuestDashboard() {
       iconBg: "bg-sky-100",
       iconColor: "text-sky-600",
       sub: pendingCount > 0 ? `${pendingCount} awaiting payment` : "All confirmed",
-      subColor: pendingCount > 0 ? "text-yellow-600" : "text-slate-400",
+      subColor: pendingCount > 0 ? "text-yellow-700" : "text-slate-600",
     },
     {
       label: "Past Stays",
@@ -284,8 +284,8 @@ export default function GuestDashboard() {
         ? `${past.filter(b => b.status === "Completed" && !b.hasReview).length} awaiting review`
         : "Thank you for visiting!",
       subColor: past.filter(b => b.status === "Completed" && !b.hasReview).length > 0
-        ? "text-orange-500"
-        : "text-slate-400",
+        ? "text-orange-600"
+        : "text-slate-600",
     },
     {
       label: "Total Spent",
@@ -294,16 +294,20 @@ export default function GuestDashboard() {
       iconBg: "bg-violet-100",
       iconColor: "text-violet-600",
       sub: "Completed bookings only",
-      subColor: "text-slate-400",
+      subColor: "text-slate-600",
     },
     {
       label: "Next Stay",
       value: loading ? "\u2014" : nextDays === null ? "None" : nextDays === 0 ? "Today!" : `${nextDays}d away`,
-      icon: "fa-plane-arrival",
+      // Icon + tint both flip for the \u22643-day "imminent" case so
+      // urgency reads at a glance even before the user parses the
+      // sub-text. Without the icon swap the urgency was carried
+      // by the bg-tint alone, which is color-only.
+      icon: nextDays !== null && nextDays <= 3 ? "fa-bell" : "fa-plane-arrival",
       iconBg: nextDays !== null && nextDays <= 3 ? "bg-rose-100" : "bg-amber-100",
       iconColor: nextDays !== null && nextDays <= 3 ? "text-rose-600" : "text-amber-600",
       sub: nextStay ? fmtDate(nextStay.checkIn) : "Book your next visit",
-      subColor: "text-slate-400",
+      subColor: "text-slate-600",
     },
   ];
 
@@ -344,20 +348,24 @@ export default function GuestDashboard() {
       {/* Header — primary card (sky left stripe distinguishes it from
           the KPI row below). First adoption of the shared Card
           component; migration of the rest of the dashboard can
-          happen opportunistically as pages get touched. */}
-      <Card variant="primary" className="p-6 flex items-center justify-between">
-        <div>
+          happen opportunistically as pages get touched.
+          flex-wrap so the longer "Resume Pending Booking" label
+          drops below the welcome line on narrow phones instead of
+          squeezing it. */}
+      <Card variant="primary" className="p-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold text-slate-900">
             Welcome back, {user?.name?.split(' ')[0] || 'Guest'}!
           </h1>
-          <p className="text-slate-500 text-sm mt-0.5">Manage your bookings, profile, and messages.</p>
+          <p className="text-slate-600 text-sm mt-0.5">Manage your bookings, profile, and messages.</p>
         </div>
         <button
           onClick={openBookingFlow}
-          className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+          className="bg-sky-600 hover:bg-sky-700 text-white px-5 py-2.5 min-h-11 inline-flex items-center rounded-lg text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           title={pendingBooking ? 'You have a pending booking — continue or cancel it' : undefined}
+          type="button"
         >
-          <i className="fas fa-plus mr-2"></i>
+          <i className="fas fa-plus mr-2" aria-hidden="true"></i>
           {pendingBooking ? 'Resume Pending Booking' : 'Book a Stay'}
         </button>
       </Card>
@@ -399,11 +407,11 @@ export default function GuestDashboard() {
             <div key={k.label} className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
               <div className="flex items-start gap-3">
                 <div className={`p-2.5 rounded-lg ${k.iconBg} shrink-0`}>
-                  <i className={`fas ${k.icon} ${k.iconColor} text-base`}></i>
+                  <i className={`fas ${k.icon} ${k.iconColor} text-base`} aria-hidden="true"></i>
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-slate-500 font-medium truncate">{k.label}</p>
-                  <p className="text-2xl font-bold text-slate-900 leading-tight">{k.value}</p>
+                  <p className="text-xs text-slate-600 font-medium truncate">{k.label}</p>
+                  <p className="text-2xl font-bold text-slate-900 leading-tight tabular-nums">{k.value}</p>
                   <p className={`text-xs mt-0.5 truncate ${k.subColor}`}>{k.sub}</p>
                 </div>
               </div>
@@ -414,31 +422,31 @@ export default function GuestDashboard() {
 
       {/* Quick-action cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link to="/rooms" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:border-sky-300 hover:shadow-md transition group">
+        <Link to="/rooms" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:border-sky-300 hover:shadow-md transition group focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
           <div className="h-11 w-11 rounded-xl bg-sky-100 flex items-center justify-center shrink-0 group-hover:bg-sky-200 transition">
-            <i className="fas fa-bed text-sky-600"></i>
+            <i className="fas fa-bed text-sky-600" aria-hidden="true"></i>
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Browse Rooms</p>
-            <p className="text-xs text-slate-400">View available rooms & cottages</p>
+            <p className="text-xs text-slate-600">View available rooms &amp; cottages</p>
           </div>
         </Link>
-        <Link to="/dashboard/messages" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:border-emerald-300 hover:shadow-md transition group">
+        <Link to="/dashboard/messages" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:border-emerald-300 hover:shadow-md transition group focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500">
           <div className="h-11 w-11 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0 group-hover:bg-emerald-200 transition">
-            <i className="fas fa-envelope text-emerald-600"></i>
+            <i className="fas fa-envelope text-emerald-600" aria-hidden="true"></i>
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Messages</p>
-            <p className="text-xs text-slate-400">View your inbox & notifications</p>
+            <p className="text-xs text-slate-600">View your inbox &amp; notifications</p>
           </div>
         </Link>
-        <Link to="/dashboard/profile" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:border-violet-300 hover:shadow-md transition group">
+        <Link to="/dashboard/profile" className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center gap-4 hover:border-violet-300 hover:shadow-md transition group focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
           <div className="h-11 w-11 rounded-xl bg-violet-100 flex items-center justify-center shrink-0 group-hover:bg-violet-200 transition">
-            <i className="fas fa-user-edit text-violet-600"></i>
+            <i className="fas fa-user-edit text-violet-600" aria-hidden="true"></i>
           </div>
           <div>
             <p className="font-semibold text-slate-800 text-sm">Edit Profile</p>
-            <p className="text-xs text-slate-400">Update your account details</p>
+            <p className="text-xs text-slate-600">Update your account details</p>
           </div>
         </Link>
       </div>
@@ -450,7 +458,7 @@ export default function GuestDashboard() {
             <i className="fas fa-umbrella-beach text-sky-600 text-3xl"></i>
           </div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">Ready for your first stay?</h2>
-          <p className="text-slate-500 text-sm mb-6 max-w-md mx-auto">
+          <p className="text-slate-600 text-sm mb-6 max-w-md mx-auto">
             Browse our rooms, cottages, and pavilions to plan your perfect beach getaway at Aplaya Beach Resort.
           </p>
           <div className="flex items-center justify-center gap-3">
@@ -500,10 +508,11 @@ export default function GuestDashboard() {
               </div>
             ) : upcoming.length === 0 ? (
               <div className="px-6 py-10 text-center">
-                <i className="fas fa-calendar-times text-slate-200 text-4xl mb-3 block"></i>
-                <p className="text-slate-400 text-sm">No upcoming bookings.</p>
+                <i className="fas fa-calendar-times text-slate-300 text-4xl mb-3 block" aria-hidden="true"></i>
+                <p className="text-slate-600 text-sm">No upcoming bookings.</p>
                 <button onClick={openBookingFlow}
-                  className="mt-3 text-xs text-sky-600 hover:underline font-medium">
+                  type="button"
+                  className="mt-3 text-xs text-sky-700 hover:underline font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded">
                   Book a stay →
                 </button>
               </div>
@@ -514,43 +523,43 @@ export default function GuestDashboard() {
                   ? setResuming(toResumeBooking(b))
                   : setSelected(b);
                 return (
-                  <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
+                  <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
-                        <p className="text-xs text-slate-500 font-mono">{b.id}</p>
+                        <p className="text-xs text-slate-600 font-mono">{b.id}</p>
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <StatusBadge status={b.status} />
                         {days !== null && days >= 0 && (
-                          <span className={`text-xs font-medium ${days <= 3 ? "text-rose-500" : "text-slate-400"}`}>
+                          <span className={`text-xs font-medium ${days <= 3 ? "text-rose-600" : "text-slate-600"}`}>
                             {days === 0 ? "Today!" : days === 1 ? "Tomorrow" : `in ${days} days`}
                           </span>
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                      <i className="fas fa-clock text-[10px]"></i>
+                    <div className="flex items-center gap-2 text-xs text-slate-600 mb-2">
+                      <i className="fas fa-clock text-[10px]" aria-hidden="true"></i>
                       <span>{fmtDateTime(b.checkIn)}</span>
-                      <span className="text-slate-300">{"\u2192"}</span>
+                      <span className="text-slate-400" aria-hidden="true">{"\u2192"}</span>
                       <span>{fmtDateTime(b.checkOut)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold text-slate-900">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
+                        <span className="text-sm font-bold text-slate-900 tabular-nums">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
                         {b.promoCode && (
                           <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
-                            <i className="fas fa-tag text-[9px]"></i>{b.promoCode}
+                            <i className="fas fa-tag text-[9px]" aria-hidden="true"></i>{b.promoCode}
                           </span>
                         )}
                         {b.fullyPaid && (
-                          <span className="text-xs text-green-600 font-medium">
-                            <i className="fas fa-check-circle mr-0.5"></i>Paid
+                          <span className="text-xs text-green-700 font-medium">
+                            <i className="fas fa-check-circle mr-0.5" aria-hidden="true"></i>Paid
                           </span>
                         )}
                       </div>
-                      <span className={`text-xs font-medium ${b.status === 'Pending' ? 'text-amber-700' : 'text-sky-600'}`}>
-                        {b.status === 'Pending' ? 'Continue payment' : 'Details'} <i className="fas fa-chevron-right text-[9px] ml-0.5"></i>
+                      <span className={`text-xs font-medium ${b.status === 'Pending' ? 'text-amber-700' : 'text-sky-700'}`}>
+                        {b.status === 'Pending' ? 'Continue payment' : 'Details'} <i className="fas fa-chevron-right text-[9px] ml-0.5" aria-hidden="true"></i>
                       </span>
                     </div>
                   </div>
@@ -591,9 +600,9 @@ export default function GuestDashboard() {
               </div>
             ) : past.length === 0 ? (
               <div className="px-6 py-10 text-center">
-                <i className="fas fa-umbrella-beach text-slate-200 text-4xl mb-3 block"></i>
-                <p className="text-slate-400 text-sm">No past stays yet.</p>
-                <p className="text-xs text-slate-300 mt-1">Your completed bookings will appear here.</p>
+                <i className="fas fa-umbrella-beach text-slate-300 text-4xl mb-3 block" aria-hidden="true"></i>
+                <p className="text-slate-600 text-sm">No past stays yet.</p>
+                <p className="text-xs text-slate-500 mt-1">Your completed bookings will appear here.</p>
               </div>
             ) : (
               past.slice(0, 3).map((b) => {
@@ -601,26 +610,26 @@ export default function GuestDashboard() {
                   ? setResuming(toResumeBooking(b))
                   : setSelected(b);
                 return (
-                <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
+                <div key={b.id} role="button" tabIndex={0} onClick={onActivate} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onActivate(); }}} className={`px-6 py-4 hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500 ${b.status === 'Pending' ? 'bg-amber-50/30' : ''}`}>
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <p className="font-semibold text-slate-800 text-sm">{b.roomType}</p>
-                      <p className="text-xs text-slate-500 font-mono">{b.id}</p>
+                      <p className="text-xs text-slate-600 font-mono">{b.id}</p>
                     </div>
                     <StatusBadge status={b.status} />
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                    <i className="fas fa-clock text-[10px]"></i>
+                  <div className="flex items-center gap-2 text-xs text-slate-600 mb-2">
+                    <i className="fas fa-clock text-[10px]" aria-hidden="true"></i>
                     <span>{fmtDate(b.checkIn)}</span>
-                    <span className="text-slate-300">{"\u2192"}</span>
+                    <span className="text-slate-400" aria-hidden="true">{"\u2192"}</span>
                     <span>{fmtDate(b.checkOut)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
+                      <span className="text-sm font-bold text-slate-900 tabular-nums">{"\u20B1"}{(Number(b.total ?? 0) + Number(b.entranceFee ?? 0)).toLocaleString()}</span>
                       {b.promoCode && (
                         <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-xs rounded font-medium">
-                          <i className="fas fa-tag text-[9px]"></i>{b.promoCode}
+                          <i className="fas fa-tag text-[9px]" aria-hidden="true"></i>{b.promoCode}
                         </span>
                       )}
                     </div>
@@ -665,8 +674,8 @@ export default function GuestDashboard() {
                   <p className="text-xs text-slate-400">{selected.id}</p>
                 </div>
               </div>
-              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
-                <i className="fas fa-times"></i>
+              <button onClick={() => setSelected(null)} className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close" type="button">
+                <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
             <div className="p-6 space-y-3 text-sm text-slate-700">
@@ -703,14 +712,15 @@ export default function GuestDashboard() {
                 );
                 return rows.map(([label, val]) => (
                   <div key={label} className="flex justify-between gap-4">
-                    <span className="text-slate-500">{label}</span>
-                    <span className={
+                    <span className="text-slate-600">{label}</span>
+                    <span className={[
+                      "text-right tabular-nums",
                       label === "Outstanding"
-                        ? "font-semibold text-right text-sky-700"
+                        ? "font-semibold text-sky-700"
                         : label === "Grand Total"
-                          ? "font-semibold text-right"
-                          : "font-medium text-right"
-                    }>{val}</span>
+                          ? "font-semibold"
+                          : "font-medium",
+                    ].join(" ")}>{val}</span>
                   </div>
                 ));
               })()}
@@ -730,23 +740,23 @@ export default function GuestDashboard() {
             </div>
             <div className="px-6 pb-6 flex flex-wrap gap-2 justify-end">
               {["Confirmed", "Checked In", "Completed"].includes(selected.status) && (
-                <>
-                  <button onClick={() => handleDownloadReceipt(selected)}
-                    disabled={downloadingId === selected.bookingId}
-                    className="px-4 py-2 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200 disabled:opacity-50">
-                    {downloadingId === selected.bookingId
-                      ? <><i className="fas fa-spinner fa-spin mr-1"></i>Downloading...</>
-                      : <><i className="fas fa-file-pdf mr-1"></i>Download Confirmation</>}
-                  </button>
-                </>
+                <button onClick={() => handleDownloadReceipt(selected)}
+                  disabled={downloadingId === selected.bookingId}
+                  type="button"
+                  className="px-4 py-2.5 min-h-11 bg-sky-100 text-sky-700 rounded-xl text-sm hover:bg-sky-200 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
+                  {downloadingId === selected.bookingId
+                    ? <><i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Downloading...</>
+                    : <><i className="fas fa-file-pdf mr-1" aria-hidden="true"></i>Download Confirmation</>}
+                </button>
               )}
               <Link to="/dashboard/bookings"
                 onClick={() => setSelected(null)}
-                className="px-4 py-2 bg-sky-600 text-white rounded-xl text-sm hover:bg-sky-700 font-medium">
-                <i className="fas fa-list mr-1"></i>View All Bookings
+                className="px-4 py-2.5 min-h-11 inline-flex items-center bg-sky-600 text-white rounded-xl text-sm hover:bg-sky-700 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                <i className="fas fa-list mr-1" aria-hidden="true"></i>View All Bookings
               </Link>
               <button onClick={() => setSelected(null)}
-                className="px-4 py-2 border rounded-xl text-sm text-slate-600 hover:bg-slate-50">
+                type="button"
+                className="px-4 py-2.5 min-h-11 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                 Close
               </button>
             </div>

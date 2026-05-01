@@ -8,6 +8,40 @@ import { Helmet } from "react-helmet-async";
 import UnverifiedEmailBanner from "../UnverifiedEmailBanner.jsx";
 import PendingEmailChangeBanner from "../PendingEmailChangeBanner.jsx";
 import Avatar from "../ui/Avatar.jsx";
+import useFocusTrap from "../../hooks/useFocusTrap.js";
+
+// Wraps a setInterval poll so it pauses while the tab is hidden and
+// fires once on tab-return. Cuts background battery + API noise from
+// 3-per-min-per-poll down to zero, and gives the user fresh data the
+// moment they tab back. Returns a cleanup that clears both the
+// interval and the visibilitychange listener.
+function startVisibilityAwarePoll(fn, intervalMs) {
+  let id = null;
+  function start() {
+    if (id != null) return;
+    id = setInterval(fn, intervalMs);
+  }
+  function stop() {
+    if (id == null) return;
+    clearInterval(id);
+    id = null;
+  }
+  function onVis() {
+    if (document.visibilityState === "visible") {
+      fn();          // refresh immediately on return
+      start();
+    } else {
+      stop();
+    }
+  }
+  // Initial state: only poll if visible right now.
+  if (document.visibilityState === "visible") start();
+  document.addEventListener("visibilitychange", onVis);
+  return () => {
+    stop();
+    document.removeEventListener("visibilitychange", onVis);
+  };
+}
 
 function timeAgo(dateStr) {
   if (!dateStr) return "";
@@ -26,7 +60,8 @@ function NavItem({ to, badge, children }) {
       end={to === "/dashboard"}
       className={({ isActive }) =>
         [
-          "block px-4 py-2 rounded-md flex items-center gap-3",
+          "px-4 py-2.5 min-h-11 rounded-md flex items-center gap-3",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
           isActive ? "bg-blue-100 text-blue-700 font-medium" : "text-gray-700 hover:bg-gray-100",
         ].join(" ")
       }
@@ -60,7 +95,9 @@ function NotificationBell() {
   const dropRef                           = useRef(null);
   const navigate                          = useNavigate();
 
-  // Load on mount, refresh every 60s
+  // Load on mount, refresh every 20s while the tab is visible. Hidden
+  // tabs pause; tab-return fires an immediate refresh so the user
+  // sees up-to-date counts without waiting for the next interval.
   useEffect(() => {
     function load() {
       getNotifications()
@@ -71,8 +108,7 @@ function NotificationBell() {
         .catch(() => {});
     }
     load();
-    const id = setInterval(load, 20_000);
-    return () => clearInterval(id);
+    return startVisibilityAwarePoll(load, 20_000);
   }, []);
 
   // Close dropdown when clicking outside (button + dropdown both checked
@@ -129,14 +165,15 @@ function NotificationBell() {
       <button
         ref={btnRef}
         onClick={() => (open ? setOpen(false) : openDropdown())}
-        className="relative p-2 text-gray-600 hover:text-blue-600 focus:outline-none focus:ring-2 focus:ring-brand/50"
+        className="relative w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-600 hover:text-blue-600 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 transition"
         aria-label="Notifications"
         aria-haspopup="menu"
         aria-expanded={open}
+        type="button"
       >
-        <i className="fas fa-bell-concierge text-lg"></i>
+        <i className="fas fa-bell-concierge text-lg" aria-hidden="true"></i>
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center">
+          <span className="absolute top-1 right-1 bg-red-500 text-white text-[10px] font-bold rounded-full h-4 w-4 flex items-center justify-center" aria-hidden="true">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -160,16 +197,23 @@ function NotificationBell() {
             )}
           </div>
 
-          <div className="max-h-72 overflow-y-auto divide-y">
+          <div className="max-h-72 overflow-y-auto divide-y" role="menu">
             {notifications.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-gray-500 text-center">No notifications yet.</p>
+              <p className="px-4 py-6 text-sm text-gray-600 text-center">No notifications yet.</p>
             ) : (
               notifications.map((n) => (
-                <div
+                // Render as a real button so screen readers announce
+                // it as a control and keyboard users can Enter/Space
+                // to activate. Was a click-only div previously, which
+                // bell-keyboard users couldn't reach.
+                <button
                   key={n.id}
+                  type="button"
+                  role="menuitem"
                   className={[
-                    "px-4 py-3 flex gap-3 cursor-pointer hover:bg-gray-50 transition",
-                    !n.is_read ? "bg-blue-50" : "",
+                    "w-full text-left px-4 py-3 flex gap-3 transition",
+                    "hover:bg-gray-50 focus:outline-none focus-visible:bg-gray-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500",
+                    !n.is_read ? "bg-blue-50" : "bg-white",
                   ].join(" ")}
                   onClick={() => {
                     if (!n.is_read) handleMarkOne(n.id);
@@ -177,25 +221,25 @@ function NotificationBell() {
                     if (dest) { setOpen(false); navigate(dest); }
                   }}
                 >
-                  <span className="mt-0.5">
+                  <span className="mt-0.5 shrink-0">
                     <i className={`fas ${
-                      n.type === "booking_confirmed" ? "fa-calendar-check text-green-500" :
-                      n.type === "booking_cancelled" ? "fa-calendar-xmark text-red-500" :
-                      n.type === "message_received"  ? "fa-envelope text-blue-500" :
-                      "fa-bell text-gray-400"
-                    }`}></i>
+                      n.type === "booking_confirmed" ? "fa-calendar-check text-green-600" :
+                      n.type === "booking_cancelled" ? "fa-calendar-xmark text-red-600" :
+                      n.type === "message_received"  ? "fa-envelope text-blue-600" :
+                      "fa-bell text-gray-500"
+                    }`} aria-hidden="true"></i>
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm ${!n.is_read ? "font-semibold text-gray-900" : "text-gray-700"}`}>
                       {n.title}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">{n.body}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                    <p className="text-xs text-gray-600 truncate">{n.body}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{timeAgo(n.created_at)}</p>
                   </div>
                   {!n.is_read && (
-                    <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+                    <span className="mt-1 h-2 w-2 rounded-full bg-blue-500 shrink-0" aria-label="Unread" />
                   )}
-                </div>
+                </button>
               ))
             )}
           </div>
@@ -211,7 +255,9 @@ export default function DashboardShell() {
   const [msgUnread, setMsgUnread] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Poll message unread count every 15s for sidebar badge
+  // Poll message unread count for the sidebar badge. Same
+  // visibility-aware policy as the notification bell — paused while
+  // the tab is hidden, refires immediately on tab-return.
   useEffect(() => {
     function loadMsgs() {
       getMessages()
@@ -222,9 +268,20 @@ export default function DashboardShell() {
         .catch(() => {});
     }
     loadMsgs();
-    const id = setInterval(loadMsgs, 20_000);
-    return () => clearInterval(id);
+    return startVisibilityAwarePoll(loadMsgs, 20_000);
   }, []);
+
+  // Escape-to-close + focus trap for the mobile sidebar drawer. The
+  // useFocusTrap hook moves initial focus into the panel and restores
+  // it to the trigger on close; the keydown handler adds the Escape
+  // dismiss that overlay-click already provides.
+  const sidebarTrapRef = useFocusTrap(sidebarOpen);
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    function onKey(e) { if (e.key === "Escape") setSidebarOpen(false); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [sidebarOpen]);
 
   const initials = (user?.name || "G").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 
@@ -248,20 +305,27 @@ export default function DashboardShell() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 grid grid-cols-1 md:grid-cols-[250px_1fr] gap-6">
         {/* Sidebar */}
         <aside
+          ref={sidebarTrapRef}
+          id="dashboard-sidebar"
+          role={sidebarOpen ? "dialog" : undefined}
+          aria-modal={sidebarOpen ? "true" : undefined}
+          aria-label={sidebarOpen ? "Dashboard navigation" : undefined}
           className={`bg-white shadow-md rounded-xl p-4 h-fit transition-all duration-200 ${
             sidebarOpen
-              ? "fixed inset-y-0 left-0 z-40 w-64 rounded-none pt-20 shadow-2xl"
+              ? "fixed inset-y-0 left-0 z-40 w-64 rounded-none pt-20 shadow-2xl focus:outline-none"
               : "hidden md:block"
           }`}
         >
-          {/* Close button (mobile only) */}
+          {/* Close button (mobile only) — 44×44 hit target so it
+              meets touch standards. */}
           {sidebarOpen && (
             <button
               onClick={() => setSidebarOpen(false)}
-              className="absolute top-4 right-4 md:hidden text-gray-400 hover:text-gray-600"
+              className="absolute top-4 right-4 md:hidden w-11 h-11 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
               aria-label="Close sidebar"
+              type="button"
             >
-              <i className="fas fa-times text-lg"></i>
+              <i className="fas fa-times text-lg" aria-hidden="true"></i>
             </button>
           )}
 
@@ -277,7 +341,7 @@ export default function DashboardShell() {
               <NotificationBell />
             </div>
             <p className="text-sm font-semibold text-gray-900 break-words">{user?.name || "Guest"}</p>
-            <p className="text-xs text-gray-400 break-all">{user?.email || ""}</p>
+            <p className="text-xs text-gray-600 break-all">{user?.email || ""}</p>
           </div>
 
           <nav aria-label="Dashboard navigation">
@@ -300,10 +364,13 @@ export default function DashboardShell() {
             button never visually collides with the navbar contents. */}
         <button
           onClick={() => setSidebarOpen((s) => !s)}
-          className="md:hidden fixed top-20 left-4 z-30 flex items-center justify-center w-10 h-10 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-brand/50 transition"
+          className="md:hidden fixed top-20 left-4 z-30 flex items-center justify-center w-11 h-11 rounded-md bg-white shadow-md border border-gray-200 text-gray-700 hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 transition"
           aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          aria-expanded={sidebarOpen}
+          aria-controls="dashboard-sidebar"
+          type="button"
         >
-          <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"}`}></i>
+          <i className={`fas ${sidebarOpen ? "fa-times" : "fa-bars"}`} aria-hidden="true"></i>
         </button>
 
         {/* Main content */}
