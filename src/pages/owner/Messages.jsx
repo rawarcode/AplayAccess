@@ -232,7 +232,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
   // ── Edit/Create form ──
   if (editing) {
     return (
-      <Modal open={open} onClose={() => setEditing(null)} maxWidth="max-w-lg">
+      <Modal open={open} onClose={() => setEditing(null)} maxWidth="max-w-lg" label={editing && editing.id ? 'Edit auto-reply rule' : 'Create auto-reply rule'}>
         <form onSubmit={requestSaveRule}>
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -356,7 +356,7 @@ function AutoReplyPanel({ open, onClose, showToast }) {
 
   // ── Rules list view ──
   return (
-    <Modal open={open} onClose={onClose} maxWidth="max-w-2xl">
+    <Modal open={open} onClose={onClose} maxWidth="max-w-2xl" label="Auto-reply rules">
       <div>
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -426,20 +426,20 @@ function AutoReplyPanel({ open, onClose, showToast }) {
                       </div>
                       <p className="text-sm text-slate-600 line-clamp-2">{rule.response}</p>
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => setEditing({ ...rule })} title="Edit"
-                        className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                        <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button type="button" onClick={() => setEditing({ ...rule })} title={`Edit rule "${rule.keyword}"`} aria-label={`Edit rule for "${rule.keyword}"`}
+                        className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                        <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                       </button>
-                      <button onClick={() => toggleActive(rule)} title={rule.is_active ? "Disable" : "Enable"}
-                        className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${
-                          rule.is_active ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700" : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"
+                      <button type="button" onClick={() => toggleActive(rule)} title={rule.is_active ? `Disable rule "${rule.keyword}"` : `Enable rule "${rule.keyword}"`} aria-label={rule.is_active ? `Disable rule for "${rule.keyword}"` : `Enable rule for "${rule.keyword}"`}
+                        className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                          rule.is_active ? "hover:bg-amber-50 text-amber-600 hover:text-amber-800 focus-visible:ring-amber-500" : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800 focus-visible:ring-emerald-500"
                         }`}>
-                        <i className={`fas ${rule.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
+                        <i className={`fas ${rule.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-sm`} aria-hidden="true"></i>
                       </button>
-                      <button onClick={() => setDeleteTarget(rule)} title="Delete"
-                        className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                        <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                      <button type="button" onClick={() => setDeleteTarget(rule)} title={`Delete rule "${rule.keyword}"`} aria-label={`Delete rule for "${rule.keyword}"`}
+                        className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                        <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                       </button>
                     </div>
                   </div>
@@ -790,7 +790,7 @@ export default function AdminMessages() {
           if they have none). If the picked guest already has a thread
           visible in the sidebar, the subject field is hidden — it's
           ignored by the backend in that case. */}
-      <Modal open={composeOpen} onClose={closeCompose} maxWidth="max-w-lg">
+      <Modal open={composeOpen} onClose={closeCompose} maxWidth="max-w-lg" label="New message">
         <div className="p-6">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-start gap-3">
@@ -938,7 +938,7 @@ export default function AdminMessages() {
       {/* Messaging-restrict confirmation. Uses Modal (not ConfirmDialog)
           so staff can optionally type a reason that lands in the
           ActivityLog — useful evidence if a block is ever disputed. */}
-      <Modal open={!!blockTarget} onClose={() => !blockSaving && (setBlockTarget(null), setBlockReason(""))} maxWidth="max-w-md">
+      <Modal open={!!blockTarget} onClose={() => !blockSaving && (setBlockTarget(null), setBlockReason(""))} maxWidth="max-w-md" label={blockTarget ? `Block messaging — ${blockTarget.name}` : 'Block messaging'}>
         {blockTarget && (
           <div className="p-6">
             <div className="flex items-start gap-3 mb-4">

@@ -648,7 +648,7 @@ export default function AdminHistory() {
     </div>
 
     {/* ── Log Detail Modal (#2 — shared Modal, #8 card-section headers) ── */}
-    <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} maxWidth="max-w-lg">
+    <Modal open={!!selectedLog} onClose={() => setSelectedLog(null)} maxWidth="max-w-lg" label={selectedLog ? `Activity log entry — ${selectedLog.action || selectedLog.event_type || 'detail'}` : 'Activity log entry'}>
       {selectedLog && (
         <>
           {/* Header */}

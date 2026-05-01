@@ -705,28 +705,32 @@ export default function AdminAddons() {
                   <p className="text-sm text-slate-500">
                     Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, sorted.length)} of {sorted.length}
                   </p>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
-                      className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                      aria-label="Previous page"
+                      className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                      <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
                     </button>
                     {getPageNumbers().map((n, i) =>
                       n === "..." ? (
-                        <span key={`ellipsis-${i}`} className="h-8 min-w-[2rem] flex items-center justify-center text-xs text-slate-400">…</span>
+                        <span key={`ellipsis-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-sm text-slate-500">…</span>
                       ) : (
-                        <button key={n} onClick={() => setPage(n)}
-                          className={`h-8 min-w-[2rem] rounded-lg text-xs font-semibold transition ${
+                        <button key={n} type="button" onClick={() => setPage(n)}
+                          aria-label={`Go to page ${n}`}
+                          aria-current={n === safePage ? 'page' : undefined}
+                          className={`h-11 min-w-[2.75rem] rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                             n === safePage
-                              ? "bg-emerald-600 text-white shadow-sm"
-                              : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                              ? "bg-emerald-600 text-white shadow-sm focus-visible:ring-emerald-500"
+                              : "border border-slate-300 text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400"
                           }`}>
                           {n}
                         </button>
                       )
                     )}
-                    <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-                      className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+                    <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                      aria-label="Next page"
+                      className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                      <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>

@@ -431,27 +431,30 @@ export default function AdminReviews() {
 
                       {review.status === "Pending" && (
                         <>
-                          <button onClick={() => setPendingAction({ id: review.id, type: "approve", label: "Approve Review", desc: "This review will be approved and made visible to guests." })}
-                            className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition" title="Approve">
-                            <i className="fas fa-check text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setPendingAction({ id: review.id, type: "approve", label: "Approve Review", desc: "This review will be approved and made visible to guests." })}
+                            className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                            title={`Approve review by ${review.guestName}`} aria-label={`Approve review by ${review.guestName}`}>
+                            <i className="fas fa-check text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => setPendingAction({ id: review.id, type: "reject", label: "Reject Review", desc: "This review will be rejected and hidden from guests." })}
-                            className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-500 hover:text-rose-700 transition" title="Reject">
-                            <i className="fas fa-ban text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setPendingAction({ id: review.id, type: "reject", label: "Reject Review", desc: "This review will be rejected and hidden from guests." })}
+                            className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                            title={`Reject review by ${review.guestName}`} aria-label={`Reject review by ${review.guestName}`}>
+                            <i className="fas fa-ban text-sm" aria-hidden="true"></i>
                           </button>
                         </>
                       )}
 
-                      <button onClick={() => setPendingAction({ id: review.id, type: "feature", label: review.featured ? "Unfeature Review" : "Feature Review", desc: review.featured ? "Remove this review from the featured section." : "This review will be highlighted in the featured section.", featured: !review.featured })}
-                        className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${
-                          review.featured ? "hover:bg-rose-50 text-rose-400 hover:text-rose-600" : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"
-                        }`} title={review.featured ? "Unfeature" : "Feature"}>
-                        <i className={`fas fa-heart text-xs`} aria-hidden="true"></i>
+                      <button type="button" onClick={() => setPendingAction({ id: review.id, type: "feature", label: review.featured ? "Unfeature Review" : "Feature Review", desc: review.featured ? "Remove this review from the featured section." : "This review will be highlighted in the featured section.", featured: !review.featured })}
+                        className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+                          review.featured ? "hover:bg-rose-50 text-rose-600 hover:text-rose-800 focus-visible:ring-rose-500" : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800 focus-visible:ring-emerald-500"
+                        }`} title={review.featured ? `Unfeature review by ${review.guestName}` : `Feature review by ${review.guestName}`} aria-label={review.featured ? `Unfeature review by ${review.guestName}` : `Feature review by ${review.guestName}`} aria-pressed={!!review.featured}>
+                        <i className={`fas fa-heart text-sm`} aria-hidden="true"></i>
                       </button>
 
-                      <button onClick={() => setPendingAction({ id: review.id, type: "delete", label: "Delete Review", desc: `Delete review by ${review.guestName}? You can undo within 6 seconds.`, review })}
-                        className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-slate-400 hover:text-rose-600 transition" title="Delete">
-                        <i className="fas fa-trash-alt text-xs" aria-hidden="true"></i>
+                      <button type="button" onClick={() => setPendingAction({ id: review.id, type: "delete", label: "Delete Review", desc: `Delete review by ${review.guestName}? You can undo within 6 seconds.`, review })}
+                        className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-slate-600 hover:text-rose-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                        title={`Delete review by ${review.guestName}`} aria-label={`Delete review by ${review.guestName}`}>
+                        <i className="fas fa-trash-alt text-sm" aria-hidden="true"></i>
                       </button>
                     </div>
                   </div>
@@ -465,28 +468,32 @@ export default function AdminReviews() {
                 <p className="text-sm text-slate-500">
                   Showing {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
                 </p>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
-                    className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                    <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                    aria-label="Previous page"
+                    className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                    <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
                   </button>
                   {getPageNumbers().map((n, i) =>
                     n === "..." ? (
-                      <span key={`e-${i}`} className="h-8 min-w-[2rem] flex items-center justify-center text-xs text-slate-400">…</span>
+                      <span key={`e-${i}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-sm text-slate-500">…</span>
                     ) : (
-                      <button key={n} onClick={() => setPage(n)}
-                        className={`h-8 min-w-[2rem] rounded-lg text-xs font-semibold transition ${
+                      <button key={n} type="button" onClick={() => setPage(n)}
+                        aria-label={`Go to page ${n}`}
+                        aria-current={n === safePage ? 'page' : undefined}
+                        className={`h-11 min-w-[2.75rem] rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                           n === safePage
-                            ? "bg-amber-500 text-white shadow-sm"
-                            : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                            ? "bg-amber-600 text-white shadow-sm focus-visible:ring-amber-500"
+                            : "border border-slate-300 text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400"
                         }`}>
                         {n}
                       </button>
                     )
                   )}
-                  <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-                    className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                    <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+                  <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                    aria-label="Next page"
+                    className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                    <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
                   </button>
                 </div>
               </div>
@@ -496,7 +503,7 @@ export default function AdminReviews() {
       </div>
 
       {/* ── #1 #9 View Review Modal (shared Modal + colored stat cards) ── */}
-      <Modal open={!!viewReview} onClose={() => setViewReview(null)} maxWidth="max-w-md">
+      <Modal open={!!viewReview} onClose={() => setViewReview(null)} maxWidth="max-w-md" label={viewReview ? `Review — ${viewReview.guest_name || viewReview.user?.name || 'Guest'}` : 'Review details'}>
         {viewReview && (
           <div>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">

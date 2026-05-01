@@ -3138,7 +3138,7 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-slate-900 text-lg">Contact Submission</h3>
-              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close"><i className="fas fa-times" aria-hidden="true"></i></button>
+              <button type="button" onClick={() => setSelected(null)} className="inline-flex items-center justify-center h-11 w-11 rounded-lg text-slate-600 hover:text-slate-800 hover:bg-slate-100 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2" aria-label="Close contact submission"><i className="fas fa-times" aria-hidden="true"></i></button>
             </div>
             <div className="space-y-3 text-sm">
               <div className="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-lg">
@@ -3187,20 +3187,21 @@ function ContactSubmissionsTab({ contactCount, setContactCount }) {
                 )}
               </div>
             </div>
-            <div className="flex justify-end mt-5 gap-2">
+            <div className="flex justify-end mt-5 gap-3">
               {!selected.replied_at && (
                 <button
+                  type="button"
                   onClick={handleSendReply}
                   disabled={sending || !replyBody.trim()}
-                  className="inline-flex items-center gap-2 bg-brand hover:bg-brand-dark text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center justify-center min-h-11 gap-2 bg-brand hover:bg-brand-dark text-white px-5 py-2.5 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
                 >
                   {sending
                     ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Sending...</>
                     : <><i className="fas fa-paper-plane" aria-hidden="true"></i> Send Reply</>}
                 </button>
               )}
-              <button onClick={() => setSelected(null)}
-                className="px-4 py-2 text-sm border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50">Close</button>
+              <button type="button" onClick={() => setSelected(null)}
+                className="inline-flex items-center justify-center min-h-11 px-5 py-2.5 text-sm font-medium border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">Close</button>
             </div>
           </div>
         )}

@@ -664,28 +664,28 @@ export default function PromoCodes() {
                         )}
                       </td>
                       <td className="px-5 py-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1">
-                          <button onClick={() => copyCode(code.code)} title="Copy code"
-                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
-                            <i className="fas fa-copy text-xs" aria-hidden="true"></i>
+                        <div className="flex items-center justify-end gap-2">
+                          <button type="button" onClick={() => copyCode(code.code)} title={`Copy code ${code.code}`} aria-label={`Copy code ${code.code}`}
+                            className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                            <i className="fas fa-copy text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => openEdit(code)} title="Edit"
-                            className="h-8 w-8 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-600 hover:text-sky-800 transition">
-                            <i className="fas fa-pen text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => openEdit(code)} title={`Edit ${code.code}`} aria-label={`Edit ${code.code}`}
+                            className="h-11 w-11 rounded-lg hover:bg-sky-50 flex items-center justify-center text-sky-700 hover:text-sky-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-pen text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => openDuplicate(code)} title="Duplicate"
-                            className="h-8 w-8 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-500 hover:text-violet-700 transition">
-                            <i className="fas fa-clone text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => openDuplicate(code)} title={`Duplicate ${code.code}`} aria-label={`Duplicate ${code.code}`}
+                            className="h-11 w-11 rounded-lg hover:bg-violet-50 flex items-center justify-center text-violet-600 hover:text-violet-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-clone text-sm" aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => toggleActive(code)} title={code.is_active ? "Deactivate" : "Activate"}
-                            className={`h-8 w-8 rounded-lg flex items-center justify-center transition ${code.is_active
-                              ? "hover:bg-amber-50 text-amber-500 hover:text-amber-700"
-                              : "hover:bg-emerald-50 text-emerald-500 hover:text-emerald-700"}`}>
-                            <i className={`fas ${code.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
+                          <button type="button" onClick={() => toggleActive(code)} title={code.is_active ? `Deactivate ${code.code}` : `Activate ${code.code}`} aria-label={code.is_active ? `Deactivate ${code.code}` : `Activate ${code.code}`}
+                            className={`h-11 w-11 rounded-lg flex items-center justify-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${code.is_active
+                              ? "hover:bg-amber-50 text-amber-600 hover:text-amber-800 focus-visible:ring-amber-500"
+                              : "hover:bg-emerald-50 text-emerald-600 hover:text-emerald-800 focus-visible:ring-emerald-500"}`}>
+                            <i className={`fas ${code.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-sm`} aria-hidden="true"></i>
                           </button>
-                          <button onClick={() => setDeleteTarget(code)} title="Delete"
-                            className="h-8 w-8 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition">
-                            <i className="fas fa-trash text-xs" aria-hidden="true"></i>
+                          <button type="button" onClick={() => setDeleteTarget(code)} title={`Delete ${code.code}`} aria-label={`Delete ${code.code}`}
+                            className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                            <i className="fas fa-trash text-sm" aria-hidden="true"></i>
                           </button>
                         </div>
                       </td>
@@ -801,30 +801,34 @@ export default function PromoCodes() {
                   <p className="text-sm text-slate-500">
                     Showing {(safePage - 1) * PAGE_SIZE + 1}&ndash;{Math.min(safePage * PAGE_SIZE, sorted.length)} of {sorted.length}
                   </p>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
-                      className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+                  <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={safePage <= 1}
+                      aria-label="Previous page"
+                      className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                      <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
                     </button>
                     {getPageNumbers(safePage, totalPages).map((n, idx) =>
                       n === "..." ? (
-                        <span key={`ellipsis-${idx}`} className="h-8 min-w-[2rem] flex items-center justify-center text-xs text-slate-400">
+                        <span key={`ellipsis-${idx}`} className="h-11 min-w-[2.75rem] flex items-center justify-center text-sm text-slate-500">
                           &hellip;
                         </span>
                       ) : (
-                        <button key={n} onClick={() => setPage(n)}
-                          className={`h-8 min-w-[2rem] rounded-lg text-xs font-semibold transition ${
+                        <button key={n} type="button" onClick={() => setPage(n)}
+                          aria-label={`Go to page ${n}`}
+                          aria-current={n === safePage ? 'page' : undefined}
+                          className={`h-11 min-w-[2.75rem] rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                             n === safePage
-                              ? "bg-indigo-600 text-white shadow-sm"
-                              : "border border-slate-200 text-slate-600 hover:bg-slate-50"
+                              ? "bg-indigo-600 text-white shadow-sm focus-visible:ring-indigo-500"
+                              : "border border-slate-300 text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400"
                           }`}>
                           {n}
                         </button>
                       )
                     )}
-                    <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
-                      className="h-8 w-8 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition">
-                      <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+                    <button type="button" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                      aria-label="Next page"
+                      className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
+                      <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -845,7 +849,7 @@ export default function PromoCodes() {
       </div>
 
       {/* ── View Detail Modal ── */}
-      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-sm">
+      <Modal open={!!viewItem} onClose={() => setViewItem(null)} maxWidth="max-w-sm" label={viewItem ? `Promo code — ${viewItem.code}` : 'Promo code details'}>
         {viewItem && (() => {
           const uc = usesCardColor(viewItem);
           return (
@@ -933,7 +937,7 @@ export default function PromoCodes() {
       </Modal>
 
       {/* ── Create Modal ── */}
-      <Modal open={createOpen} onClose={guardedCloseCreate} maxWidth="max-w-md">
+      <Modal open={createOpen} onClose={guardedCloseCreate} maxWidth="max-w-md" label="Create promo code">
         <form onSubmit={handleSubmitCreate}>
           <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1063,7 +1067,7 @@ export default function PromoCodes() {
       </Modal>
 
       {/* ── Confirmation Modal ── */}
-      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="max-w-sm">
+      <Modal open={confirmOpen} onClose={() => setConfirmOpen(false)} maxWidth="max-w-sm" label="Confirm promo code">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
@@ -1111,7 +1115,7 @@ export default function PromoCodes() {
       </Modal>
 
       {/* ── Edit Modal ── */}
-      <Modal open={!!editTarget} onClose={guardedCloseEdit} maxWidth="max-w-md">
+      <Modal open={!!editTarget} onClose={guardedCloseEdit} maxWidth="max-w-md" label={editTarget ? `Edit promo code — ${editTarget.code}` : 'Edit promo code'}>
         {editTarget && (
           <form onSubmit={handleSubmitEdit}>
             <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
