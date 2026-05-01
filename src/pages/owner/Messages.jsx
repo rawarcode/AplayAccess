@@ -1207,10 +1207,11 @@ export default function AdminMessages() {
                       title={active.sender_messaging_blocked
                         ? 'Restore this guest\u0027s messaging access'
                         : 'Restrict this guest from sending new messages'}
-                      className={`h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-semibold transition ${
+                      type="button"
+                      className={`inline-flex items-center justify-center min-h-11 px-3 py-2 rounded-lg gap-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                         active.sender_messaging_blocked
-                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                          : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                          ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:ring-emerald-500'
+                          : 'bg-amber-50 text-amber-700 hover:bg-amber-100 focus-visible:ring-amber-500'
                       }`}
                     >
                       <i className={`fas ${active.sender_messaging_blocked ? 'fa-unlock' : 'fa-ban'} text-[11px]`} aria-hidden="true"></i>
