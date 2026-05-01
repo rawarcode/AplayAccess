@@ -305,9 +305,10 @@ export default function Reports() {
             <button
               onClick={() => printDailyReport(dateBookings, reportDateLabel, totalRevenue, entranceRates)}
               disabled={loading || dateBookings.length === 0}
-              className="mt-4 w-full px-4 py-2 bg-brand text-white rounded text-sm hover:bg-brand-dark disabled:opacity-50"
+              type="button"
+              className="mt-4 w-full px-4 py-2.5 min-h-11 bg-brand text-white rounded text-sm hover:bg-brand-dark disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
             >
-              <i className="fas fa-print mr-2"></i>Print Report
+              <i className="fas fa-print mr-2" aria-hidden="true"></i>Print Report
             </button>
           </div>
         </div>
@@ -319,11 +320,11 @@ export default function Reports() {
           </div>
 
           {loading ? (
-            <div className="py-10 text-center text-slate-400">
-              <i className="fas fa-spinner fa-spin text-2xl mb-2 block"></i>Loading...
+            <div role="status" aria-live="polite" className="py-10 text-center text-slate-600">
+              <i className="fas fa-spinner fa-spin text-2xl mb-2 block" aria-hidden="true"></i>Loading...
             </div>
           ) : dateBookings.length === 0 ? (
-            <p className="text-slate-400 text-center py-6">No bookings for this date.</p>
+            <p className="text-slate-600 text-center py-6">No bookings for this date.</p>
           ) : (
             <>
             {/* Desktop table — wrapped hidden md:block so the mobile
@@ -406,18 +407,18 @@ export default function Reports() {
                     {/* Body — Room + visit window */}
                     <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                       <div className="col-span-2">
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Room</p>
                         <p className="text-sm text-slate-700 mt-0.5 truncate">{b.roomType}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Visit</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Visit</p>
                         <p className="text-xs text-slate-700 mt-0.5 whitespace-nowrap">
                           {fmtTime(b.checkIn)} → {fmtTime(b.checkOut)}
                         </p>
                         <p className="text-[10px] text-slate-400">{calcDuration(b.checkIn, b.checkOut)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Guests</p>
                         <p className="text-sm text-slate-700 mt-0.5">{b.guests}</p>
                       </div>
                     </div>
@@ -425,11 +426,11 @@ export default function Reports() {
                     {/* Money row — Room Total + Entrance Fee */}
                     <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-slate-100">
                       <div>
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room Total</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Room Total</p>
                         <p className="text-sm font-semibold text-slate-800 mt-0.5">{fmtMoney(b.total)}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Entrance Fee</p>
+                        <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Entrance Fee</p>
                         <p className="text-sm font-semibold text-amber-700 mt-0.5">{fmtMoney(entrance)}</p>
                       </div>
                     </div>
@@ -443,25 +444,25 @@ export default function Reports() {
                 </p>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <div>
-                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Guests</p>
+                    <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Guests</p>
                     <p className="font-semibold text-slate-800 mt-0.5">
                       {dateBookings.reduce((s, b) => s + (b.guests || 0), 0)}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Room Total</p>
+                    <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Room Total</p>
                     <p className="font-semibold text-slate-800 mt-0.5">
                       {fmtMoney(dateBookings.reduce((s, b) => s + Number(b.total || 0), 0))}
                     </p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Entrance</p>
+                    <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Entrance</p>
                     <p className="font-semibold text-amber-700 mt-0.5">
                       {fmtMoney(dateBookings.reduce((s, b) => s + calcEntrance(b, entranceRates), 0))}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] uppercase font-semibold text-slate-400 tracking-wide">Collected</p>
+                    <p className="text-[10px] uppercase font-semibold text-slate-600 tracking-wide">Collected</p>
                     <p className="font-semibold text-emerald-700 mt-0.5">{fmtMoney(totalRevenue)}</p>
                   </div>
                 </div>

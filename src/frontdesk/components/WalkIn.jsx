@@ -594,7 +594,7 @@ export default function WalkIn({ embedded = false }) {
                   )}
                   {promoDiscount > 0 ? (
                     <>
-                      <div className="flex justify-between text-slate-400 border-t border-slate-200 pt-2">
+                      <div className="flex justify-between text-slate-600 border-t border-slate-200 pt-2">
                         <span>Subtotal</span>
                         <span className="line-through">{fmtMoney(previewSubtotal)}</span>
                       </div>
@@ -728,7 +728,7 @@ export default function WalkIn({ embedded = false }) {
                 {/* Guest info */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-slate-200"></div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Guest Information</span>
+                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Guest Information</span>
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
@@ -756,7 +756,7 @@ export default function WalkIn({ embedded = false }) {
                 {/* Booking details */}
                 <div className="flex items-center gap-2 mb-3">
                   <div className="h-px flex-1 bg-slate-200"></div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Booking Details</span>
+                  <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Booking Details</span>
                   <div className="h-px flex-1 bg-slate-200"></div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
@@ -780,7 +780,7 @@ export default function WalkIn({ embedded = false }) {
                     <label className="block text-xs font-medium text-slate-700 mb-2" id="walkin-booking-type-label">
                       Booking Type *
                       {!form.date && (
-                        <span className="ml-2 text-slate-400 font-normal">Pick a date first</span>
+                        <span className="ml-2 text-slate-600 font-normal">Pick a date first</span>
                       )}
                     </label>
                     <div className="flex gap-2" role="group" aria-labelledby="walkin-booking-type-label">
@@ -834,9 +834,9 @@ export default function WalkIn({ embedded = false }) {
                     <label className="block text-xs font-medium text-slate-700 mb-1">
                       Room *
                       {!form.date ? (
-                        <span className="ml-1 text-slate-400 font-normal">Pick a date first</span>
+                        <span className="ml-1 text-slate-600 font-normal">Pick a date first</span>
                       ) : availChecking && (
-                        <span className="ml-1 text-slate-400 font-normal">Checking availability...</span>
+                        <span className="ml-1 text-slate-600 font-normal">Checking availability...</span>
                       )}
                     </label>
                     <select value={form.roomId} onChange={e => setField('roomId', e.target.value)}
@@ -933,7 +933,7 @@ export default function WalkIn({ embedded = false }) {
                   <div>
                     <label className="block text-xs font-medium text-slate-700 mb-1">
                       No. of Guests *
-                      <span className="ml-1 text-slate-400 font-normal">(for entrance fee)</span>
+                      <span className="ml-1 text-slate-600 font-normal">(for entrance fee)</span>
                     </label>
                     <div className="flex items-center gap-2">
                       <button type="button"
@@ -1016,7 +1016,7 @@ export default function WalkIn({ embedded = false }) {
                   <>
                     <div className="flex items-center gap-2 mb-3">
                       <div className="h-px flex-1 bg-slate-200"></div>
-                      <span className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Add-on Amenities</span>
+                      <span className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Add-on Amenities</span>
                       <div className="h-px flex-1 bg-slate-200"></div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
@@ -1120,7 +1120,7 @@ export default function WalkIn({ embedded = false }) {
                 {/* Promo code */}
                 <div className="mb-3">
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    <i className="fas fa-tag mr-1 text-sky-500"></i>Promo Code <span className="text-slate-400 font-normal text-xs">(optional)</span>
+                    <i className="fas fa-tag mr-1 text-sky-500"></i>Promo Code <span className="text-slate-600 font-normal text-xs">(optional)</span>
                   </label>
                   {promoResult ? (
                     <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-300 rounded-md">
@@ -1252,7 +1252,7 @@ export default function WalkIn({ embedded = false }) {
             <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>{error}
           </div>
         )}
-        <div className="bg-white rounded-lg shadow p-10 text-center text-slate-400">
+        <div className="bg-white rounded-lg shadow p-10 text-center text-slate-600">
           <i className="fas fa-spinner fa-spin text-2xl mb-3 block"></i>
           <p className="text-sm">Opening walk-in wizard…</p>
           <button

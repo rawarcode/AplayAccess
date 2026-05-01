@@ -759,7 +759,7 @@ export default function Billing({ embedded = false }) {
                   Cancel
                 </button>
                 <button onClick={handleCollect} disabled={paying}
-                  className="inline-flex items-center gap-1 min-h-[40px] px-4 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus:ring-offset-1">
+                  className="inline-flex items-center gap-1 min-h-[40px] px-4 py-2 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1">
                   <i className="fas fa-check" aria-hidden="true"></i>
                   {paying ? 'Processing...' : `Collect ${fmtMoney(billingOutstanding)}`}
                 </button>
@@ -884,7 +884,7 @@ export default function Billing({ embedded = false }) {
                           onClick={(e) => { e.stopPropagation(); openCollect(b); }}
                           onKeyDown={(e) => e.stopPropagation()}
                           aria-label={`Collect ${fmtMoney(toCollect)} for ${b.id}`}
-                          className="mt-2 inline-flex items-center gap-1 min-h-[40px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus:ring-offset-1"
+                          className="mt-2 inline-flex items-center gap-1 min-h-[40px] px-4 py-1.5 bg-emerald-600 text-white rounded text-sm font-semibold hover:bg-emerald-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
                         >
                           <i className="fas fa-hand-holding-usd" aria-hidden="true"></i>Collect
                         </button>
@@ -969,7 +969,7 @@ export default function Billing({ embedded = false }) {
                           <button
                             onClick={() => { if(sortBy===key) setSortDir(d=>d==='asc'?'desc':'asc'); else{setSortBy(key);setSortDir('asc');} }}
                             aria-label={isSorted ? `Sort by ${label}, currently ${ariaSort}` : `Sort by ${label}`}
-                            className="flex items-center gap-1 hover:text-sky-600 transition-colors group focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                            className="flex items-center gap-1 hover:text-sky-700 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded"
                           >
                             {label}
                             <span className="text-slate-400 group-hover:text-sky-400" aria-hidden="true">
@@ -997,7 +997,7 @@ export default function Billing({ embedded = false }) {
                           <button
                             type="button"
                             onClick={(e) => { e.stopPropagation(); setSelected(b); }}
-                            className="font-mono text-slate-600 hover:text-sky-700 hover:underline focus:outline-none focus:ring-2 focus:ring-sky-400 rounded"
+                            className="font-mono text-slate-700 hover:text-sky-700 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 rounded px-1"
                             aria-label={`View billing detail for ${b.id}, guest ${guestLabel}`}
                           >
                             {b.id}
@@ -1048,7 +1048,7 @@ export default function Billing({ embedded = false }) {
                                 onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
                                 disabled={downloading === b.bookingId}
                                 aria-label={`Download booking confirmation PDF for ${b.id}`}
-                                className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                                className="inline-flex items-center gap-1 min-h-11 px-3 py-2 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
                                 title="Download booking confirmation (PDF)"
                               >
                                 <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} text-[11px]`} aria-hidden="true"></i>
@@ -1118,7 +1118,7 @@ export default function Billing({ embedded = false }) {
                       tabIndex={0}
                       onClick={() => setSelected(b)}
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(b); } }}
-                      className={cardCls + ' p-4 focus:outline-none focus:ring-2 focus:ring-sky-400'}
+                      className={cardCls + ' p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500'}
                       aria-label={`View billing detail for ${b.id}, guest ${guestLabel}`}
                     >
                       {/* Top — guest + total */}
@@ -1186,7 +1186,7 @@ export default function Billing({ embedded = false }) {
                             onClick={() => handleDownloadReceipt(b.bookingId, b.id)}
                             disabled={downloading === b.bookingId}
                             aria-label={`Download booking confirmation PDF for ${b.id}`}
-                            className="inline-flex items-center gap-1 min-h-[40px] px-3 py-1.5 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-sky-400"
+                            className="inline-flex items-center gap-1 min-h-11 px-3 py-2 bg-sky-600 text-white rounded text-xs font-semibold hover:bg-sky-700 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-1"
                             title="Download booking confirmation (PDF)"
                           >
                             <i className={`fas ${downloading === b.bookingId ? 'fa-spinner fa-spin' : 'fa-file-pdf'} text-[11px]`} aria-hidden="true"></i>

@@ -44,9 +44,23 @@ export default function Dashboard() {
         .catch(() => showToast('Failed to load dashboard data.', 'error'))
         .finally(() => setLoading(false));
     }
+    // Visibility-aware polling — pause when the tab is hidden,
+    // refresh on return. Saves battery + API noise for staff who
+    // leave the dashboard tab open in the background.
+    let id = null;
+    function start() { if (id == null) id = setInterval(load, 20_000); }
+    function stop()  { if (id != null) { clearInterval(id); id = null; } }
+    function onVis() {
+      if (document.visibilityState === 'visible') { load(); start(); }
+      else { stop(); }
+    }
     load();
-    const id = setInterval(load, 20_000);
-    return () => clearInterval(id);
+    if (document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, []);
 
   // ── derived metrics ─────────────────────────────────────────────────────────

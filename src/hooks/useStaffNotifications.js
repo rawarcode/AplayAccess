@@ -229,10 +229,33 @@ export function useStaffNotifications(paths = {}) {
     setItems(next);
   }, []);
 
+  // Visibility-aware polling. Same pattern as the guest-dashboard
+  // shell: pause the 20s interval while the tab is hidden so we
+  // don't burn battery / API calls on a backgrounded staff machine,
+  // and re-fire once on tab-return so the alert strip is fresh
+  // before the staff member touches anything.
   useEffect(() => {
+    let id = null;
+    function start() {
+      if (id != null) return;
+      id = setInterval(poll, POLL_MS);
+    }
+    function stop() {
+      if (id == null) return;
+      clearInterval(id);
+      id = null;
+    }
+    function onVis() {
+      if (document.visibilityState === 'visible') { poll(); start(); }
+      else { stop(); }
+    }
     poll();
-    const id = setInterval(poll, POLL_MS);
-    return () => clearInterval(id);
+    if (document.visibilityState === 'visible') start();
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      stop();
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, [poll]);
 
   const total = counts.unreadMessages + counts.unreadContacts + counts.todayArrivals + counts.newReviews + counts.pendingReviews + counts.soonCheckouts + counts.overdueCheckouts;
