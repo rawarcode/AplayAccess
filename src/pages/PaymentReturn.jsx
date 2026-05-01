@@ -28,6 +28,11 @@ export default function PaymentReturn({ outcome }) {
   const [status,       setStatus]       = useState("loading");
   const [downloading,  setDownloading]  = useState(false);
   const [dlError,      setDlError]      = useState("");
+  // Bump to force the polling effect to re-run on demand. Used by
+  // the "Check again" button in the pending state — much lighter
+  // than window.location.reload() which throws away in-flight
+  // download / animation state.
+  const [pollAttempt,  setPollAttempt]  = useState(0);
 
   const pageTitle = status === "confirmed" ? "Payment Confirmed"
     : status === "pending" ? "Payment Processing"
@@ -90,20 +95,32 @@ export default function PaymentReturn({ outcome }) {
       return;
     }
 
+    // Reset to "loading" when the user manually re-triggers a
+    // poll, so the aria-live region announces the transition
+    // back to "Verifying" → outcome rather than going silent.
+    if (pollAttempt > 0) setStatus("loading");
+
+    let cancelled = false;
     let tries = 0;
     async function poll() {
+      if (cancelled) return;
       try {
         const data = isGuest
           ? await getGuestPaymentStatus(bookingId)
           : await getPaymentStatus(bookingId);
+        if (cancelled) return;
         if (data.paid || data.status === "Confirmed") { setStatus("confirmed"); return; }
         tries++;
-        if (tries < 6) setTimeout(poll, 2000);
-        else           setStatus("pending");
-      } catch { setStatus("failed"); }
+        // Bumped from 6 to 10 tries (~20s of polling) since
+        // mobile-network PayMongo confirmations sometimes outrun
+        // a 12-second window on slow LTE.
+        if (tries < 10) setTimeout(poll, 2000);
+        else            setStatus("pending");
+      } catch { if (!cancelled) setStatus("failed"); }
     }
     poll();
-  }, [bookingId, outcome, isPopup]);
+    return () => { cancelled = true; };
+  }, [bookingId, outcome, isPopup, pollAttempt]);
 
   // ── Popup closing screen ──────────────────────────────────────────────────
   if (isPopup) {
@@ -112,30 +129,24 @@ export default function PaymentReturn({ outcome }) {
         className="min-h-screen flex items-center justify-center auth-surface"
       >
         <Helmet><title>{pageTitle} — Aplaya Beach Resort</title></Helmet>
-        <div className="text-center p-8 animate-hero-fade-in opacity-0">
+        {/* role="status" + aria-live so the brief "Payment received /
+            cancelled" message is announced before the popup closes. */}
+        <div role="status" aria-live="polite" className="text-center p-8 animate-hero-fade-in opacity-0">
           {status === "closing_success" ? (
             <>
               <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-                <i className="fas fa-check text-emerald-600 text-2xl"></i>
+                <i className="fas fa-check text-emerald-600 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-lg font-semibold text-slate-800">Payment received!</p>
-              <p className="text-sm text-slate-500 mt-1">Closing window…</p>
-            </>
-          ) : status === "verifying" ? (
-            <>
-              <div className="flex justify-center mb-4">
-                <div className="w-14 h-14 border-4 border-sky-200 border-t-sky-600 rounded-full animate-spin" />
-              </div>
-              <p className="text-lg font-semibold text-slate-800">Verifying payment…</p>
-              <p className="text-sm text-slate-500 mt-1">Please wait a moment.</p>
+              <p className="text-sm text-slate-600 mt-1">Closing window…</p>
             </>
           ) : (
             <>
               <div className="mx-auto h-16 w-16 rounded-full bg-rose-100 flex items-center justify-center mb-4">
-                <i className="fas fa-times text-rose-600 text-2xl"></i>
+                <i className="fas fa-times text-rose-600 text-2xl" aria-hidden="true"></i>
               </div>
               <p className="text-lg font-semibold text-slate-800">Payment cancelled.</p>
-              <p className="text-sm text-slate-500 mt-1">Closing window…</p>
+              <p className="text-sm text-slate-600 mt-1">Closing window…</p>
             </>
           )}
         </div>
@@ -151,6 +162,8 @@ export default function PaymentReturn({ outcome }) {
       <Helmet><title>{pageTitle} — Aplaya Beach Resort</title></Helmet>
 
       <div
+        role="status"
+        aria-live="polite"
         className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center animate-hero-fade-in opacity-0"
         style={{ boxShadow: "0 30px 50px -30px rgba(0,80,100,0.25), 0 6px 12px rgba(0,0,0,0.02)" }}
       >
@@ -232,10 +245,11 @@ export default function PaymentReturn({ outcome }) {
               Your booking will update to <span className="font-semibold text-emerald-600">Confirmed</span> within a few minutes.
             </p>
             <button
-              onClick={() => window.location.reload()}
-              className="text-xs text-coastal-accent hover:text-brand mb-5 transition"
+              onClick={() => setPollAttempt((n) => n + 1)}
+              type="button"
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 min-h-11 mb-5 text-sm font-medium text-brand hover:bg-coastal-bg-alt rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              <i className="fas fa-arrows-rotate mr-1"></i>Refresh to check again
+              <i className="fas fa-arrows-rotate" aria-hidden="true"></i>Check again
             </button>
             <div className="flex flex-col gap-3">
               <Link to="/dashboard/bookings"

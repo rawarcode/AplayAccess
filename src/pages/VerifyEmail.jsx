@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { verifyEmailRequest, resendVerificationRequest } from "../lib/authApi.js";
 
 export default function VerifyEmail() {
-  const { user, login, booting } = useAuth();
+  const { user, login, logout, booting } = useAuth();
   const navigate = useNavigate();
   const [code, setCode] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
@@ -114,8 +114,8 @@ export default function VerifyEmail() {
               <i className="fas fa-check text-emerald-600 text-4xl" aria-hidden="true"></i>
             </div>
             <h2 className="text-3xl font-bold text-emerald-700 mb-2">Email Verified!</h2>
-            <p className="text-sm text-slate-500 mb-6">
-              You're all set, <strong className="text-slate-700">{user?.name?.split(' ')[0] || 'there'}</strong>. Redirecting you to your dashboard…
+            <p className="text-sm text-slate-600 mb-6">
+              You're all set, <strong className="text-slate-800">{user?.name?.split(' ')[0] || 'there'}</strong>. Redirecting you to your dashboard…
             </p>
             <i className="fas fa-spinner fa-spin text-sky-500 text-lg" aria-hidden="true"></i>
           </div>
@@ -135,18 +135,18 @@ export default function VerifyEmail() {
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Verify Your Email</h2>
-          <p className="text-sm text-slate-500 mb-6">
-            We sent a 6-digit code to <strong className="text-slate-700">{user?.email || "your email"}</strong>. Enter it below to continue.
+          <p className="text-sm text-slate-600 mb-6">
+            We sent a 6-digit code to <strong className="text-slate-800">{user?.email || "your email"}</strong>. Enter it below to continue.
           </p>
 
           {error && (
-            <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded-lg text-sm border border-rose-200">
-              <i className="fas fa-exclamation-circle mr-2"></i>{error}
+            <div id="verify-email-page-error" role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded-lg text-sm border border-rose-200">
+              <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>{error}
             </div>
           )}
           {success && (
-            <div className="mb-4 p-3 bg-emerald-50 text-emerald-600 rounded-lg text-sm border border-emerald-200">
-              <i className="fas fa-check-circle mr-2"></i>{success}
+            <div role="status" aria-live="polite" className="mb-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm border border-emerald-200">
+              <i className="fas fa-check-circle mr-2" aria-hidden="true"></i>{success}
             </div>
           )}
 
@@ -163,7 +163,11 @@ export default function VerifyEmail() {
                   value={digit}
                   onChange={e => handleChange(i, e.target.value)}
                   onKeyDown={e => handleKeyDown(i, e)}
-                  className="w-12 h-14 text-center text-xl font-bold border-2 border-slate-200 rounded-lg focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition"
+                  className="w-12 h-14 text-center text-xl font-bold border-2 border-slate-200 rounded-lg focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 transition aria-[invalid=true]:border-rose-300"
+                  aria-label={`Digit ${i + 1} of 6`}
+                  aria-invalid={error ? "true" : undefined}
+                  aria-describedby={error ? "verify-email-page-error" : undefined}
+                  autoComplete={i === 0 ? "one-time-code" : "off"}
                   autoFocus={i === 0}
                 />
               ))}
@@ -178,18 +182,35 @@ export default function VerifyEmail() {
             </button>
           </form>
 
-          <div className="mt-6 text-sm text-slate-500">
+          <div className="mt-6 text-sm text-slate-600">
             Didn't receive the code?{" "}
             <button
+              type="button"
               onClick={handleResend}
               disabled={resending || cooldown > 0}
-              className="font-medium text-sky-600 hover:text-sky-700 disabled:text-slate-400 disabled:cursor-not-allowed transition"
+              aria-label={cooldown > 0 ? `Resend code — available in ${cooldown} seconds` : 'Resend code'}
+              className="font-medium text-sky-700 hover:text-sky-800 disabled:text-slate-400 disabled:cursor-not-allowed transition rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             >
               {cooldown > 0 ? `Resend in ${cooldown}s` : resending ? "Sending..." : "Resend Code"}
             </button>
           </div>
 
-          <p className="mt-3 text-xs text-slate-400">Code expires in 15 minutes.</p>
+          <p className="mt-3 text-xs text-slate-600">Code expires in 15 minutes.</p>
+
+          {/* Escape route — guests who used the wrong email or lost
+              access to their inbox were previously stuck on this
+              page with no way out except Resend. Sign-out lets them
+              start fresh with a different account. */}
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <button
+              type="button"
+              onClick={() => { logout?.(); navigate("/", { replace: true }); }}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 min-h-11 text-xs text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-md font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            >
+              <i className="fas fa-arrow-right-from-bracket" aria-hidden="true"></i>
+              Sign out and use a different email
+            </button>
+          </div>
         </div>
       </div>
     </div>

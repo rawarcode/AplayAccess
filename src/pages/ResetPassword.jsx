@@ -19,6 +19,10 @@ export default function ResetPassword() {
   const [loading, setLoading]                 = useState(false);
   const [error, setError]                     = useState("");
   const [done, setDone]                       = useState(false);
+  // Captures the destination so the explicit "Go to login" button
+  // routes the same place the auto-redirect would. Lets cognitive-
+  // load users skip the 3-second wait without missing the redirect.
+  const [doneDest, setDoneDest]               = useState("/resort");
 
   const passwordStrong = checkPasswordStrength(password);
   const passwordWeak   = password.length > 0 && !passwordStrong;
@@ -49,9 +53,10 @@ export default function ResetPassword() {
         password,
         password_confirmation: passwordConfirm,
       });
-      setDone(true);
       const role = data?.role;
       const dest = (role === "front_desk" || role === "owner") ? "/staff-login" : "/resort";
+      setDoneDest(dest);
+      setDone(true);
       setTimeout(() => navigate(dest), 3000);
     } catch (err) {
       const msg =
@@ -82,18 +87,28 @@ export default function ResetPassword() {
         </div>
 
         {done ? (
-          <div className="text-center">
+          <div className="text-center" role="status" aria-live="polite">
             <div className="mx-auto h-16 w-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-              <i className="fas fa-check text-emerald-600 text-2xl"></i>
+              <i className="fas fa-check text-emerald-600 text-2xl" aria-hidden="true"></i>
             </div>
             <h2 className="text-2xl font-light text-brand mb-2">Password Reset!</h2>
             <p className="text-coastal-text mb-4">
               Your password has been updated successfully.
             </p>
-            <p className="text-sm text-coastal-text-muted">
-              <i className="fas fa-spinner fa-spin mr-1"></i>
-              Redirecting you to login...
+            <p className="text-sm text-coastal-text-muted mb-4">
+              <i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>
+              Redirecting in 3 seconds…
             </p>
+            {/* Explicit Go-to-login so users who need more time to
+                read aren't punished by the auto-redirect. Auto-redirect
+                still fires as the default. */}
+            <Link
+              to={doneDest}
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-11 text-sm font-medium bg-brand text-white rounded-full hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
+            >
+              Go to login
+              <i className="fas fa-arrow-right" aria-hidden="true"></i>
+            </Link>
           </div>
         ) : (
           <>
@@ -108,11 +123,11 @@ export default function ResetPassword() {
             <p className="text-center text-sm font-medium text-brand mb-6 truncate">{email}</p>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
-                <i className="fas fa-exclamation-circle mr-2"></i>
+              <div role="alert" aria-live="assertive" className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
+                <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>
                 {error}{" "}
                 {error.includes("expired") && (
-                  <Link to="/forgot-password" className="font-medium underline">
+                  <Link to="/forgot-password" className="font-medium underline rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500">
                     Request a new link
                   </Link>
                 )}
@@ -138,10 +153,10 @@ export default function ResetPassword() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-coastal-accent hover:text-brand transition"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-coastal-accent hover:text-brand hover:bg-coastal-bg-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-brand transition"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    <i className={`fas ${showPassword ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true"></i>
                   </button>
                 </div>
                 <PasswordRequirements value={password} />
@@ -164,15 +179,15 @@ export default function ResetPassword() {
                   <button
                     type="button"
                     onClick={() => setShowConfirm((s) => !s)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-coastal-accent hover:text-brand transition"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-coastal-accent hover:text-brand hover:bg-coastal-bg-alt focus:outline-none focus-visible:ring-2 focus-visible:ring-brand transition"
                     aria-label={showConfirm ? "Hide password" : "Show password"}
                   >
-                    <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"}`} aria-hidden="true"></i>
                   </button>
                 </div>
                 {mismatch && (
-                  <p className="text-xs text-rose-500 mt-1">
-                    <i className="fas fa-exclamation-circle mr-1"></i>
+                  <p className="text-xs text-rose-700 mt-1">
+                    <i className="fas fa-exclamation-circle mr-1" aria-hidden="true"></i>
                     Passwords do not match
                   </p>
                 )}

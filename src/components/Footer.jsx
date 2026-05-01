@@ -24,7 +24,7 @@ export default function Footer() {
             <div className="flex items-center gap-3 mb-3">
               {brand.logoImage
                 ? <img src={brand.logoImage} alt={brand.siteName} className="h-12 w-auto object-contain" loading="lazy" decoding="async" />
-                : <span className="text-3xl">🏖️</span>
+                : <i className="fas fa-umbrella-beach text-3xl text-sky-400" aria-hidden="true"></i>
               }
             </div>
             <p className="text-sm font-bold text-white mb-2">{brand.siteName}</p>
@@ -33,7 +33,7 @@ export default function Footer() {
               <div className="mt-5 flex gap-3">
                 {socials.map(s => (
                   <a key={s.key} href={ft[s.key]} target="_blank" rel="noopener noreferrer"
-                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-sky-600 flex items-center justify-center transition-colors"
+                    className="w-11 h-11 rounded-full bg-white/10 hover:bg-sky-600 flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                     aria-label={s.label}>
                     <i className={`fab ${s.icon} text-sm`} aria-hidden="true"></i>
                   </a>
@@ -42,10 +42,12 @@ export default function Footer() {
             )}
           </div>
 
-          {/* Quick Links */}
+          {/* Quick Links — each row gets an inline-block with vertical
+              padding so the touch target is comfortable on mobile
+              (≈40 pt) without changing visual layout. */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Quick Links</h3>
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-1 text-sm">
               {[
                 { label: "Resort",   to: "/resort"        },
                 { label: "Rooms",    to: "/rooms"         },
@@ -53,7 +55,7 @@ export default function Footer() {
                 { label: "Book Now", to: "/resort?book=1" },
               ].map(l => (
                 <li key={l.label}>
-                  <Link to={l.to} className="text-gray-400 hover:text-white transition-colors">{l.label}</Link>
+                  <Link to={l.to} className="inline-block py-2 -my-1 -mx-1 px-1 rounded text-gray-300 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">{l.label}</Link>
                 </li>
               ))}
             </ul>
@@ -80,16 +82,24 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Hours */}
+          {/* Hours — Closed/Open distinction carried by an icon as
+              well as color, so colorblind users (and grayscale
+              modes) still see which days the resort is closed. */}
           <div>
             <h3 className="text-sm font-semibold uppercase tracking-wider text-gray-300 mb-4">Opening Hours</h3>
             <ul className="space-y-2 text-sm">
-              {(ft.hours || []).map((h, i) => (
-                <li key={i} className="flex justify-between text-gray-400">
-                  <span>{h.day}</span>
-                  <span className={h.time === "Closed" ? "text-red-400" : "text-green-400"}>{h.time}</span>
-                </li>
-              ))}
+              {(ft.hours || []).map((h, i) => {
+                const closed = h.time === "Closed";
+                return (
+                  <li key={i} className="flex justify-between text-gray-300">
+                    <span>{h.day}</span>
+                    <span className={`inline-flex items-center gap-1.5 ${closed ? "text-red-300" : "text-green-300"}`}>
+                      <i className={`fas ${closed ? "fa-circle-xmark" : "fa-circle-check"} text-[10px]`} aria-hidden="true"></i>
+                      {h.time}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
@@ -100,13 +110,13 @@ export default function Footer() {
           DPA § 16(b) "right to be informed." */}
       <div className="border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-3">
-          <p className="text-gray-500 text-sm">{ft.copyright}</p>
+          <p className="text-gray-400 text-sm">{ft.copyright}</p>
           <nav className="flex items-center gap-4 text-xs" aria-label="Legal">
-            <Link to="/privacy" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</Link>
+            <Link to="/privacy" className="inline-block py-2 -my-1 px-1 rounded text-gray-300 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">Privacy Policy</Link>
             <span className="text-gray-700" aria-hidden="true">·</span>
-            <Link to="/terms" className="text-gray-400 hover:text-white transition-colors">Terms &amp; Conditions</Link>
+            <Link to="/terms" className="inline-block py-2 -my-1 px-1 rounded text-gray-300 hover:text-white transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400">Terms &amp; Conditions</Link>
           </nav>
-          <p className="text-gray-600 text-xs">Built with ❤️ for Aplaya</p>
+          <p className="text-gray-500 text-xs">Built with ❤️ for Aplaya</p>
         </div>
       </div>
     </footer>

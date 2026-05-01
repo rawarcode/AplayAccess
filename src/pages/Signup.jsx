@@ -127,7 +127,7 @@ export default function Signup() {
         <div className="w-full max-w-[450px] bg-white rounded-lg shadow-lg p-8">
           {/* Logo */}
           <div className="flex justify-center items-center gap-2 mb-6">
-            <span className="text-3xl">🏖️</span>
+            <i className="fas fa-umbrella-beach text-3xl text-sky-600" aria-hidden="true"></i>
             <span className="text-2xl font-bold text-sky-600">Aplaya Beach Resort</span>
           </div>
 
@@ -186,9 +186,9 @@ export default function Signup() {
                   minLength={8}
                 />
                 <button type="button" onClick={() => setShowPass(s => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 transition"
                   aria-label={showPass ? "Hide password" : "Show password"}>
-                  <i className={`fas ${showPass ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                  <i className={`fas ${showPass ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
                 </button>
               </div>
               {/* Live strength checklist — rules mirror the backend's
@@ -211,9 +211,9 @@ export default function Signup() {
                   minLength={8}
                 />
                 <button type="button" onClick={() => setShowConfirm(s => !s)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 transition"
                   aria-label={showConfirm ? "Hide password" : "Show password"}>
-                  <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"} text-sm`}></i>
+                  <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"} text-sm`} aria-hidden="true"></i>
                 </button>
               </div>
             </div>
@@ -259,20 +259,28 @@ export default function Signup() {
                                   : !form.terms ? 'Please accept the Terms and Conditions.'
                                   : undefined;
               return (
+                <>
                 <button
                   disabled={submitting || !canSubmit}
                   title={blockedReason}
-                  className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-2.5 px-4 rounded-md"
+                  className="w-full bg-sky-600 hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium py-3 min-h-11 px-4 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                 >
-                  {submitting ? <><i className="fas fa-spinner fa-spin mr-2"></i>Creating account...</> : "Sign Up"}
+                  {submitting ? <><i className="fas fa-spinner fa-spin mr-2" aria-hidden="true"></i>Creating account...</> : "Sign Up"}
                 </button>
+                {!submitting && pwStrong && pwMatch && !form.terms && (
+                  <p className="text-xs text-amber-700 mt-2 flex items-center gap-1.5">
+                    <i className="fas fa-info-circle" aria-hidden="true"></i>
+                    Tick the Terms &amp; Conditions checkbox to enable Sign Up.
+                  </p>
+                )}
+                </>
               );
             })()}
           </form>
 
-          <div className="text-center mt-6 text-sm text-slate-600">
+          <div className="text-center mt-6 text-sm text-slate-700">
             Already have an account?{" "}
-            <Link to="/resort" className="font-medium text-sky-600 hover:underline">
+            <Link to="/resort" className="font-medium text-sky-700 hover:underline rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
               Login here
             </Link>
           </div>

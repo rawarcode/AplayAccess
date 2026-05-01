@@ -69,8 +69,8 @@ export default function ForgotPassword() {
             </p>
 
             {error && (
-              <div className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
-                <i className="fas fa-exclamation-circle mr-2"></i>
+              <div role="alert" aria-live="assertive" className="mb-4 rounded-lg bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">
+                <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>
                 {error}
               </div>
             )}
@@ -132,9 +132,10 @@ export default function ForgotPassword() {
             </p>
             <button
               onClick={() => { setSubmitted(false); setEmail(""); setError(""); }}
-              className="text-sm text-brand hover:underline font-medium"
+              type="button"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 min-h-11 text-sm text-brand hover:bg-coastal-bg-alt rounded-md font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              <i className="fas fa-arrow-left mr-1"></i>
+              <i className="fas fa-arrow-left" aria-hidden="true"></i>
               Try a different email
             </button>
           </div>

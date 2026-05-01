@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext.jsx";
 import useLockBodyScroll from "../hooks/useLockBodyScroll.js";
+import useFocusTrap from "../hooks/useFocusTrap.js";
 import { useContent, DEFAULT_NAVBAR } from "../context/ContentContext.jsx";
 
 import LoginModal from "./modals/LoginModal.jsx";
@@ -29,6 +30,17 @@ export default function Navbar() {
     : DEFAULT_NAVBAR;
 
   useLockBodyScroll(loginOpen || signupOpen || menuOpen);
+
+  // Focus trap + Escape-to-close for the mobile slide-out menu.
+  // Without these, keyboard users could Tab out of the open menu
+  // back into the page underneath, and there was no Escape exit.
+  const mobileMenuRef = useFocusTrap(menuOpen);
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onKey(e) { if (e.key === "Escape") setMenuOpen(false); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   function handleLoginSuccess(u) {
     login(u);
@@ -63,7 +75,7 @@ export default function Navbar() {
             off-screen. The brand text drops from text-xl to text-base
             below md to free more space, and the logo image gets a
             shrink-0 so the icon never collapses to 0px. */}
-        <Link to="/" className="flex items-center gap-2 min-w-0 flex-1 md:flex-none" aria-label={`${brand.siteName} home`}>
+        <Link to="/" className="flex items-center gap-2 min-w-0 flex-1 md:flex-none rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label={`${brand.siteName} home`}>
           {brand.logoImage
             ? <img src={brand.logoImage} alt="" className="h-8 w-auto object-contain shrink-0" loading="eager" decoding="async" />
             : <span className="text-2xl shrink-0" aria-hidden="true">🏖️</span>
@@ -73,23 +85,26 @@ export default function Navbar() {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center gap-4">
-          <Link to="/" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Home</Link>
-          <Link to="/resort" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Resort</Link>
-          <Link to="/rooms" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Rooms</Link>
-          <Link to="/gallery" className="text-gray-700 hover:text-sky-600 text-sm font-medium">Gallery</Link>
+          {/* py-2 -my-2 keeps the visual rhythm tight while
+              providing a 32-pt+ vertical hit slot per link with
+              a focus-visible ring for keyboard users. */}
+          <Link to="/" className="text-gray-700 hover:text-sky-600 text-sm font-medium py-2 -my-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Home</Link>
+          <Link to="/resort" className="text-gray-700 hover:text-sky-600 text-sm font-medium py-2 -my-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Resort</Link>
+          <Link to="/rooms" className="text-gray-700 hover:text-sky-600 text-sm font-medium py-2 -my-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Rooms</Link>
+          <Link to="/gallery" className="text-gray-700 hover:text-sky-600 text-sm font-medium py-2 -my-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Gallery</Link>
 
           {user ? (
             <>
-              <Link to="/dashboard" className="text-gray-700 hover:text-sky-600 text-sm font-medium">My Account</Link>
-              <button onClick={logout} className="text-sm font-medium text-red-600 hover:text-red-800" type="button">Logout</button>
+              <Link to="/dashboard" className="text-gray-700 hover:text-sky-600 text-sm font-medium py-2 -my-2 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">My Account</Link>
+              <button onClick={logout} className="text-sm font-medium text-red-700 hover:text-red-800 py-2 -my-2 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500" type="button">Logout</button>
             </>
           ) : (
-            <button onClick={() => setLoginOpen(true)} className="text-gray-700 hover:text-sky-600 text-sm font-medium" type="button">Login</button>
+            <button onClick={() => setLoginOpen(true)} className="text-gray-700 hover:text-sky-600 text-sm font-medium py-2 -my-2 px-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" type="button">Login</button>
           )}
 
           <Link
             to={user ? "/dashboard?book=1" : "/resort?book=1"}
-            className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+            className="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
             Book Now
           </Link>
@@ -99,16 +114,17 @@ export default function Navbar() {
         <div className="flex items-center gap-3 md:hidden">
           <Link
             to={user ? "/dashboard?book=1" : "/resort?book=1"}
-            className="bg-sky-600 hover:bg-sky-700 text-white px-4 h-11 inline-flex items-center rounded-md text-sm font-medium"
+            className="bg-sky-600 hover:bg-sky-700 text-white px-4 h-11 inline-flex items-center rounded-md text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
           >
             Book Now
           </Link>
           <button
             onClick={() => setMenuOpen((s) => !s)}
-            className="h-11 w-11 flex items-center justify-center text-gray-600 hover:text-sky-600 rounded-lg"
+            className="h-11 w-11 flex items-center justify-center text-gray-700 hover:text-sky-600 hover:bg-gray-100 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
             aria-expanded={menuOpen}
             aria-controls="navbar-mobile-menu"
+            type="button"
           >
             <i className={`fas ${menuOpen ? "fa-times" : "fa-bars"} text-xl`} aria-hidden="true"></i>
           </button>
@@ -117,7 +133,15 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {menuOpen && (
-        <div id="navbar-mobile-menu" className="md:hidden bg-white border-t shadow-lg">
+        <div
+          ref={mobileMenuRef}
+          id="navbar-mobile-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Site navigation"
+          tabIndex={-1}
+          className="md:hidden bg-white border-t shadow-lg focus:outline-none"
+        >
           <div className="px-4 py-3 space-y-1" onClick={() => setMenuOpen(false)}>
             <Link to="/" className="block px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-100 text-sm font-medium">
               <i className="fas fa-home w-5 text-center mr-2 text-gray-400" aria-hidden="true"></i>Home
