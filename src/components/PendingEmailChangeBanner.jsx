@@ -23,7 +23,7 @@ export default function PendingEmailChangeBanner() {
   return (
     <Link
       to="/dashboard/verify-email-change"
-      className="w-full bg-sky-100 border-b border-sky-300 px-4 py-2.5 flex items-center justify-center gap-2 text-sm text-sky-900 hover:bg-sky-200 transition-colors"
+      className="w-full bg-sky-100 border-b border-sky-300 px-4 py-2.5 min-h-11 flex items-center justify-center gap-2 text-sm text-sky-900 hover:bg-sky-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-600"
     >
       <i className="fas fa-envelope-circle-check text-sky-700" aria-hidden="true" />
       <span>

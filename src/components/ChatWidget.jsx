@@ -384,14 +384,15 @@ export default function ChatWidget() {
           {/* Keyword chips */}
           {availableKeywords.length > 0 && (
             <div className="px-4 py-2.5 border-t border-slate-100 bg-white shrink-0">
-              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2">Quick topics</p>
+              <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide mb-2">Quick topics</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableKeywords.map(k => (
                   <button
                     key={k.keyword}
                     onClick={() => handleSend(k.keyword)}
                     disabled={sending}
-                    className="px-3 py-1.5 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-medium rounded-full hover:bg-sky-100 hover:border-sky-300 transition disabled:opacity-50"
+                    type="button"
+                    className="px-3 py-2 min-h-9 bg-sky-50 border border-sky-200 text-sky-700 text-xs font-medium rounded-full hover:bg-sky-100 hover:border-sky-300 transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                   >
                     {k.keyword}
                   </button>
@@ -415,15 +416,16 @@ export default function ChatWidget() {
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || sending}
-                className="h-10 w-10 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white flex items-center justify-center transition shrink-0"
+                type="button"
+                className="h-11 w-11 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white flex items-center justify-center transition shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
                 aria-label="Send"
               >
-                <i className={`fas ${sending ? "fa-spinner fa-spin" : "fa-paper-plane"} text-sm`}></i>
+                <i className={`fas ${sending ? "fa-spinner fa-spin" : "fa-paper-plane"} text-sm`} aria-hidden="true"></i>
               </button>
             </div>
             {!user && (
-              <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-                <a href="/resort" className="text-sky-600 hover:text-sky-700 font-medium">Log in</a> to send messages to our team
+              <p className="text-[10px] text-slate-600 mt-1.5 text-center">
+                <a href="/resort" className="text-sky-700 hover:text-sky-800 font-medium underline rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">Log in</a> to send messages to our team
               </p>
             )}
           </div>

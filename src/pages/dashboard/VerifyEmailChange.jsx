@@ -140,8 +140,8 @@ export default function VerifyEmailChange() {
               <i className="fas fa-check text-emerald-600 text-4xl" aria-hidden="true"></i>
             </div>
             <h2 className="text-3xl font-bold text-emerald-700 mb-2">Email Updated!</h2>
-            <p className="text-sm text-slate-500 mb-6">
-              Your account email is now <strong className="text-slate-700">{user?.email}</strong>. Redirecting…
+            <p className="text-sm text-slate-600 mb-6">
+              Your account email is now <strong className="text-slate-800">{user?.email}</strong>. Redirecting…
             </p>
             <i className="fas fa-spinner fa-spin text-sky-500 text-lg" aria-hidden="true"></i>
           </div>
@@ -169,13 +169,13 @@ export default function VerifyEmailChange() {
           </p>
 
           {error && (
-            <div className="mb-4 p-3 bg-rose-50 text-rose-600 rounded-lg text-sm border border-rose-200">
-              <i className="fas fa-exclamation-circle mr-2"></i>{error}
+            <div id="verify-email-change-error" role="alert" aria-live="assertive" className="mb-4 p-3 bg-rose-50 text-rose-700 rounded-lg text-sm border border-rose-200">
+              <i className="fas fa-exclamation-circle mr-2" aria-hidden="true"></i>{error}
             </div>
           )}
           {success && (
-            <div className="mb-4 p-3 bg-emerald-50 text-emerald-600 rounded-lg text-sm border border-emerald-200">
-              <i className="fas fa-check-circle mr-2"></i>{success}
+            <div role="status" aria-live="polite" className="mb-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-sm border border-emerald-200">
+              <i className="fas fa-check-circle mr-2" aria-hidden="true"></i>{success}
             </div>
           )}
 
@@ -191,7 +191,11 @@ export default function VerifyEmailChange() {
                   value={digit}
                   onChange={e => handleChange(i, e.target.value)}
                   onKeyDown={e => handleKeyDown(i, e)}
-                  className="w-12 h-14 text-center text-xl font-bold border-2 border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition"
+                  className="w-12 h-14 text-center text-xl font-bold border-2 border-slate-200 rounded-lg focus:outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition aria-[invalid=true]:border-rose-300"
+                  aria-label={`Digit ${i + 1} of 6`}
+                  aria-invalid={error ? "true" : undefined}
+                  aria-describedby={error ? "verify-email-change-error" : undefined}
+                  autoComplete={i === 0 ? "one-time-code" : "off"}
                   autoFocus={i === 0}
                 />
               ))}
@@ -200,39 +204,42 @@ export default function VerifyEmailChange() {
             <button
               type="submit"
               disabled={loading || code.join("").length !== 6}
-              className="w-full py-3 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-medium rounded-lg transition inline-flex items-center justify-center gap-2"
+              className="w-full py-3 min-h-11 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 text-white font-medium rounded-lg transition inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
             >
               {loading
-                ? <><i className="fas fa-spinner fa-spin"></i> Confirming...</>
-                : <><i className="fas fa-check-circle"></i> Confirm Email Change</>}
+                ? <><i className="fas fa-spinner fa-spin" aria-hidden="true"></i> Confirming...</>
+                : <><i className="fas fa-check-circle" aria-hidden="true"></i> Confirm Email Change</>}
             </button>
           </form>
 
-          <div className="mt-6 text-sm text-slate-500">
+          <div className="mt-6 text-sm text-slate-600">
             Didn't receive the code?{" "}
             <button
+              type="button"
               onClick={handleResend}
               disabled={resending || cooldown > 0}
-              className="font-medium text-amber-600 hover:text-amber-700 disabled:text-slate-400 disabled:cursor-not-allowed transition"
+              aria-label={cooldown > 0 ? `Resend code — available in ${cooldown} seconds` : 'Resend code'}
+              className="font-medium text-amber-700 hover:text-amber-800 disabled:text-slate-400 disabled:cursor-not-allowed transition rounded px-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
             >
               {cooldown > 0 ? `Resend in ${cooldown}s` : resending ? "Sending..." : "Resend Code"}
             </button>
           </div>
 
-          <p className="mt-3 text-xs text-slate-400">Code expires in 15 minutes.</p>
+          <p className="mt-3 text-xs text-slate-600">Code expires in 15 minutes.</p>
 
           {/* Cancel — kills the pending change without waiting for the
               15-minute OTP expiry. Useful if the user typo'd the new
               address and wants to retry immediately. */}
           <div className="mt-6 pt-4 border-t border-slate-100">
-            <p className="text-xs text-slate-400 mb-2">Changed your mind?</p>
+            <p className="text-xs text-slate-600 mb-2">Changed your mind?</p>
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="text-xs text-slate-500 hover:text-rose-600 disabled:opacity-60 font-medium"
+              type="button"
+              className="inline-flex items-center justify-center px-3 py-2 min-h-11 text-xs text-slate-700 hover:text-rose-700 hover:bg-rose-50 rounded-md disabled:opacity-60 font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
             >
               {cancelling
-                ? <><i className="fas fa-spinner fa-spin mr-1"></i>Cancelling...</>
+                ? <><i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>Cancelling...</>
                 : "Cancel pending email change"}
             </button>
           </div>

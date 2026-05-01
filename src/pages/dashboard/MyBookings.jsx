@@ -70,7 +70,7 @@ function renderSpecialRequests(text) {
   const icons = { 'walk-in': 'fa-user', phone: 'fa-phone', email: 'fa-envelope', type: 'fa-clock' };
   return (
     <div className="pt-3 border-t border-slate-200">
-      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
+      <p className="text-xs font-medium text-slate-600 uppercase tracking-wider mb-2">
         {parsed ? "Walk-in Details" : "Special Requests"}
       </p>
       {parsed ? (
@@ -180,7 +180,7 @@ function CancelModalContent({ booking, reservationFeePct, onClose, onConfirmed }
           </span>
           <h3 className="text-lg font-bold text-slate-900">Cancel Booking</h3>
         </div>
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600"><i className="fas fa-times" /></button>
+        <button onClick={onClose} className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><i className="fas fa-times" /></button>
       </div>
       <div className="p-5 space-y-4">
         <p className="text-sm text-slate-700">
@@ -251,7 +251,7 @@ function ReviewModalContent({ booking, onClose, onSubmitted }) {
         <p className="text-slate-500 text-sm mb-1">
           Thank you for your {rating}<i className="fas fa-star text-amber-400 mx-0.5" /> rating on <span className="font-medium">{booking.roomType}</span>.
         </p>
-        <p className="text-slate-400 text-xs">Your review is pending approval and will appear shortly.</p>
+        <p className="text-slate-600 text-xs">Your review is pending approval and will appear shortly.</p>
       </div>
     );
   }
@@ -265,13 +265,13 @@ function ReviewModalContent({ booking, onClose, onSubmitted }) {
           </span>
           <h3 className="text-lg font-bold text-slate-900">Write a Review</h3>
         </div>
-        <button onClick={guardedClose} className="text-slate-400 hover:text-slate-600"><i className="fas fa-times" /></button>
+        <button onClick={guardedClose} className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"><i className="fas fa-times" /></button>
       </div>
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
         <p className="text-sm text-slate-600">
           Reviewing: <span className="font-medium">{booking.roomType}</span>
           <br />
-          <span className="text-slate-400">{fmtDateTime(booking.checkIn)} – {fmtDateTime(booking.checkOut)}</span>
+          <span className="text-slate-600">{fmtDateTime(booking.checkIn)} – {fmtDateTime(booking.checkOut)}</span>
         </p>
 
         {error && (
@@ -636,7 +636,7 @@ export default function MyBookings() {
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">
                     <i className="fas fa-calendar-times text-slate-200 text-4xl mb-3 block" />
-                    <p className="text-slate-400 text-sm">
+                    <p className="text-slate-600 text-sm">
                       {filter !== "all" ? `No ${filter.toLowerCase()} bookings.` : "No bookings found."}
                     </p>
                     {filter === "all" && (
@@ -695,7 +695,7 @@ export default function MyBookings() {
               {/* Room + slot */}
               <div>
                 <p className="text-sm font-medium text-slate-700">{b.roomType}</p>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-600 mt-0.5">
                   {fmtDateTime(b.checkIn)} → {fmtDateTime(b.checkOut)}
                 </p>
               </div>
@@ -801,7 +801,7 @@ export default function MyBookings() {
                 </span>
                 <h3 className="text-lg font-semibold text-slate-900">Booking Details</h3>
               </div>
-              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+              <button onClick={() => setSelected(null)} className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close">
                 <i className="fas fa-times" />
               </button>
             </div>

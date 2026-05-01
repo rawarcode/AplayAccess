@@ -276,7 +276,7 @@ export default function Messages() {
                   <i className="fas fa-inbox text-slate-300 text-2xl"></i>
                 </div>
                 <p className="text-slate-500 font-medium text-sm">No messages yet</p>
-                <p className="text-xs text-slate-400 mt-1">Use the input above to send your first message.</p>
+                <p className="text-xs text-slate-600 mt-1">Use the input above to send your first message.</p>
               </div>
             ) : (
               threads.map((thread) => (
@@ -301,7 +301,7 @@ export default function Messages() {
                       <h4 className={`text-sm truncate ${thread.unread > 0 ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
                         {thread.subject}
                       </h4>
-                      <span className="text-[11px] text-slate-400 shrink-0 ml-2">{timeAgo(thread.timestamp)}</span>
+                      <span className="text-[11px] text-slate-600 shrink-0 ml-2">{timeAgo(thread.timestamp)}</span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
                       <p className="text-xs text-slate-500 truncate">
@@ -326,10 +326,11 @@ export default function Messages() {
             <div className="p-4 border-b flex items-center gap-3">
               <button
                 onClick={() => setMobileChat(false)}
-                className="lg:hidden p-1.5 text-slate-500 hover:text-sky-600"
+                type="button"
+                className="lg:hidden w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-600 hover:text-sky-600 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 aria-label="Back to threads"
               >
-                <i className="fas fa-arrow-left"></i>
+                <i className="fas fa-arrow-left" aria-hidden="true"></i>
               </button>
               {current ? (
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -343,7 +344,7 @@ export default function Messages() {
                   />
                   <div className="min-w-0">
                     <h3 className="font-semibold text-slate-900 text-sm truncate">{current.subject}</h3>
-                    <p className="text-xs text-slate-400">{current.name}</p>
+                    <p className="text-xs text-slate-600">{current.name}</p>
                   </div>
                 </div>
               ) : (
@@ -359,7 +360,7 @@ export default function Messages() {
                     <i className="fas fa-comments text-slate-300 text-2xl"></i>
                   </div>
                   <p className="text-sm font-medium text-slate-500">No conversation selected</p>
-                  <p className="text-xs text-slate-400 mt-1">Choose a thread or send a new message above</p>
+                  <p className="text-xs text-slate-600 mt-1">Choose a thread or send a new message above</p>
                 </div>
               ) : current.messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-300">

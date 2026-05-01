@@ -25,7 +25,7 @@ export default function UnverifiedEmailBanner() {
         type="button"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
-        className="w-full bg-amber-100 border-b border-amber-300 px-4 py-2.5 flex items-center justify-center gap-2 text-sm text-amber-900 hover:bg-amber-200 transition-colors"
+        className="w-full bg-amber-100 border-b border-amber-300 px-4 py-2.5 min-h-11 flex items-center justify-center gap-2 text-sm text-amber-900 hover:bg-amber-200 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-600"
       >
         <i className="fas fa-exclamation-triangle text-amber-700" aria-hidden="true" />
         <span>

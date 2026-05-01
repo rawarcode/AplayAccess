@@ -67,18 +67,20 @@ export default function Toast({ message, type = "error", onClose, action }) {
       className={`fixed top-4 left-4 right-4 sm:left-auto sm:right-4 z-[10001] flex items-center gap-3 ${s.bg} text-white px-5 py-3.5 rounded-xl shadow-2xl sm:max-w-sm sm:ml-auto transition-all duration-300 ${
         visible ? "translate-x-0 opacity-100" : "sm:translate-x-full opacity-0"
       }`}
-      role="alert"
+      role={type === "error" ? "alert" : "status"}
+      aria-live={type === "error" ? "assertive" : "polite"}
     >
-      <i className={`fas ${s.icon} text-lg shrink-0`}></i>
+      <i className={`fas ${s.icon} text-lg shrink-0`} aria-hidden="true"></i>
       <span className="text-sm font-medium flex-1">{message}</span>
       {action && (
         <button onClick={() => { action.onClick(); onClose(); }}
-          className="px-2.5 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wide shrink-0 transition">
+          type="button"
+          className="px-3 py-2 min-h-9 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-bold uppercase tracking-wide shrink-0 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70">
           {action.label}
         </button>
       )}
-      <button onClick={onClose} className="opacity-70 hover:opacity-100 shrink-0 ml-1" aria-label="Dismiss">
-        <i className="fas fa-times"></i>
+      <button onClick={onClose} type="button" className="w-9 h-9 inline-flex items-center justify-center rounded-md opacity-80 hover:opacity-100 hover:bg-white/15 shrink-0 ml-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70" aria-label="Dismiss">
+        <i className="fas fa-times" aria-hidden="true"></i>
       </button>
     </div>
   );

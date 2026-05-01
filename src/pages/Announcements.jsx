@@ -159,7 +159,8 @@ export default function Announcements() {
                     </p>
                     <button
                       onClick={() => setSelected(item)}
-                      className="mt-4 self-start text-sm font-semibold text-sky-400 hover:text-sky-300 transition"
+                      type="button"
+                      className="mt-4 self-start inline-flex items-center px-2 py-1.5 -ml-2 rounded text-sm font-semibold text-sky-300 hover:text-sky-200 hover:bg-white/5 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
                     >
                       Read More →
                     </button>

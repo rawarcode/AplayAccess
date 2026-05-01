@@ -48,11 +48,11 @@ export default function NewsletterUnsubscribe() {
                 <i className="fas fa-check text-emerald-700 text-2xl" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Unsubscribed</h2>
-              <p className="text-sm text-slate-500 mb-6">
+              <p className="text-sm text-slate-600 mb-6">
                 {email && <><strong className="text-slate-700">{email}</strong> has been removed from the Aplaya Beach Resort newsletter.<br /></>}
                 We're sorry to see you go. You won't receive any more campaign emails from us.
               </p>
-              <Link to="/" className="inline-block py-2 px-5 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-lg transition">
+              <Link to="/" className="inline-flex items-center justify-center px-5 py-2.5 min-h-11 bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium rounded-lg transition focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2">
                 Back to Home
               </Link>
             </>
@@ -62,7 +62,7 @@ export default function NewsletterUnsubscribe() {
                 <i className="fas fa-envelope-circle-check text-amber-700 text-2xl" aria-hidden="true" />
               </div>
               <h2 className="text-2xl font-bold text-slate-900 mb-2">Unsubscribe from newsletter?</h2>
-              <p className="text-sm text-slate-500 mb-6">
+              <p className="text-sm text-slate-600 mb-6">
                 {email
                   ? <>You're about to unsubscribe <strong className="text-slate-700 break-all">{email}</strong> from the Aplaya Beach Resort newsletter. You'll stop receiving promotional emails, but your booking confirmations and account notifications will still work.</>
                   : <>This unsubscribe link is missing its email address. Try clicking the link from your email again.</>
@@ -78,18 +78,19 @@ export default function NewsletterUnsubscribe() {
               <div className="flex gap-2">
                 <Link
                   to="/"
-                  className="flex-1 py-2.5 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="flex-1 inline-flex items-center justify-center py-2.5 min-h-11 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500"
                 >
                   Cancel
                 </Link>
                 <button
                   onClick={handleUnsubscribe}
                   disabled={submitting || !email || !token}
-                  className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition inline-flex items-center justify-center gap-2"
+                  type="button"
+                  className="flex-1 py-2.5 min-h-11 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
                 >
                   {submitting
-                    ? <><i className="fas fa-spinner fa-spin" /> Unsubscribing…</>
-                    : <><i className="fas fa-times-circle" /> Confirm Unsubscribe</>}
+                    ? <><i className="fas fa-spinner fa-spin" aria-hidden="true" /> Unsubscribing…</>
+                    : <><i className="fas fa-times-circle" aria-hidden="true" /> Confirm Unsubscribe</>}
                 </button>
               </div>
             </>

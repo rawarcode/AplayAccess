@@ -305,7 +305,7 @@ export default function EditProfile() {
                 </button>
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onImageChange} />
               </div>
-              <p className="text-xs text-slate-400 text-center mt-3">
+              <p className="text-xs text-slate-600 text-center mt-3">
                 Click the camera to upload a new photo
               </p>
             </div>
@@ -575,7 +575,7 @@ export default function EditProfile() {
               Active bookings were cancelled and you've been unsubscribed
               from the newsletter.
             </p>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-600">
               <i className="fas fa-spinner fa-spin mr-1" aria-hidden="true"></i>
               Logging you out…
             </p>
@@ -617,16 +617,18 @@ export default function EditProfile() {
           <div className="flex justify-end gap-2 pt-2">
             <button
               onClick={() => { setDeleteOpen(false); setDeleteConfirmText(""); }}
-              className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-700"
+              type="button"
+              className="px-4 py-2.5 min-h-11 rounded-lg bg-slate-100 hover:bg-slate-200 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
               Cancel
             </button>
             <button
               onClick={onDeleteAccount}
               disabled={deleteConfirmText !== "DELETE" || deleting}
-              className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              type="button"
+              className="inline-flex items-center gap-2 bg-rose-600 hover:bg-rose-700 disabled:opacity-40 text-white px-4 py-2.5 min-h-11 rounded-lg text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
             >
-              <i className={`fas ${deleting ? "fa-spinner fa-spin" : "fa-trash-alt"}`}></i>
+              <i className={`fas ${deleting ? "fa-spinner fa-spin" : "fa-trash-alt"}`} aria-hidden="true"></i>
               {deleting ? "Deleting..." : "Delete My Account"}
             </button>
           </div>
@@ -640,8 +642,8 @@ export default function EditProfile() {
           <h3 className="text-lg font-semibold text-slate-900">
             <i className="fas fa-lock mr-2 text-amber-600"></i>Change Password
           </h3>
-          <button onClick={guardedPwClose} className="text-slate-400 hover:text-slate-600">
-            <i className="fas fa-times"></i>
+          <button onClick={guardedPwClose} type="button" className="w-11 h-11 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label="Close password change dialog">
+            <i className="fas fa-times" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -666,7 +668,7 @@ export default function EditProfile() {
                 autoComplete="current-password"
                 className={inputBase}
               />
-              <button type="button" onClick={() => setShowCurrent((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label={showCurrent ? "Hide" : "Show"}>
+              <button type="button" onClick={() => setShowCurrent((s) => !s)} className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label={showCurrent ? "Hide" : "Show"}>
                 <i className={`fas ${showCurrent ? "fa-eye-slash" : "fa-eye"}`}></i>
               </button>
             </div>
@@ -685,7 +687,7 @@ export default function EditProfile() {
                 autoComplete="new-password"
                 className={`${inputBase} ${pwWeak ? "border-amber-400" : ""}`}
               />
-              <button type="button" onClick={() => setShowNew((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label={showNew ? "Hide" : "Show"}>
+              <button type="button" onClick={() => setShowNew((s) => !s)} className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label={showNew ? "Hide" : "Show"}>
                 <i className={`fas ${showNew ? "fa-eye-slash" : "fa-eye"}`}></i>
               </button>
             </div>
@@ -705,7 +707,7 @@ export default function EditProfile() {
                 autoComplete="new-password"
                 className={`${inputBase} ${pwForm.confirm.length > 0 && pwForm.confirm !== pwForm.new ? "border-rose-400" : ""}`}
               />
-              <button type="button" onClick={() => setShowConfirm((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label={showConfirm ? "Hide" : "Show"}>
+              <button type="button" onClick={() => setShowConfirm((s) => !s)} className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 inline-flex items-center justify-center rounded text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500" aria-label={showConfirm ? "Hide" : "Show"}>
                 <i className={`fas ${showConfirm ? "fa-eye-slash" : "fa-eye"}`}></i>
               </button>
             </div>
