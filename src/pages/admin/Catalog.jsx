@@ -204,7 +204,7 @@ function RoomsTab() {
           <i className="fas fa-exclamation-triangle text-3xl mb-3 block" aria-hidden="true"></i>
           <p className="font-medium mb-3">{error}</p>
           <button onClick={() => load()} type="button"
-            className="px-4 py-2 bg-danger-fg text-white rounded-lg text-sm hover:opacity-90 transition">
+            className="inline-flex items-center justify-center min-h-11 px-5 py-2 bg-danger-fg text-white rounded-lg text-sm font-medium hover:opacity-90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
             <i className="fas fa-redo mr-2" aria-hidden="true"></i>Retry
           </button>
         </div>
@@ -390,8 +390,8 @@ function RoomsTab() {
                     <p className="text-xs text-slate-400 capitalize">{getRoomCategory(viewRoom)} details</p>
                   </div>
                 </div>
-                <button onClick={() => setViewRoom(null)} aria-label="Close" type="button"
-                  className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+                <button onClick={() => setViewRoom(null)} aria-label="Close room details" type="button"
+                  className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                   <i className="fas fa-times" aria-hidden="true"></i>
                 </button>
               </div>
@@ -462,7 +462,7 @@ function RoomsTab() {
                   </select>
                 </div>
                 <button onClick={() => setViewRoom(null)} type="button"
-                  className="px-4 py-2 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">
+                  className="inline-flex items-center justify-center min-h-11 px-4 py-2 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                   Close
                 </button>
               </div>
@@ -629,7 +629,7 @@ function AddonsTab() {
               <p className="text-slate-700 font-semibold">Failed to load add-ons</p>
               <p className="text-sm text-slate-400 mt-1 mb-5">Check your connection and try again.</p>
               <button onClick={() => load()} type="button"
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl shadow-sm transition">
+                className="inline-flex items-center justify-center gap-2 min-h-11 px-5 py-2.5 bg-brand hover:bg-brand-hover text-white text-sm font-semibold rounded-xl shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2">
                 <i className="fas fa-redo text-xs" aria-hidden="true"></i>Retry
               </button>
             </div>
@@ -758,8 +758,8 @@ function AddonsTab() {
                 </span>
                 {viewItem.name || <span className="italic text-slate-400">Unnamed</span>}
               </h3>
-              <button onClick={() => setViewItem(null)} aria-label="Close" type="button"
-                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition">
+              <button onClick={() => setViewItem(null)} aria-label="Close add-on details" type="button"
+                className="h-11 w-11 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-600 hover:text-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                 <i className="fas fa-times" aria-hidden="true"></i>
               </button>
             </div>
@@ -808,16 +808,16 @@ function AddonsTab() {
             <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
               <button type="button" onClick={() => toggle(viewItem)} disabled={busyId === viewItem.id}
                 aria-label={viewItem.is_active ? `Disable ${viewItem.name}` : `Enable ${viewItem.name}`}
-                className={`inline-flex items-center gap-2 h-11 px-4 rounded-xl text-sm font-semibold transition disabled:opacity-50 ${
+                className={`inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-xl text-sm font-semibold transition disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                   viewItem.is_active
-                    ? "bg-warning-bg text-warning-fg hover:opacity-90"
-                    : "bg-success-bg text-success-fg hover:opacity-90"
+                    ? "bg-warning-bg text-warning-fg hover:opacity-90 focus-visible:ring-amber-500"
+                    : "bg-success-bg text-success-fg hover:opacity-90 focus-visible:ring-emerald-500"
                 }`}>
                 <i className={`fas ${viewItem.is_active ? "fa-toggle-off" : "fa-toggle-on"} text-xs`} aria-hidden="true"></i>
                 {viewItem.is_active ? "Disable" : "Enable"}
               </button>
               <button onClick={() => setViewItem(null)} type="button"
-                className="h-11 px-4 border border-slate-200 rounded-xl text-sm text-slate-700 hover:bg-slate-50 transition">
+                className="inline-flex items-center justify-center min-h-11 px-4 border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2">
                 Close
               </button>
             </div>

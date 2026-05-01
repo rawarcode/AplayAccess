@@ -108,7 +108,7 @@ function OpsRow({ label, value, tone = "neutral", icon, to }) {
     </div>
   );
   return to ? (
-    <Link to={to} className="block -mx-2 px-2 rounded hover:bg-slate-50 transition" aria-label={`${label}: ${value}`}>
+    <Link to={to} className="block -mx-2 px-2 rounded hover:bg-slate-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2" aria-label={`${label}: ${value}`}>
       {body}
     </Link>
   ) : body;
@@ -341,7 +341,7 @@ function QuickAction({ to, icon, label }) {
   return (
     <Link
       to={to}
-      className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition"
+      className="flex items-center gap-3 p-3 min-h-11 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2"
     >
       <div className="h-8 w-8 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
         <i className={`fas ${icon} text-sm`} aria-hidden="true" />
