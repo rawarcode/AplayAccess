@@ -1291,8 +1291,13 @@ export default function WalkIn({ embedded = false }) {
                       placeholder="Special requests, remarks..." />
                   </div>
                 ) : (
-                  <button type="button" onClick={() => setShowWiNotes(true)} className="text-xs text-sky-600 hover:underline mb-4">
-                    <i className="fas fa-plus mr-1"></i>Add notes / special requests
+                  <button
+                    type="button"
+                    onClick={() => setShowWiNotes(true)}
+                    aria-label="Add notes or special requests"
+                    className="inline-flex items-center min-h-11 mb-4 px-3 py-2 rounded-lg text-xs font-medium text-sky-700 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+                  >
+                    <i className="fas fa-plus mr-1.5" aria-hidden="true"></i>Add notes / special requests
                   </button>
                 )}
 

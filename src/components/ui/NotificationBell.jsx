@@ -160,30 +160,37 @@ export default function NotificationBell({ variant = 'light', className = '' }) 
           {/* Footer */}
           <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50
             flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={() => { refresh?.(); }}
-                className="text-xs text-blue-600 hover:underline font-medium"
+                aria-label="Refresh notifications"
+                className="inline-flex items-center min-h-11 px-3 py-2 rounded text-xs text-blue-700 hover:bg-blue-50 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
               >
-                <i className="fas fa-sync-alt mr-1"></i>Refresh
+                <i className="fas fa-sync-alt mr-1" aria-hidden="true"></i>Refresh
               </button>
               {visibleItems.length > 0 && (
                 <button
+                  type="button"
                   onClick={() => setConfirmOpen(true)}
-                  className="text-xs text-red-500 hover:underline font-medium"
+                  aria-label="Clear all notifications"
+                  className="inline-flex items-center min-h-11 px-3 py-2 rounded text-xs text-red-700 hover:bg-red-50 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
                 >
-                  <i className="fas fa-times mr-1"></i>Clear
+                  <i className="fas fa-times mr-1" aria-hidden="true"></i>Clear
                 </button>
               )}
               {/* Chime mute toggle — scopes to new-message sound only,
                   not to the red badge. Synced with the guest Messages
                   toggle via localStorage + a window event. */}
               <button
+                type="button"
                 onClick={() => setMessageSoundMuted(!soundMuted)}
+                aria-pressed={soundMuted}
+                aria-label={soundMuted ? "Unmute new-message sound" : "Mute new-message sound"}
                 title={soundMuted ? "Unmute new-message sound" : "Mute new-message sound"}
-                className="text-xs text-slate-500 hover:text-slate-700 hover:underline font-medium"
+                className="inline-flex items-center min-h-11 px-3 py-2 rounded text-xs text-slate-700 hover:bg-slate-100 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               >
-                <i className={`fas ${soundMuted ? "fa-volume-xmark" : "fa-volume-high"} mr-1`}></i>
+                <i className={`fas ${soundMuted ? "fa-volume-xmark" : "fa-volume-high"} mr-1`} aria-hidden="true"></i>
                 {soundMuted ? "Muted" : "Sound"}
               </button>
             </div>

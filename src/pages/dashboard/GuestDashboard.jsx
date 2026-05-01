@@ -379,10 +379,12 @@ export default function GuestDashboard() {
           <div>
             <p className="text-sm font-medium">{error}</p>
             <button
+              type="button"
               onClick={() => { setError(""); setLoading(true); getBookings().then(setBookings).catch(() => setError("Could not load your bookings. Please try again later.")).finally(() => setLoading(false)); }}
-              className="text-xs text-rose-700 hover:underline mt-1"
+              aria-label="Retry loading bookings"
+              className="inline-flex items-center min-h-11 mt-1 px-3 py-2 rounded text-xs font-medium text-rose-700 hover:bg-rose-50 hover:text-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
             >
-              <i className="fas fa-redo mr-1"></i>Retry
+              <i className="fas fa-redo mr-1.5" aria-hidden="true"></i>Retry
             </button>
           </div>
         </Card>
@@ -490,7 +492,11 @@ export default function GuestDashboard() {
               <i className="fas fa-calendar-check text-sky-500 mr-2"></i>Upcoming Bookings
             </h2>
             {upcoming.length > 3 && (
-              <Link to="/dashboard/bookings" className="text-xs text-sky-600 hover:underline">
+              <Link
+                to="/dashboard/bookings"
+                aria-label={`View all ${upcoming.length} upcoming bookings`}
+                className="inline-flex items-center min-h-9 px-2 py-1 rounded text-xs font-medium text-sky-700 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+              >
                 View all ({upcoming.length})
               </Link>
             )}
@@ -594,7 +600,11 @@ export default function GuestDashboard() {
               <i className="fas fa-history text-emerald-500 mr-2"></i>Past Stays
             </h2>
             {past.length > 3 && (
-              <Link to="/dashboard/bookings" className="text-xs text-sky-600 hover:underline">
+              <Link
+                to="/dashboard/bookings"
+                aria-label={`View all ${past.length} past bookings`}
+                className="inline-flex items-center min-h-9 px-2 py-1 rounded text-xs font-medium text-sky-700 hover:bg-sky-50 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
+              >
                 View all ({past.length})
               </Link>
             )}
@@ -693,7 +703,7 @@ export default function GuestDashboard() {
       </div>
 
       {/* Booking detail modal (shared Modal component) */}
-      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-md">
+      <Modal open={!!selected} onClose={() => setSelected(null)} maxWidth="max-w-md" label={selected ? `Booking details — ${selected.id || selected.bookingId || ''}` : 'Booking details'}>
         {selected && (
           <>
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">

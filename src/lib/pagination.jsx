@@ -70,8 +70,10 @@ export function usePagination(items, pageSize = 25) {
  * Numeric pagination bar with prev/next chevrons + ellipses.
  *
  * Hides itself when totalPages <= 1 so the caller doesn't have to
- * conditionally render it. Tap targets are 40px (h-10/w-10) to clear
- * WCAG 2.5.8 AA on phones.
+ * conditionally render it. Tap targets are 44px (h-11/w-11) to clear
+ * WCAG 2.5.5 AAA on phones, with focus-visible rings + ring-offset for
+ * keyboard navigation parity with the hand-rolled paginators in
+ * pages/owner/*.
  */
 export function PaginationBar({ safePage, totalPages, onPageChange, info }) {
   if (totalPages <= 1) return null;
@@ -80,21 +82,21 @@ export function PaginationBar({ safePage, totalPages, onPageChange, info }) {
       <p className="text-sm text-slate-500">
         Showing {info.start}{'–'}{info.end} of {info.total}
       </p>
-      <div className="flex items-center gap-1 flex-wrap">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           type="button"
           onClick={() => onPageChange(Math.max(1, safePage - 1))}
           disabled={safePage <= 1}
           aria-label="Previous page"
-          className="h-10 w-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition"
+          className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
         >
-          <i className="fas fa-chevron-left text-xs" aria-hidden="true"></i>
+          <i className="fas fa-chevron-left text-sm" aria-hidden="true"></i>
         </button>
         {getPageNumbers(safePage, totalPages).map((n, i) =>
           n === '...' ? (
             <span
               key={`ellipsis-${i}`}
-              className="h-8 min-w-[2rem] flex items-center justify-center text-xs text-slate-400 select-none"
+              className="h-11 min-w-[2.75rem] flex items-center justify-center text-sm text-slate-500 select-none"
               aria-hidden="true"
             >
               &hellip;
@@ -106,10 +108,10 @@ export function PaginationBar({ safePage, totalPages, onPageChange, info }) {
               onClick={() => onPageChange(n)}
               aria-label={`Go to page ${n}`}
               aria-current={n === safePage ? 'page' : undefined}
-              className={`h-10 min-w-[2.5rem] px-2 rounded-lg text-sm font-semibold transition ${
+              className={`h-11 min-w-[2.75rem] px-2 rounded-lg text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
                 n === safePage
-                  ? 'bg-sky-600 text-white shadow-sm'
-                  : 'border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  ? 'bg-sky-600 text-white shadow-sm focus-visible:ring-sky-500'
+                  : 'border border-slate-300 text-slate-700 hover:bg-slate-50 focus-visible:ring-slate-400'
               }`}
             >
               {n}
@@ -121,9 +123,9 @@ export function PaginationBar({ safePage, totalPages, onPageChange, info }) {
           onClick={() => onPageChange(Math.min(totalPages, safePage + 1))}
           disabled={safePage >= totalPages}
           aria-label="Next page"
-          className="h-10 w-10 rounded-lg border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 disabled:opacity-40 transition"
+          className="h-11 w-11 rounded-lg border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
         >
-          <i className="fas fa-chevron-right text-xs" aria-hidden="true"></i>
+          <i className="fas fa-chevron-right text-sm" aria-hidden="true"></i>
         </button>
       </div>
     </div>
