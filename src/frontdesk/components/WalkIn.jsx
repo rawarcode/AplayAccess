@@ -558,7 +558,7 @@ export default function WalkIn({ embedded = false }) {
 
     setSubmitting(true);
     try {
-      await createWalkInBooking({
+      const res = await createWalkInBooking({
         guest_name:        guestName,
         guest_phone:       form.phone.trim(),
         guest_email:       form.email.trim() || undefined,
@@ -579,7 +579,16 @@ export default function WalkIn({ embedded = false }) {
       setPromoInput(''); setPromoResult(null); setPromoError('');
       // Success: return to the consolidated Bookings view. Skip loadAll —
       // the Bookings page fetches its own data on mount.
-      showToast('Walk-in booking created.', 'success');
+      // Backend returns guest_reactivated=true when the matched user
+      // row was deactivated and we flipped it back on (see WalkIn-
+      // Controller comment on the auto-reactivate block). Surface that
+      // explicitly so staff aren't surprised when the guest can suddenly
+      // log in to /dashboard again.
+      if (res?.guest_reactivated) {
+        showToast(`Walk-in booking created. ${guestName}'s dormant account was reactivated.`, 'success');
+      } else {
+        showToast('Walk-in booking created.', 'success');
+      }
       navigate(bookingsPath);
       return;
     } catch (err) {
