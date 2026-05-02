@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { getAdminMessages, replyAdminMessage, markAdminMessageRead, deleteAdminMessage, toggleMessagingBlock, getActiveGuestsForMessaging, composeAdminMessage, getAutoReplies, createAutoReply, updateAutoReply, deleteAutoReply } from "../../lib/adminApi";
 import Modal from "../../components/modals/Modal.jsx";
+import Avatar from "../../components/ui/Avatar.jsx";
 import ConfirmDialog from "../../components/ui/ConfirmDialog.jsx";
 import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
@@ -64,10 +65,14 @@ function ThreadItem({ thread, active, onClick }) {
       className={`w-full text-left px-4 py-3.5 border-b border-slate-100 transition-colors flex items-start gap-3
         ${active ? "bg-sky-50 border-l-4 border-l-sky-500" : "hover:bg-slate-50 border-l-4 border-l-transparent"}`}
     >
-      <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
-        ${unread ? "bg-sky-600 text-white" : "bg-slate-200 text-slate-600"}`}>
-        {initials(thread.sender)}
-      </div>
+      <Avatar
+        src={thread.sender_avatar}
+        name={thread.sender}
+        className="shrink-0 h-10 w-10"
+        fallbackClassName={`text-sm font-bold ${
+          unread ? "bg-sky-600 text-white" : "bg-slate-200 text-slate-600"
+        }`}
+      />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -111,12 +116,18 @@ function ThreadItem({ thread, active, onClick }) {
 
 // ─── Message Bubble ────────────────────────────────────────────────────────────
 function Bubble({ msg, isStaff }) {
+  // sender_avatar may be present on either side now. Falls back to the
+  // sender's initials in a colored circle when no avatar URL exists
+  // (auto-reply rules, legacy rows, guests who never set one).
   return (
     <div className={`flex items-end gap-2 ${isStaff ? "justify-end" : "justify-start"}`}>
       {!isStaff && (
-        <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-[10px] font-bold text-slate-600 shrink-0">
-          <i className="fas fa-user text-xs" aria-hidden="true"></i>
-        </div>
+        <Avatar
+          src={msg.sender_avatar}
+          name={msg.sender}
+          className="shrink-0 h-7 w-7"
+          fallbackClassName="bg-slate-300 text-slate-700 text-[10px] font-bold"
+        />
       )}
       <div className={`max-w-[72%] ${isStaff ? "items-end" : "items-start"} flex flex-col gap-1`}>
         <div className={`px-4 py-2.5 rounded-2xl text-sm leading-relaxed shadow-sm
@@ -130,9 +141,12 @@ function Bubble({ msg, isStaff }) {
         </span>
       </div>
       {isStaff && (
-        <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center shrink-0">
-          <i className="fas fa-headset text-sky-600 text-xs" aria-hidden="true"></i>
-        </div>
+        <Avatar
+          src={msg.sender_avatar}
+          name={msg.sender}
+          className="shrink-0 h-7 w-7"
+          fallbackClassName="bg-sky-100 text-sky-700 text-[10px] font-bold"
+        />
       )}
     </div>
   );

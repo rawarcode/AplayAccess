@@ -38,6 +38,7 @@ import {
   markAdminMessageRead,
 } from '../lib/adminApi.js';
 import { useDraggableWidget } from '../lib/useDraggableWidget.js';
+import Avatar from './ui/Avatar.jsx';
 
 function timeAgo(iso) {
   if (!iso) return '';
@@ -340,11 +341,14 @@ function ThreadList({ threads, onPick }) {
               unread ? 'bg-violet-50 hover:bg-violet-100' : 'hover:bg-slate-50'
             }`}
           >
-            <div className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold ${
-              unread ? 'bg-violet-600 text-white' : 'bg-slate-200 text-slate-600'
-            }`}>
-              {initials(t.sender)}
-            </div>
+            <Avatar
+              src={t.sender_avatar}
+              name={t.sender}
+              className="shrink-0 h-10 w-10"
+              fallbackClassName={`text-sm font-bold ${
+                unread ? 'bg-violet-600 text-white' : 'bg-slate-200 text-slate-600'
+              }`}
+            />
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between gap-2 mb-0.5">
                 <span className={`text-sm truncate ${unread ? 'font-bold text-slate-900' : 'font-medium text-slate-700'}`}>
@@ -370,12 +374,17 @@ function ThreadList({ threads, onPick }) {
 // ─── Thread detail + composer ──────────────────────────────────────
 function ThreadDetail({ thread, reply, setReply, sending, sendError, onSend, onKeyDown, composerRef, bottomRef }) {
   // Build a single ordered list: root + replies. sender_type decides
-  // which side of the conversation each bubble lands on.
+  // which side of the conversation each bubble lands on. The thread
+  // root is a guest message — it always carries the thread sender's
+  // avatar; replies use whatever sender_avatar the API resolved
+  // (per-staff for resort-typed, thread owner for guest-typed).
   const bubbles = [
     {
       id: thread.id,
       body: thread.body,
       sender_type: 'guest',
+      sender_avatar: thread.sender_avatar,
+      sender: thread.sender,
       created_at: thread.created_at,
     },
     ...(thread.replies ?? []),
@@ -388,9 +397,12 @@ function ThreadDetail({ thread, reply, setReply, sending, sendError, onSend, onK
           return (
             <div key={b.id ?? `b-${Math.random()}`} className={`flex ${fromStaff ? 'justify-end' : 'justify-start'}`}>
               {!fromStaff && (
-                <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                  <i className="fas fa-user text-slate-600 text-[10px]"></i>
-                </div>
+                <Avatar
+                  src={b.sender_avatar}
+                  name={b.sender || thread.sender}
+                  className="shrink-0 h-7 w-7 mr-2 mt-0.5"
+                  fallbackClassName="bg-slate-300 text-slate-700 text-[10px] font-bold"
+                />
               )}
               <div className={`max-w-[78%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                 fromStaff
@@ -403,9 +415,12 @@ function ThreadDetail({ thread, reply, setReply, sending, sendError, onSend, onK
                 </p>
               </div>
               {fromStaff && (
-                <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center shrink-0 ml-2 mt-0.5">
-                  <i className="fas fa-headset text-violet-600 text-[10px]"></i>
-                </div>
+                <Avatar
+                  src={b.sender_avatar}
+                  name={b.sender || 'Aplaya Resort'}
+                  className="shrink-0 h-7 w-7 ml-2 mt-0.5"
+                  fallbackClassName="bg-violet-100 text-violet-700 text-[10px] font-bold"
+                />
               )}
             </div>
           );
