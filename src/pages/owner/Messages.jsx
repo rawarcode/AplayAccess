@@ -1039,12 +1039,16 @@ export default function AdminMessages() {
           On a laptop-height viewport the page felt "too tall". */}
       <div className="flex-1 rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex min-h-0">
 
-        {/* Thread list — full-width on mobile when no thread is open;
-            fixed 320px sidebar on md+ alongside the conversation panel.
-            Master-detail mobile pattern (matches dashboard/Messages.jsx
-            from the guest side) — only ONE panel visible at a time on
-            mobile so neither gets crushed into a 40px column. */}
-        <div className={`${active ? 'hidden md:flex' : 'flex'} w-full md:w-80 shrink-0 flex-col border-r border-slate-200`}>
+        {/* Thread list — full-width when no thread is open OR when
+            viewport is narrower than lg; fixed 320px sidebar on lg+
+            alongside the conversation panel. Master-detail extends
+            through tablets (md range) too because at ~1000px with
+            the OwnerShell sidebar open, side-by-side only left
+            ~400px for the conversation — header buttons stacked
+            vertically and bubbles squeezed. lg breakpoint (1024px)
+            is the first viewport where both panels comfortably fit
+            after sidebar + padding. */}
+        <div className={`${active ? 'hidden lg:flex' : 'flex'} w-full lg:w-80 shrink-0 flex-col border-r border-slate-200`}>
           <div className="p-3 border-b border-slate-100 space-y-2">
             <div className="relative">
               <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden="true"></i>
@@ -1132,11 +1136,11 @@ export default function AdminMessages() {
           </div>
         </div>
 
-        {/* Conversation panel — hidden on mobile when no thread open
+        {/* Conversation panel — hidden when no thread open below lg
             (the thread list takes the whole width); takes over the
-            whole width on mobile when a thread is selected. Desktop
-            stays as flex-1 alongside the 320px thread list. */}
-        <div className={`${active ? 'flex' : 'hidden md:flex'} flex-1 flex-col min-w-0`}>
+            whole width below lg when a thread is selected. Desktop
+            (lg+) stays as flex-1 alongside the 320px thread list. */}
+        <div className={`${active ? 'flex' : 'hidden lg:flex'} flex-1 flex-col min-w-0`}>
           {!active ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-4">
               <div className="h-20 w-20 rounded-2xl bg-slate-100 flex items-center justify-center">
@@ -1149,15 +1153,17 @@ export default function AdminMessages() {
             </div>
           ) : (
             <>
-              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-3 md:gap-4">
-                {/* Mobile-only back button — clearing activeId returns the
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-200 bg-slate-50 flex flex-wrap items-start justify-between gap-3 md:gap-4">
+                {/* Back button — clearing activeId returns the
                     panel-toggle classes above to "show thread list,
-                    hide conversation". Hidden on md+ where both panels
-                    are visible side-by-side. */}
+                    hide conversation". Hidden on lg+ where both panels
+                    are visible side-by-side. Active through the md
+                    range (tablet) since side-by-side now starts at lg. */}
                 <button
+                  type="button"
                   onClick={() => setActiveId(null)}
                   aria-label="Back to threads"
-                  className="md:hidden h-11 w-11 -ml-2 shrink-0 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-200/60"
+                  className="lg:hidden h-11 w-11 -ml-2 shrink-0 flex items-center justify-center rounded-lg text-slate-600 hover:bg-slate-200/60 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
                 >
                   <i className="fas fa-arrow-left" aria-hidden="true"></i>
                 </button>
