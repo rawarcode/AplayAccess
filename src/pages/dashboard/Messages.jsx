@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../../lib/messageApi.js";
 import Toast, { useToast } from "../../components/ui/Toast.jsx";
 import Avatar from "../../components/ui/Avatar.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 import { Helmet } from "react-helmet-async";
 import {
   playMessageChime,
@@ -23,6 +24,7 @@ function timeAgo(dateStr) {
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 export default function Messages() {
+  const { user } = useAuth();
   const [threads, setThreads]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [currentId, setCurrentId] = useState(null);
@@ -398,6 +400,14 @@ export default function Messages() {
                         {timeAgo(m.timestamp)}
                       </div>
                     </div>
+                    {m.sender === "user" && (
+                      <Avatar
+                        src={user?.avatar}
+                        name={user?.name || 'You'}
+                        className="shrink-0 h-7 w-7 ml-2 mt-1"
+                        fallbackClassName="bg-sky-600 text-white text-[10px] font-bold"
+                      />
+                    )}
                   </div>
                 ))
               )}

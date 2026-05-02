@@ -365,6 +365,14 @@ export default function ChatWidget() {
                   )}
                   {msg.type === "bot" ? <BotText text={msg.text} /> : msg.text}
                 </div>
+                {msg.type === "user" && (
+                  <Avatar
+                    src={user?.avatar}
+                    name={user?.name || 'You'}
+                    className="shrink-0 h-7 w-7 ml-2 mt-0.5"
+                    fallbackClassName="bg-sky-600 text-white text-[10px] font-bold"
+                  />
+                )}
               </div>
             ))}
 
