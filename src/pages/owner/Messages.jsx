@@ -7,6 +7,7 @@ import Toast, { useToast } from "../../components/ui/Toast";
 import useDebounce from "../../hooks/useDebounce.js";
 import { fmtDateTime } from "../../lib/format";
 import { useNotifications } from "../../context/NotificationContext.jsx";
+import { useAuth } from "../../context/AuthContext.jsx";
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 // Local alias: the original "fmtDate" here included time — it was really fmtDateTime
@@ -501,6 +502,13 @@ function AutoReplyPanel({ open, onClose, showToast }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function AdminMessages() {
+  const { user } = useAuth();
+  // Front desk can read + reply but cannot delete a thread or
+  // restrict a guest's messaging access. Those are policy actions
+  // gated to admin + owner via the admin_or_owner middleware on
+  // the backend; the frontend hides the buttons too so front-desk
+  // staff don't see disabled affordances.
+  const canModerate = user?.role === 'admin' || user?.role === 'owner';
   const { refresh: refreshNotifications } = useNotifications();
   const [toast, showToast, clearToast, toastType, toastAction] = useToast(6000);
 
@@ -1213,8 +1221,10 @@ export default function AdminMessages() {
                   {/* Restrict-messaging toggle — label + color flip based
                       on the sender's current state. Opens a confirm
                       dialog so staff can optionally attach a reason
-                      that lands in the activity log. */}
-                  {active.sender_id && (
+                      that lands in the activity log. Hidden for front
+                      desk: messaging restriction is a policy action
+                      (admin + owner only). */}
+                  {canModerate && active.sender_id && (
                     <button
                       onClick={() => {
                         setBlockReason("");
@@ -1238,10 +1248,15 @@ export default function AdminMessages() {
                       {active.sender_messaging_blocked ? 'Restore' : 'Restrict'}
                     </button>
                   )}
-                  <button type="button" onClick={() => setDeleteTarget(active)} title="Delete thread" aria-label="Delete thread"
-                    className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
-                    <i className="fas fa-trash text-sm" aria-hidden="true"></i>
-                  </button>
+                  {/* Thread delete — admin + owner only, same rationale
+                      as restrict above. Front desk reads + replies
+                      only. */}
+                  {canModerate && (
+                    <button type="button" onClick={() => setDeleteTarget(active)} title="Delete thread" aria-label="Delete thread"
+                      className="h-11 w-11 rounded-lg hover:bg-rose-50 flex items-center justify-center text-rose-600 hover:text-rose-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                      <i className="fas fa-trash text-sm" aria-hidden="true"></i>
+                    </button>
+                  )}
                 </div>
               </div>
 
