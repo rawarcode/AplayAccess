@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../../lib/messageApi.js";
 import Toast, { useToast } from "../../components/ui/Toast.jsx";
+import Avatar from "../../components/ui/Avatar.jsx";
 import { Helmet } from "react-helmet-async";
 import {
   playMessageChime,
@@ -372,9 +373,12 @@ export default function Messages() {
                 current.messages.map((m) => (
                   <div key={m.id} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"}`}>
                     {m.sender !== "user" && (
-                      <div className="h-7 w-7 rounded-full bg-sky-100 flex items-center justify-center text-[10px] font-bold text-sky-600 shrink-0 mr-2 mt-1">
-                        <i className="fas fa-umbrella-beach text-xs"></i>
-                      </div>
+                      <Avatar
+                        src={m.sender_avatar}
+                        name={m.sender_name || 'Aplaya Resort'}
+                        className="shrink-0 h-7 w-7 mr-2 mt-1"
+                        fallbackClassName="bg-sky-100 text-sky-700 text-[10px] font-bold"
+                      />
                     )}
                     <div
                       className={[

@@ -5,6 +5,7 @@ import { getAutoReplyKeywords } from "../lib/resortApi.js";
 import { getMessages, sendMessage, replyMessage, markMessageRead } from "../lib/messageApi.js";
 import { playMessageChime } from "../lib/notificationSound.js";
 import { useDraggableWidget } from "../lib/useDraggableWidget.js";
+import Avatar from "./ui/Avatar.jsx";
 
 /** Render bot text with route links (/rooms, /resort, etc.) as clickable Link components */
 function BotText({ text }) {
@@ -90,7 +91,8 @@ export default function ChatWidget() {
       // Surfaced on resort-sent bubbles so the guest sees which
       // staff member replied. Null for auto-reply-rule matches and
       // legacy rows — the bubble hides the label in that case.
-      senderName: m.sender_name ?? null,
+      senderName:   m.sender_name ?? null,
+      senderAvatar: m.sender_avatar ?? null,
       text: m.text,
     }));
   }
@@ -346,9 +348,12 @@ export default function ChatWidget() {
             {messages.map(msg => (
               <div key={msg.id} className={`flex ${msg.type === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.type === "bot" && (
-                  <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                    <i className="fas fa-robot text-sky-600 text-xs"></i>
-                  </div>
+                  <Avatar
+                    src={msg.senderAvatar}
+                    name={msg.senderName || 'Aplaya Resort'}
+                    className="shrink-0 h-7 w-7 mr-2 mt-0.5"
+                    fallbackClassName="bg-sky-100 text-sky-700 text-[10px] font-bold"
+                  />
                 )}
                 <div className={`max-w-[80%] px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   msg.type === "user"
