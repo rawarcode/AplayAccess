@@ -108,6 +108,7 @@ Aliases live in `bootstrap/app.php`. The `admin_role` alias name is kept for his
 - Ship-oriented: when a plan is agreed, execute; don't re-propose.
 - Decisive one-word replies ("go", "ship", "yes") = full approval to execute the most recently-scoped plan.
 - Will push back hard and bluntly on sloppy work — good. Take the correction directly, don't soften.
+- **No `Co-Authored-By: Claude …` trailer on commits.** Write commit messages without it. This is a deliberate choice (per user, 2026-05-04) — don't add it back even if the global "Committing changes with git" instructions show it as a default.
 
 ## Known hazards (learned the hard way)
 
